@@ -32,6 +32,8 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
 | Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
 
+| **Lot C : paramètres à l'écran** : page `/marches` (admin : liste, activer / désactiver, créer vide ou par copie des paramètres d'un marché), Paramètres > Secteurs (zones et secteurs), Natures de réfection, Catalogue des pièces (recherche), règles de proposition des articles du bordereau (famille, matériaux, diamètres, sans nouvelle version) ; marché désactivé masqué aux agents | migration `20261005100000_copie_marche.sql` (`copier_marche`) ; `web/src/app/(app)/marches/`, `web/src/app/(app)/parametres/Onglet{Secteurs,Natures,Catalogue}.tsx` ; 36 tests pgTAP (`06_copie_marche_parametres`) | PR lot C ; tests pgTAP, tsc et parcours Playwright sur pile Supabase locale verts |
+
 ## 2. En attente d'Issam
 
 0. **Essais sur le marché DEMO** (sélecteur en haut du panneau) : lot d'attachement de septembre
@@ -118,10 +120,10 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 **Fait cette session** : le panneau d'export demandé (voir `web/README.md`, § Exports), fusionné et
 déployé ; marché DEMO pour les essais.
 
-**Application standard, ce qui manque encore à l'écran** (aujourd'hui seulement en base, par migration) :
-création d'un marché (et copie des paramètres d'un marché existant), zones et secteurs, natures de réfection
-(et leur article), catalogue des pièces, règles de proposition automatique des prix (famille, matériaux,
-diamètres) pour un bordereau saisi à l'écran.
+**Application standard, ce qui manquait à l'écran** : fait par le lot C (marchés, secteurs, natures,
+catalogue, règles de proposition). Reste : dessin des zones et secteurs (avec le plan du réseau), phases du
+marché, désactivation d'un marché qui bloquerait aussi les écritures en base (aujourd'hui : simplement masqué
+aux agents).
 
 **Retouches visuelles des exports** : si la SRM impose un gabarit (cartouche, logos, mentions, visas),
 passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste se règle dans les modèles.

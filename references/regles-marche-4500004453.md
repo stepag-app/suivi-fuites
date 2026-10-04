@@ -10,7 +10,7 @@
 |---|---|
 | Date d'extraction | 2026-10-04 |
 | Dossier source | dossier du marché sur le poste de STEPAG (lecture seule, jamais versionné) : 127 fichiers retenus, 15 exclus, 376 Mo |
-| Livrable | ce fichier unique ; environ 3834 lignes |
+| Livrable | ce fichier unique ; environ 3839 lignes |
 | Outils utilisés | pdftotext, pdfinfo, pdftoppm, pdfimages, pdffonts (poppler) ; tesseract et ocrmypdf (fra+ara) ; pandoc ; textutil ; openpyxl, xlrd, python-docx, Pillow (Python) ; lecture visuelle des pages scannées, des tableaux et des plans ; sous-agents pour les documents longs et les secondes lectures |
 | Limites rencontrées | dessin AutoCAD (DWG, 162,8 Mo) et sa sauvegarde non lisibles ; fichiers .xls lus en valeurs seules (formules non accessibles) ; ocrmypdf refusé sur les PDF signés (repli : pdftoppm + tesseract) ; aucun modèle Canva dans le dossier (connecteur Canva non utilisé) ; exemplaire du marché signé par le Directeur Général de la SRM absent |
 | Pré-requis | tous les outils présents ; push à blanc réussi au démarrage |
@@ -41,7 +41,7 @@ Préfixes des règles : `R-ID` (section 2), `R-CPS` (3), `R-BPU` (4), `R-DEF` (5
 | 5 | Définition des prix | 225 | définition de chaque prix, règles de métré, tableau « saisie terrain → prix » et CSV |
 | 6 | Matériaux et articles | 313 | matériaux contractuels et catalogue interne de 266 pièces |
 | 6 bis | Énumérations (listes de valeurs fermées) | 261 | toutes les listes de valeurs (zones, secteurs, revêtements, ouvrages, statuts…) |
-| 7 | Attachement modèle 2017 et pièces de paiement | 316 | modèle 2017 : bordereau, chaîne de calcul, attachement, décompte, état de suivi, facture, table de passage, exemple chiffré |
+| 7 | Attachement modèle 2017 et pièces de paiement | 317 | modèle 2017 : bordereau, chaîne de calcul, attachement, décompte, état de suivi, facture, table de passage, exemple chiffré |
 | 8 | Fiches et modèles Canva | 293 | gabarits STEPAG actuels champ par champ : rapport journalier, fiche de réparation, rapport mensuel, classeur d'attachement |
 | 9 | Plans | 73 | les 21 planches et le dessin AutoCAD |
 | 10 | Glossaire | 108 | termes, abréviations, équivalences d'unités |
@@ -49,7 +49,7 @@ Préfixes des règles : `R-ID` (section 2), `R-CPS` (3), `R-BPU` (4), `R-DEF` (5
 | 11 | Règles dérivées pour l'application | 119 | cycle de vie, saisies par étape, calculs, contrôles, alertes, exports, suivi financier |
 | 11 bis | Dictionnaire de données consolidé | 126 | dictionnaire de données et cardinalités |
 | 12 | Points ambigus, contradictions et questions | 85 | 41 questions avec hypothèse par défaut, contradictions, pièces à demander |
-| 13 | Journal de contrôle de complétude | 131 | preuves de lecture, secondes lectures, écarts, croisements, contrôle de forme |
+| 13 | Journal de contrôle de complétude | 135 | preuves de lecture, secondes lectures, écarts, croisements, contrôle de forme |
 
 ### Guide de lecture
 
@@ -2012,276 +2012,276 @@ numero;mesures_a_relever;unite_saisie;formule_quantite;conditions;source
 
 ### 6.2 Catalogue des pièces du classeur STEPAG (liste interne, intégrale)
 
-Statut `[INTERNE]`. Colonnes « Famille proposée » et « Prix 2026 proposé » : propositions de l'extracteur calculées par script à partir du premier diamètre lu dans la désignation (diamètre extérieur pour le PEHD).
+Statut `[INTERNE]`. Source de toutes les lignes : [F001 feuille "LISTE" colonne A]. Colonnes « Famille proposée » et « Prix 2026 proposé » : propositions de l'extracteur calculées par script à partir du premier diamètre lu dans la désignation (diamètre extérieur pour le PEHD).
 
-| N° | Désignation exacte | Famille proposée | Unité de saisie | Prix 2026 proposé | Compris dans le prix | Source |
-|---|---|---|---|---|---|---|
-| 1 | A DETECTER | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
-| 2 | RAS | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
-| 3 | Assainissement | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
-| 4 | refusé par l'abonné | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
-| 5 | sondage negatif | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
-| 6 | Manchon droit 15 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 7 | Manchon droit 75/75 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 8 | Manchon DN 600 | manchon | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 9 | Manchon droit 63/63 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 10 | Manchon droit 50/50 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 11 | Manchon droit 40/40 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 12 | Manchon droit 32/32 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 13 | Manchon droit 20/20 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 14 | Manchon droit 25/25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 15 | Manchon réduit 32/25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 16 | Manchon réduit 40/32 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 17 | Manchon réduit 75/63 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 18 | Robinet d'arret 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 19 | Robinet d'arret 32/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 20 | Robinet d'arret 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 21 | Robinet d'arret 63 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 22 | Robinet d'arret 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 23 | Robinet FF 32 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 24 | Robinet FF 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 25 | Robinet FF 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 26 | Robinet PEC 50 1-1/2 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 27 | Robinet PEC 40 1-1/2 F | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 28 | Robinet PEC 63 1-1/2 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 29 | Robinet PEC 20/32 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 30 | Robinet PEC 20/25 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 31 | Robinet PEC 40/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 32 | Robinet PEC 40/50 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 33 | Robinet PEC 63/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 34 | Robinet vanne 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 35 | Robinet vanne 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 36 | Robinet vanne 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 37 | Robinet vanne 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 38 | Robinet vanne 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 39 | Robinet vanne 50/40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 40 | Robinet vanne 30 1-1/4 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 41 | Raccord en laiton 50 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 42 | Raccord en laiton 63 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 43 | Raccord en laiton 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 44 | Raccord en laiton 40 1-1/4 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 45 | Raccord en laiton 40 1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 46 | Raccord en laiton 32 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 47 | Raccord en laiton 32 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 48 | Raccord en laiton 25 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 49 | Raccord en laiton 25 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 50 | Raccord standard 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 51 | Raccord standard 30 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 52 | coude dn 15 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 53 | coude dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 54 | coude dn 20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 55 | coude dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 56 | coude dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 57 | coude dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 58 | coude dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 59 | coude dn 100 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 60 | coude dn 1/8 110 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 61 | Collier PEC 50/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 62 | Collier PEC 40/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 63 | Collier PEC 80/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 64 | Collier PEC 80/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 65 | Collier PEC 63/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 66 | Collier PEC 60/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 67 | Collier PEC 60/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 68 | Collier PEC 63/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 69 | Collier PEC 75/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 70 | Collier PEC 40/90 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 71 | Collier PEC 100/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 72 | Collier PEC 110/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 73 | Collier PEC 110/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 74 | Collier PEC 100/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 75 | Collier PEC 150/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 76 | Collier PEC 150/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 77 | Collier PEC 160/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 78 | Collier PEC 200/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 79 | Collier PEC 225/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 80 | Collier PEC  400/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 81 | Collier PEC 160/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 82 | Collier ASTOR 32 3/4 | collier pour polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 83 | Collier ASTOR 50 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 84 | Collier ASTOR 40 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 85 | Collier ASTOR 63 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 86 | compteur dn 100 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 87 | boulon 24 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 88 | boulon 16x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 89 | boulon 20x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 90 | boulon 16X70 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 91 | boulon 20X110 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 92 | Fillasse | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 93 | PEHD 75/75 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
-| 94 | PEHD 53/63 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
-| 95 | PEHD 33/40 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
-| 96 | PEHD 42/50 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
-| 97 | PEHD 19/25 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
-| 98 | PEHD 20 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
-| 99 | PEHD 15 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
-| 100 | PEHD 26/32 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
-| 101 | PEHD /75 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
-| 102 | PPR 25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 103 | Robinet equerre 32 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 104 | Robinet equerre 25 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 105 | Robinet equerre 25 3/4 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 106 | Robinet equerre 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 107 | Robinet equerre 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 108 | Tabernacle | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
-| 109 | Bouche à clé carrée | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
-| 110 | Tube PVC 90 | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
-| 111 | Robinet FF 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 112 | Robinet FF 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 113 | Robinet pec 32/15 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 114 | Robinet PEC 30/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 115 | Robinet PEC 40/20 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 116 | Robinet PEC 20/15 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
-| 117 | Collier PEC 140/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 118 | Collier PEC 50/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 119 | Joint Gibault 60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 120 | Joint Gibault 63 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 121 | Joint Gibault 75/80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 122 | Joint Gibault 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 123 | Joint Gibault 75/60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 124 | Joint Gibault 80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 125 | Joint Gibault 90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 126 | Joint Gibault 80/90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 127 | Joint Gibault  100 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 128 | Joint Gibault 110 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 129 | Joint Gibault 125 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 130 | Joint Gibault 140 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 131 | Joint Gibault 150 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 132 | Joint Gibault 160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 133 | Joint Gibault 200 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 134 | Joint Gibault  225 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
-| 135 | Joint Gibault  250 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
-| 136 | Joint Gibault  300 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
-| 137 | Joint Gibault  315 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
-| 138 | Joint Gibault  400 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
-| 139 | Joint Gibault  500 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
-| 140 | Joint de démontage dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 141 | Joint de démontage dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 142 | Joint dissymétrique  90*80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 143 | Joint dissymétrique  150*160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 144 | Joint dissymétrique  100*110 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 145 | Joint dissymétrique  200*225 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
-| 146 | Joint dissymétrique  60*75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 147 | buse DN200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 148 | Tuyau PVC D 63 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
-| 149 | Tuyau PVC D 75 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
-| 150 | Tuyau PVC D 90 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
-| 151 | Tuyau PVC D 110 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 152 | Tuyau PVC D 125 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 153 | Tuyau PVC D 140 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 154 | Tuyau AC D 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 155 | Tuyau AC D 151 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 156 | Tuyau PVC D 160 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 157 | Tuyau PVC D 200 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 158 | Tuyau PVC D 225 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
-| 159 | Tuyau PVC D 250 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
-| 160 | Tuyau PVC D 315 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
-| 161 | Tuyau PVC D 400 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
-| 162 | Tuyau PVC D 500 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
-| 163 | Tuyau AC DN 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
-| 164 | Tuyau AC DN 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
-| 165 | Collier PEC 75/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 166 | Collier PEC 90/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 167 | Joint tolérance 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
-| 168 | tuyau  pehd | tuyau polyéthylène | m | 6 ou 9 | compris | [F001 feuille "LISTE" A] |
-| 169 | Joint tapis | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 170 | ventouse DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 171 | ventouse DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 172 | ventouse DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 173 | bouchon dn 25 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 174 | bouchon dn20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 175 | bouchon dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 176 | bouchon dn 32 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 177 | bouchon dn 20 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 178 | bouchon dn 32 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 179 | bouchon dn 50 ASTORE | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 180 | bouchon dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 181 | bouchon dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 182 | bouchon dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 183 | bouchon dn 110 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 184 | bouchon dn 315 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 185 | bouchon dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 186 | bouchon dn  160 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 187 | adaptateur de bride dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 188 | adaptateur de bride dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 189 | adaptateur de bride dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 190 | adaptateur de bride dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 191 | adaptateur de bride dn 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 192 | adaptateur de bride dn 315 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 193 | adaptateur de bride dn 100/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 194 | adaptateur de bride dn 200/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 195 | adaptateur de bride dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 196 | bride major dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 197 | bride major dn 225/200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 198 | bride major dn 315/300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 199 | bride major dn 110/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 200 | bride major dn 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 201 | bride major dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 202 | bride major dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 203 | bride major dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 204 | bride major dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 205 | BU DN 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 206 | BU DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 207 | BU DN 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 208 | BU DN 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 209 | BU DN 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 210 | BU DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 211 | BU DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 212 | obturateur dn 40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 213 | obturateur dn 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 214 | obturateur dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 215 | obturateur dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 216 | obturateur dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 217 | obturateur dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 218 | obturateur dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 219 | obturateur dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 220 | obturateur dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 221 | obturateur dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 222 | cône de réduction 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 223 | réducteur dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 224 | PLAQ REGARD CADRE CARRE TAMP ROND 800X800 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 225 | PLAQ REGARD TAMPON ET CADRE CARRE  500X500 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 226 | touvenant | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 227 | Réducteur 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 228 | TE 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 229 | TE 150/150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 230 | TE 100/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 231 | TE 100/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 232 | TE 110/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 233 | TE 200/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 234 | TE 100/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 235 | TE 150/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 236 | TE 160/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 237 | TE 200/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 238 | TE 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 239 | TE 75/75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 240 | TE 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 241 | TE 200/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 242 | TE 63 ASTORE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 243 | FUITE SUR CONDUITE DN 700 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 244 | FUITE SUR CONDUITE DN 600 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 245 | Fonte ductile dn400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 246 | CONDUITE DN 90 ACIER GALVANISE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 247 | vanne dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 248 | beton b2 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 249 | acier haut adherance 10 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 250 | acier haut adherance 12 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
-| 251 | Collier pec 200/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
-| 252 | Raccord  40/30 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 253 | Raccord  63/40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 254 | Raccord  20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
-| 255 | Raccord  Astore 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
-| 256 | AC dn 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
-| 257 | CONE 225/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 258 | CONE DE REDUCTION 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 259 | CONE DE REDUCTION 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 260 | CONE DE REDUCTION 160/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 261 | plaque de regard | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 262 | Porte de niche 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
-| 263 | bouche d'incendie | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 264 | monchette dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 265 | monchette dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
-| 266 | Robinet FF 50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| N° | Désignation exacte | Famille proposée | Unité de saisie | Prix 2026 proposé | Compris dans le prix |
+|---|---|---|---|---|---|
+| 1 | A DETECTER | motif (pas une pièce) | — | — | — |
+| 2 | RAS | motif (pas une pièce) | — | — | — |
+| 3 | Assainissement | motif (pas une pièce) | — | — | — |
+| 4 | refusé par l'abonné | motif (pas une pièce) | — | — | — |
+| 5 | sondage negatif | motif (pas une pièce) | — | — | — |
+| 6 | Manchon droit 15 | manchon polyéthylène | u | 6 | compris |
+| 7 | Manchon droit 75/75 | manchon polyéthylène | u | 9 | compris |
+| 8 | Manchon DN 600 | manchon | u | hors bordereau probable | — |
+| 9 | Manchon droit 63/63 | manchon polyéthylène | u | 9 | compris |
+| 10 | Manchon droit 50/50 | manchon polyéthylène | u | 9 | compris |
+| 11 | Manchon droit 40/40 | manchon polyéthylène | u | 9 | compris |
+| 12 | Manchon droit 32/32 | manchon polyéthylène | u | 6 | compris |
+| 13 | Manchon droit 20/20 | manchon polyéthylène | u | 6 | compris |
+| 14 | Manchon droit 25/25 | manchon polyéthylène | u | 6 | compris |
+| 15 | Manchon réduit 32/25 | manchon polyéthylène | u | 6 | compris |
+| 16 | Manchon réduit 40/32 | manchon polyéthylène | u | 9 | compris |
+| 17 | Manchon réduit 75/63 | manchon polyéthylène | u | 9 | compris |
+| 18 | Robinet d'arret 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 19 | Robinet d'arret 32/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 20 | Robinet d'arret 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 21 | Robinet d'arret 63 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 22 | Robinet d'arret 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 23 | Robinet FF 32 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 24 | Robinet FF 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 25 | Robinet FF 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 26 | Robinet PEC 50 1-1/2 | robinet de prise en charge | u | 7 | compris |
+| 27 | Robinet PEC 40 1-1/2 F | robinet de prise en charge | u | 7 | compris |
+| 28 | Robinet PEC 63 1-1/2 | robinet de prise en charge | u | 7 | compris |
+| 29 | Robinet PEC 20/32 | robinet de prise en charge | u | 7 | compris |
+| 30 | Robinet PEC 20/25 | robinet de prise en charge | u | 7 | compris |
+| 31 | Robinet PEC 40/40 | robinet de prise en charge | u | 7 | compris |
+| 32 | Robinet PEC 40/50 | robinet de prise en charge | u | 7 | compris |
+| 33 | Robinet PEC 63/40 | robinet de prise en charge | u | 7 | compris |
+| 34 | Robinet vanne 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 35 | Robinet vanne 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 36 | Robinet vanne 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 37 | Robinet vanne 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 38 | Robinet vanne 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 39 | Robinet vanne 50/40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 40 | Robinet vanne 30 1-1/4 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 41 | Raccord en laiton 50 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 42 | Raccord en laiton 63 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 43 | Raccord en laiton 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 44 | Raccord en laiton 40 1-1/4 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 45 | Raccord en laiton 40 1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 46 | Raccord en laiton 32 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 47 | Raccord en laiton 32 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 48 | Raccord en laiton 25 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 49 | Raccord en laiton 25 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 50 | Raccord standard 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 51 | Raccord standard 30 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 52 | coude dn 15 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 53 | coude dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 54 | coude dn 20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 55 | coude dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 56 | coude dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 57 | coude dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 58 | coude dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 59 | coude dn 100 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 60 | coude dn 1/8 110 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 61 | Collier PEC 50/20 | collier de prise en charge | u | 8 | compris |
+| 62 | Collier PEC 40/20 | collier de prise en charge | u | 8 | compris |
+| 63 | Collier PEC 80/40 | collier de prise en charge | u | 8 | compris |
+| 64 | Collier PEC 80/20 | collier de prise en charge | u | 8 | compris |
+| 65 | Collier PEC 63/20 | collier de prise en charge | u | 8 | compris |
+| 66 | Collier PEC 60/20 | collier de prise en charge | u | 8 | compris |
+| 67 | Collier PEC 60/40 | collier de prise en charge | u | 8 | compris |
+| 68 | Collier PEC 63/40 | collier de prise en charge | u | 8 | compris |
+| 69 | Collier PEC 75/20 | collier de prise en charge | u | 8 | compris |
+| 70 | Collier PEC 40/90 | collier de prise en charge | u | 8 | compris |
+| 71 | Collier PEC 100/20 | collier de prise en charge | u | 8 | compris |
+| 72 | Collier PEC 110/20 | collier de prise en charge | u | 8 | compris |
+| 73 | Collier PEC 110/40 | collier de prise en charge | u | 8 | compris |
+| 74 | Collier PEC 100/40 | collier de prise en charge | u | 8 | compris |
+| 75 | Collier PEC 150/20 | collier de prise en charge | u | 8 | compris |
+| 76 | Collier PEC 150/40 | collier de prise en charge | u | 8 | compris |
+| 77 | Collier PEC 160/20 | collier de prise en charge | u | 8 | compris |
+| 78 | Collier PEC 200/20 | collier de prise en charge | u | 8 | compris |
+| 79 | Collier PEC 225/40 | collier de prise en charge | u | 8 | compris |
+| 80 | Collier PEC  400/40 | collier de prise en charge | u | 8 | compris |
+| 81 | Collier PEC 160/40 | collier de prise en charge | u | 8 | compris |
+| 82 | Collier ASTOR 32 3/4 | collier pour polyéthylène | u | 6 | compris |
+| 83 | Collier ASTOR 50 3/4 | collier pour polyéthylène | u | 9 | compris |
+| 84 | Collier ASTOR 40 3/4 | collier pour polyéthylène | u | 9 | compris |
+| 85 | Collier ASTOR 63 3/4 | collier pour polyéthylène | u | 9 | compris |
+| 86 | compteur dn 100 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 87 | boulon 24 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 88 | boulon 16x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 89 | boulon 20x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 90 | boulon 16X70 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 91 | boulon 20X110 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 92 | Fillasse | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 93 | PEHD 75/75 | tuyau polyéthylène | m | 9 | compris |
+| 94 | PEHD 53/63 | tuyau polyéthylène | m | 9 | compris |
+| 95 | PEHD 33/40 | tuyau polyéthylène | m | 9 | compris |
+| 96 | PEHD 42/50 | tuyau polyéthylène | m | 9 | compris |
+| 97 | PEHD 19/25 | tuyau polyéthylène | m | 6 | compris |
+| 98 | PEHD 20 | tuyau polyéthylène | m | 6 | compris |
+| 99 | PEHD 15 | tuyau polyéthylène | m | 6 | compris |
+| 100 | PEHD 26/32 | tuyau polyéthylène | m | 6 | compris |
+| 101 | PEHD /75 | tuyau polyéthylène | m | 9 | compris |
+| 102 | PPR 25 | manchon polyéthylène | u | 6 | compris |
+| 103 | Robinet equerre 32 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 104 | Robinet equerre 25 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 105 | Robinet equerre 25 3/4 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 106 | Robinet equerre 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 107 | Robinet equerre 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 108 | Tabernacle | bouche à clé | u | 7 ; 8 ; 10 | compris |
+| 109 | Bouche à clé carrée | bouche à clé | u | 7 ; 8 ; 10 | compris |
+| 110 | Tube PVC 90 | bouche à clé | u | 7 ; 8 ; 10 | compris |
+| 111 | Robinet FF 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 112 | Robinet FF 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 113 | Robinet pec 32/15 | robinet de prise en charge | u | 7 | compris |
+| 114 | Robinet PEC 30/40 | robinet de prise en charge | u | 7 | compris |
+| 115 | Robinet PEC 40/20 | robinet de prise en charge | u | 7 | compris |
+| 116 | Robinet PEC 20/15 | robinet de prise en charge | u | 7 | compris |
+| 117 | Collier PEC 140/20 | collier de prise en charge | u | 8 | compris |
+| 118 | Collier PEC 50/40 | collier de prise en charge | u | 8 | compris |
+| 119 | Joint Gibault 60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 120 | Joint Gibault 63 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 121 | Joint Gibault 75/80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 122 | Joint Gibault 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 123 | Joint Gibault 75/60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 124 | Joint Gibault 80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 125 | Joint Gibault 90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 126 | Joint Gibault 80/90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 127 | Joint Gibault  100 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 128 | Joint Gibault 110 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 129 | Joint Gibault 125 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 130 | Joint Gibault 140 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 131 | Joint Gibault 150 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 132 | Joint Gibault 160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 133 | Joint Gibault 200 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 134 | Joint Gibault  225 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris |
+| 135 | Joint Gibault  250 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris |
+| 136 | Joint Gibault  300 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris |
+| 137 | Joint Gibault  315 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris |
+| 138 | Joint Gibault  400 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — |
+| 139 | Joint Gibault  500 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — |
+| 140 | Joint de démontage dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 141 | Joint de démontage dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 142 | Joint dissymétrique  90*80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 143 | Joint dissymétrique  150*160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 144 | Joint dissymétrique  100*110 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 145 | Joint dissymétrique  200*225 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris |
+| 146 | Joint dissymétrique  60*75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 147 | buse DN200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 148 | Tuyau PVC D 63 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris |
+| 149 | Tuyau PVC D 75 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris |
+| 150 | Tuyau PVC D 90 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris |
+| 151 | Tuyau PVC D 110 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 152 | Tuyau PVC D 125 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 153 | Tuyau PVC D 140 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 154 | Tuyau AC D 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 155 | Tuyau AC D 151 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 156 | Tuyau PVC D 160 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 157 | Tuyau PVC D 200 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 158 | Tuyau PVC D 225 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris |
+| 159 | Tuyau PVC D 250 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris |
+| 160 | Tuyau PVC D 315 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris |
+| 161 | Tuyau PVC D 400 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — |
+| 162 | Tuyau PVC D 500 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — |
+| 163 | Tuyau AC DN 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris |
+| 164 | Tuyau AC DN 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris |
+| 165 | Collier PEC 75/40 | collier de prise en charge | u | 8 | compris |
+| 166 | Collier PEC 90/20 | collier de prise en charge | u | 8 | compris |
+| 167 | Joint tolérance 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris |
+| 168 | tuyau  pehd | tuyau polyéthylène | m | 6 ou 9 | compris |
+| 169 | Joint tapis | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 170 | ventouse DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 171 | ventouse DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 172 | ventouse DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 173 | bouchon dn 25 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 174 | bouchon dn20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 175 | bouchon dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 176 | bouchon dn 32 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 177 | bouchon dn 20 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 178 | bouchon dn 32 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 179 | bouchon dn 50 ASTORE | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 180 | bouchon dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 181 | bouchon dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 182 | bouchon dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 183 | bouchon dn 110 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — |
+| 184 | bouchon dn 315 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — |
+| 185 | bouchon dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 186 | bouchon dn  160 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — |
+| 187 | adaptateur de bride dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 188 | adaptateur de bride dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 189 | adaptateur de bride dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 190 | adaptateur de bride dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 191 | adaptateur de bride dn 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 192 | adaptateur de bride dn 315 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 193 | adaptateur de bride dn 100/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 194 | adaptateur de bride dn 200/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 195 | adaptateur de bride dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 196 | bride major dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 197 | bride major dn 225/200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 198 | bride major dn 315/300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 199 | bride major dn 110/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 200 | bride major dn 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 201 | bride major dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 202 | bride major dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 203 | bride major dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 204 | bride major dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 205 | BU DN 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 206 | BU DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 207 | BU DN 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 208 | BU DN 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 209 | BU DN 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 210 | BU DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 211 | BU DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 212 | obturateur dn 40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 213 | obturateur dn 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 214 | obturateur dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 215 | obturateur dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 216 | obturateur dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 217 | obturateur dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 218 | obturateur dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 219 | obturateur dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 220 | obturateur dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 221 | obturateur dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 222 | cône de réduction 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 223 | réducteur dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 224 | PLAQ REGARD CADRE CARRE TAMP ROND 800X800 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 225 | PLAQ REGARD TAMPON ET CADRE CARRE  500X500 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 226 | touvenant | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 227 | Réducteur 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 228 | TE 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 229 | TE 150/150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 230 | TE 100/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 231 | TE 100/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 232 | TE 110/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 233 | TE 200/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 234 | TE 100/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 235 | TE 150/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 236 | TE 160/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 237 | TE 200/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 238 | TE 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 239 | TE 75/75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 240 | TE 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 241 | TE 200/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 242 | TE 63 ASTORE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 243 | FUITE SUR CONDUITE DN 700 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 244 | FUITE SUR CONDUITE DN 600 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 245 | Fonte ductile dn400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 246 | CONDUITE DN 90 ACIER GALVANISE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 247 | vanne dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 248 | beton b2 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 249 | acier haut adherance 10 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 250 | acier haut adherance 12 | consommable ou matériau | — | compris dans les prix (sujétions) | compris |
+| 251 | Collier pec 200/40 | collier de prise en charge | u | 8 | compris |
+| 252 | Raccord  40/30 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 253 | Raccord  63/40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 254 | Raccord  20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris |
+| 255 | Raccord  Astore 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris |
+| 256 | AC dn 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris |
+| 257 | CONE 225/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 258 | CONE DE REDUCTION 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 259 | CONE DE REDUCTION 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 260 | CONE DE REDUCTION 160/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 261 | plaque de regard | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 262 | Porte de niche 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
+| 263 | bouche d'incendie | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 264 | monchette dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 265 | monchette dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — |
+| 266 | Robinet FF 50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — |
 
 - **R-MAT-005** [INTERNE] Le catalogue compte 266 désignations distinctes (268 cellules ; deux doublons : « Robinet PEC 63/40 » et « Collier PEC 100/40 » ; colonnes B et C vides) ; il sert de source à la liste déroulante de la colonne « Détail des pieces de reparation des fuites » (validation `LISTE!$A:$A` sur I14:I977), dont 5 motifs qui ne sont pas des pièces (« A DETECTER », « RAS », « Assainissement », « refusé par l'abonné », « sondage negatif »). [F001 feuille "LISTE"]
 - **R-MAT-006** [DÉDUIT] 109 désignations n'ont pas de prix évident au bordereau 2026 (robinets-vannes, ventouses, tés, cônes, brides, adaptateurs, obturateurs, plaques de regard, conduites de diamètre > 315, fonte, acier, pièces côté compteur) : hors bordereau probable, à traiter par prix nouveaux (question en section 12). [F001 feuille "LISTE" ; F032 p.1]
@@ -2620,7 +2620,7 @@ Total 2017 : 1 719 636,50 DH HT ; TVA 20 % 343 927,30 ; TTC 2 063 563,80. Les li
 | Étape | Feuille | Nature | Règle | Source |
 |---|---|---|---|---|
 | 1 | Fiche de réparation | saisie pure | une fuite = une ligne d'identité (secteur, n° de fuite, tournée, date de réparation, terrassement, nature de dégradation) + une ligne par pièce posée (pièce, quantité) ; observations = motif de non-réparation | [F065 feuille "Fiche de réparation"] |
-| 2 | attachement detaillé | recopie par formules + une colonne par prix | terrassement `=E8*F8*G8` (m3) ; réfection `=IF($J8="M",E8*F8,"-")` selon un symbole saisi à la main ; prix de réparation : un « 1 » saisi à la main par fuite dans la colonne du prix ; ligne « Total » `=SUM(...)` par colonne | [F065 feuille "attachement detaillé" H8:AO2427] |
+| 2 | attachement detaillé | recopie par formules + une colonne par prix | terrassement `=E8*F8*G8` (m3, cellule H8) ; réfection `=IF($J8="M",E8*F8,"-")` (cellule P8) selon un symbole saisi à la main (le code testé pour l'enrobé à chaud y est « AC C ») ; prix de réparation : un « 1 » saisi à la main par fuite dans la colonne du prix ; ligne « Total » `=SUM(...)` par colonne | [F065 feuille "attachement detaillé" H8:AO2427] |
 | 3 | Fiche réfection | une ligne par fuite | surface `=IF($G16="B",D16*E16,"-")` : longueur × largeur placée dans la colonne du code matériau (B, M, L, C, AC, AF) ; total par revêtement | [F065 feuille "Fiche réfection" H16:M444] |
 | 4 | attach recap (attachement récapitulatif) | une ligne par prix | « Cumulé » = total de la colonne du prix ; « Quantité du mois » `=H16-F16` (cumulé − quantités précédentes) ; prix 1 et 3 saisis à la main | [F065 feuille "attach recap" F:H] |
 | 5 | decompte | une ligne par prix | quantité (du mois dans F065, cumulée dans F068 et F084) × PU, sans arrondi ; total HT ; TVA ; TTC ; retenue ; net | [F065 feuille "decompte" ; F068 feuille "decompte"] |
@@ -2629,11 +2629,11 @@ Total 2017 : 1 719 636,50 DH HT ; TVA 20 % 343 927,30 ; TTC 2 063 563,80. Les li
 - **R-ATT-003** [2017] La fiche de réparation est la seule saisie ; tout le reste en découle par formules, sauf deux gestes manuels : le symbole de revêtement et le « 1 » par prix de réparation. [F065 feuille "attachement detaillé" J, Y:AO]
 - **R-ATT-004** [2017] Volume de terrassement d'une fuite = Long × Larg × Prof, sans arrondi (`=E8*F8*G8`) ; total = somme. [F065 feuille "attachement detaillé" H8]
 - **R-ATT-005** [2017] Surface de réfection = Long × Larg de la fouille, sans débord ni arrondi, affectée au prix du revêtement ; la profondeur n'intervient pas. [F065 feuille "Fiche réfection" H16]
-- **R-ATT-006** [2017] Une réfection n'est comptée que lorsque le code du revêtement (B, M, L, C, AC, AF) remplace le nom en toutes lettres, c'est-à-dire une fois la réfection faite ; tant qu'elle n'est pas faite, la ligne reste colorée et la surface n'est pas payée. [F065 feuille "Fiche réfection" G, N4:N8]
+- **R-ATT-006** [2017] Une réfection n'est comptée que lorsque le code du revêtement (B, M, L, C, AC, AF) remplace le nom en toutes lettres, c'est-à-dire une fois la réfection faite ; tant qu'elle n'est pas faite, la ligne reste colorée et la surface n'est pas comptée dans cette feuille. Attention : dans F065 le récapitulatif lit le prix 5 dans la « Fiche réfection » mais les prix 6 à 9.b dans l'« attachement detaillé », qui compte toutes les fuites réparées ; les deux feuilles divergent (prix 6 : 85,65 contre 88,66 ; prix 7 : 14,62 contre 45,07 ; prix 8 : 32,00 contre 61,17 ; prix 9.b : 27,24 contre 87,66). La version F084 lit tout dans la « Fiche réfection ». [F065 feuille "Fiche réfection" G, N4:N8 ; F065 feuille "attach recap" H36:H60]
 - **R-ATT-007** [2017] Le statut d'une fuite était porté par la couleur de la ligne : « Réparée par les agents de la RADEEO » ; « Réfection Béton » ; « Réparée non encore réfectionnée » ; « Non réparée, non réfectionnée » ; « Fuite réparée et entièrement réfectionnée » (sans couleur). À transformer en champ de statut. [F065 feuille "Fiche réfection" N4:N8]
 - **R-ATT-008** [2017] Règle observée (non écrite) d'affectation des pièces aux prix 2017 : PEHD de diamètre ≤ 32 → 13.a ; robinet PEC → 13.c ; collier PEC → 13.d ; collier Astor, raccord ou bouchon seul → 13.b ; PEHD de diamètre ≥ 40 → 14 ; tabernacle + tube PVC + bouche à clé sans robinet PEC → 15 (ou 11 selon la version) ; joint Gibault ou dissymétrique, tuyau PVC → 16.c. Conformité mesurée : 85 % des fuites de F084. Plusieurs prix peuvent se cumuler sur une fuite, jamais plus de 1 par prix. [F065 ; F084 feuille "attachement detaillé (2)"]
 - **R-ATT-009** [2017] L'attachement récapitulatif porte des cumuls depuis le début du marché ; la quantité du mois s'obtient par différence avec la colonne « Quantités précédentes », à reporter d'un attachement au suivant. [F065 feuille "attach recap" G16]
-- **R-ATT-010** [2017] L'attachement ne montre pas les prix : la colonne « Prix Unitaire H.T » est masquée à l'impression et il n'y a pas de ligne de total (quantités seulement). [F065 feuille "attach recap" E ; F068 feuille "attachement recap"]
+- **R-ATT-010** [2017] L'attachement ne montre pas les prix : la colonne « Prix Unitaire H.T » est masquée dans le récapitulatif de F065 et dans les attachements partiels de F068 (non masquée dans le récapitulatif de F068) et il n'y a pas de ligne de total (quantités seulement). [F065 feuille "attach recap" E ; F068 feuilles "attachement partiel SY4000", "attachement recap"]
 - **R-ATT-011** [2017] En 2017 l'attachement existait en version « partielle » par zone (SY4000, RJ5000, JH600), chacune rattachée à un ordre de service partiel, plus un récapitulatif global ; le récapitulatif lisait les feuilles globales, non la somme des partiels. [F068 feuilles "attachement partiel SY4000", "attachement recap" ; F069]
 
 ### 7.4 Attachement récapitulatif 2017 : structure et données
@@ -2691,7 +2691,7 @@ En-tête : « ROYAUME DU MAROC » ; « MINISTERE DE L'INTERIEUR » ; « R.A.D.E.
 | N° | Colonne ou ligne (libellé exact) | Formule (verbatim) | Explication | Source |
 |---|---|---|---|---|
 | 1 | « N° DES PRIX » ; désignation ; « UNITE » | — | reprise du bordereau | [F068 feuille "decompte" A16:C18] |
-| 2 | « QUANTITE » | `=+'attachement recap'!H15` (F068, F084) ; `='attach recap'!G16` (F065) | quantité cumulée (F068, F084) ou quantité du mois (F065) | [F068 feuille "decompte" D21] ; [F065 feuille "decompte" D20] |
+| 2 | « QUANTITE » | `=+'attachement recap'!H15` (F068, cellule D21 ; F084, cellule D22) ; `='attach recap'!G16` (F065) | quantité cumulée (F068, F084) ou quantité du mois (F065) | [F068 feuille "decompte" D21] ; [F065 feuille "decompte" D20] |
 | 3 | « P. UNITAIRE DHS/H.T. » | saisie | prix du bordereau | [F068 feuille "decompte" E] |
 | 4 | « PRIX TOTAL DHS/H.T. » | `=D21*E21` | montant de ligne, sans arrondi | [F068 feuille "decompte" F21] |
 | 5 | « TOTAL H.T. » | `=SUM(F19:F144)` | somme non arrondie | [F068 feuille "decompte" F145] |
@@ -2714,9 +2714,9 @@ En-tête : « ROYAUME DU MAROC » ; « MINISTERE DE L'INTERIEUR » ; « R.A.D.E.
 Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Dréssé par : Bureau Détection de fuite et sectorisation » ; « Vérifié par : Chef de Service Amélioration du Rendement » ; « Chef Division Exploitation » ; « Le Directeur Général ». [F068 feuille "decompte" A168:C173]
 
 - **R-ATT-012** [2017] Ordre des opérations du décompte 2017 : Σ (quantité × PU) non arrondie → total HT ; TVA = arrondi à 2 décimales de HT × 0,2 ; TTC = arrondi à 2 décimales de HT + TVA ; retenue de garantie = 10 % du TTC, non arrondie ; total = TTC − retenue ; déductions (exercices antérieurs, acomptes, pénalité de retard, pénalité sur balayage, réfactions) ; acompte à payer. [F068 feuille "decompte" F145:F163]
-- **R-ATT-013** [2017] Les montants de ligne ne sont pas arrondis ; l'état de suivi de la régie, lui, arrondit chaque ligne à 2 décimales, d'où un écart d'un centime (HT 746 317,93 contre 746 317,8966 arrondi à 746 317,90). [F071 ; F068 feuille "ETAT DE SUIVI" L139]
+- **R-ATT-013** [2017] Les montants de ligne ne sont pas arrondis dans le décompte ; l'état de suivi du classeur arrondit le total cumulé par excès (`=ROUNDUP(SUM(L13:L138),2)` → 746 317,90) ; l'état récapitulatif de la régie donne 746 317,93, soit 3 centimes d'écart HT, dus à la quantité du prix 4 arrondie à 267,48 m3 dans la facture. [F071 ; F072 ; F068 feuille "ETAT DE SUIVI" L139]
 - **R-ATT-014** [2017] Les versions divergent sur la quantité portée au décompte : quantité du mois (F065) ou cumul (F068, F084) ; un décompte provisoire en cumul, dont on déduit les acomptes antérieurs, est la forme retenue par la version datée. [F065 feuille "decompte" D20 ; F068 feuille "decompte" D21]
-- **R-ATT-015** [2017] Pénalité de résultat appliquée en 2017 (calcul annexe au décompte) : zone Route Jerada, débit après intervention 86,4 m3/h pour un objectif de 80 → (86,4 − 80) ÷ 80 = 8 % × 250 km × 994 DH = 19 880 DH HT (23 856 TTC). La pénalité est donc calculée **par zone**, proportionnellement (sans arrondi au point), sur le montant de balayage de la zone ; les zones ayant atteint l'objectif portent « Pas de pénalité ». [F068 feuille "decompte" H20:L24]
+- **R-ATT-015** [2017] Pénalité de résultat appliquée en 2017 (calcul annexe au décompte) : zone Route Jerada, débit après intervention 86,4 m3/h pour un objectif de 80 → (86,4 − 80) ÷ 80 = 8 % × 250 km × 994 DH = 19 880 DH HT (23 856 TTC). La pénalité est donc calculée **par zone**, sur le montant de balayage de la zone ; les zones ayant atteint l'objectif portent « Pas de pénalité ». Ce calcul figure en marge du décompte mais la ligne « A déduire montant Pénalité sur balayage » (F161) est vide : la pénalité n'a pas été déduite de l'acompte n° 1. Le taux valant exactement 8,00 %, l'exemple ne permet pas de savoir s'il y a arrondi au point. [F068 feuille "decompte" H20:L24 ; F161]
 - **R-ATT-016** [2017] Montant en lettres : contrôle indispensable (F068 affiche un montant en lettres de 595 742,74 pour 806 023,33 calculés ; F084 garde le texte d'un autre modèle). [F068 feuille "decompte" A166 ; F084]
 
 ### 7.6 État de suivi, fiche de suivi du délai, facture (2017)
@@ -2739,7 +2739,7 @@ Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Drés
 
 - **R-ATT-017** [2017] Seuils d'alerte de l'état de suivi : écart de quantité par article inférieur de plus de 25 % ou supérieur de plus de 30 % à la quantité du marché ; ils correspondent vraisemblablement aux limites de variation des quantités de l'ancien CCAG-T `[À CONFIRMER : valeurs applicables en 2026, CCAG-T de 2016 art. 59]`. [F065 feuille "etat de suivi" P14:Q14]
 
-**Fiche de suivi du délai d'exécution** (une ligne par facture) : « N° FACTURE » ; « N° ORDRE DE SERVICE » ; « DATE ORDRE DE SERVICE » ; « DATE DEBUT DES TRAVAUX » ; « DATE DEBUT DES TRAVAUX BALAYAGE » ; « N° ORDRE D'ARRET » ; « DATE ORDRE D'ARRET » ; « N° ORDRE DE REPRISE » ; « DATE ORDRE DE REPRISE » ; « DELAI D'EXECUTION BALAYAGE » ; « DATE D'ACHEVEMENT BALAYAGE » ; « DELAI DE REALISATION CONSTATE » ; « RETARD CONSTATE (en jours) » ; « PENALITE DE RETARD (en DH/TTC) » ; « OBS ». Exemple : `18/2017/AT 1 ; 285/2016 ; 28/11/2016 ; 28/11/2016 ; 28/11/2016 ; — ; — ; — ; — ; 4 mois ; 27/03/2017 ; 4 mois ; — ; —`. [F073 feuille "01"]
+**Fiche de suivi du délai d'exécution** (une ligne par facture ; libellés reconstitués à partir de cellules réparties sur trois lignes) : « N° FACTURE » ; « N° ORDRE DE SERVICE » ; « DATE ORDRE DE SERVICE » ; « DATE DEBUT DES TRAVAUX » ; « DATE DEBUT DES TRAVAUX BALAYAGE » ; « N° ORDRE D'ARRET » ; « DATE ORDRE D'ARRET » ; « N° ORDRE DE REPRISE » ; « DATE ORDRE DE REPRISE » ; « DELAI D'EXECUTION BALAYAGE » ; « DATE D'ACHEVEMENT BALAYAGE » ; « DELAI DE REALISATION CONSTATE » ; « RETARD CONSTATE (en jours) » ; « PENALITE DE RETARD (en DH/TTC) » ; « OBS ». Exemple : `18/2017/AT 1 ; 285/2016 ; 28/11/2016 ; 28/11/2016 ; 28/11/2016 ; — ; — ; — ; — ; 4 mois ; 27/03/2017 ; 4 mois ; — ; —`. [F073 feuille "01"]
 
 - **R-ATT-018** [2017] Décompte des mois en 2017 : un balayage commencé le 2016-11-28 et achevé le 2017-03-27 est compté « 4 mois » sans retard : l'échéance est la veille du jour anniversaire. Transposé au marché 2026 `[DÉDUIT]` : balayage du 2026-10-02 au 2027-02-01 ; fin du délai global le 2027-10-01 `[À CONFIRMER]`. [F073 feuille "01" ligne 20]
 - **R-ATT-019** [2017] Le délai est suspendu par un ordre d'arrêt et reprend par un ordre de reprise (numéro et date de chacun) ; le retard constaté s'exprime en jours et la pénalité en DH TTC. [F073 feuille "01"]
@@ -2761,9 +2761,10 @@ Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Drés
 - **R-ATT-027** [2017] Détail BS (mouvements de matériel) : par pièce, « Ecarts » `=D4-C4`, « Total des pièces posées » `=SUMIF('Fiche de réparation'!$I$8:$I$3442,"<pièce>",'Fiche de réparation'!$J$8:$J$3442)`, « Total des entrées » `=SUM(E4:AA4)`, puis une colonne par « N° de BS » ; mise en forme conditionnelle : écart négatif mis en évidence. Sans objet contractuel en 2026 (fourniture par l'entreprise) mais utile comme suivi de stock interne. [F065 feuille "Détail BS"]
 - **R-ATT-028** [2017] Linéaire prospecté (journal du balayage) : « Semaine » ; « Journée » ; « Date » ; « Secteur » ; « Linéaire prospecté par jour en (Km linéaire) » ; « Fuites localisées » (« Visibles », « Invisibles ») × (« Conduite », « Brt ») ; « Total global du linéaire prospecté (Km linéaire) » `=SUM(E12:E2535)`. Les jours de second passage portent le mot « Repasse » à la place du linéaire (non payé). [F065 feuille "Linéaire prospecté"]
 - **R-ATT-029** [2017] Le prix de balayage facturé (580 km = quantité du marché) était saisi à la main et ne correspondait pas au journal (735,75 km puis 853,75 km) : le linéaire payé était plafonné au linéaire du marché. [F065 feuille "attach recap" H16 ; F084]
+- **R-ATT-035** [2017] Clauses du marché de 2017 à ne pas confondre avec celles de 2026 : pénalités de résultat plafonnées à 20 % (25 % en 2026) ; cadence de 4 km par jour au global, sans nombre d'équipes (4 km par jour et par équipe, 4 équipes en 2026) ; trois zones de 90, 250 et 240 km avec des débits exigés de 60, 80 et 98 m3/h ; enrobés de 10 cm (« 7 cm à 10 cm » dans la définition du prix 9) ; « chaque kilomètre du secteur prospecté n'étant rémunéré qu'une fois » ; retenue de garantie de 10 % par décompte plafonnée à 7 %. [F077 art. 19, 45]
 - **R-ATT-030** [2017] Modèle papier de fiche par fuite : « Fiche de réparation de fuite détection dans le cadre du marché 59/E/2016 » ; « Tournée de la fuite : » ; « Terrassement » : « Longueur (m) », « Largeur (m) », « profondeur (m) », « Nature de dégradation » ; « Détail de réparation de la fuite : » ; « Emmargement Entreprise » ; « Emmargement agent RADEEO » (double signature par fuite). [F080 feuille "Fiche de fuite"]
 
-**Rapport journalier 2017** (« RAPPORT JOURNALIER DE RECHERCHE DE FUITES », une feuille par journée) : en-tête « Marché N° 59 /E/2016 » ; « Société : » ; « journée du : » ; « Equipe : » ; « Equipements utilisés : » ; « Secteur d'intervention : » ; « Linéaire : … km » ; colonnes « Secteur » ; « Planche N° » ; « Adresse » ; « Canalisation prospectée » : « Calibre », « Nature » ; « Fuite » : « N° », « Nature », « Nbre de Branchement prospecté », « Visibles », « Invisibles » ; « Observation » ; ligne « TOTAL » `=SUM(K16:K29)` et `=SUM(L16:L29)` ; « COMMENTAIRE » ; signatures « Pour AFW » et « Pour RADEEO ». [F087 feuille "Rapport journalier"]
+**Rapport journalier 2017** (« RAPPORT JOURNALIER DE RECHERCHE DE FUITES », une feuille par journée) : en-tête « Marché N° 59 /E/2016 » ; « Société : » ; « journée du : » ; « Equipe : » ; « Equipements utilisés : » ; « Secteur d'intervention : » ; « Linéaire : … km » ; colonnes « Secteur » ; « Planche N° » ; « Adresse » ; « Canalisation prospectée » : « Calibre », « Nature » ; « Fuite » : « N° », « Nature », « Nbre de Branchement prospecté », « Visibles », « Invisibles » ; « Observation » ; ligne « TOTAL » `=SUM(K16:K29)` et `=SUM(L16:L29)` ; « COMMENTAIRE » ; signatures « Pour AFW » et « Pour RADEEO ». Le modèle vierge F087 ne contient aucune formule : les totaux n'existent que dans les rapports remplis (F089 à F095) ; libellés du modèle vierge : « Journée du : », « Equipements Utilisés : ». [F087 feuille "Rapport journalier" ; F089 à F095]
 
 - **R-ATT-031** [2017] Dans les 41 journées de 2017 : la colonne « Adresse » contient la référence `999-999-999` (ou « R.A.S » s'il n'y a pas de fuite) ; « Planche N° », « Nature » de fuite, « Nbre de Branchement prospecté » et « Equipe » ne sont jamais remplis ; les numéros de fuite se suivent sur tout le chantier (1 à 129). [F087 ; F089 à F095]
 - **R-ATT-032** [2017] Rendement constaté en 2017 : 334,05 km en 36 jours renseignés (9,28 km par jour) ; 129 fuites dont 8 visibles et 121 invisibles (0,34 fuite par km hors repasse). [F087 à F095, calcul par script]
@@ -2786,7 +2787,7 @@ Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Drés
 | Dépassement des quantités prévisionnelles | colonnes « <25% » et « >30% » de l'état de suivi | art. 57 à 59 du CCAG-T | alerte par prix sur le cumul rapporté à la quantité du bordereau |
 
 - **R-ATT-033** [DÉDUIT] Chaîne de calcul proposée pour 2026, ligne par ligne : quantité du mois (saisies validées du mois) → cumul antérieur (cumul de l'attachement précédent) → cumul à ce jour = antérieur + mois → montant HT de ligne = cumul × PU → total HT → majoration 15 % → révision des prix éventuelle → TVA 20 % → TTC → retenue de garantie (10 % de l'acompte, plafond 7 %) → remboursement d'avance éventuel → pénalités → déduction des acomptes antérieurs → net à payer. Ordre et assiettes `[À CONFIRMER]` (R-CPS-200). [F068 feuille "decompte" ; F056 p.9-14]
-- **R-ATT-034** [DÉDUIT] Ce qui doit changer pour 2026 par rapport au modèle 2017 : 13 prix au lieu de 24 ; prix 1 et 2 en mètres et non en kilomètres ; un seul prix de réfection de trottoir (prix 4) ; pas de prix de mesure de débit ; ligne de majoration de 15 % ; retenue de garantie plafonnée à 7 % ; cinq zones au lieu de trois ; fourniture des pièces par l'entreprise (plus de bons de sortie) ; en-tête SRM-ORI (« Exploitation eau potable », « Département Mesures et Amelioration du rendement ») ; numéro de marché 4500004453 et OS n° 02/4500004453 du 2026-10-02 ; affectation automatique des pièces aux prix (section 5.3) au lieu du « 1 » saisi à la main ; statut en champ et non en couleur ; dates de détection et nom du détecteur dans la fiche. [F001 ; F065 ; F056]
+- **R-ATT-034** [DÉDUIT] Ce qui doit changer pour 2026 par rapport au modèle 2017 : 13 prix au lieu de 24 ; prix 1 et 2 en mètres et non en kilomètres ; un seul prix de réfection de trottoir (prix 4) ; pas de prix de mesure de débit ; ligne de majoration de 15 % ; plafond de 7 % de la retenue de garantie à gérer (déjà prévu au marché de 2017 mais absent du classeur) ; cinq zones au lieu de trois ; fourniture des pièces par l'entreprise (plus de bons de sortie) ; en-tête SRM-ORI (« Exploitation eau potable », « Département Mesures et Amelioration du rendement ») ; numéro de marché 4500004453 et OS n° 02/4500004453 du 2026-10-02 ; affectation automatique des pièces aux prix (section 5.3) au lieu du « 1 » saisi à la main ; statut en champ et non en couleur ; dates de détection et nom du détecteur dans la fiche. [F001 ; F065 ; F056]
 
 ### 7.9 Table de passage 2017 → 2026
 
@@ -2810,7 +2811,7 @@ Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Drés
 | 13.c ; changement de robinet PEC ; U | 7 | modifié | fourniture comprise ; PU 255,00 → 460,00 |
 | 13.d ; changement de collier PEC ; U | 8 | modifié | fourniture comprise ; PU 255,00 → 460,00 |
 | 14 ; réparation PE diamètre extérieur ≥ 40 mm ; U | 9 | modifié | fourniture comprise ; PU 255,00 → 400,00 |
-| 15 ; mise à niveau de bouche à clé (socle 0,40 × 0,40 × 0,20) ; U | 10 | modifié | fourniture comprise ; PU 110,50 → 140,00 |
+| 15 ; mise à niveau de bouche à clé (socle 0,40 × 0,40 × 0,20) ; U | 10 | identique (désignation) | PU 110,50 → 140,00 |
 | 16.a ; conduite AC ou PVC 315 à 225 mm ; U | 11 | modifié | fourniture comprise ; PU 3000,00 → 4600,00 |
 | 16.b ; conduite AC ou PVC 200 à 110 mm ; U | 12 | modifié | PU 1500,00 → 2900,00 |
 | 16.c ; conduite AC ou PVC < 110 mm ; U | 13 | modifié | PU 800,00 → 2300,00 |
@@ -2823,21 +2824,21 @@ Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Drés
 | N° prix 2017 | Unité | PU HT | Quantité antérieure | Quantité du mois | Quantité cumulée | Montant HT antérieur | Montant HT cumulé |
 |---|---|---|---|---|---|---|---|
 | 4 | m3 | 29.50 | 267.4928 | 35.7360 | 303.2288 | 7891.0376 | 8945.2496 |
-| 6 | m² | 57.20 | 85.6500 | 5.1300 | 90.7800 | 4899.1800 | 5192.6160 |
+| 6 | m² | 57.20 | 88.6600 | 2.1200 | 90.7800 | 5071.3520 | 5192.6160 |
 | 13.a | U | 215.45 | 290.0000 | 48.0000 | 338.0000 | 62480.5000 | 72822.1000 |
 
 | Étape | Formule | Décompte n° 1 (antérieur) | Décompte n° 2 (cumul) |
 |---|---|---|---|
-| Total HT | somme des montants de ligne, non arrondie | 75270.7176 | 86959.9656 |
-| TVA 20 % | ROUND(HT × 0.2 ; 2) | 15054.14 | 17391.99 |
-| Total TTC | ROUND(HT + TVA ; 2) | 90324.86 | 104351.96 |
-| Retenue de garantie | TTC × 0.1 (non arrondie) | 9032.4860 | 10435.1960 |
-| Total après retenue | TTC − retenue | 81292.3740 | 93916.7640 |
-| À déduire : acomptes antérieurs | net du décompte n° 1 | 0.0000 | 81292.3740 |
+| Total HT | somme des montants de ligne, non arrondie | 75442.8896 | 86959.9656 |
+| TVA 20 % | ROUND(HT × 0.2 ; 2) | 15088.58 | 17391.99 |
+| Total TTC | ROUND(HT + TVA ; 2) | 90531.47 | 104351.96 |
+| Retenue de garantie | TTC × 0.1 (non arrondie) | 9053.1470 | 10435.1960 |
+| Total après retenue | TTC − retenue | 81478.3230 | 93916.7640 |
+| À déduire : acomptes antérieurs | net du décompte n° 1 | 0.0000 | 81478.3230 |
 | À déduire : pénalités, réfactions | saisie | 0.0000 | 0.0000 |
-| **Montant de l'acompte à payer** | total − acomptes − pénalités | **81292.3740** | **12624.3900** |
+| **Montant de l'acompte à payer** | total − acomptes − pénalités | **81478.3230** | **12438.4410** |
 
-Attendu pour un test : acompte n° 2 = 12624.3900, soit 12624.39 DH TTC une fois arrondi au centime.
+Attendu pour un test : acompte n° 2 = 12438.4410, soit 12438.44 DH TTC une fois arrondi au centime.
 
 **Exemple B `[DÉDUIT]`** : même chaîne transposée aux prix 2026, avec majoration de 15 % et retenue de garantie de 10 % de l'acompte. L'ordre des opérations et les arrondis sont une proposition de l'extracteur (R-CPS-200, R-ATT-033), à valider avec la SRM ; arrondi au centime à chaque étape.
 
@@ -3796,6 +3797,8 @@ Lignes réelles (extrait) :
 | controle/F058-omissions.md | aucun écart |
 | controle/F059-omissions.md | aucun écart |
 | controle/F060-omissions.md | 3 |
+| controle/F065-omissions.md | 51 |
+| controle/F068-omissions.md | 29 |
 | controle/F119-omissions.md | 4 |
 | controle/F120-omissions.md | 3 |
 | controle/F121-omissions.md | 7 |
@@ -3813,6 +3816,8 @@ Suites données aux secondes lectures :
 | F001 | liste de validation `LISTE!$A:$A` non vue par l'extraction ; dates renseignées pour 6 fuites sur 22 ; formules de REFECTION incomplètes ; feuilles BP et LISTE non décrites en 8.4 | intégrés (sections 6, 6 bis, 8.4, 10 bis) |
 | F119 à F123, F050 à F053 | libellés, formules et valeurs exacts ; variante F121 peu décrite ; lettre F053 | intégrés (R-FICHE-020 ; section 8.5) |
 | Données personnelles | aucune fuite relevée par les deux contrôles | — |
+| F065, F084, F066, F071 à F073, F080, F087, F088 (2017) | 39 constats ; formules, bordereau 2017, tableau 7.4, valeurs des règles et exemples chiffrés sans écart arithmétique | intégrés : quantité antérieure du prix 6 de l'exemple A (88,66), divergence entre « Fiche réfection » et « attachement detaillé », R-ATT-010, R-ATT-013, R-ATT-015, cellules D22 et P8 ; non repris en détail : colonnes de l'état récapitulatif F071 et feuilles du prototype F080 (voir notes de travail) |
+| F068, F077 (2017) | 23 constats | intégrés : R-ATT-034 (retenue), R-ATT-035 (plafond 20 %, 4 km/jour, zones 2017), table de passage du prix 15 ; non repris en détail : feuilles par zone de F068 (mêmes colonnes que les feuilles globales) |
 
 
 ### 13.5 Croisements d'exploitabilité (script `croisements.py`)

@@ -228,3 +228,10 @@ Règles pour Claude Code :
 - Ne jamais écrire de mot de passe, clé API, clé `service_role`, code de récupération ou keystore dans un fichier versionné
 - Fournir un `.env.example` avec des valeurs vides ; les vraies valeurs restent dans `.env` (local) et dans les variables d'environnement de Vercel et GitHub Actions
 - Sauvegarder le keystore Android **hors du dépôt**, en deux copies (sans lui, les mises à jour de l'APK deviennent impossibles)
+
+## 14. Passation entre sessions
+
+- **Lire en début de session** : `docs/etat-avancement.md` (fait, en attente, décisions, prochaines étapes, prompt de reprise) et `supabase/README.md` (schéma, déploiement, règles des migrations).
+- **Règles du marché 4500004453** : `references/regles-marche-4500004453.md` (source unique ; les documents originaux ne sont pas dans le dépôt).
+- **Plan du réseau `Reseau aep oujda.dwg`** : **en attente**, transmis plus tard par Issam. Ne pas commencer la migration 2 (tronçons, balayage, débits) sans lui ; voir `docs/etat-avancement.md` § 4.
+- **Fin de session** : mettre à jour `docs/etat-avancement.md`.

@@ -1,0 +1,6 @@
+# Configuration minimale de la CLI Supabase (valeurs par défaut pour le reste).
+# Le projet distant est désigné par sa référence dans le workflow de déploiement.
+project_id = "suivi-fuites"
+
+[db]
+major_version = 17

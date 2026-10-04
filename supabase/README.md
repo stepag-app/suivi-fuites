@@ -14,8 +14,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004090400_rls_privileges.sql` | règles RLS et privilèges, table par table |
 | `migrations/20261004090500_vues_fonctions.sql` | vues `v_fuites` (alertes), `v_pieces_posees`, `v_quantites`, `v_anomalies` ; fonction `rechercher_fuites_proches` |
 | `migrations/20261004090600_stockage_photos.sql` | compartiment privé `photos` et ses règles |
-| `donnees/marche-4500004453.sql` | marché SRM Oriental : 13 prix, 5 zones, 34 secteurs, phases, OS, natures, motifs FR/AR, 261 pièces ; contrôle des totaux |
-| `tests/database/01_rls_et_regles.test.sql` | 59 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
+| `migrations/20261004090700_donnees_marche_4500004453.sql` | marché SRM Oriental : 13 prix, 5 zones, 34 secteurs, phases, OS, natures, motifs FR/AR, 261 pièces ; contrôle des totaux |
+| `config.toml` | configuration minimale de la CLI Supabase |
+| `tests/database/01_rls_et_regles.test.sql` | 61 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -50,28 +51,38 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
   réfection chaussée à J+20 et hors délai à J+30, réfection trottoir, fuite sans photo.
   Seuils paramétrables dans `marches`.
 
-## Appliquer (sur le Mac, après validation)
+## Appliquer au projet Supabase
 
-1. Installer la CLI : `brew install supabase/tap/supabase`, puis dans le dépôt :
-   `supabase init` (crée `supabase/config.toml`, garde les migrations) et
-   `supabase link --project-ref <ref du projet>` (mot de passe de la base demandé).
-2. Vérifier ce qui sera envoyé : `supabase db push --dry-run`, puis `supabase db push`.
-3. Dans l'éditeur SQL du tableau de bord : exécuter `donnees/marche-4500004453.sql` (une fois).
-4. Premier administrateur : *Authentication > Users > Add user* avec l'adresse technique
-   `issam@agents.stepag.ma`, un mot de passe, et dans *User metadata*
-   `{"identifiant": "issam", "nom_complet": "Issam"}` ; le profil est créé
-   automatiquement. Puis dans l'éditeur SQL :
+Le déploiement passe par GitHub Actions (`.github/workflows/deployer-base.yml`) : aucun
+mot de passe sur un poste ni dans une conversation.
+
+1. **Une seule fois, créer deux secrets** dans GitHub : *Settings > Secrets and variables >
+   Actions > New repository secret* :
+   - `SUPABASE_ACCESS_TOKEN` : jeton créé dans Supabase, *Account (avatar) > Access Tokens >
+     Generate new token* ;
+   - `SUPABASE_DB_PASSWORD` : mot de passe de la base (gestionnaire de mots de passe ; s'il est
+     perdu : *Project Settings > Database > Reset database password*).
+2. **Déployer** : fusionner la PR dans `main` (déploiement automatique), ou *Actions >
+   Déploiement de la base > Run workflow*. Le workflow rejoue les tests, affiche les
+   migrations à appliquer (`--dry-run`), les applique, puis liste l'état du projet.
+   Les migrations déjà appliquées ne sont jamais rejouées.
+3. **Premier administrateur** : *Authentication > Users > Add user > Create new user* avec
+   l'adresse technique `issam@agents.stepag.ma`, un mot de passe, « Auto Confirm User » coché.
+   Le profil `issam` est créé automatiquement. Puis dans *SQL Editor* :
    `update profils set est_admin = true where identifiant = 'issam';`
-5. *Authentication > Providers > Email* : désactiver la confirmation par e-mail (les agents se
-   connectent avec un identifiant ; l'adresse `<identifiant>@agents.stepag.ma` reste interne).
+4. *Authentication > Sign In / Providers > Email* : désactiver « Confirm email » (les agents
+   se connectent avec un identifiant ; l'adresse `<identifiant>@agents.stepag.ma` reste interne).
+
+Sans GitHub, depuis le Mac : `brew install supabase/tap/supabase`, puis dans le dépôt
+`supabase link --project-ref osajiinsibwrsltntmsk` et `supabase db push`.
 
 Les comptes des agents seront créés depuis le panneau web par une Edge Function
 (clé `service_role` côté serveur uniquement), prochaine étape.
 
 ## Tests
 
-- Automatiques : la CI GitHub (`.github/workflows/base-de-donnees.yml`) rejoue migrations,
-  données et tests à chaque modification de `supabase/`.
+- Automatiques : la CI GitHub (`.github/workflows/base-de-donnees.yml`) rejoue migrations
+  et tests à chaque modification de `supabase/` ; le déploiement les rejoue aussi avant d'envoyer.
 - Sur le Mac avec Docker : `supabase start` puis `supabase test db`.
 
 ## Règles pour les migrations suivantes

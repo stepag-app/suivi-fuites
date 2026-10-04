@@ -9,7 +9,7 @@ create extension if not exists postgis with schema extensions;
 -- exposé par l'API de données (ne jamais l'ajouter aux « Exposed schemas »).
 create schema if not exists private;
 revoke all on schema private from public, anon;
-grant usage on schema private to authenticated;
+grant usage on schema private to authenticated, service_role;
 
 -- Aucune exposition automatique des nouveaux objets : chaque table, vue ou
 -- fonction reçoit ses privilèges explicitement dans les migrations.

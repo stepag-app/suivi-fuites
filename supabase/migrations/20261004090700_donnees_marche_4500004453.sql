@@ -1,8 +1,9 @@
 -- =============================================================================
--- Données du marché n° 4500004453 (SRM Oriental, Oujda) — à exécuter UNE FOIS,
--- après les migrations, dans l'éditeur SQL de Supabase (rôle postgres).
--- Source : references/regles-marche-4500004453.md (sections 2, 4, 5, 6.2, 6 bis).
--- Rejouable sans effet (ON CONFLICT DO NOTHING). Contrôles en fin de script.
+-- Migration 1 / fichier 8 : données du marché n° 4500004453 (SRM Oriental, Oujda).
+-- Premier marché de l'application ; les marchés suivants seront créés depuis le
+-- panneau web. Source : references/regles-marche-4500004453.md (sections 2, 4,
+-- 5, 6.2, 6 bis). Contrôles des totaux en fin de fichier : la migration échoue
+-- (et rien n'est appliqué) si un total diffère des pièces du marché.
 --
 -- Points à confirmer (section 12 du fichier de règles) :
 --  * découpage des 34 secteurs (ponctuation ambiguë du tableau n° 1 du CPS) ;
@@ -10,7 +11,6 @@
 --  * dates des phases calculées de date à date à partir du 2026-10-02.
 -- =============================================================================
 
-begin;
 
 insert into public.marches (
   code, numero, numero_appel_offres, intitule, client, ville,
@@ -469,4 +469,3 @@ begin
 end
 $$;
 
-commit;

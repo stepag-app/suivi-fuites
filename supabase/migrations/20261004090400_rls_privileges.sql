@@ -32,7 +32,7 @@ grant execute on function
   private.peut(uuid, public.type_donnee, text, uuid, uuid),
   private.prochain_numero(uuid, text),
   public.appliquer_modele_role(uuid, uuid, text)
-  to authenticated;
+  to authenticated, service_role;
 
 -- -----------------------------------------------------------------------------
 -- Marchés

@@ -10,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(59);
+select plan(61);
 
 -- -----------------------------------------------------------------------------
 -- Jeu d'essai (rôle postgres)
@@ -85,6 +85,16 @@ $$, 'anon : aucune fonction exécutable');
 
 select ok(not has_function_privilege('authenticated', 'private.generer_lignes_reparation(uuid)', 'execute'),
   'authenticated : ne peut pas appeler directement la génération des lignes');
+
+-- service_role (Edge Functions côté serveur) : contourne la RLS, mais les
+-- déclencheurs doivent fonctionner (numérotation, journal)
+set local role service_role;
+select lives_ok($$ insert into fuites (id, marche_id) values
+  ('bbbbbbbb-1111-0000-0000-000000000002', 'bbbbbbbb-0000-0000-0000-000000000001') $$,
+  'service_role : enregistre une fuite (déclencheurs exécutables)');
+reset role;
+select is((select numero from fuites where id = 'bbbbbbbb-1111-0000-0000-000000000002'), 2,
+  'service_role : numérotation appliquée');
 
 -- -----------------------------------------------------------------------------
 -- 1. Anonyme : aucun accès
@@ -339,7 +349,7 @@ reset role;
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000e", "role": "authenticated"}', true);
-select results_eq($$ select reference_srm from fuites $$, array['999-999-999'], 'détection B : ne voit que les fuites du marché B');
+select results_eq($$ select reference_srm from fuites order by numero $$, array['999-999-999', null], 'détection B : ne voit que les fuites du marché B');
 reset role;
 
 set local role authenticated;

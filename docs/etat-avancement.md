@@ -13,13 +13,14 @@ Dernière mise à jour : 2026-10-04 (fin de journée).
 | Migration 1 : schéma, droits, RLS, vues, données du marché (13 prix, 5 zones, 34 secteurs, 261 pièces) | `supabase/migrations/` | **déployée** sur le projet `osajiinsibwrsltntmsk` |
 | 61 tests pgTAP + CI | `supabase/tests/`, `.github/workflows/base-de-donnees.yml` | verts |
 | Déploiement automatique des migrations et de la fonction à chaque fusion dans `main` | `.github/workflows/deployer-base.yml` | opérationnel (secrets créés) |
-| Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé ; `est_admin` à confirmer par `select identifiant, est_admin, actif from profils;` |
+| Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé et **vérifié** (`issam | true | true`) |
+| Réglages Auth Supabase : fournisseur e-mail activé, « Confirm email » désactivé | tableau de bord Supabase | vérifié sur captures (2026-10-04) |
 | Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
 | Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | écrit, compilé, requêtes validées contre PostgREST (28 contrôles) ; **à mettre en ligne sur Vercel** |
 
 ## 2. En attente d'Issam
 
-1. **Fournisseur e-mail Supabase** : *Authentication > Sign In / Providers > Email* : « Enable email provider » **activé**, « Confirm email » **désactivé**, Save.
+1. **Inscriptions publiques** : *Authentication > Sign In / Providers > User Signups* : désactiver « Allow new users to sign up » puis Save changes (les comptes sont créés par la fonction serveur, qui n'en a pas besoin). Sinon n'importe qui peut créer un compte avec la clé publique.
 2. **Vercel** (équipe STEPAG) : importer le dépôt avec *Root Directory* `web` et les deux variables `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (procédure dans `web/README.md`).
 3. **Premier test** : se connecter en `issam`, créer un agent dans « Utilisateurs », signaler une fuite avec photo sur la tablette.
 4. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.

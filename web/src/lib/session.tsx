@@ -61,6 +61,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         sb.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', utilisateurId),
       ]);
       if (annule) return;
+      // Sans réseau : dernier contexte connu de cet utilisateur (profil, marchés, droits).
+      const cleCache = `suivi-fuites:contexte:${utilisateurId}`;
+      if (p.error || m.error || d.error) {
+        try {
+          const copie = JSON.parse(window.localStorage.getItem(cleCache) ?? 'null');
+          if (copie) {
+            setProfil(copie.profil);
+            setMarches(copie.marches);
+            setDroits(copie.droits);
+            setMarcheId(copie.marches.find((x: Marche) => x.id === window.localStorage.getItem(CLE_MARCHE))?.id ?? copie.marches[0]?.id ?? null);
+            setChargement(false);
+            return;
+          }
+        } catch {
+          /* copie illisible : on continue avec ce qu'on a */
+        }
+      }
       const profilCharge = (p.data as Profil | null) ?? null;
       if (profilCharge && !profilCharge.actif) {
         await sb.auth.signOut();
@@ -70,6 +87,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const liste = (m.data as Marche[] | null) ?? [];
       setMarches(liste);
       setDroits((d.data as Droit[] | null) ?? []);
+      try {
+        window.localStorage.setItem(cleCache, JSON.stringify({ profil: profilCharge, marches: liste, droits: d.data ?? [] }));
+      } catch {
+        /* stockage indisponible */
+      }
       const memorise = typeof window !== 'undefined' ? window.localStorage.getItem(CLE_MARCHE) : null;
       setMarcheId(liste.find((x) => x.id === memorise)?.id ?? liste[0]?.id ?? null);
       setChargement(false);
@@ -103,6 +125,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const deconnecter = useCallback(async () => {
+    try {
+      Object.keys(window.localStorage)
+        .filter((k) => k.startsWith('suivi-fuites:contexte:'))
+        .forEach((k) => window.localStorage.removeItem(k));
+    } catch {
+      /* stockage indisponible */
+    }
     await getSupabase().auth.signOut();
   }, []);
 

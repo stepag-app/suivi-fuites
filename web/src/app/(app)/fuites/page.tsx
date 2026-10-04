@@ -75,6 +75,28 @@ export default function ListeFuites() {
   );
   const filtrees = useMemo(() => fuites.filter(correspond), [fuites, correspond]);
   const [exportOuvert, setExportOuvert] = useState(false);
+  const [rapports, setRapports] = useState<{ fait: number; total: number; etape: string; enCours: boolean } | null>(null);
+
+  // Rapports PDF des fuites affichées (liste filtrée), une fuite par page, dans un seul fichier.
+  async function rapportsPdf() {
+    if (!marcheId || !filtrees.length) return;
+    const n = filtrees.length;
+    const photos = filtrees.reduce((s, f) => s + f.nb_photos, 0);
+    if (!window.confirm(`Fabriquer un PDF avec les rapports de ${n} fuite${n > 1 ? 's' : ''} (${photos} photo${photos > 1 ? 's' : ''}) ?`
+      + (n > 40 ? '\nCela peut prendre plusieurs minutes : filtrez la liste pour un fichier plus court.' : ''))) return;
+    setErreur('');
+    setRapports({ fait: 0, total: 1, etape: 'Chargement des données', enCours: true });
+    try {
+      const { telechargerRapports } = await import('@/lib/export/rapport-fuite');
+      const r = await telechargerRapports(filtrees.map((f) => f.id), marcheId, peut('quantites', 'lire'),
+        (fait, total, etape) => setRapports({ fait, total, etape, enCours: true }));
+      setRapports({ fait: 1, total: 1, enCours: false,
+        etape: `${r.fuites} rapport${r.fuites > 1 ? 's' : ''} téléchargé${r.fuites > 1 ? 's' : ''} (${(r.octets / 1048576).toFixed(1)} Mo, ${r.secondes.toFixed(0)} s)` });
+    } catch (e) {
+      setRapports(null);
+      setErreur(messageErreur(e));
+    }
+  }
   const descriptionListe = [
     statut && STATUTS[statut].libelle,
     secteur && secteurs.find((s) => s.id === secteur)?.libelle,
@@ -121,7 +143,21 @@ export default function ListeFuites() {
         </label>
         <button onClick={charger}>Actualiser</button>
         {peut('exports', 'lire') && <button onClick={() => setExportOuvert(true)}>Exporter</button>}
+        {peut('exports', 'lire') && (
+          <button disabled={!filtrees.length || !!rapports?.enCours} onClick={rapportsPdf}>
+            Rapports PDF ({filtrees.length})
+          </button>
+        )}
       </div>
+
+      {rapports && (
+        <div className="carte progression-rapports" role="status">
+          <div>{rapports.etape}</div>
+          {rapports.enCours
+            ? <progress max={rapports.total} value={rapports.fait} />
+            : <button className="petit" onClick={() => setRapports(null)}>Fermer</button>}
+        </div>
+      )}
 
       {erreur && <p className="erreur">{erreur}</p>}
       {chargement && <p className="discret">Chargement…</p>}

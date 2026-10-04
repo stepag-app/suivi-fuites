@@ -48,6 +48,23 @@ Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel 
 certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
 avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
 
+### Rapport PDF par fuite
+
+Bouton **Rapport PDF** sur la fiche d'une fuite, et **Rapports PDF (n)** sur la liste (toutes les fuites
+affichées après filtres, une fuite par page dans un seul fichier, barre de progression) ; droit
+« exports / lire ». Module `src/lib/export/rapport-fuite.ts`, chargé au clic (jsPDF + autotable, comme les
+exports ; en-tête dessiné par `dessinerEntete` de `pdf.ts`). Contenu : en-tête du marché ; identification
+(N°, référence client, origine, statut, dates de détection et jalons du client, zone, secteur, adresse,
+**coordonnées GPS** en degrés décimaux et sexagésimaux avec lien vers la carte, précision) ; réparations
+(équipe, chef, constat, travaux, fouille et volume, emplacement, revêtement, représentant du maître
+d'ouvrage, ouvriers, pièces posées, observation) ; réfections (nature FR / AR, dimensions, ou motif) ;
+quantités et prix du bordereau **seulement** avec le droit « quantités / lire » ; photos rangées par type
+(détection, avant, pendant, après, réfection), 3 par ligne, réduites dans le navigateur (800 px, JPEG 60 %),
+avec type, date et coordonnées ; visas des règles d'attachement du marché ; pied « édité le », page n / N.
+Mesures (pile locale, Chromium) : fuite avec 6 photos de 1 600 px → **2 pages, 393 Ko, 0,4 à 0,6 s** ;
+25 fuites du marché DEMO → 43 pages, 0,56 Mo, ≈ 1 s. Ces PDF gardent les images : ils serviront d'archive
+avant toute purge des anciennes photos (CLAUDE.md § 7).
+
 ## Mode hors ligne léger
 
 - **Nouvelle fuite** : toujours enregistrée d'abord sur la tablette (IndexedDB : fiche + photos déjà

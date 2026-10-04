@@ -1,0 +1,37 @@
+name: Base de données
+
+on:
+  push:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/base-de-donnees.yml'
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - '.github/workflows/base-de-donnees.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  migrations-et-tests:
+    name: Migrations et tests RLS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Installer PostgreSQL 16, PostGIS et pgTAP
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q postgresql-16 postgresql-16-postgis-3 postgresql-16-pgtap libtap-parser-sourcehandler-pgtap-perl
+          sudo systemctl start postgresql
+          sudo -u postgres psql -c "alter user postgres password 'postgres'"
+
+      - name: Appliquer les migrations et lancer les tests
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: bash supabase/ci/lancer-tests.sh

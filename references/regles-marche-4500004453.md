@@ -47,7 +47,7 @@
 | Signataire du titulaire | BOUSALAM Imad, « Gérant de la société » | [F040 p.1] |
 | Banque du titulaire | SAHAM BANK, Oujda Agence Principale `[RIB non recopié]` | [F040 p.1] |
 | Lieu d'exécution | ville d'Oujda (« certains secteurs de la Préfecture Oujda-Angad ») | [F056 p.3, art. I-1] ; [F056 p.17, art. II-15] |
-| Périmètre | 5 zones d'intervention, 35 secteurs nommés (découpage à confirmer), 1466 km de réseau (voir liste `zone_intervention` et `secteur` en section 6 bis) | [F056 p.18-19, tableau n°1] |
+| Périmètre | 5 zones d'intervention, 34 secteurs dans le découpage proposé (à confirmer), 1466 km de réseau (voir liste `zone_intervention` et `secteur` en section 6 bis) | [F056 p.18-19, tableau n°1] |
 | Lots | lot unique | [F054 p.3, art. 3] |
 
 - **R-ID-006** [CONTRACTUEL] L'adresse de notification diffère entre les deux ordres de service : OS n° 01 → « Bureau N°02 SIS à RES NASRR IMM 110 APPT 08- OUJDA » ; OS n° 02 → « 19 rue Al Kaoutar II Hay 19 rue Al K 60000 OUJDA » (ancien siège). `[CONTRADICTION : F035 p.1 vs F036 p.1]` ; le domicile élu de l'acte d'engagement est le Bureau N°02. [F035 p.1 ; F036 p.1 ; F040 p.1]
@@ -1755,6 +1755,580 @@ numero;mesures_a_relever;unite_saisie;formule_quantite;conditions;source
 | 11 | joint gibault, dissymétrique ou autre ; remplacement total ou partiel d'un élément ; sable ; grillage ; cisaillement ; démontage ; épuisement | [NON PRÉCISÉ] | u | AC ou PVC ; 225 ≤ DN ≤ 315 | prix 3 ; 12 ; 13 | [F032 p.1] |
 | 12 | comme le prix 11 | [NON PRÉCISÉ] | u | AC ou PVC ; 110 ≤ DN ≤ 200 | prix 3 ; 11 ; 13 | [F032 p.1] |
 | 13 | comme le prix 11 | [NON PRÉCISÉ] | u | AC ou PVC ; DN < 110 | prix 3 ; 11 ; 12 | [F032 p.1] |
+
+## 6. Matériaux et articles
+
+**Résumé.** Les documents contractuels ne citent que peu de matériaux (polyéthylène, PVC, amiante-ciment, robinet et collier de prise en charge, collier Astor, joint gibault, joint dissymétrique, tabernacle, tube PVC, bouche à clé, sable, grillage avertisseur, GNA, cut back, enrobés). Le catalogue détaillé (268 désignations) vient du classeur d'attachement STEPAG ([F001], feuille « LISTE ») : c'est une liste interne, héritée de 2017, qui sert à saisir les pièces posées. En 2026 toutes les fournitures sont à la charge de l'entreprise et comprises dans les prix unitaires de réparation.
+
+**Principaux `[NON PRÉCISÉ]`.** Normes et agréments exigés par pièce (le CPS dit seulement « conforme aux normes en vigueur », approbation préalable de la SRM) ; marques ; pression nominale ; informations à relever à la pose (marque, série) ; rattachement officiel de chaque pièce à un prix.
+
+### 6.1 Matériaux cités par les pièces contractuelles
+
+| Matériau ou fourniture | Caractéristique imposée | Norme ou agrément | Prix de rattachement | Qui fournit | Compris dans un prix | Source |
+|---|---|---|---|---|---|---|
+| Tuyau polyéthylène (branchements et extensions) | diamètre extérieur < 40 mm ou ≥ 40 mm ; longueur ≤ 2 m par réparation | [NON PRÉCISÉ] | 6 ; 9 | entreprise | oui | [F032 p.1] |
+| Raccords, collier pour polyéthylène, manchon, bouchon | montage par mise en place | [NON PRÉCISÉ] | 6 ; 9 | entreprise | oui | [F032 p.1] |
+| Robinet de prise en charge (PEC) | différents diamètres | [NON PRÉCISÉ] | 7 | entreprise | oui | [F032 p.1] |
+| Collier de prise en charge (PEC) | différents diamètres | [NON PRÉCISÉ] | 8 | entreprise | oui | [F032 p.1] |
+| Collier Astor | fixé sur polyéthylène | [NON PRÉCISÉ] | 6 à 9 | entreprise | oui | [F056 p.29] |
+| Tabernacle | en polyester | [NON PRÉCISÉ] | 7 ; 8 ; 10 | entreprise | oui | [F056 p.29] ; [F032 p.1] |
+| Tube PVC (tube allonge de bouche à clé) | — | [NON PRÉCISÉ] | 7 ; 8 ; 10 | entreprise | oui | [F032 p.1] |
+| Bouche à clé carrée ou ronde | socle béton 0,40 × 0,40 × 0,20 | [NON PRÉCISÉ] | 7 ; 8 ; 10 | entreprise | oui | [F032 p.1] |
+| Béton du socle | fourni par l'entreprise | [NON PRÉCISÉ] | 7 ; 8 ; 10 | entreprise | oui | [F032 p.1] |
+| Joint gibault, joint dissymétrique, autres matériels de jonction | pour conduites amiante-ciment et PVC, DN ≤ 315 | [NON PRÉCISÉ] | 11 ; 12 ; 13 | entreprise | oui | [F032 p.1] |
+| Élément de conduite de remplacement (amiante-ciment, PVC) | remplacement total ou partiel | [NON PRÉCISÉ] | 11 ; 12 ; 13 | entreprise | oui | [F032 p.1] |
+| Sable pour lit de pose | épaisseur 0,10 m | — | 6 ; 9 ; 11 ; 12 ; 13 | entreprise | oui | [F032 p.1] |
+| Grillage avertisseur | couleur bleue ; largeur 50 cm | — | 6 ; 9 ; 11 ; 12 ; 13 | entreprise | oui | [F032 p.1] |
+| Tout venant GNA | 0,50 m compacté arrosé (chaussée) ; couche sous trottoir | — | 4 ; 5 | entreprise | oui | [F056 p.28] |
+| Blocage en pierre | épaisseur minimale 15 cm | — | 4 | entreprise | oui | [F032 p.1] |
+| Revêtement de trottoir | béton, granito lavé, carreaux ciment, mosaïque ; épaisseur 0,10 m ; identique à l'original | — | 4 | entreprise | oui | [F032 p.1] |
+| Couche d'imprégnation | cut back ou émulsion | — | 5 | entreprise | oui | [F056 p.23] |
+| Enrobé à chaud | épaisseur 7 cm | exigence de la Commune Urbaine | 5 | entreprise | oui | [F056 p.23] |
+| Enrobé-résine à froid (bitume et élastomère) | granulométrie 0/4 ; densité 1,7 / 1,9 g/cm3 ; perte de particules 0,0 / 5,0 | UNE EN 12697-2 ; UNE EN 12697-6 ; EN 12697-17 | 5 (sans supplément) | entreprise | oui | [F056 p.23-24] |
+| Robinet cache-entrée ; raccords standard du compteur | exclus de la définition du « raccord » | — | aucun (hors bordereau) | [NON PRÉCISÉ] | non | [F056 p.29] |
+
+- **R-MAT-001** [CONTRACTUEL] Tout le matériel de réparation est fourni, transporté et posé par l'entreprise, soumis à l'approbation de la SRM avant le démarrage et conforme aux normes en vigueur ; aucun bon de sortie magasin ni restitution de pièces déposées n'est prévu. [F056 p.17, art. II-15 N.B.]
+- **R-MAT-002** [DÉDUIT] Les pièces posées ne sont pas facturées à part : elles justifient le prix unitaire de réparation retenu (6 à 13). Les colonnes « Prix proposé » ci-dessous sont une proposition de l'extracteur, à valider avec la SRM. [F032 p.1]
+- **R-MAT-003** [INTERNE] Informations relevées à la pose dans le gabarit STEPAG : désignation de la pièce (qui encode type et diamètres) et quantité posée (unités, ou mètres pour le PEHD). Marque, numéro de série, norme : non relevés. [F001 feuille "Fiche de réparation Zone " I:J]
+- **R-MAT-004** [INTERNE] Convention de nommage du catalogue : « PEHD 26/32 » = diamètre intérieur / extérieur en mm ; « Manchon réduit 32/25 » = deux diamètres raccordés ; « Collier PEC 110/20 » = diamètre de la conduite / diamètre de la prise ; « Raccord en laiton 32 3/4 » = diamètre du polyéthylène et filetage en pouces ; « Joint Gibault 75/80 », « Joint dissymétrique 90*80 » = diamètres des deux bouts. [F001 feuille "LISTE" ; notes F065]
+
+### 6.2 Catalogue des pièces du classeur STEPAG (liste interne, intégrale)
+
+Statut `[INTERNE]`. Colonnes « Famille proposée » et « Prix 2026 proposé » : propositions de l'extracteur calculées par script à partir du premier diamètre lu dans la désignation (diamètre extérieur pour le PEHD).
+
+| N° | Désignation exacte | Famille proposée | Unité de saisie | Prix 2026 proposé | Compris dans le prix | Source |
+|---|---|---|---|---|---|---|
+| 1 | A DETECTER | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
+| 2 | RAS | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
+| 3 | Assainissement | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
+| 4 | refusé par l'abonné | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
+| 5 | sondage negatif | motif (pas une pièce) | — | — | — | [F001 feuille "LISTE" A] |
+| 6 | Manchon droit 15 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 7 | Manchon droit 75/75 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 8 | Manchon DN 600 | manchon | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 9 | Manchon droit 63/63 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 10 | Manchon droit 50/50 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 11 | Manchon droit 40/40 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 12 | Manchon droit 32/32 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 13 | Manchon droit 20/20 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 14 | Manchon droit 25/25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 15 | Manchon réduit 32/25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 16 | Manchon réduit 40/32 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 17 | Manchon réduit 75/63 | manchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 18 | Robinet d'arret 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 19 | Robinet d'arret 32/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 20 | Robinet d'arret 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 21 | Robinet d'arret 63 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 22 | Robinet d'arret 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 23 | Robinet FF 32 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 24 | Robinet FF 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 25 | Robinet FF 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 26 | Robinet PEC 50 1-1/2 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 27 | Robinet PEC 40 1-1/2 F | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 28 | Robinet PEC 63 1-1/2 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 29 | Robinet PEC 20/32 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 30 | Robinet PEC 20/25 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 31 | Robinet PEC 40/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 32 | Robinet PEC 40/50 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 33 | Robinet PEC 63/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 34 | Robinet vanne 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 35 | Robinet vanne 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 36 | Robinet vanne 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 37 | Robinet vanne 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 38 | Robinet vanne 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 39 | Robinet vanne 50/40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 40 | Robinet vanne 30 1-1/4 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 41 | Raccord en laiton 50 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 42 | Raccord en laiton 63 1-1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 43 | Raccord en laiton 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 44 | Raccord en laiton 40 1-1/4 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 45 | Raccord en laiton 40 1/2 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 46 | Raccord en laiton 32 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 47 | Raccord en laiton 32 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 48 | Raccord en laiton 25 3/4 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 49 | Raccord en laiton 25 1/2 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 50 | Raccord standard 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 51 | Raccord standard 30 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 52 | coude dn 15 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 53 | coude dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 54 | coude dn 20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 55 | coude dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 56 | coude dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 57 | coude dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 58 | coude dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 59 | coude dn 100 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 60 | coude dn 1/8 110 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 61 | Collier PEC 50/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 62 | Collier PEC 40/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 63 | Collier PEC 80/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 64 | Collier PEC 80/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 65 | Collier PEC 63/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 66 | Collier PEC 60/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 67 | Collier PEC 60/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 68 | Collier PEC 63/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 69 | Collier PEC 75/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 70 | Collier PEC 40/90 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 71 | Collier PEC 100/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 72 | Collier PEC 110/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 73 | Collier PEC 110/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 74 | Collier PEC 100/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 75 | Collier PEC 150/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 76 | Collier PEC 150/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 77 | Collier PEC 160/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 78 | Collier PEC 200/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 79 | Collier PEC 225/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 80 | Collier PEC  400/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 81 | Collier PEC 160/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 82 | Collier ASTOR 32 3/4 | collier pour polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 83 | Collier ASTOR 50 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 84 | Collier ASTOR 40 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 85 | Collier ASTOR 63 3/4 | collier pour polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 86 | compteur dn 100 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 87 | boulon 24 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 88 | boulon 16x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 89 | boulon 20x80 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 90 | boulon 16X70 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 91 | boulon 20X110 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 92 | Fillasse | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 93 | PEHD 75/75 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
+| 94 | PEHD 53/63 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
+| 95 | PEHD 33/40 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
+| 96 | PEHD 42/50 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
+| 97 | PEHD 19/25 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
+| 98 | PEHD 20 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
+| 99 | PEHD 15 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
+| 100 | PEHD 26/32 | tuyau polyéthylène | m | 6 | compris | [F001 feuille "LISTE" A] |
+| 101 | PEHD /75 | tuyau polyéthylène | m | 9 | compris | [F001 feuille "LISTE" A] |
+| 102 | PPR 25 | manchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 103 | Robinet equerre 32 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 104 | Robinet equerre 25 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 105 | Robinet equerre 25 3/4 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 106 | Robinet equerre 15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 107 | Robinet equerre 20 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 108 | Tabernacle | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
+| 109 | Bouche à clé carrée | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
+| 110 | Tube PVC 90 | bouche à clé | u | 7 ; 8 ; 10 | compris | [F001 feuille "LISTE" A] |
+| 111 | Robinet FF 1/2 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 112 | Robinet FF 25/15 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 113 | Robinet pec 32/15 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 114 | Robinet PEC 30/40 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 115 | Robinet PEC 40/20 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 116 | Robinet PEC 20/15 | robinet de prise en charge | u | 7 | compris | [F001 feuille "LISTE" A] |
+| 117 | Collier PEC 140/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 118 | Collier PEC 50/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 119 | Joint Gibault 60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 120 | Joint Gibault 63 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 121 | Joint Gibault 75/80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 122 | Joint Gibault 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 123 | Joint Gibault 75/60 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 124 | Joint Gibault 80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 125 | Joint Gibault 90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 126 | Joint Gibault 80/90 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 127 | Joint Gibault  100 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 128 | Joint Gibault 110 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 129 | Joint Gibault 125 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 130 | Joint Gibault 140 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 131 | Joint Gibault 150 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 132 | Joint Gibault 160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 133 | Joint Gibault 200 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 134 | Joint Gibault  225 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
+| 135 | Joint Gibault  250 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
+| 136 | Joint Gibault  300 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
+| 137 | Joint Gibault  315 | jonction ou tuyau de conduite AC/PVC | u | 11 | compris | [F001 feuille "LISTE" A] |
+| 138 | Joint Gibault  400 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
+| 139 | Joint Gibault  500 | jonction ou tuyau de conduite AC/PVC | u | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
+| 140 | Joint de démontage dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 141 | Joint de démontage dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 142 | Joint dissymétrique  90*80 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 143 | Joint dissymétrique  150*160 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 144 | Joint dissymétrique  100*110 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 145 | Joint dissymétrique  200*225 | jonction ou tuyau de conduite AC/PVC | u | 12 | compris | [F001 feuille "LISTE" A] |
+| 146 | Joint dissymétrique  60*75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 147 | buse DN200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 148 | Tuyau PVC D 63 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
+| 149 | Tuyau PVC D 75 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
+| 150 | Tuyau PVC D 90 | jonction ou tuyau de conduite AC/PVC | m | 13 | compris | [F001 feuille "LISTE" A] |
+| 151 | Tuyau PVC D 110 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 152 | Tuyau PVC D 125 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 153 | Tuyau PVC D 140 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 154 | Tuyau AC D 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 155 | Tuyau AC D 151 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 156 | Tuyau PVC D 160 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 157 | Tuyau PVC D 200 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 158 | Tuyau PVC D 225 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
+| 159 | Tuyau PVC D 250 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
+| 160 | Tuyau PVC D 315 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
+| 161 | Tuyau PVC D 400 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
+| 162 | Tuyau PVC D 500 | jonction ou tuyau de conduite AC/PVC | m | hors bordereau (DN > 315) | — | [F001 feuille "LISTE" A] |
+| 163 | Tuyau AC DN 150 | jonction ou tuyau de conduite AC/PVC | m | 12 | compris | [F001 feuille "LISTE" A] |
+| 164 | Tuyau AC DN 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
+| 165 | Collier PEC 75/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 166 | Collier PEC 90/20 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 167 | Joint tolérance 75 | jonction ou tuyau de conduite AC/PVC | u | 13 | compris | [F001 feuille "LISTE" A] |
+| 168 | tuyau  pehd | tuyau polyéthylène | m | 6 ou 9 | compris | [F001 feuille "LISTE" A] |
+| 169 | Joint tapis | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 170 | ventouse DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 171 | ventouse DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 172 | ventouse DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 173 | bouchon dn 25 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 174 | bouchon dn20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 175 | bouchon dn 40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 176 | bouchon dn 32 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 177 | bouchon dn 20 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 178 | bouchon dn 32 ASTORE | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 179 | bouchon dn 50 ASTORE | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 180 | bouchon dn 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 181 | bouchon dn 75 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 182 | bouchon dn 90 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 183 | bouchon dn 110 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 184 | bouchon dn 315 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 185 | bouchon dn 63 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 186 | bouchon dn  160 | raccord ou bouchon gros diamètre | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 187 | adaptateur de bride dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 188 | adaptateur de bride dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 189 | adaptateur de bride dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 190 | adaptateur de bride dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 191 | adaptateur de bride dn 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 192 | adaptateur de bride dn 315 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 193 | adaptateur de bride dn 100/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 194 | adaptateur de bride dn 200/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 195 | adaptateur de bride dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 196 | bride major dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 197 | bride major dn 225/200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 198 | bride major dn 315/300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 199 | bride major dn 110/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 200 | bride major dn 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 201 | bride major dn 90/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 202 | bride major dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 203 | bride major dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 204 | bride major dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 205 | BU DN 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 206 | BU DN 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 207 | BU DN 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 208 | BU DN 160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 209 | BU DN 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 210 | BU DN 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 211 | BU DN 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 212 | obturateur dn 40 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 213 | obturateur dn 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 214 | obturateur dn 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 215 | obturateur dn 75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 216 | obturateur dn 90 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 217 | obturateur dn 60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 218 | obturateur dn 80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 219 | obturateur dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 220 | obturateur dn 150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 221 | obturateur dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 222 | cône de réduction 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 223 | réducteur dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 224 | PLAQ REGARD CADRE CARRE TAMP ROND 800X800 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 225 | PLAQ REGARD TAMPON ET CADRE CARRE  500X500 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 226 | touvenant | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 227 | Réducteur 300 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 228 | TE 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 229 | TE 150/150 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 230 | TE 100/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 231 | TE 100/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 232 | TE 110/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 233 | TE 200/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 234 | TE 100/60 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 235 | TE 150/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 236 | TE 160/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 237 | TE 200/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 238 | TE 63 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 239 | TE 75/75 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 240 | TE 50 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 241 | TE 200/80 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 242 | TE 63 ASTORE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 243 | FUITE SUR CONDUITE DN 700 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 244 | FUITE SUR CONDUITE DN 600 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 245 | Fonte ductile dn400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 246 | CONDUITE DN 90 ACIER GALVANISE | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 247 | vanne dn 400 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 248 | beton b2 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 249 | acier haut adherance 10 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 250 | acier haut adherance 12 | consommable ou matériau | — | compris dans les prix (sujétions) | compris | [F001 feuille "LISTE" A] |
+| 251 | Collier pec 200/40 | collier de prise en charge | u | 8 | compris | [F001 feuille "LISTE" A] |
+| 252 | Raccord  40/30 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 253 | Raccord  63/40 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 254 | Raccord  20 | raccord, coude ou bouchon polyéthylène | u | 6 | compris | [F001 feuille "LISTE" A] |
+| 255 | Raccord  Astore 50 | raccord, coude ou bouchon polyéthylène | u | 9 | compris | [F001 feuille "LISTE" A] |
+| 256 | AC dn 300 | jonction ou tuyau de conduite AC/PVC | m | 11 | compris | [F001 feuille "LISTE" A] |
+| 257 | CONE 225/160 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 258 | CONE DE REDUCTION 160/110 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 259 | CONE DE REDUCTION 150/100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 260 | CONE DE REDUCTION 160/225 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 261 | plaque de regard | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 262 | Porte de niche 50/50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+| 263 | bouche d'incendie | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 264 | monchette dn 200 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 265 | monchette dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
+| 266 | Robinet FF 50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
+
+- **R-MAT-005** [INTERNE] Le catalogue compte 266 désignations distinctes (268 cellules, doublons compris), dont 5 motifs qui ne sont pas des pièces (« A DETECTER », « RAS », « Assainissement », « refusé par l'abonné », « sondage negatif »). [F001 feuille "LISTE"]
+- **R-MAT-006** [DÉDUIT] 109 désignations n'ont pas de prix évident au bordereau 2026 (robinets-vannes, ventouses, tés, cônes, brides, adaptateurs, obturateurs, plaques de regard, conduites de diamètre > 315, fonte, acier, pièces côté compteur) : hors bordereau probable, à traiter par prix nouveaux (question en section 12). [F001 feuille "LISTE" ; F032 p.1]
+- **R-MAT-007** [DÉDUIT] Diamètres de conduite cités dans le catalogue : 60, 63, 75, 80, 90, 100, 110, 125, 140, 150, 160, 200, 225, 250, 300, 315, 400, 500, 600, 700 ; diamètres de polyéthylène : 15, 20, 25, 32, 40, 50, 63, 75 (voir liste `diametre_nominal` en 6 bis). [F001 feuille "LISTE"]
+
+## 6 bis. Énumérations (listes de valeurs fermées)
+
+**Résumé.** Toutes les listes de valeurs sont réunies ici ; les autres sections y renvoient par le nom de la liste. Aucun classeur du dossier ne contient de liste de validation Excel (vérifié par script sur tous les `.xlsx` ; non vérifiable sur les `.xls`) : les listes ci-dessous sont reconstituées à partir du CPS, du bordereau et des valeurs réellement saisies. La colonne « Code proposé » est une proposition de l'extracteur.
+
+**Principaux `[NON PRÉCISÉ]`.** Classes de débit de fuite ; classes de profondeur ; nature du terrain ; origine du signalement ; quartiers ; liste officielle des tournées ; statuts contractuels d'une fuite ; découpage exact des secteurs de la zone 1 et de la zone 3.
+
+### Liste `zone_intervention`
+
+Liste : FERMÉE (tableau n° 1 du CPS).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| zone_1_universite | Zone université 7000m3 et champ tir | — | zone n° 1 ; 358 km ; Q exigé 126 m3/h | 1 ; 2 | [F056 p.18] |
+| zone_2_jbel_hamra_dn700 | Zone jbel hamra DN700 | — | zone n° 2 ; 362 km ; Q exigé 130 m3/h | 1 ; 2 | [F056 p.18] |
+| zone_3_ain_serrak | Zone Reservoir AIN SERRAK 5000M3 | — | zone n° 3 ; 228 km ; Q exigé 118 m3/h | 1 ; 2 | [F056 p.18] |
+| zone_4_sidi_yahya | Zone Sidi Yahya 5000 M3 4000M3 | — | zone n° 4 ; 399 km ; Q exigé 112 m3/h | 1 ; 2 | [F056 p.18] |
+| zone_5_jbel_hamra_dn600 | Zone jbel hamra DN600 | — | zone n° 5 ; 119 km ; Q exigé 83 m3/h | 1 ; 2 | [F056 p.19] |
+
+Variante d'écriture rencontrée : « Zone 4 Sidi yahya 5000 M3 et 4000 M3 » [F119 F8]. Les mentions « 7000m3 », « 5000M3 », « 4000M3 » désignent vraisemblablement la capacité du réservoir de tête et « DN700 », « DN600 » le diamètre de la conduite d'alimentation `[À CONFIRMER : non écrit]`.
+
+### Liste `secteur`
+
+Liste : FERMÉE (tableau n° 1), découpage `[À CONFIRMER]` : la ponctuation du tableau est ambiguë (« Château Sidi Aissa Azengot » sans virgule ; « Derfoufi et Zerkrtouni – Mohammadi Intérieur – … ») et les planches traitent « Qods Haut, Chu-Mouhoub-Irriss » comme un seul secteur. Le découpage proposé suit les planches quand elles existent.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| qods_haut_chu_mouhoub_iriss | Qods Haut, Andalous, Chu - Mouhoub -Iriss (« QODS HAUT, CHU -MOUHOUB -IRRISS » sur la planche) | — | zone 1 ; planche F112 ; Qods Haut et Chu-Mouhoub-Iriss réunis sur la planche `[À CONFIRMER]` | 1 ; 2 | [F056 p.18] ; [F112] |
+| andalous | Andalous | — | zone 1 ; planche F098 | 1 ; 2 | [F056 p.18] ; [F098] |
+| maafa_bekay_bas | Maafa Bekay Bas (« SIDI MAAFA BAS » sur la planche) | — | zone 1 ; planche F106 | 1 ; 2 | [F056 p.18] ; [F106] |
+| ballaoui_bas_irfane | Ballaoui Bas-Irfane- Unisit-Colline-Partie H Ain Serrak | — | zone 1 ; planche F100 (« part 1 » : « UNISIT-COLLINE-PARTIE H AIN SERRAK », « BELLAOUI HAUT ») ; un ou plusieurs secteurs `[À CONFIRMER]` | 1 ; 2 | [F056 p.18] ; [F100] |
+| qods_bas | Qods Bas | — | zone 1 ; planche F111 | 1 ; 2 | [F056 p.18] ; [F111] |
+| chateau_sidi_aissa | Château Sidi Aissa | — | zone 1 ; planche F101 | 1 ; 2 | [F056 p.18] ; [F101] |
+| azengot | Azengot | — | zone 1 ; planche F099 | 1 ; 2 | [F056 p.18] ; [F099] |
+| maksam_kharoub | Maksam-Kharoub | — | zone 1 ; planche F107 | 1 ; 2 | [F056 p.18] ; [F107] |
+| lazaret_bas | Lazaret Bas | — | zone 2 ; planche F103 | 1 ; 2 | [F056 p.18] ; [F103] |
+| tairet | Tairet (planches : « TAIRET BAS », « TAIRET HAUT ») | — | zone 2 ; planches F114, F115 ; un ou deux secteurs `[À CONFIRMER]` | 1 ; 2 | [F056 p.18] ; [F114] ; [F115] |
+| mbasso | Mbasso | — | zone 2 ; planche F108 | 1 ; 2 | [F056 p.18] ; [F108] |
+| tennis_2 | Tennis2 | — | zone 2 ; planche F117 | 1 ; 2 | [F056 p.18] ; [F117] |
+| sidi_driss | Sidi Driss | — | zone 2 ; planche F113 | 1 ; 2 | [F056 p.18] ; [F113] |
+| tazaghine | Secteur Tazaghine | — | zone 2 ; planche F116 | 1 ; 2 | [F056 p.18] ; [F116] |
+| el_boustane | El Boustane | — | zone 2 ; visible sur la planche F102 | 1 ; 2 | [F056 p.18] ; [F102] |
+| ghar_el_baroud_zone_industrielle | Ghar El Baroud-Zone Industrielle | — | zone 2 ; planche F102 | 1 ; 2 | [F056 p.18] ; [F102] |
+| derfoufi_zerktouni | Derfoufi et Zerkrtouni | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| mohammadi_interieur | Mohammadi Intérieur | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| allal_ben_abdellah | Allal Ben Abdellah | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| oued_makhazine | Oued Makhazine | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| mauritanie_hassani | Mauritanie et Hassani | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| mohammadi_exterieur | Mohammadi Extérieur | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| benkhirane | Benkhirane | — | zone 3 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| sidi_yahya | Sidi yahya | — | zone 4 ; aucune planche | 1 ; 2 | [F056 p.18] |
+| pam | Pam | — | zone 4 ; planche F109 | 1 ; 2 | [F056 p.18] ; [F109] |
+| lazaret_haut | Lazaret haut | — | zone 4 ; planches F104, F105 (parts 1 et 2) | 1 ; 2 | [F056 p.18] ; [F104] ; [F105] |
+| abdellah_guenoun | Abdellah Guenoun (planches : « ABDELLAH GUNOUN BAS », « ABDELLAH GUNOUN HAUT ») | — | zone 4 ; planches F096, F097 ; un ou deux secteurs `[À CONFIRMER]` | 1 ; 2 | [F056 p.18] ; [F096] ; [F097] |
+| medina | Medina | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+| rte_algerie | Rte Algerie | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+| tennis_1 | Tennis 1 | — | zone 5 ; aucune planche (visible en bord de F117) | 1 ; 2 | [F056 p.19] |
+| aounia | Aounia | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+| atlas | Atlas | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+| lieutenant_belhoucine | Lieutenant Belhoucine | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+| boudir | Boudir | — | zone 5 ; aucune planche | 1 ; 2 | [F056 p.19] |
+
+Autres noms de secteur rencontrés hors tableau n° 1 : « SIDI MOUSSA MHAYA », « LABSARA » (noms de feuilles des gabarits STEPAG, [F121], [F123]) ; secteurs de 2017 `[2017]` : Lazaret, Lazaret 2, Mchiwer, Si Lakhder, Si Lakhder 2, Riad, SIDI YAHYA 2, A. Guennoun, A,GUENNOUN 2, Rte ALGERIE, Alaounia, Medina, Taza, Moritanie, Jawhara, Tennis 1, Mir Ali [F065]. Le linéaire par secteur n'est donné nulle part : `[NON PRÉCISÉ]` (seul le linéaire par zone est connu).
+
+### Liste `phase_marche`
+
+Liste : FERMÉE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| balayage | balayage | — | 4 mois à compter de l'OS de commencement | 1 ; 3 à 13 | [F056 p.17, art. II-14] |
+| maintien_1 | maintien des performances (première phase) | — | 4 mois après le balayage ; facture de 40 % du prix 2 | 2 ; 3 à 13 | [F056 p.17] ; [F056 p.12] |
+| maintien_2 | maintien des performances (seconde phase) | — | 4 mois suivants ; facture de 60 % du prix 2 | 2 ; 3 à 13 | [F056 p.17] ; [F056 p.13] |
+| garantie | délai de garantie | — | 12 mois après la réception provisoire | aucun | [F056 p.10, art. I-28] |
+
+### Liste `visibilite_fuite`
+
+Liste : FERMÉE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| visible | Visibles | — | fuite visible, dont la localisation est à préciser | aucun prix propre | [F056 p.25, art. II-25] ; [F119 G15] |
+| invisible | Invisibles | — | fuite trouvée par détection | aucun prix propre | [F056 p.25, art. II-25] ; [F119 H15] |
+
+### Liste `type_fuite` (définition contractuelle de la « fuite »)
+
+Liste : OUVERTE (« exemple : branchement clandestin… »).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| fuite_proprement_dite | Fuite proprement dite | — | — | 6 à 13 | [F056 p.25, art. II-25] |
+| element_inconnu | Découverte d'un élément inconnu pour la SRM-ORI | — | exemple : branchement clandestin | [NON PRÉCISÉ] | [F056 p.25, art. II-25] |
+
+### Liste `ouvrage_touche`
+
+Liste : OUVERTE (reconstituée ; le CPS ne distingue que conduite et branchement).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| conduite | Conduites ; « CDT » ; « Cdt » | — | fuite sur conduite | 11 ; 12 ; 13 (AC, PVC) ; 6 ; 9 (extension PE) | [F122 F14] ; [F121 E16] ; [F123 B10] |
+| branchement | Branchement ; « BRT » ; « Brt » ; « Bt » | — | fuite sur branchement, du robinet de prise en charge à la niche du compteur | 6 ; 7 ; 8 ; 9 | [F122 G14] ; [F121 E18] ; [F123 B10] |
+| piece_speciale | Piece Spéciale | — | coude, té, cône… `[2017 : prix 17]` | hors bordereau 2026 | [F122 H14] ; [F088] |
+| bouche_incendie | B.I | — | bouche d'incendie `[À CONFIRMER : abréviation]` | hors bordereau 2026 | [F122 I14] ; [F088] |
+| vanne | Vanne | — | `[2017]` colonne du rapport hebdomadaire | hors bordereau 2026 | [F088] |
+| branchement_clandestin | Br. Clandestin | — | `[2017]` ; « élément inconnu » au sens du CPS | [NON PRÉCISÉ] | [F088] ; [F056 p.25] |
+| autre | Autre | — | `[2017]` | — | [F088] |
+
+### Liste `materiau_conduite`
+
+Liste : OUVERTE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| amiante_ciment | amiante ciment ; « AC » | — | conduite | 11 ; 12 ; 13 | [F032 p.1] ; [F087] |
+| pvc | PVC | — | conduite ; distance entre capteurs réduite à 50 m | 11 ; 12 ; 13 | [F032 p.1] ; [F056 p.23] |
+| polyethylene | polyéthylène ; « PE » ; « PEHD » | — | branchements et extensions ; distance entre capteurs réduite à 50 m | 6 ; 7 ; 8 ; 9 | [F032 p.1] ; [F056 p.23] |
+| fonte_ductile | Fonte ductile | — | catalogue interne (« Fonte ductile dn400 ») | hors bordereau | [F001 feuille "LISTE"] |
+| acier_galvanise | ACIER GALVANISE | — | catalogue interne (« CONDUITE DN 90 ACIER GALVANISE ») | hors bordereau | [F001 feuille "LISTE"] |
+| ppr | PPR | — | catalogue interne (« PPR 25 ») | [NON PRÉCISÉ] | [F001 feuille "LISTE"] |
+
+Attention : le code « AC » désigne l'amiante-ciment dans la colonne « Nature » de la canalisation et l'asphalte à chaud dans la colonne « Symbole » de réfection.
+
+### Liste `diametre_nominal` (tous les diamètres cités)
+
+Liste : OUVERTE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| pe_15 ; pe_20 ; pe_25 ; pe_32 | PEHD 15 ; 20 ; 19/25 ; 26/32 | — | polyéthylène, diamètre extérieur < 40 mm | 6 | [F001 feuille "LISTE"] ; [F032 p.1] |
+| pe_40 ; pe_50 ; pe_63 ; pe_75 | PEHD 33/40 ; 42/50 ; 53/63 ; 75/75 | — | polyéthylène, diamètre extérieur ≥ 40 mm | 9 | [F001 feuille "LISTE"] ; [F032 p.1] |
+| dn_60 ; dn_63 ; dn_75 ; dn_80 ; dn_90 ; dn_100 | 60 ; 63 ; 75 ; 80 ; 90 ; 100 | — | conduite, DN < 110 | 13 | [F001 feuille "LISTE"] ; [F087] |
+| dn_110 ; dn_125 ; dn_140 ; dn_150 ; dn_160 ; dn_200 | 110 ; 125 ; 140 ; 150 ; 160 ; 200 | — | conduite, 110 ≤ DN ≤ 200 | 12 | [F001 feuille "LISTE"] ; [F016 p.1] |
+| dn_225 ; dn_250 ; dn_300 ; dn_315 | 225 ; 250 ; 300 ; 315 | — | conduite, 225 ≤ DN ≤ 315 | 11 | [F001 feuille "LISTE"] |
+| dn_400 ; dn_500 ; dn_600 ; dn_700 | 400 ; 500 ; 600 ; 700 | — | conduite, DN > 315 | hors bordereau | [F001 feuille "LISTE"] ; [F056 p.18-19] |
+
+Calibres réellement prospectés en 2017 `[2017]` : AC 60, 80, 100, 150, 200 ; PE 32, 40, 50, 63, 80 ; PVC 63, 75, 90, 110 [F087 à F095].
+
+### Liste `nature_revetement` (« Nature de dégradation ») et `type_refection`
+
+Liste : OUVERTE (saisie libre dans les gabarits ; le bordereau n'énumère que cinq revêtements).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| beton | Béton ; « Beton » ; symbole B | — | trottoir en béton | 4 | [F032 p.1] ; [F001 feuille "REFECTION" I14] |
+| mosaique | Mosaique ; « Mozaig » ; symbole M | — | trottoir en mosaïque | 4 | [F032 p.1] ; [F001 feuille "REFECTION" J14] |
+| granito_lave | granito lavé ; « Lavé » ; symbole L | — | trottoir en granito lavé | 4 | [F032 p.1] ; [F001 feuille "REFECTION" K14] |
+| carreaux_ciment | carreaux ciment ; « Carreaux » ; « carrelage » ; symbole C | — | trottoir en carreaux ciment | 4 | [F032 p.1] ; [F001 feuille "REFECTION" L14] |
+| enrobe_a_chaud | enrobé à chaud ; « Asphalt à chaud » ; « asphaltage » ; symbole AC | — | chaussée goudronnée, enrobé 7 cm | 5 | [F032 p.1] ; [F001 feuille "REFECTION" M14] |
+| enrobe_resine_a_froid | enrobé-résine à froid | — | chaussée, si la réfection dépasse 1 mois ; même prix | 5 | [F056 p.23-24] |
+| terrain_naturel | Terrain naturel ; symbole TN | — | pas de réfection payée (formule × 0) | aucun | [F001 feuille "REFECTION" N14] |
+| pave | « pave » ; « Pavé » | — | rencontré en saisie ; en 2017 rangé sous le symbole L | [À CONFIRMER] | [F001 feuille "Fiche de réparation Zone "] ; [F065] |
+| faience | Faience `[2017]` | — | en 2017 rangé sous le symbole C | [À CONFIRMER] | [F065] |
+| marbre | Marbre `[2017]` | — | en 2017 rangé sous le symbole C ; cas de refus de l'abonné | [À CONFIRMER] | [F065] |
+| enrobe_a_froid_2017 | Asphalt à froid ; symbole AF `[2017]` | — | prix 9.b de 2017 | sans équivalent 2026 | [F065 feuille "Fiche réfection" M14] |
+
+### Liste `statut_fuite`
+
+Liste : OUVERTE. Le CPS ne définit aucun statut ; les trois statuts du cadrage de l'application sont `[INTERNE]`, les états de 2017 étaient portés par des couleurs.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| detectee_non_reparee | Détectée, non réparée | — | cadrage de l'application ; 2017 : « Non réparée, non réfectionnée » (jaune) ; « Fiche des fuites détectées et a réparer » | — | CLAUDE.md du dépôt ; [F065 feuille "Fiche réfection" N7] ; [F084] |
+| reparation_en_cours | Réparation en cours / reste à finir | — | cadrage de l'application ; 2017 : « Réparée non encore réfectionnée » (vert) | — | CLAUDE.md du dépôt ; [F065 feuille "Fiche réfection" N6] |
+| achevee | Achevée | — | cadrage de l'application ; 2017 : « Fuite réparée et entièrement réfectionnée » (sans couleur) | — | CLAUDE.md du dépôt ; [F065 feuille "Fiche réfection" N8] |
+| reparee_par_srm | Réparée par les agents de la RADEEO `[2017]` | — | fuite détectée par l'entreprise mais réparée par le maître d'ouvrage : aucune ligne payante de réparation | — | [F065 feuille "Fiche réfection" N4] |
+
+### Liste `motif_sans_reparation`
+
+Liste : OUVERTE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| a_detecter | A DETECTER | — | localisation à reprendre | — | [F001 feuille "LISTE" A1] |
+| ras | RAS | — | rien à signaler | — | [F001 feuille "LISTE" A2] |
+| assainissement | Assainissement | — | l'eau vient du réseau d'assainissement | 3 `[À CONFIRMER]` | [F001 feuille "LISTE" A3] |
+| refus_abonne | refusé par l'abonné | — | l'abonné refuse l'intervention | — | [F001 feuille "LISTE" A4] |
+| sondage_negatif | sondage negatif | — | fouille sans fuite | 3 `[À CONFIRMER]` | [F001 feuille "LISTE" A5] ; [F056 p.23] |
+
+### Liste `origine_signalement`
+
+Liste : `[NON PRÉCISÉ]`. Le CPS ne connaît que les fuites détectées par l'entreprise (balayage ou maintien) ; proposition : `balayage`, `maintien`, `fuite_visible_constatee`, `signalement_srm` `[À CONFIRMER]`. [F056 p.25, art. II-25]
+
+### Liste `methode_detection`
+
+Liste : OUVERTE (« à savoir… »).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| acoustique | détection systématique de fuites par appareil acoustique | — | écoute au sol | 1 ; 2 | [F056 p.22, art. II-18] |
+| correlation | localisation des fuites par corrélations | — | distance entre capteurs < 100 m (50 m en PVC et PE) | 1 ; 2 | [F056 p.22-23] |
+| enregistreurs_de_bruit | mise en place de capteurs enregistreurs de bruit | — | pré-localisation | 1 ; 2 | [F056 p.22] |
+
+### Liste `type_prestation` (familles de prix, proposition)
+
+Liste : FERMÉE (13 prix du bordereau).
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| detection_balayage | Recherche et détection de fuites sur conduites, tous diamètres et toutes natures ( Balayage) | — | ml | 1 | [F032 p.1] |
+| detection_maintien | Recherche et détection de fuites sur conduites pour le maintien des résultats | — | ml | 2 | [F032 p.1] |
+| terrassement | Confection de tranchée… | — | m3 | 3 | [F032 p.1] |
+| refection_trottoir | Réfection et revêtement des trottoirs… | — | m2 | 4 | [F032 p.1] |
+| refection_chaussee | Réfection et revêtement de chaussée goudronnée… | — | m2 | 5 | [F032 p.1] |
+| reparation_pe | réparation de fuites au niveau du tuyau polyéthylène | — | u ; DE < 40 ou DE ≥ 40 | 6 ; 9 | [F032 p.1] |
+| changement_robinet_pec | changement de Robinet PEC | — | u | 7 | [F032 p.1] |
+| changement_collier_pec | changement de collier PEC | — | u | 8 | [F032 p.1] |
+| mise_a_niveau_bouche_a_cle | Mise à niveau de bouche à clé carrée ou ronde | — | u | 10 | [F032 p.1] |
+| reparation_conduite | réparation de fuites sur conduites (amiante ciment et PVC) | — | u ; par tranche de DN | 11 ; 12 ; 13 | [F032 p.1] |
+
+### Liste `unite`
+
+Liste : FERMÉE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| ml | M | — | mètre linéaire | 1 ; 2 | [F032 p.1] |
+| m3 | M3 | — | mètre cube | 3 | [F032 p.1] |
+| m2 | M2 | — | mètre carré | 4 ; 5 | [F032 p.1] |
+| u | U | — | unité | 6 à 13 | [F032 p.1] |
+
+### Liste `fonction_signataire`
+
+Liste : OUVERTE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| srm_directeur_general | Directeur Général | — | signe le marché ; liquide les sommes | — | [F056 p.2] |
+| srm_directeur_exploitation_eau_potable | Directeur Exploitation Eau Potable | — | représente le maître d'ouvrage ; signe l'OS de commencement | — | [F036 p.1] |
+| srm_chef_dept_mesures_rendement | Chef de Département Mesures et Amélioration du Rendement | — | service de suivi | — | [F036 p.1] |
+| srm_chef_dept_achats_marches | Chef de Département Achats et Marchés | — | notification, résultat | — | [F035 p.1] |
+| srm_agent_suivi | agent chargé du suivi de l'exécution du marché | — | dresse les décomptes | — | [F056 p.4] |
+| srm_representant_terrain | représentant de la SRM-ORI | — | présent à l'ouverture de la tranchée ; valide les fuites | — | [F056 p.23] |
+| srm_commission_reception | commission de réception | — | signe les PV de réception | — | [F056 p.9] |
+| stepag_gerant | Gérant de la société | — | signe l'offre, les factures | — | [F040 p.1] |
+| stepag_directeur_chantier | Directeur de chantier | — | représente l'entrepreneur sur place | — | [F056 p.16] |
+| stepag_chercheur_de_fuite | CHERCHEUR DE FUITE `[2017]` | — | agent de détection | — | [F084] |
+| visa_stepag | « STEPAG » ; « Sté STEPAG » | — | case de visa des gabarits | — | [F121 A23] ; [F001 feuille "attachement recap" C28] |
+| visa_srm | « S.R.M » ; « SRM ORIENTAL » ; « SRM.ORI » | — | case de visa des gabarits | — | [F121 G23] ; [F122 G20] ; [F001 feuille "attachement recap" A28] |
+
+### Liste `famille_piece` (proposition, catalogue interne)
+
+Liste : OUVERTE. Valeurs : tuyau polyéthylène ; manchon polyéthylène ; raccord, coude ou bouchon polyéthylène ; collier pour polyéthylène ; robinet de prise en charge ; collier de prise en charge ; bouche à clé (tabernacle, tube PVC 90, bouche à clé carrée) ; jonction ou tuyau de conduite AC/PVC ; côté compteur ; consommable ou matériau ; pièce spéciale, robinetterie ou ouvrage ; motif (pas une pièce). Détail pièce par pièce en section 6.2. [F001 feuille "LISTE"]
+
+### Liste `equipement_detection`
+
+Liste : OUVERTE.
+
+| Code proposé (snake_case) | Libellé exact FR | Libellé AR | Définition ou critère | Prix associé | Source |
+|---|---|---|---|---|---|
+| aquaphone_a50 | Aquaphone A 50 | — | détecteur acoustique cité par le gabarit mensuel STEPAG | — | [F122 A12] |
+| aquaphone_mikron_junior_3 | Aquaphone Mikron Junior 3 | — | idem | — | [F122 A12] |
+| eureka | Eureka | — | corrélateur `[À CONFIRMER]` | — | [F122 A12] |
+| aquaphon_a100 | Aquaphon A100 ; Sewerin A100 `[2017]` | — | détecteur acoustique utilisé en 2017 | — | [F087] ; [F088] |
+
+### Listes `tournee`, `quartier`, `classe_profondeur`, `nature_terrain`, `classe_debit`
+
+- `tournee` : aucune liste ; c'est une référence au format `NNN-NNN-NNN` (section 10 bis). [F001 ; F119]
+- `quartier` : `[NON PRÉCISÉ]` ; les documents ne connaissent que zone et secteur.
+- `classe_profondeur` : `[NON PRÉCISÉ]` ; la profondeur est une mesure libre en mètres.
+- `nature_terrain` : aucune classe ; le prix 3 vaut pour un « terrain de toute nature ». [F032 p.1]
+- `classe_debit` : `[NON PRÉCISÉ]`.
 
 ## 7. Attachement modèle 2017 et pièces de paiement
 

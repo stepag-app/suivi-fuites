@@ -7,6 +7,8 @@
 // d'archive (les anciennes photos pourront être purgées du stockage, CLAUDE.md § 7).
 import type { ReglesAttachement } from '@/lib/attachements';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO, libellesMarche } from '@/lib/format';
+import { lienItineraire } from '@/lib/itineraire';
+import { urlsPhotos } from '@/lib/photo';
 import { getSupabase } from '@/lib/supabase';
 import type { Marche, Quantite, Refection, Reparation, VFuite } from '@/lib/types';
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
@@ -29,6 +31,7 @@ export interface PhotoRapport {
   id: string;
   type: string;
   chemin: string;
+  stockage?: string | null;
   prise_le: string;
   latitude: number | null;
   longitude: number | null;
@@ -130,7 +133,7 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
       sb.from('fuites').select('id, precision_gps_m, methode_detection').in('id', lot),
       sb.from('reparations').select('*').in('fuite_id', lot).is('supprime_le', null).order('realisee_le'),
       sb.from('refections').select('*').in('fuite_id', lot).is('supprime_le', null).order('realisee_le'),
-      sb.from('photos').select('id, fuite_id, type, chemin, prise_le, position').in('fuite_id', lot).is('supprime_le', null).order('prise_le'),
+      sb.from('photos').select('id, fuite_id, type, chemin, stockage, prise_le, position').in('fuite_id', lot).is('supprime_le', null).order('prise_le'),
       peutMontants
         ? sb.from('v_quantites').select('id, fuite_id, prix_numero, prix_ordre, prix_designation, unite, quantite, pu_ht, montant_ht_bordereau, origine_ligne')
           .in('fuite_id', lot).order('prix_ordre')
@@ -221,12 +224,11 @@ async function reduirePhoto(url: string): Promise<ImagePhoto | null> {
 async function imagesDesPhotos(photos: PhotoRapport[], avancer: () => void): Promise<Map<string, ImagePhoto | null>> {
   const sortie = new Map<string, ImagePhoto | null>();
   if (!photos.length) return sortie;
-  const urls = await getSupabase().storage.from('photos').createSignedUrls(photos.map((p) => p.chemin), 600);
-  const parChemin = new Map((urls.data ?? []).map((u) => [u.path, u.signedUrl]));
+  const urls = await urlsPhotos(photos, 600);
   // Trois téléchargements à la fois : rapide sans saturer une connexion mobile.
   for (const groupe of paquets(photos, 3)) {
     await Promise.all(groupe.map(async (p) => {
-      const url = parChemin.get(p.chemin);
+      const url = urls.get(p.id);
       sortie.set(p.id, url ? await reduirePhoto(url) : null);
       avancer();
     }));
@@ -375,6 +377,9 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
       didParseCell: (data) => {
         // Cellule de libellé vide (fin de ligne impaire) : sans fond.
         if ((data.column.index === 2) && !String(data.cell.raw ?? '')) data.cell.styles.fillColor = false as never;
+        // Cellules liées (carte, itinéraire) : texte bleu
+        const brut = data.cell.raw && typeof data.cell.raw === 'object' ? (data.cell.raw as { content: string }).content : data.cell.raw;
+        if (data.section === 'body' && liens?.has(String(brut))) data.cell.styles.textColor = BLEU;
         hooksArabe.didParseCell(data as never);
       },
       didDrawCell: (data) => {
@@ -410,6 +415,9 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
     const jalons = libelles.jalons;
     const textePosition = position && `${position} (${dms(lat!, 'N', 'S')}, ${dms(lon!, 'E', 'O')})`;
     if (textePosition && lienCarte) liens.set(textePosition, lienCarte);
+    const itineraire = lienItineraire(lat, lon);
+    const texteItineraire = 'Itinéraire vers la fuite (Google Maps) ›';
+    if (itineraire) liens.set(texteItineraire, itineraire);
     y = tableauPaires(paires([
       ['N° de la fuite', String(f.numero)],
       [libelles.reference, f.reference_srm ?? '—'],
@@ -430,6 +438,7 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
         : jalons ? '—' : null, true],
       ['Adresse', f.adresse ?? '—', true],
       ['Coordonnées GPS (WGS84)', textePosition ?? 'Non relevées', true],
+      ['Itinéraire', itineraire ? texteItineraire : null, true],
       ['Précision GPS', f.precision_gps_m != null ? `± ${nb(f.precision_gps_m, 0)} m` : '—'],
       ['Photos', String(fiche.photos.length)],
       ['Verrouillée le', f.verrouillee_le ? texteDateIso(f.verrouillee_le) : null],

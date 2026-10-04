@@ -33,9 +33,12 @@ Deno.serve(async (req) => {
   const jeton = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
   const { data: appelant, error: erreurJeton } = await admin.auth.getUser(jeton);
   if (erreurJeton || !appelant.user) return reponse(401, { erreur: 'Non connecté' });
-  const { data: moi } = await admin
+  const { data: moi, error: erreurProfil } = await admin
     .from('profils').select('est_admin, actif').eq('id', appelant.user.id).maybeSingle();
-  if (!moi?.est_admin || !moi.actif) return reponse(403, { erreur: 'Réservé à l\'administrateur' });
+  // Une erreur technique ne doit pas passer pour un refus : on la montre telle quelle.
+  if (erreurProfil) return reponse(500, { erreur: `Lecture du profil impossible : ${erreurProfil.message}` });
+  if (!moi) return reponse(403, { erreur: 'Aucun profil pour ce compte' });
+  if (!moi.est_admin || !moi.actif) return reponse(403, { erreur: 'Réservé à l\'administrateur' });
 
   let corps: Record<string, unknown>;
   try {

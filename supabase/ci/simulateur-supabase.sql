@@ -5,7 +5,7 @@
 --
 -- Reproduit : rôles anon / authenticated / service_role, schémas auth, storage
 -- et extensions, auth.uid() lu dans request.jwt.claims, privilèges par défaut
--- de Supabase (tout accordé à anon et authenticated, que la migration doit retirer).
+-- de Supabase (aucun accès automatique aux nouvelles tables).
 
 do $$
 begin
@@ -28,10 +28,11 @@ create schema if not exists storage;
 grant usage on schema public, extensions to anon, authenticated, service_role;
 grant usage on schema auth, storage to anon, authenticated, service_role;
 
--- Privilèges par défaut tels que Supabase les pose sur le schéma public.
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
+-- Aucun privilège par défaut sur les nouveaux objets du schéma public : c'est le
+-- comportement des projets Supabase récents (« pas d'exposition automatique »).
+-- Chaque migration doit donc accorder explicitement ce dont ont besoin anon,
+-- authenticated ET service_role (Edge Functions). Un simulateur plus généreux
+-- avait masqué l'oubli de service_role.
 
 create table if not exists auth.users (
   id uuid primary key default gen_random_uuid(),

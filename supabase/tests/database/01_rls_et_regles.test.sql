@@ -10,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(61);
+select plan(64);
 
 -- -----------------------------------------------------------------------------
 -- Jeu d'essai (rôle postgres)
@@ -95,6 +95,17 @@ select lives_ok($$ insert into fuites (id, marche_id) values
 reset role;
 select is((select numero from fuites where id = 'bbbbbbbb-1111-0000-0000-000000000002'), 2,
   'service_role : numérotation appliquée');
+
+-- Ce que fait la fonction gerer-utilisateurs : lire le profil de l'appelant,
+-- appliquer un modèle de rôle, modifier un profil.
+set local role service_role;
+select lives_ok($$ select est_admin, actif from profils where id = '00000000-0000-0000-0000-00000000000a' $$,
+  'service_role : lit les profils');
+select lives_ok($$ select appliquer_modele_role('00000000-0000-0000-0000-00000000000c', 'bbbbbbbb-0000-0000-0000-000000000001', 'detection') $$,
+  'service_role : applique un modèle de rôle');
+select lives_ok($$ update profils set telephone = '0600000000' where id = '00000000-0000-0000-0000-00000000000c' $$,
+  'service_role : modifie un profil');
+reset role;
 
 -- -----------------------------------------------------------------------------
 -- 1. Anonyme : aucun accès

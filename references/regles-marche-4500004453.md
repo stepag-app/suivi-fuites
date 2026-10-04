@@ -2732,7 +2732,7 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 | 12 | « TERRASSEMENT » › « Profondeur » | — | F10 | nombre | m | — | interne | fouille_profondeur_m | [F123 F10] |
 | 13 | « Nature de dégradation » | — | G10 | choix | — | `nature_revetement` | interne | nature_revetement | [F123 G10] |
 | 14 | « DETAIL DE LA REPARATION DE FUITE » | — | B12 ; texte libre B13 | texte | — | pièces du catalogue (section 6.2) | interne | piece_designation ; piece_quantite | [F123 B12:B13] |
-| 15 | « Nombre de piéces » | — | G12 ; valeur G13 | nombre | u | — | interne | nb_pieces | [F123 G12] |
+| 15 | « Nombre de piéces » | — | G12 ; valeur G13 | nombre | u | — | interne | piece_quantite | [F123 G12] |
 | 16 | « STEPAG » | — | pied, C15 | signature | — | `fonction_signataire` | oui (signature de l'entreprise) | visa_stepag | [F123 C15] |
 | 17 | « S.R.M » | — | pied, G15 | signature | — | `fonction_signataire` | interne | visa_srm | [F123 G15] |
 
@@ -3156,3 +3156,248 @@ Lignes réelles (extrait) :
 - **R-IDF-002** [DÉDUIT] Les préfixes observés semblent liés au secteur (302-… et 03x-… à Lazaret Haut ; 040-… et 40x-… à Abdellah Guenoun ; 461-… à Lazaret Bas) : le premier bloc serait un code de tournée de relève, le deuxième un rang, le troisième un indice `[À CONFIRMER auprès de la SRM]`. [F119 ; F120 ; F123]
 - **R-IDF-003** [DÉDUIT] Clé proposée d'une fuite dans l'application : identifiant interne unique + numéro de fuite séquentiel par marché (affiché) + référence SRM (non unique) ; le couple (référence SRM, date de détection) sert de contrôle de doublon. [F001 ; F065 § 8]
 - **R-IDF-004** [CONTRACTUEL] Mentions de référence obligatoires : sur l'attachement, la référence du marché et celle de l'ordre de service ; sur la facture, la référence du marché. [F056 p.11-12, art. I-32]
+
+## 11. Règles dérivées pour l'application
+
+**Résumé.** Synthèse orientée développement. Le marché impose à l'application trois axes que le cadrage initial ne prévoyait pas : (1) le **balayage au mètre linéaire** par secteur et par équipe, avec cadence minimale ; (2) le **suivi des débits nocturnes** par zone, dont dépendent les pénalités et l'arrêt éventuel d'une zone ; (3) un **phasage** balayage / maintien 1 / maintien 2 qui gouverne la facturation. Le cycle de vie de la fuite reste central pour les réparations, les réfections et l'attachement. Toutes les règles ci-dessous sont `[DÉDUIT]` et renvoient à leurs sources.
+
+**Principaux `[NON PRÉCISÉ]`.** Délai de réparation contractuel ; contenu des photos ; format des exports ; règle d'affectation des pièces aux prix ; arrondis ; assiette HT ou TTC des pénalités.
+
+### 11.1 Cycle de vie de la fuite (tableau de transitions)
+
+| État de départ | Événement | Acteur (fonction exacte) | Document ou visa produit | Données obligatoires à cet instant (noms canoniques) | Délai déclenché (ID) | État d'arrivée | Statut de l'état | Source |
+|---|---|---|---|---|---|---|---|---|
+| — | détection et localisation pendant le balayage ou le maintien | agent de détection STEPAG (équipe n° 1 à 4) | ligne du rapport journalier | secteur_id ; rapport_date ; fuite_numero ; reference_srm ; fuite_adresse ; fuite_visibilite ; position_fuite ; date_detection | R-CPS-131 (communication le jour même) | detectee | INTERNE | [F056 p.23] ; [F119] |
+| detectee | communication à la SRM pour validation | bureau STEPAG | rapport journalier remis | date_communication_srm | — | communiquee_srm | CONTRACTUEL | [F056 p.23, art. II-19 NB] |
+| communiquee_srm | avis préalable de la SRM avant terrassement | représentant de la SRM-ORI | [NON PRÉCISÉ] | avis_terrassement_srm | — | a_reparer | CONTRACTUEL | [F056 p.26, art. II-27] |
+| a_reparer | ouverture de la tranchée, fuite constatée | équipe de réparation STEPAG + représentant de la SRM-ORI | constat contradictoire | validation_srm ; ouvrage_touche ; conduite_materiau ; conduite_dn_mm ; fouille_longueur_m ; fouille_largeur_m ; fouille_profondeur_m ; nature_revetement | — | confirmee | CONTRACTUEL | [F056 p.22-23] ; [F056 p.25] |
+| a_reparer | ouverture de la tranchée, aucune fuite | équipe de réparation STEPAG + représentant de la SRM-ORI | mention sur la fiche [NON PRÉCISÉ] | motif_sans_reparation = sondage_negatif ; dimensions de la fouille | reprise de la prospection (R-CPS-127) | sondage_negatif | CONTRACTUEL (fait) ; INTERNE (libellé) | [F056 p.23] ; [F001 feuille "LISTE"] |
+| a_reparer | refus de l'abonné ; fuite d'assainissement ; réparation par la SRM | équipe de réparation STEPAG | observation | motif_sans_reparation ; observation | — | classee_sans_reparation | INTERNE ; 2017 | [F001 feuille "LISTE"] ; [F065] |
+| confirmee | réparation | équipe de réparation STEPAG | « Fiche de réparation de fuites » signée par l'entreprise, copie à la SRM | date_reparation ; piece_designation ; piece_quantite ; longueur_pe_m ; visa_stepag | R-CPS-134 (réfection de chaussée sous 1 mois) | reparee_a_refectionner | CONTRACTUEL (fiche) ; INTERNE (état) | [F056 p.23-24] |
+| reparee_a_refectionner | réfection du trottoir ou de la chaussée | équipe de réfection STEPAG | symbole de réfection saisi ; essai de carottage pour la chaussée | date_refection ; symbole_refection ; surface_refection_m2 ; type_enrobe | — | achevee | INTERNE | [F056 p.23-24] ; [F001 feuille "REFECTION"] |
+| reparee_a_refectionner | terrain naturel (pas de réfection) | équipe de réparation STEPAG | — | symbole_refection = TN | — | achevee | INTERNE | [F001 feuille "REFECTION" N14] |
+| achevee | constat contradictoire des quantités | représentant de la SRM-ORI + STEPAG | attachement visé « SRM.ORI » et « Sté STEPAG » | quantités par prix ; visa_srm ; visa_stepag | — | attachee | CONTRACTUEL | [F056 p.12-13] |
+| attachee | facturation de la période | bureau STEPAG ; agent chargé du suivi (décompte) | facture ; décompte provisoire | facture_numero ; facture_date ; facture_date_depot | R-CPS-062 (paiement sous 90 jours) | facturee | CONTRACTUEL | [F056 p.11-13] |
+| achevee, attachee ou facturee | fuite réapparue au même point (garantie) | SRM ou STEPAG | [NON PRÉCISÉ] | lien vers la réparation d'origine | — | reprise_sous_garantie | CONTRACTUEL (principe) | [F056 p.10, art. I-28] |
+| reparee_a_refectionner | essai de chaussée non conforme | laboratoire ; SRM | résultat d'essai | essai_carottage_resultat | reprise + pénalité R-CPS-138 | reparee_a_refectionner | CONTRACTUEL | [F056 p.24] |
+
+- **R-DER-001** [DÉDUIT] Rapprochement avec les trois statuts du cadrage de l'application : « Détectée, non réparée » = detectee, communiquee_srm, a_reparer, confirmee ; « Réparation en cours / reste à finir » = reparee_a_refectionner ; « Achevée » = achevee, attachee, facturee. Écarts : le cadrage ignore la validation par la SRM, le sondage négatif, les classements sans réparation, l'attachement et la reprise sous garantie ; à ajouter comme sous-états ou champs. [F056 p.22-24 ; CLAUDE.md du dépôt]
+- **R-DER-002** [DÉDUIT] Aucun état n'est défini par le CPS ; seuls des faits contractuels existent (communication le jour même, tranchée ouverte en présence de la SRM, fiche signée, réfection sous un mois, attachement contradictoire). Les libellés d'états sont donc `[INTERNE]`. [F056 p.23-24]
+
+### 11.2 Données à saisir à chaque étape
+
+| Étape | Qui | Données (noms canoniques) | Contrôles à la saisie | Source |
+|---|---|---|---|---|
+| Paramétrage du marché | administrateur STEPAG | marche_numero ; ao_numero ; marche_objet ; taux_majoration ; taux_tva ; date_commencement ; delai_execution_mois ; os_numero ; os_date ; 13 prix ; 5 zones ; secteurs ; équipes | numéro de marché à 10 chiffres ; somme des linéaires = 1466 km | sections 2, 4, 6 bis |
+| Journée de balayage | agent de détection | rapport_date ; equipe_numero ; secteur_id ; lineaire_inspecte_m (tracé ou saisie) ; equipements_utilises ; tracé GPS | secteur de la zone ; linéaire > 0 ; cumul du secteur ≤ linéaire du secteur | [F056 p.24] |
+| Détection d'une fuite | agent de détection | fuite_numero (automatique) ; reference_srm ; fuite_adresse ; position_fuite ; fuite_visibilite ; photo ; date_detection | format `NNN-NNN-NNN` ; doublon de référence signalé | [F056 p.24-25] ; [F001] |
+| Ouverture et réparation | équipe de réparation | validation_srm ; ouvrage_touche ; conduite_materiau ; conduite_dn_mm ; dimensions de fouille ; nature_revetement ; pièces et quantités ; longueur_pe_m ; date_reparation ; photos ; motif_sans_reparation | longueur de fouille ≤ 2 m sauf remplacement d'élément ; longueur PE ≤ 2 m ; date de réparation ≥ date de détection | [F056 p.25 ; p.28] ; [F032 p.1] |
+| Réfection | équipe de réfection | date_refection ; symbole_refection ; type_enrobe ; photos | date ≥ date de réparation ; si chaussée et délai > 1 mois : type_enrobe = resine_a_froid | [F056 p.23-24] |
+| Mesures de débit | bureau STEPAG (d'après la télégestion SRM) | mesure_debit_campagne ; zone_id ; date et heure ; valeur ; PV signé | 25 mesures par nuit ; 3 nuits ; intervalle entre contrôles ≤ 7 jours | [F056 p.21-22 ; p.24] |
+| Clôture du mois | bureau STEPAG | date_arrete_travaux ; attachement_numero ; lignes validées | fuite attachée une seule fois ; quantités ≥ 0 | [F001] |
+
+### 11.3 Calculs et unités
+
+- **R-DER-003** [DÉDUIT] Prix 1 : quantité = somme des linéaires inspectés pendant le balayage, chaque tronçon compté une fois, branchements exclus, en mètres ; plafonner le suivi par secteur au linéaire du secteur. [R-DEF-001 ; R-DEF-003 ; R-DEF-004]
+- **R-DER-004** [DÉDUIT] Prix 2 : quantité = linéaire des secteurs maintenus, facturable à 40 % puis 60 %. [R-DEF-007 ; R-DEF-008]
+- **R-DER-005** [DÉDUIT] Prix 3 : volume = longueur × largeur × profondeur par ligne de terrassement, avec alerte si longueur > 2 m sans remplacement d'élément. [R-DEF-012 ; R-DEF-013]
+- **R-DER-006** [DÉDUIT] Prix 4 et 5 : surface = longueur × largeur du terrassement, affectée au prix 4 (béton, mosaïque, granito lavé, carreaux ciment) ou au prix 5 (chaussée en enrobé) ; zéro pour le terrain naturel ; comptée seulement quand la réfection est faite. [R-DEF-019 ; R-DEF-020 ; R-FICHE-012]
+- **R-DER-007** [DÉDUIT] Prix 6 à 13 : proposition d'affectation automatique à partir des pièces et des caractéristiques de la fuite : polyéthylène de diamètre extérieur < 40 mm → prix 6 ; ≥ 40 mm → prix 9 ; robinet PEC changé → prix 7 ; collier PEC changé → prix 8 ; mise à niveau de bouche à clé sans robinet ni collier PEC → prix 10 ; conduite AC ou PVC → prix 11, 12 ou 13 selon le DN ; au plus une unité de chaque prix par fuite ; cas restants signalés « hors bordereau ». L'utilisateur doit pouvoir corriger, la règle n'étant écrite nulle part. [R-DEF-026 à R-DEF-042 ; R-ATT-008]
+- **R-DER-008** [DÉDUIT] Unités de saisie : mètres pour les longueurs (les gabarits saisissent le linéaire en km : convertir × 1000) ; millimètres pour les diamètres ; mètres pour le PEHD posé ; m3/h pour les débits. [F032 p.1 ; F121 D10]
+- **R-DER-009** [DÉDUIT] Indicateurs de débit : `Qi`, `Qf` = minimum des minimums de trois nuits ; `ΔQ = Qi − Qf` ; `τ1 = 100 × (Q exigé − Qf) / Q exigé` ; `τ2 = 100 × (Qf − moyenne des contrôles) / Qf` ; pénalité = min(25 ; −τ) % du montant du prix concerné si τ < 0 ; arrêt de la zone si τ1 < −25. [R-CPS-115 ; R-CPS-143 ; R-CPS-145 à R-CPS-149]
+- **R-DER-010** [DÉDUIT] Montants : montant de ligne = quantité × PU ; majoration 15 % ; TVA 20 % ; retenue de garantie 10 % par acompte jusqu'à 7 % du marché ; voir l'exemple B de la section 7.10 comme test. [R-ID-012 ; R-CPS-041 ; R-CPS-200]
+
+### 11.4 Contrôles de cohérence
+
+| Contrôle | Règle | Gravité | Source |
+|---|---|---|---|
+| Référence SRM | motif `^\d{3}-\d{3}-\d{3}$` ; doublon signalé, non bloquant | avertissement | R-IDF-001 |
+| Diamètre et prix | PE : DE < 40 → prix 6 ; DE ≥ 40 → prix 9 ; conduite : DN > 315 → hors bordereau | bloquant pour l'affectation | R-DEF-040 |
+| Matériau et prix | prix 11 à 13 réservés à l'amiante-ciment et au PVC | avertissement | R-DEF-037 |
+| Longueur de fouille | > 2 m sans remplacement d'élément | avertissement | R-DEF-012 |
+| Longueur de polyéthylène | > 2 m | avertissement (hors définition du prix) | R-DEF-026 |
+| Linéaire | cumul par secteur ≤ linéaire du secteur ; un tronçon payé une fois | bloquant | R-DEF-003 |
+| Cadence | linéaire du jour ÷ nombre d'équipes ≥ 4000 m en moyenne | alerte | R-CPS-121 |
+| Nombre d'équipes | ≥ 4 équipes actives | alerte | R-CPS-122 |
+| Distance entre capteurs | < 100 m ; ≤ 50 m en PVC ou PE | information | R-CPS-128 |
+| Avis SRM | terrassement sans avis préalable enregistré | bloquant | R-CPS-161 |
+| Présence SRM | confirmation de fuite sans représentant SRM identifié | avertissement | R-CPS-125 |
+| Dates | date de réparation ≥ date de détection ; date de réfection ≥ date de réparation | bloquant | — |
+| Sommes | Σ linéaires des zones = 1466 km ; Σ montants du bordereau = 3762300.00 | test de paramétrage | section 4 |
+| Numéro de marché | 10 chiffres (rejeter 45000004453) | bloquant | R-ID-003 |
+
+### 11.5 Délais et seuils d'alerte
+
+| Alerte | Déclencheur | Seuil | Statut | Source |
+|---|---|---|---|---|
+| Fuite non communiquée à la SRM | date de détection | fin de la journée | CONTRACTUEL | R-CPS-131 |
+| Fuite détectée non réparée | date de détection | 48 h (paramétrable) | INTERNE (cadrage de l'application ; aucun délai au CPS) | R-CPS-132 |
+| Réfection de chaussée en attente | date de réparation | J+20 (pré-alerte) ; 1 mois (échéance : passage à l'enrobé-résine à froid) | CONTRACTUEL (échéance) ; INTERNE (pré-alerte) | R-CPS-134 ; R-CPS-135 |
+| Réfection de trottoir en attente | date de réparation | paramétrable | INTERNE | R-CPS-136 |
+| Fin du balayage | date de commencement | 4 mois (2027-02-01 ou 2027-02-02) ; avancement cumulé comparé à 1466 km | CONTRACTUEL | R-CPS-091 |
+| Fin du maintien 1 ; fin du maintien 2 ; fin du marché | fin du balayage | + 4 mois ; + 8 mois ; 12 mois | CONTRACTUEL | R-CPS-092 ; R-CPS-031 |
+| Cadence de balayage insuffisante | moyenne glissante | < 4 km par jour et par équipe ; ou linéaire restant ÷ jours restants > capacité | CONTRACTUEL | R-CPS-121 |
+| Débit nocturne au-dessus de l'objectif | mesure de fin de balayage ou contrôle hebdomadaire | Qf > Q exigé (pénalité) ; Qf > 1.25 × Q exigé (arrêt de la zone) ; moyenne de maintien > Qf (pénalité τ2) | CONTRACTUEL | R-CPS-146 ; R-CPS-147 ; R-CPS-149 |
+| Contrôle hebdomadaire manquant | date du dernier contrôle | > 7 jours | CONTRACTUEL | R-CPS-109 |
+| Rapport de synthèse par secteur | fin de mission sur le secteur | 15 jours | CONTRACTUEL | R-CPS-165 |
+| Retour d'OS signé | notification de l'OS | 3 jours | CONTRACTUEL | R-CPS-034 |
+| Paiement en retard | dépôt de la facture | 90 jours | CONTRACTUEL | R-CPS-062 |
+| Pénalités de retard cumulées | cumul | approche de 8 % du marché | CONTRACTUEL | R-CPS-078 |
+| Essai de carottage dû | surface de chaussée refaite | chaque 50 m2 | CONTRACTUEL | R-CPS-137 |
+
+### 11.6 Exports et états
+
+| Export | Contenu exact | Périodicité | Statut | Source |
+|---|---|---|---|---|
+| Rapport journalier | en-tête (marché, société, journée, équipe, zone, secteur, linéaire) ; tableau des fuites (n°, adresse ou référence, calibre, nature, visible ou invisible, nature de dégradation) ; total ; commentaire ; visas STEPAG et SRM ; extrait de plan A4 avec conduites inspectées et fuites | chaque jour de balayage | CONTRACTUEL (contenu) | section 3.14 ; section 8.1 |
+| Fiche de réparation par fuite | secteur, n° de fuite, référence, nature Bt/Cdt, DN, terrassement L × l × P, nature de dégradation, détail des pièces, visas ; photos et GPS en plus (choix STEPAG) | par fuite réparée | CONTRACTUEL (existence) | section 8.2 |
+| Rapport mensuel | mois, équipements, nombre de jours, linéaire balayé, fuites visibles et invisibles par ouvrage, ratios ; bilan des réparations et réfections | mensuel | CONTRACTUEL (existence) | section 8.3 |
+| État hebdomadaire | linéaire par jour, fuites par ouvrage, visibles et invisibles (modèle 2017) | hebdomadaire | INTERNE (non exigé en 2026) | section 7.7 |
+| Attachement | en-tête (SRM, marché, OS, entreprise, date d'arrêt, zone, lieu du chantier) ; par prix : n°, désignation, unité, quantité antérieure, quantité du mois, cumul ; visas SRM.ORI et Sté STEPAG ; annexes : fiche de réparation, feuille de réfection, détail par fuite | à chaque facture ; mensuel en pratique | CONTRACTUEL | sections 3.13 ; 8.4 |
+| Facture | mentions de R-CPS-061 ; 13 lignes ; total HT ; TVA ; TTC ; majoration ; montant en lettres ; 5 exemplaires + pièces en 3 exemplaires + bordereau d'envoi | trois factures contractuelles | CONTRACTUEL | sections 3.16 ; 8.4 |
+| Suivi des débits | par zone : Qi, Qf, Q exigé, τ1, contrôles hebdomadaires, moyenne, τ2 ; PV signés | campagnes et hebdomadaire | CONTRACTUEL (PV) | section 3.9 |
+| Rapport de synthèse par secteur ; rapport final ; report des fuites sur plans ; album photos | bilan, propositions d'amélioration du rendement, carte des fuites, photos | fin de secteur ; fin de marché | CONTRACTUEL | R-CPS-164 ; R-CPS-165 |
+| État de suivi du marché | par prix : marché, antérieur, période, cumul, disponible, taux, alertes | à chaque décompte | 2017 (utile en interne) | section 7.6 |
+
+- **R-DER-011** [DÉDUIT] Identifiants à faire figurer sur chaque document : numéro du marché 4500004453 partout ; numéro et date de l'OS n° 02 sur l'attachement et la facture ; référence SRM `NNN-NNN-NNN` et numéro de fuite sur toute ligne de fuite ; numéro de prix sur toute ligne de quantité. [R-IDF-004 ; F001]
+- **R-DER-012** [DÉDUIT] Structure de l'attachement mensuel : un attachement par période et par zone (ou global avec sous-totaux par zone), 13 lignes de prix, colonnes antérieur / mois / cumul ; rattachement au mois par la date de réparation (réparations, terrassements) et par la date de réfection (réfections) `[À CONFIRMER]` ; seules les lignes validées contradictoirement sont attachées. [section 7.8 ; R-CPS-191]
+
+### 11.7 Suivi financier du marché
+
+- **R-DER-013** [DÉDUIT] Suivre le cumul des attachements (HT bordereau, HT majoré, TTC) par rapport au montant du marché : 3762300.00 HT bordereau ; 4326645.00 HT majoré ; 5191974.00 TTC. Il n'y a ni minimum ni maximum contractuel ; l'alerte porte sur l'approche de 100 % du montant et sur la variation de la masse (articles 57 à 59 du CCAG-T, seuils `[À CONFIRMER]`). [section 2.4 ; R-CPS-076]
+- **R-DER-014** [DÉDUIT] Suivre par prix le cumul rapporté à la quantité du bordereau ; reprendre à titre provisoire les seuils de l'état de suivi 2017 : alerte si le cumul dépasse de plus de 30 % la quantité prévue, information si la sous-consommation dépasse 25 % en fin de marché. [R-ATT-017]
+- **R-DER-015** [DÉDUIT] Suivre la retenue de garantie cumulée (plafond 363438.18 DH), les pénalités cumulées par type (plafonds 8 % et 2 %), l'échéancier des trois factures et le délai de paiement de 90 jours. [R-CPS-041 ; R-CPS-078 ; R-CPS-079 ; R-CPS-062]
+- **R-DER-016** [DÉDUIT] Quantités prévisionnelles utiles au dimensionnement : 2400 + 600 = 3000 réparations sur polyéthylène, 900 robinets PEC, 500 colliers PEC, 300 bouches à clé, 128 réparations sur conduite, 2400 m3 de terrassement, 2000 m2 de trottoir, 800 m2 de chaussée sur 12 mois ; soit de l'ordre de 10 à 15 réparations par jour ouvré. [F032 p.1]
+
+### 11.8 Conséquences pour le modèle de données et la sécurité
+
+- **R-DER-017** [DÉDUIT] Entités minimales : marché ; ordre de service ; prix ; zone ; secteur ; équipe ; agent ; journée de balayage (secteur, équipe, date, linéaire, tracé) ; fuite ; intervention ; terrassement ; pièce posée ; réfection ; essai ; mesure de débit ; procès-verbal ; attachement ; ligne d'attachement ; facture ; pénalité ; photo. Le marché est porté par toutes les entités (application multi-marchés). [section 11 bis]
+- **R-DER-018** [DÉDUIT] Tout ce qui varie d'un marché à l'autre doit être paramétrable : nombre et libellé des prix, règles d'affectation, zones et secteurs, phases, taux de majoration ou de rabais, TVA, retenue, plafonds, formules de pénalité, catalogue de pièces (2017 : 24 prix, 3 zones, km ; 2026 : 13 prix, 5 zones, m). [section 7.9]
+- **R-DER-019** [DÉDUIT] Données personnelles : restreindre par rôle l'accès aux références et adresses d'abonnés, ne pas les exporter hors des documents dus à la SRM, prévoir leur suppression en fin de marché et une trace des accès. [R-CPS-022 à R-CPS-029]
+- **R-DER-020** [DÉDUIT] Rôle « agent de suivi SRM » : le CPS prévoit une validation des fuites le jour même, un avis avant terrassement et un constat contradictoire ; un accès de consultation et de validation pour la SRM répondrait à ces trois obligations `[À CONFIRMER avec la SRM]`. [R-CPS-131 ; R-CPS-161 ; R-CPS-191]
+
+## 11 bis. Dictionnaire de données consolidé
+
+**Résumé.** Une ligne par donnée élémentaire rencontrée dans les documents. Les noms canoniques sont des propositions de l'extracteur. « Obligatoire » : `oui` = exigé par le CPS ; `interne` = prévu seulement par un gabarit STEPAG ; `non` = absent des documents mais nécessaire à une règle (proposé). Une donnée absente de ce tableau n'existe dans aucun document du dossier.
+
+**Principaux `[NON PRÉCISÉ]`.** Coordonnées GPS, photos, heure de détection, débit estimé de la fuite, marquage au sol : aucun document ne les prévoit (elles viennent du cadrage de l'application, statut `[INTERNE]`).
+
+| Nom canonique proposé (snake_case) | Libellés rencontrés FR | Libellé AR | Entité | Type | Unité | Obligatoire | Qui la saisit et à quelle étape | Documents où elle apparaît | Alimente le(s) prix n° | Source |
+|---|---|---|---|---|---|---|---|---|---|---|
+| marche_numero | Marché N° ; MARCHE ; Marché N° : ; Numéro DA/Marché | — | marché | texte | — | oui | administrateur, à la création du marché | F035 OS ; F001 Parametre F5 ; F119 B2 ; F123 C5 | — | [F035 p.1] |
+| ao_numero | Appel d'Offres N° ; A.O N° ; Numéro DA/Marché | — | marché | texte | — | non | administrateur | F056 pied de page ; F032 en-tête | — | [F056 p.1] |
+| marche_objet | Objet du marché ; TRAVAUX DE DÉTECTION, RECHERCHE ET RÉPARATION DE FUITES… | — | marché | texte | — | interne | administrateur | F036 ; F001 Parametre D7 ; F119 B3 | — | [F036 p.1] |
+| marche_montant_ttc | Montant total toutes taxes comprises après majoration ; MONANT TOTAL APRES MAJORATION | — | marché | décimal(12,2) | MAD | oui | administrateur | F040 ; F032 ; F037 | — | [F040 p.1] |
+| taux_majoration | POURCENTAGE MAJORATION (%) ; Taux de majoration | — | marché | décimal(5,2) | % | oui | administrateur | F032 ; F040 ; F001 facture F29 | tous | [F032 p.1] |
+| taux_tva | TVA ; T.V.A | — | marché | décimal(5,2) | % | oui | administrateur | F032 F18 ; F001 facture F27 | tous | [F059 feuille "Table 1" F18] |
+| delai_execution_mois | délai de 12 mois ; durée maximale de : 12 mois | — | marché | entier | mois | oui | administrateur | F056 art. I-19 ; F036 | — | [F056 p.8] |
+| client_nom | SRM-Oriental ; Client : SRM-ORI ; SRM-ORI | الشركة الجهوية متعددة الخدمات الشرق | marché | texte | — | interne | administrateur | F001 Parametre A3 ; F001 facture A4 | — | [F001 feuille "Parametre" A3] |
+| client_direction ; client_service | Exploitation eau potable ; Département Mesures et Amelioration du rendement | — | marché | texte | — | interne | administrateur | F001 Parametre A4:A5 | — | [F001 feuille "Parametre" A4] |
+| client_ice | ice: | — | marché | texte | — | interne | administrateur | F001 facture A5 | — | [F001 feuille "facture" A5] |
+| entreprise_nom | SOCIETE : STEPAG ; Entreprise STEPAG ; Entreprise: | ستيݒاݣ (ش,م,م) | marché | texte | — | oui (facture) | administrateur | F119 A7 ; F001 Parametre A11 ; F001 facture | — | [F056 p.12] |
+| entreprise_identifiants | T.P ; R.C ; I.F ; CNSS ; ICE | — | marché | texte | — | oui (facture) | administrateur | F001 facture A52 | — | [F056 p.12] |
+| os_numero | O.S.N° ; Ordre de service N° ; O.S N° | — | OS | texte | — | oui (attachement) | administrateur, à réception de l'OS | F035 ; F036 ; F001 Parametre A9 | — | [F056 p.12] |
+| os_date | Du 02/10/2026 ; Fait à Oujda le | — | OS | date | — | oui | administrateur | F036 ; F001 Parametre A9 | — | [F036 p.1] |
+| os_objet | Relatif à la notification de l'approbation ; Relatif au commencement d'exécution des travaux | — | OS | énumération (notification, commencement, arrêt, reprise, agent de suivi) | — | oui | administrateur | F035 ; F036 | — | [F056 p.8] |
+| date_commencement | À commencer l'exécution des travaux le | — | marché | date | — | oui | administrateur | F036 | — | [F036 p.1] |
+| zone_id | Zone d'intervention ; Zone ; N° | — | zone | énumération `zone_intervention` | — | oui | administrateur (paramétrage) ; agent (rapport) | F056 tableau n° 1 ; F119 F8 ; F001 Parametre A15 | 1 ; 2 | [F056 p.18] |
+| zone_lineaire_km | Linéaire approximatif du réseau par zone (Km) | — | zone | entier | km | oui | administrateur | F056 tableau n° 1 | 1 ; 2 | [F056 p.18] |
+| zone_q_exige | Débit nocturne minimum à assurer à l'achèvement du balayage (m3/h) ' Q exigé ' | — | zone | décimal(6,1) | m3/h | oui | administrateur | F056 tableau n° 1 | pénalité τ1 | [F056 p.18] |
+| zone_q_actuel ; zone_q_min_historique | Débits actuels mesurés aux secteurs ; Débits min les plus bas atteints | — | zone | décimal(6,1) | m3/h | oui | administrateur | F056 p.19 | — | [F056 p.19] |
+| secteur_id | Secteur d'intervention ; Secteur de la fuite ; Secteur | — | secteur | énumération `secteur` | — | oui | administrateur (paramétrage) ; agent (rapport) | F056 tableau n° 1 ; F119 F9 ; F123 B6 | 1 ; 2 | [F056 p.18] |
+| secteur_lineaire_m | [NON PRÉCISÉ] (linéaire par secteur absent des documents) | — | secteur | décimal(10,2) | m | non | administrateur, d'après le plan | — | 1 ; 2 | — |
+| mesure_debit_date_heure ; mesure_debit_valeur | Heure de mesure ; Débit de nuit mesuré (m3/h) ; Q1…Q25 | — | mesure de débit | datetime ; décimal(6,1) | m3/h | oui | SRM (télégestion) ou entreprise | F056 art. II-17 ; PV de mesures | pénalités τ1, τ2 | [F056 p.22] |
+| mesure_debit_campagne | avant opération de recherche ; après opération ; contrôle du maintien | — | mesure de débit | énumération (avant, apres, maintien) | — | oui | administrateur | F056 art. II-17, II-22, II-15 | — | [F056 p.22] |
+| qi ; qf ; delta_q | Qi ; Qf ; ΔQ = Qi – Qf | — | zone ou secteur | décimal(6,1) | m3/h | oui | calculé | PV de mesures | pénalité τ1 | [F056 p.24] |
+| q_reel_maintien | Q Réal maintien | — | zone | décimal(6,1) | m3/h | oui | calculé (moyenne des minimums hebdomadaires) | F056 art. II-23 | pénalité τ2 | [F056 p.25] |
+| rapport_date | Journée du : ; Journée du: ; journée du : | — | rapport journalier | date | — | oui | agent de détection, chaque jour | F119 F7 ; F121 D9 ; F087 | — | [F056 p.24] |
+| equipe_numero | EQUIPE N° : ; EQUIPE N° ; Equipe : | — | équipe | entier | — | interne | agent ou chef d'équipe | F119 A8 ; F121 A11 | — | [F119 A8] |
+| equipements_utilises | Equipements Utilisés : ; Equipements utilisés : | — | rapport | texte ou énumération `equipement_detection` | — | interne | agent | F122 A12 ; F087 | — | [F122 A12] |
+| lineaire_inspecte_m | Linéaire : ; Linéaire en Km : ; Linéaire Balayé ; Linéaire prospecté par jour ; le linéaire des conduites inspectées | — | rapport journalier (par secteur et par jour) | décimal(10,2) | m (saisi en km dans les gabarits) | oui | agent de détection, chaque jour | F119 F10 ; F121 D10 ; F122 B13 ; attachement prix 1 | 1 ; 2 | [F056 p.24] |
+| fuite_numero | N° Fuite ; N° ; Numéro de la fuite ; N° de fuite | — | fuite | entier | — | interne | attribué à la détection | F119 A14 ; F123 B7 ; F001 fiche A12 | — | [F001] |
+| reference_srm | Tournée ; Référence ; Réf ; Adresse ou Référence | — | fuite | texte `NNN-NNN-NNN` | — | interne | agent de détection, sur place | F119 B14 ; F123 B8 ; F001 fiche B12 ; REFECTION B14 | — | [F001] |
+| fuite_adresse | Adresse ; leurs adresses | — | fuite | texte | — | oui | agent de détection | F056 art. II-21 ; F121 B14 | — | [F056 p.24] |
+| fuite_visibilite | Visibles ; Invisibles | — | fuite | énumération `visibilite_fuite` | — | oui | agent de détection | F119 G15:H15 ; F122 D15:D16 | — | [F056 p.25] |
+| ouvrage_touche | Nature ; Nature "Bt/Cdt" ; Conduites ; Branchement ; Piece Spéciale ; B.I | — | fuite | énumération `ouvrage_touche` | — | interne | agent, confirmé à l'ouverture | F121 E15 ; F123 B10 ; F122 F14:I14 | 6 à 13 | [F123 B10] |
+| conduite_materiau | Nature (canalisation prospectée) ; la nature de la conduite | — | fuite | énumération `materiau_conduite` | — | oui | agent, après ouverture de la tranchée | F056 art. II-25 ; F087 | 6 ; 9 ; 11 ; 12 ; 13 | [F056 p.25] |
+| conduite_dn_mm | Calibre ; DN "conduite" ; le diamètre de la conduite | — | fuite | entier | mm | oui | agent, après ouverture de la tranchée | F119 E15 ; F123 C10 ; F056 art. II-25 | 6 ; 9 ; 11 ; 12 ; 13 | [F056 p.25] |
+| date_detection | DATE DE DETECTION ; Date de detection de fuite | — | fuite | date | — | oui (communication le jour même) | agent de détection | F001 fiche C12 ; F084 | délai R-CPS-131 | [F001 feuille "Fiche de réparation Zone " C12] |
+| date_communication_srm | communiquées le jour même à la SRM-ORI pour validation | — | fuite | datetime | — | oui | système ou bureau, à l'envoi | F056 art. II-19 | — | [F056 p.23] |
+| validation_srm | pour validation ; confirmation de la fuite en présence des agents de la SRM-ORI | — | fuite | booléen + date + nom du représentant | — | oui | représentant de la SRM | F056 art. II-18, II-19 | — | [F056 p.22-23] |
+| avis_terrassement_srm | sans demander l'avis préalable de la SRM-ORI | — | intervention | booléen + datetime | — | oui | bureau ou chef d'équipe, avant terrassement | F056 art. II-27 | — | [F056 p.26] |
+| chercheur_fuite | CHERCHEUR DE FUITE `[2017]` | — | fuite | référence agent | — | non | système | F084 | — | [F084] |
+| date_reparation | DATE DE REPARATION ; Date de réparation ; Date du: | — | intervention | date | — | oui (point de départ du délai de réfection) | équipe de réparation | F001 fiche D12 ; REFECTION C14 ; F123 E2 | délai R-CPS-134 | [F056 p.23] |
+| fouille_longueur_m | Terrassement Longueur ; Long ; Longueur (m) | — | intervention (terrassement) | décimal(5,2) | m | interne | équipe de réparation, fouille ouverte | F001 fiche E13 ; F123 D10 | 3 ; 4 ; 5 | [F001 feuille "Fiche de réparation Zone " E13] |
+| fouille_largeur_m | Terrassement Largeur ; Larg | — | intervention (terrassement) | décimal(5,2) | m | interne | équipe de réparation | F001 fiche F13 ; F123 E10 | 3 ; 4 ; 5 | [F001 feuille "Fiche de réparation Zone " F13] |
+| fouille_profondeur_m | Terrassement Profondeur ; prof | — | intervention (terrassement) | décimal(5,2) | m | interne | équipe de réparation | F001 fiche G13 ; F123 F10 | 3 | [F001 feuille "Fiche de réparation Zone " G13] |
+| volume_terrassement_m3 | Vol `[2017]` ; colonne du prix 3 | — | intervention (terrassement) | décimal(8,3) | m3 | oui (quantité du prix 3) | calculé : L × l × P | F001 détail K ; F065 attachement détaillé H | 3 | [F056 p.28] |
+| nature_revetement | Nature de degradation ; Nature Dégradation ; Nature de dégradation | — | intervention (terrassement) | énumération `nature_revetement` | — | interne | équipe de réparation | F119 I14 ; F123 G10 ; F001 fiche H12 | 4 ; 5 | [F001] |
+| symbole_refection | Symbole ; Matériaux `[2017]` | — | réfection | énumération (B ; M ; L ; C ; AC ; TN) | — | interne | bureau, une fois la réfection faite | F001 REFECTION H14 | 4 ; 5 | [F001 feuille "REFECTION" H14] |
+| date_refection | [NON PRÉCISÉ] (aucun champ ; exigée pour le délai d'un mois) | — | réfection | date | — | non | équipe de réfection | — | délai R-CPS-134 | [F056 p.23] |
+| type_enrobe | enrobés à chaud ; enrobé-résine à froid | — | réfection | énumération (a_chaud ; resine_a_froid) | — | oui | équipe de réfection | F056 art. II-20 | 5 | [F056 p.23-24] |
+| surface_refection_m2 | Béton ; Mosaique ; Lavé ; Carreaux ; Asphalt à chaud (colonnes de surface) | — | réfection | décimal(8,2) | m2 | oui (quantité des prix 4 et 5) | calculé : L × l | F001 REFECTION I:M | 4 ; 5 | [F001 feuille "REFECTION" I17] |
+| essai_carottage_resultat | Contrôle de réfections de chaussée par carottage ; 1 prélèvement chaque 50m2 | — | réfection (essai) | énumération (conforme ; non_conforme) + date | — | oui | bureau, au résultat du laboratoire | F056 art. II-21 ; F082 `[2017]` | pénalité R-CPS-138 | [F056 p.24] |
+| piece_designation | Détail des pieces de reparation des fuites ; DETAIL DE LA REPARATION DE FUITE ; Détails de reparation des fuites (pièces) | — | pièce posée | énumération (catalogue 6.2) | — | interne | équipe de réparation | F001 fiche I12 ; F123 B12 | 6 à 13 (choix du prix) | [F001 feuille "Fiche de réparation Zone " I12] |
+| piece_quantite | Qté posée ; Qté ; Nombre de piéces | — | pièce posée | décimal(6,2) | u, ou m pour PEHD et tuyau | interne | équipe de réparation | F001 fiche J12 ; F123 G12 | 6 ; 9 (longueur PE ≤ 2 m) | [F001 feuille "Fiche de réparation Zone " J12] |
+| longueur_pe_m | longueur polyéthylène inférieur ou égale à 2m | — | intervention | décimal(4,2) | m | oui (condition des prix 6 et 9) | calculé : somme des quantités de PEHD | F032 prix 6 et 9 | 6 ; 9 | [F032 p.1] |
+| motif_sans_reparation | A DETECTER ; RAS ; Assainissement ; refusé par l'abonné ; sondage negatif | — | intervention | énumération `motif_sans_reparation` | — | interne | équipe de réparation | F001 LISTE A1:A5 | 3 [À CONFIRMER] | [F001 feuille "LISTE"] |
+| observation ; commentaire | Observations ; Ovservation ; OBSERVATION ; COMMENTAIRE | — | fuite ; rapport | texte | — | interne | tout agent | F001 fiche K12 ; F119 A50 | — | [F001] |
+| statut_fuite | [NON PRÉCISÉ] (couleurs de ligne en 2017) | — | fuite | énumération `statut_fuite` | — | non | calculé ou saisi | F065 Fiche réfection N4:N8 | — | [F065] |
+| extrait_plan | extrait du plan du réseau (format A4) | — | rapport journalier | fichier (image ou PDF) | — | oui | bureau | F056 art. II-21 | — | [F056 p.24] |
+| position_fuite | repérage des fuites détectées et leur implantation sur un plan | — | fuite | géopoint | — | oui (sur plan ; coordonnées [NON PRÉCISÉ]) | agent de détection | F056 art. II-18 | — | [F056 p.22] |
+| photo | Album photos relatif à quelques fuites localisées | — | fuite | photo | — | oui (album final ; par fuite [NON PRÉCISÉ]) | agents | F056 art. II-30 | — | [F056 p.27] |
+| visa_stepag | STEPAG ; Sté STEPAG ; Signature: ; signée par L'entreprise | — | fiche ; rapport ; attachement | signature | — | oui (fiche de réparation) | représentant STEPAG | F123 C15 ; F121 A23 ; F001 recap C28 | — | [F056 p.23] |
+| visa_srm | S.R.M ; SRM ORIENTAL ; SRM.ORI | — | fiche ; rapport ; attachement | signature | — | oui (attachement contradictoire ; PV de mesures) | représentant de la SRM | F123 G15 ; F122 G20 ; F001 recap A28 | — | [F056 p.13] |
+| mois_rapport | Mois | — | rapport mensuel | énumération (mois) | — | oui | bureau | F122 H11 | — | [F122 H11] |
+| nb_jours_travailles | Nbr Jours | — | rapport mensuel | entier | j | interne | calculé | F122 A13 | — | [F122 A13] |
+| nb_fuites_jour ; nb_fuites_total | TOTAL ; Total des fuites ; Nombre de fuites localisées | — | rapport | entier | fuites | oui | calculé | F119 A48 ; F121 A21 ; F122 J14 | — | [F056 p.24] |
+| ratio_km_par_jour ; ratio_fuites_km ; ratio_fuites_branchement_km ; ratio_fuites_conduite_km | Linéaire prospecté (Km.j) ; Total des fuites par Km ; Fuite sur Branchement par Km | — | rapport mensuel | décimal(8,4) | km/j ; fuites/km | interne | calculé | F122 A18:I19 | — | [F122] |
+| prix_numero | N° de prix ; Des prix ; N° Des Prix | — | prix | entier 1 à 13 | — | oui | administrateur (bordereau) | F032 ; F001 BP ; recap ; facture | — | [F032 p.1] |
+| prix_designation | Désignation des prestations | — | prix | texte | — | oui | administrateur | F032 ; F001 | — | [F032 p.1] |
+| prix_unite | Unité de mesure ; Unité | — | prix | énumération `unite` | — | oui | administrateur | F032 ; F001 | — | [F032 p.1] |
+| prix_quantite_marche | Quantité (bordereau) | — | prix | décimal(12,2) | selon prix | oui | administrateur | F032 | seuils de dépassement | [F032 p.1] |
+| prix_pu_ht | Prix unitaire en DH HT | — | prix | décimal(10,2) | MAD | oui | administrateur | F032 ; F001 facture E12 | — | [F032 p.1] |
+| attachement_numero | ATTACHEMENT N°01 | — | attachement | entier | — | interne | bureau | F001 recap A7 | — | [F001 feuille "attachement recap" A7] |
+| date_arrete_travaux | Travaux executés au ; des travaux exécutés au | — | attachement | date | — | interne | bureau | F001 Parametre A13 | — | [F001 feuille "Parametre" A13] |
+| lieu_chantier | Le lieu exact du début et de la fin du chantier concerné par cet attachement avec si besoin un croquis ou un plan | — | attachement | texte + fichier | — | oui | bureau | F056 art. I-32 | — | [F056 p.12] |
+| quantite_anterieure | Quantité mois -1 ; Total mois -1 ; Quantités précédentes `[2017]` | — | ligne d'attachement | décimal(12,3) | selon prix | interne | reprise du cumul précédent | F001 recap D13 ; détail 932 | — | [F001 feuille "attachement recap" D13] |
+| quantite_mois | Quantité partielle ; total partiel ; Quantité du mois `[2017]` | — | ligne d'attachement | décimal(12,3) | selon prix | oui | calculé : cumul − antérieur | F001 recap E13 ; facture D12 | — | [F056 p.12] |
+| quantite_cumulee | Total ; Cumulé `[2017]` | — | ligne d'attachement | décimal(12,3) | selon prix | interne | calculé | F001 détail 930 ; F065 attach recap H | — | [F001 feuille "DETAIL ATTACHEMENT Zone" 930] |
+| montant_ht | Prix total en DH HT | — | ligne de facture ou de décompte | décimal(12,2) | MAD | oui | calculé : quantité × PU | F001 facture F12 | — | [F001 feuille "facture" F13] |
+| total_ht ; tva ; total_ttc ; montant_apres_majoration | TOTAL ANNUEL HORS TVA ; TVA ; TOTAL ANNUEL TTC ; MONANT TOTAL APRES MAJORATION | — | facture ; décompte | décimal(12,2) | MAD | oui | calculé | F001 facture F26:F30 ; F032 | — | [F001 feuille "facture"] |
+| retenue_garantie | Retenue de garantie | — | décompte | décimal(12,2) | MAD | oui | calculé : 10 % de l'acompte, plafond 7 % | F056 art. I-26 ; F068 decompte `[2017]` | — | [F056 p.9] |
+| penalite_montant ; penalite_type | pénalité ; A déduire montant Pénalité de retard ; Pénalité sur balayage `[2017]` | — | pénalité | décimal(12,2) ; énumération (retard ; signalisation ; epi ; resultat_balayage ; resultat_maintien ; essai_non_conforme) | MAD | oui | SRM (constat) ; saisie par le bureau | F056 art. I-35, II-21, II-23 | 1 ; 2 ; 5 | [F056 p.13-14 ; p.25] |
+| coefficient_revision | coefficient de révision des prix | — | décompte | décimal(6,4) | — | oui | calculé d'après les index publiés | F056 art. I-30 | tous | [F056 p.11] |
+| acompte_net | Montant de l'acompte à payer `[2017]` ; Net à payer `[2017]` | — | décompte | décimal(12,2) | MAD | oui | calculé | F068 decompte F163 ; F072 | — | [F056 p.12] |
+| facture_numero | Facture Partielle N° : ; FACTURE N° | — | facture | texte `FA AAMM-NNNN` | — | oui | bureau | F001 facture A4 ; B.ENVOI B20 | — | [F001 feuille "facture" A4] |
+| facture_date | Oujda le | — | facture | date | — | oui | bureau | F001 facture A4 | — | [F056 p.12] |
+| facture_date_depot | date de dépôt de la facture de décompte au bureau d'ordre | — | facture | date | — | oui (point de départ des 90 jours) | bureau | F056 art. I-32 | — | [F056 p.13] |
+| montant_en_lettres | Arrêtée la presente facture à la somme de : | — | facture | texte | — | interne | calculé | F001 facture A32 | — | [F001 feuille "facture" A32] |
+| envoi_date ; envoi_destinataire ; envoi_piece ; envoi_nombre | Oujda le ; Destinataire : ; DESIGNATION ; NOMBRE ; NBRE | — | bordereau d'envoi | date ; texte ; texte ; entier | — | interne | bureau | F051 ; F001 B.ENVOI | — | [F051] |
+| materiel_designation ; materiel_nombre | DÉSIGNATION DU MATÉRIEL ; NOMBRE MINIMAL AFFECTE AU PROJET | — | matériel | texte ; entier | — | oui | administrateur | F056 art. II-26 | — | [F056 p.26] |
+| agent_nom ; agent_role ; agent_assurance | personnel ; agent assuré nominativement | — | agent | texte ; énumération ; booléen | — | oui (assurance nominative) | administrateur | F056 art. II-27 | — | [F056 p.26] |
+
+### Cardinalités observées
+
+| Relation | Cardinalité | Statut | Source |
+|---|---|---|---|
+| marché → zones | 1 marché a 5 zones | CONTRACTUEL | [F056 p.18-19] |
+| zone → secteurs | 1 zone a 4 à 8 secteurs ; 1 secteur appartient à 1 zone | CONTRACTUEL (découpage [À CONFIRMER]) | [F056 p.18-19] |
+| marché → prix | 1 marché a 13 prix ; un prix appartient à un seul marché | CONTRACTUEL | [F032 p.1] |
+| marché → ordres de service | 1 marché a 0..n ordres de service numérotés | CONTRACTUEL | [F056 p.8] |
+| secteur × jour → rapport journalier | 1 rapport par secteur et par journée (gabarit : un classeur par secteur, une feuille par jour) | INTERNE | [F119] |
+| rapport journalier → fuites | 1 rapport liste 0..n fuites (31 lignes prévues ; 14 en 2017) | INTERNE | [F119 ; F087] |
+| fuite → secteur | 1 fuite appartient à 1 secteur | INTERNE | [F123 B6] |
+| fuite → référence SRM | 1 fuite a 1 référence ; 1 référence peut porter plusieurs fuites | 2017 ; INTERNE | [F065 § 8] |
+| fuite → interventions de réparation | 0..1 dans les gabarits (une date de réparation) ; 0 si motif sans réparation ; reprises sous garantie [NON PRÉCISÉ] | INTERNE | [F001 feuille "Fiche de réparation Zone "] |
+| intervention → terrassements | 1..2 lignes de terrassement par fuite (deux revêtements) | INTERNE ; 2017 | [F001 fuite 22 ; F068] |
+| intervention → pièces posées | 0..n lignes de pièce (1 à 8 observées) | INTERNE | [F001 ; F065] |
+| fuite → prix de réparation | 0..n prix distincts, au plus 1 unité par prix et par fuite | 2017 | [F065 feuille "attachement detaillé"] |
+| terrassement → réfection | 0..1 réfection par terrassement ; aucune pour le terrain naturel | INTERNE | [F001 feuille "REFECTION"] |
+| attachement → période | 1 attachement arrêté à une date (« Travaux executés au ») ; un mois par attachement dans le nom du fichier (« mois 10 ») | INTERNE | [F001] |
+| attachement → lignes | 1 ligne par prix (13) ; une ligne correspond à un prix et un seul | INTERNE | [F001 feuille "attachement recap"] |
+| attachement → zone | 1 attachement par zone dans le gabarit (« Zone ») ; en 2017 : partiels par zone + récapitulatif | INTERNE ; 2017 | [F001 feuille "Parametre" A15 ; F068] |
+| attachement → facture | 1 facture reprend les quantités d'un attachement | INTERNE | [F001 feuille "facture" D13] |
+| marché → factures | 3 factures prévues par le CPS (fin de balayage ; + 4 mois ; + 8 mois) | CONTRACTUEL | [F056 p.12-13] |
+| zone → mesures de débit | 3 nuits × 25 mesures avant ; 3 nuits après ; puis au plus 1 contrôle par semaine pendant 8 mois | CONTRACTUEL | [F056 p.22 ; p.24 ; p.21] |
+| agent → marchés ; agent → équipe | [NON PRÉCISÉ] dans les documents (cadrage de l'application) | — | — |

@@ -132,8 +132,14 @@ export function quantite(q: number | null | undefined, unite: string, decimales?
 }
 
 // Titre du lot selon le modèle du marché : {numero} et {date}.
-export function titreLot(modele: string | undefined, lot: Pick<Lot, 'numero' | 'date_arret'>): string {
-  const numero = lot.numero != null ? String(lot.numero).padStart(2, '0') : '…';
+// Titre du lot ; un brouillon jamais arrêté porte le numéro qu'il prendra à l'arrêt (« prévu »).
+export function titreLot(
+  modele: string | undefined,
+  lot: Pick<Lot, 'numero' | 'date_arret'> & { numero_prevu?: number | null },
+): string {
+  const numero = lot.numero != null
+    ? String(lot.numero).padStart(2, '0')
+    : lot.numero_prevu != null ? `${String(lot.numero_prevu).padStart(2, '0')} (prévu)` : '…';
   const date = lot.date_arret ? new Date(`${lot.date_arret}T12:00:00`).toLocaleDateString('fr-FR') : '…';
   return (modele || 'ATTACHEMENT N° {numero} des travaux exécutés au {date}')
     .replace('{numero}', numero)
@@ -147,8 +153,12 @@ export function finDuMois(): string {
   return `${fin.getFullYear()}-${String(fin.getMonth() + 1).padStart(2, '0')}-${String(fin.getDate()).padStart(2, '0')}`;
 }
 
-export const moisAnnee = () =>
-  new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'Africa/Casablanca' });
+export const moisAnnee = (d: Date = new Date()) =>
+  d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'Africa/Casablanca' });
 
 // « de mars 2026 », « d'août 2026 », « d'octobre 2026 »
 export const duMois = (mois = moisAnnee()) => (/^[aeiouyéh]/i.test(mois) ? `d'${mois}` : `de ${mois}`);
+
+// Intitulé proposé pour un lot mensuel dont les travaux sont arrêtés à la date donnée (AAAA-MM-JJ).
+export const intituleMensuel = (date?: string | null) =>
+  `Attachement ${duMois(date ? moisAnnee(new Date(`${date}T12:00:00`)) : undefined)}`;

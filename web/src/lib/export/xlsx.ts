@@ -1,5 +1,7 @@
 // Export Excel (write-excel-file, chargé à la demande) : un onglet par tableau,
 // en-tête du marché fusionné, ligne de titres figée, formats de nombres et de dates.
+// Impression : A4 dans l'orientation choisie, ajusté à une page en largeur, titres de
+// colonnes répétés sur chaque page, numéro de page en pied (réglages ajoutés au fichier).
 import { etendueLibelle, parcourir, decimalesPour, type DocumentExport, type SectionDoc } from './modele';
 
 type Cellule = Record<string, unknown> | null;
@@ -18,8 +20,27 @@ function heureMurale(d: Date): Date {
 
 const formatNombre = (dec: number) => (dec > 0 ? `#,##0.${'0'.repeat(dec)}` : '#,##0');
 
+// Largeur visée pour une page A4 (marges de 1 cm), en caractères de la police du classeur :
+// un peu plus que la largeur imprimable, l'ajustement à la page réduisant légèrement l'échelle
+// plutôt que de trop resserrer les colonnes de texte.
+const LARGEUR_PAGE = { paysage: 190, portrait: 125 };
+
+// Les colonnes de texte se resserrent (le texte passe à la ligne) pour tenir dans la page ;
+// nombres et dates gardent leur largeur. L'ajustement à la page fait le reste à l'impression.
+function largeurs(section: SectionDoc, orientation: DocumentExport['orientation']): number[] {
+  const base = section.colonnes.map((c) => Math.min(60, Math.max(6, c.largeur + 2)));
+  const cible = LARGEUR_PAGE[orientation === 'portrait' ? 'portrait' : 'paysage'];
+  const total = base.reduce((a, b) => a + b, 0);
+  if (total <= cible) return base;
+  const fixe = section.colonnes.map((c) => c.type !== 'texte');
+  const sommeFixe = base.reduce((a, w, i) => a + (fixe[i] ? w : 0), 0);
+  const ratio = Math.max(0.35, (cible - sommeFixe) / (total - sommeFixe));
+  return base.map((w, i) => (fixe[i] ? w : Math.max(10, Math.floor(w * ratio))));
+}
+
 function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
   const n = section.colonnes.length;
+  const tailles = largeurs(section, d.orientation);
   const lignes: Cellule[][] = [];
   const pleine = (valeur: string, style: Record<string, unknown> = {}) => {
     const l: Cellule[] = [{ value: valeur, type: String, columnSpan: n, wrap: true, ...style }];
@@ -66,7 +87,7 @@ function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
       if (typeof v === 'number') {
         return { value: v, type: Number, format: formatNombre(decimalesPour(section, ligne, i, indexDonnees)), ...style };
       }
-      return { value: v, type: String, wrap: String(v).length > 40, ...style };
+      return { value: v, type: String, wrap: String(v).length > tailles[i], ...style };
     }));
   }
 
@@ -87,10 +108,43 @@ function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
   return {
     data: lignes,
     sheet: (section.titre ?? 'Export').replace(/[\\/?*[\]:]/g, ' ').slice(0, 31),
-    columns: section.colonnes.map((c) => ({ width: Math.min(60, Math.max(8, c.largeur + 2)) })),
+    columns: tailles.map((width) => ({ width })),
     stickyRowsCount: ligneTitres + 1,
-    orientation: d.orientation === 'paysage' ? ('landscape' as const) : undefined,
+    ligneTitres: ligneTitres + 1,
   };
+}
+
+const echapperXml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+// Réglages d'impression que write-excel-file n'écrit pas : A4, orientation, une page en largeur,
+// marges réduites, centrage, pied « Page n / N », ligne de titres répétée (zones d'impression).
+async function reglerImpression(fichier: Blob, onglets: { nom: string; ligneTitres: number }[], orientation: 'landscape' | 'portrait') {
+  const { unzipSync, zipSync, strFromU8, strToU8 } = await import('fflate');
+  const contenu = unzipSync(new Uint8Array(await fichier.arrayBuffer()));
+  const reglages = '<printOptions horizontalCentered="1"/>'
+    + '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.6" header="0.2" footer="0.3"/>'
+    + `<pageSetup paperSize="9" orientation="${orientation}" fitToWidth="1" fitToHeight="0"/>`
+    + '<headerFooter><oddFooter>&amp;C&amp;8Page &amp;P / &amp;N</oddFooter></headerFooter>';
+  onglets.forEach((_, i) => {
+    const chemin = `xl/worksheets/sheet${i + 1}.xml`;
+    if (!contenu[chemin]) return;
+    let xml = strFromU8(contenu[chemin])
+      .replace(/<printOptions[^>]*\/>/g, '')
+      .replace(/<pageMargins[^>]*\/>/g, '')
+      .replace(/<pageSetup[^>]*\/>/g, '');
+    if (!xml.includes('<sheetPr')) xml = xml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
+    xml = xml.replace(/(<drawing[ >]|<legacyDrawing|<tableParts|<extLst|<\/worksheet>)/, `${reglages}$1`);
+    contenu[chemin] = strToU8(xml);
+  });
+  const titres = onglets
+    .map((o, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${echapperXml(o.nom.replace(/'/g, "''"))}'!$${o.ligneTitres}:$${o.ligneTitres}</definedName>`)
+    .join('');
+  let classeur = strFromU8(contenu['xl/workbook.xml']);
+  classeur = classeur.includes('<definedNames>')
+    ? classeur.replace('<definedNames>', `<definedNames>${titres}`)
+    : classeur.replace('</sheets>', `</sheets><definedNames>${titres}</definedNames>`);
+  contenu['xl/workbook.xml'] = strToU8(classeur);
+  return new Blob([zipSync(contenu, { level: 6 })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 }
 
 export async function genererXlsx(d: DocumentExport): Promise<Blob> {
@@ -103,7 +157,9 @@ export async function genererXlsx(d: DocumentExport): Promise<Blob> {
     vus.set(f.sheet, k + 1);
     if (k) f.sheet = `${f.sheet.slice(0, 28)} ${k + 1}`;
   });
-  return (ecrire as unknown as (f: unknown[], o: unknown) => { toBlob: () => Promise<Blob> })(
-    feuilles, { fontFamily: 'Calibri', fontSize: 10 },
+  const brut = await (ecrire as unknown as (f: unknown[], o: unknown) => { toBlob: () => Promise<Blob> })(
+    feuilles.map(({ ligneTitres: _l, ...f }) => f), { fontFamily: 'Calibri', fontSize: 10 },
   ).toBlob();
+  return reglerImpression(brut, feuilles.map((f) => ({ nom: f.sheet, ligneTitres: f.ligneTitres })),
+    d.orientation === 'portrait' ? 'portrait' : 'landscape');
 }

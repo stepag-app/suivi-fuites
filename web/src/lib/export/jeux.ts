@@ -313,6 +313,12 @@ export const JEU_EVENEMENTS: Jeu = {
 };
 
 // Colonnes du détail d'un lot d'attachement
+// Texte long ramené à n caractères (désignations du CPS dans le détail ; texte intégral au récapitulatif).
+const abreger = (t: unknown, n: number) => {
+  const texte = t == null ? '' : String(t).replace(/\s+/g, ' ').trim();
+  return texte.length > n ? `${texte.slice(0, n - 1).trimEnd()}…` : texte;
+};
+
 export function colonnesAttachement(ctx: Contexte): Colonne[] {
   const lm = libellesMarche(ctx.marche as unknown as Marche);
   const c: Colonne[] = [
@@ -330,7 +336,10 @@ export function colonnesAttachement(ctx: Contexte): Colonne[] {
     { cle: 'refectionnee_le', titre: 'Réfection le', groupe: 'Travaux', type: 'date', largeur: 10 },
     { cle: 'surface_refection_m2', titre: 'Surface (m2)', groupe: 'Travaux', type: 'nombre', decimales: 3, largeur: 8 },
     { cle: 'prix_numero', titre: 'N° prix', groupe: 'Article', largeur: 6 },
-    { cle: 'prix_designation', titre: 'Désignation', groupe: 'Article', largeur: 30 },
+    {
+      cle: 'prix_designation', titre: 'Désignation (abrégée)', groupe: 'Article', largeur: 30,
+      valeur: (l) => abreger(l.prix_designation, 50),
+    },
     { cle: 'quantite', titre: 'Quantité', groupe: 'Article', type: 'quantite', uniteCle: 'unite', total: true, largeur: 9 },
     { cle: 'unite', titre: 'Unité', groupe: 'Article', largeur: 6 },
     {

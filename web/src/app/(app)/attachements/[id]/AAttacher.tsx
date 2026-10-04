@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { quantite, type ReglesAttachement, type Unite } from '@/lib/attachements';
 import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
@@ -7,6 +8,16 @@ import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 
 const AFFICHAGE_MAX = 150;
+
+// N° de fuite cliquable : la fiche (photos, réparations, réfections) s'ouvre dans un nouvel onglet,
+// la sélection en cours du lot reste en place.
+export function LienFuite({ id, numero }: { id: string; numero: number | null }) {
+  return (
+    <Link href={`/fuites/${id}`} target="_blank" rel="noopener" className="lien-fuite" title="Ouvrir la fiche de la fuite dans un nouvel onglet">
+      N° {numero} ↗
+    </Link>
+  );
+}
 const cleUnite = (u: Pick<Unite, 'fuite_id' | 'prix_id'>) => `${u.fuite_id}|${u.prix_id}`;
 
 // Travaux exécutés et pas encore attachés (régularisations comprises), à cocher
@@ -152,50 +163,65 @@ export function AAttacher({
       </div>
       {chargement && <p className="discret">Chargement…</p>}
       {!chargement && parFuite.length === 0 && <p className="discret">Rien à attacher avec ces filtres.</p>}
-      {parFuite.slice(0, AFFICHAGE_MAX).map((g) => {
-        const t = g[0];
-        const cles = g.filter((u) => !u.brouillon_id).map(cleUnite);
-        const toutes = cles.length > 0 && cles.every((k) => choix.has(k));
-        return (
-          <div key={t.fuite_id} className="bloc">
-            <label className="ligne">
-              <input type="checkbox" checked={toutes} disabled={cles.length === 0} onChange={(e) => basculer(cles, e.target.checked)} />
-              <span>
-                <strong>Fuite N° {t.fuite_numero}</strong>
-                {t.reference_srm ? ` · ${t.reference_srm}` : ''}{t.secteur ? ` · ${t.secteur}` : ''}
-                {' '}<span className={`badge ${STATUTS[t.statut as StatutFuite]?.classe ?? ''}`}>{STATUTS[t.statut as StatutFuite]?.libelle ?? t.statut}</span>
-                {t.verrouillee && <span className="etiquette">Verrouillée</span>}
-                <br />
-                <span className="discret">
-                  Réparée le {dateSeule(t.reparee_le)} · {t.refectionnee_le ? `réfection le ${dateSeule(t.refectionnee_le)}` : 'réfection non faite'}
-                  {t.equipe ? ` · ${t.equipe}` : ''}
-                </span>
-              </span>
-            </label>
-            <div className="unites">
-              {g.map((u) => (
-                <label key={cleUnite(u)} className="ligne unite">
-                  <input
-                    type="checkbox"
-                    disabled={!!u.brouillon_id}
-                    checked={choix.has(cleUnite(u))}
-                    onChange={(e) => basculer([cleUnite(u)], e.target.checked)}
-                  />
-                  <span>
-                    Prix {u.prix_numero} : <strong>{quantite(u.reste, u.unite, regles.decimales)}</strong> {u.unite}
-                    {u.dernier_lot != null && (
-                      <span className={`etiquette ${u.reste < 0 ? 'etiquette-alerte' : ''}`}>
-                        Régularisation (exécuté {quantite(u.quantite_executee, u.unite, regles.decimales)}, déjà attaché {quantite(u.quantite_attachee, u.unite, regles.decimales)})
-                      </span>
-                    )}
-                    {u.brouillon_id && <span className="discret"> · déjà dans un autre brouillon</span>}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        );
-      })}
+      {parFuite.length > 0 && (
+        <div className="defilement">
+          <table className="liste-compacte">
+            <thead>
+              <tr>
+                <th aria-label="Toute la fuite" /><th>Fuite</th><th>Référence</th><th>Secteur</th><th>État</th>
+                <th>Réparée le</th><th>Réfection</th><th>Équipe</th><th>Unités à attacher (prix, reste)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {parFuite.slice(0, AFFICHAGE_MAX).map((g, i) => {
+                const t = g[0];
+                const cles = g.filter((u) => !u.brouillon_id).map(cleUnite);
+                const toutes = cles.length > 0 && cles.every((k) => choix.has(k));
+                const statut = STATUTS[t.statut as StatutFuite];
+                return (
+                  <tr key={t.fuite_id} className={i % 2 === 1 ? 'zebre' : ''}>
+                    <td>
+                      <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${t.fuite_numero}`}
+                        onChange={(e) => basculer(cles, e.target.checked)} />
+                    </td>
+                    <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
+                    <td className="nowrap">{t.reference_srm ?? '—'}</td>
+                    <td>{t.secteur ?? '—'}</td>
+                    <td className="nowrap">
+                      <span className={`badge ${statut?.classe ?? ''}`}>{statut?.libelle ?? t.statut}</span>
+                      {t.verrouillee && <span className="etiquette">Verrouillée</span>}
+                    </td>
+                    <td className="nowrap">{dateSeule(t.reparee_le)}</td>
+                    <td className="nowrap">{t.refectionnee_le ? dateSeule(t.refectionnee_le) : <span className="discret">non faite</span>}</td>
+                    <td>{t.equipe ?? '—'}</td>
+                    <td>
+                      <div className="unites-ligne">
+                        {g.map((u) => (
+                          <label key={cleUnite(u)} className="unite-ligne">
+                            <input
+                              type="checkbox"
+                              disabled={!!u.brouillon_id}
+                              checked={choix.has(cleUnite(u))}
+                              onChange={(e) => basculer([cleUnite(u)], e.target.checked)}
+                            />
+                            P{u.prix_numero} <strong>{quantite(u.reste, u.unite, regles.decimales)}</strong> {u.unite}
+                            {u.dernier_lot != null && (
+                              <span className={`etiquette ${u.reste < 0 ? 'etiquette-alerte' : ''}`}>
+                                Régul. lot {u.dernier_lot} ({quantite(u.quantite_executee, u.unite, regles.decimales)} − {quantite(u.quantite_attachee, u.unite, regles.decimales)})
+                              </span>
+                            )}
+                            {u.brouillon_id && <span className="discret">(autre brouillon)</span>}
+                          </label>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
       {parFuite.length > AFFICHAGE_MAX && (
         <p className="discret">Seules les {AFFICHAGE_MAX} premières fuites sont affichées : affinez les filtres (période, secteur…).</p>
       )}

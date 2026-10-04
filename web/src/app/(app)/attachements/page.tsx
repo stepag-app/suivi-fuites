@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { duMois, finDuMois, titreLot, type Lot, type ReglesAttachement } from '@/lib/attachements';
+import { finDuMois, intituleMensuel, titreLot, type Lot, type ReglesAttachement } from '@/lib/attachements';
 import { dateSeule, messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
@@ -48,7 +48,7 @@ export default function Attachements() {
     const mensuel = !regles || regles.periodicite === 'mensuelle';
     const { error } = await getSupabase().from('attachements').insert({
       id, marche_id: marcheId,
-      intitule: mensuel ? `Attachement ${duMois()}` : 'Nouvel attachement',
+      intitule: mensuel ? intituleMensuel(finDuMois()) : 'Nouvel attachement',
       date_arret: mensuel ? finDuMois() : null,
     });
     if (error) {
@@ -57,6 +57,9 @@ export default function Attachements() {
     }
     router.push(`/attachements/${id}`);
   }
+
+  // Numéro que prendra le prochain lot arrêté (affiché « prévu » sur les brouillons)
+  const prochainNumero = Math.max(0, ...lots.map((l) => l.numero ?? 0)) + 1;
 
   if (!peut('attachements', 'lire')) return <p className="carte">Votre compte n&apos;a pas accès aux attachements.</p>;
 
@@ -89,7 +92,7 @@ export default function Attachements() {
                   {l.statut === 'arrete' ? 'Arrêté' : l.numero != null ? 'Rouvert' : 'Brouillon'}
                 </span>
               </div>
-              <div className="discret">{titreLot(regles?.titre, l)}</div>
+              <div className="discret">{titreLot(regles?.titre, { ...l, numero_prevu: l.numero == null ? prochainNumero : null })}</div>
               <div className="discret">
                 {l.arrete_le ? `Arrêté le ${dateSeule(l.arrete_le)}` : `Créé le ${dateSeule(l.cree_le)}`}
                 {l.accepte_le ? ` · accepté le ${dateSeule(l.accepte_le)}` : ''}

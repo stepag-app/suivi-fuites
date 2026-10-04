@@ -51,6 +51,7 @@ a { color: var(--principal); }
 .entete select { width: auto; max-width: 14rem; margin: 0; color: var(--texte); font-weight: 600; }
 
 .contenu { max-width: 960px; margin: 0 auto; padding: 1rem; }
+.contenu.large { max-width: 1440px; }
 
 /* Cartes et blocs */
 .carte {
@@ -163,10 +164,24 @@ tfoot td { font-weight: 700; }
 .ligne-pieces select { width: auto; flex: none; margin: 0; }
 
 /* Attachements */
-.unites { margin: 0.2rem 0 0.4rem 2.2rem; }
-label.unite { font-weight: 400; margin-bottom: 0.3rem; }
 .etiquette-alerte { background: #fdecea; color: var(--danger); }
 tr.discret td { color: var(--discret); }
+
+/* Listes compactes du lot : une ligne par fuite, zébrage */
+.liste-compacte { font-size: 0.88rem; }
+.liste-compacte th { background: #eef3f7; font-size: 0.8rem; white-space: nowrap; padding: 0.35rem 0.45rem; }
+.liste-compacte td { padding: 0.25rem 0.45rem; vertical-align: middle; border-bottom: 1px solid #e3eaf0; }
+.liste-compacte tr.zebre > td { background: #f5f8fb; }
+.liste-compacte tbody tr:hover > td { background: #e8f1f8; }
+.liste-compacte .nowrap { white-space: nowrap; }
+.liste-compacte input[type='checkbox'] { width: 20px; height: 20px; }
+.liste-compacte .badge { font-size: 0.72rem; padding: 0.05rem 0.5rem; }
+.liste-compacte .etiquette { font-size: 0.72rem; margin-left: 0.25rem; }
+.unites-ligne { display: flex; flex-wrap: wrap; gap: 0.2rem 0.9rem; }
+.unite-ligne { display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 400; margin: 0; white-space: nowrap; }
+button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; border-radius: 8px; }
+.lien-fuite { font-weight: 700; text-decoration: none; }
+.lien-fuite:hover { text-decoration: underline; }
 
 /* Panneau d'export : à droite, la liste reste visible à gauche */
 .panneau-export {

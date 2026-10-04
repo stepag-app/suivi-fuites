@@ -86,6 +86,25 @@ Les comptes des agents seront créés depuis le panneau web par une Edge Functio
   et tests à chaque modification de `supabase/` ; le déploiement les rejoue aussi avant d'envoyer.
 - Sur le Mac avec Docker : `supabase start` puis `supabase test db`.
 
+## Sauvegarde et restauration
+
+Workflow `.github/workflows/sauvegarde-base.yml` : chaque nuit (02:17 UTC) et à la demande, export du
+schéma, des données `public` et des comptes `auth`, chiffré (AES-256) puis conservé **30 jours** en
+artefact GitHub. Une fois : créer le secret `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le
+gestionnaire de mots de passe, copie hors ligne ; jamais dans le dépôt ni dans le chat), puis lancer le
+workflow à la main pour valider la première sauvegarde.
+
+Restauration (sur un projet Supabase **vierge**, jamais sur la production sans décision explicite) :
+```bash
+gpg --decrypt sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg | tar -xzf -     # schema.sql, donnees_*.sql
+psql "$URL_BASE_NEUVE" -f schema.sql
+psql "$URL_BASE_NEUVE" -f donnees_auth.sql
+psql "$URL_BASE_NEUVE" -f donnees_public.sql
+```
+**Limites** : les photos (Storage) ne sont pas incluses (copie vers R2 prévue quand la carte bancaire
+sera disponible) ; 30 jours de rétention ; test de restauration à faire une fois sur un projet vierge
+avant de s'y fier.
+
 ## Règles pour les migrations suivantes
 
 - `alter table … enable row level security` juste après chaque `create table`.

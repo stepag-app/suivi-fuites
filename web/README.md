@@ -17,10 +17,11 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
-| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs ; on désactive, on ne supprime pas |
+| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Catalogue des pièces** (recherche, famille, unité, article suggéré) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
 | `/attachements` | droit « attachements » | lots d'attachement : reste à attacher, nouveau lot, liste (brouillons, arrêtés, acceptés, facturés) |
 | `/attachements/[id]` | droit « attachements » | en-tête et mentions du CPS (le titre suit la saisie ; numéro « prévu » d'un brouillon), récapitulatif par article (antérieur, lot, cumul, %), travaux du lot et sélection « À attacher » en listes compactes zébrées, une ligne par fuite (N° de fuite cliquable : fiche, photos dans un nouvel onglet ; filtres, cases par fuite et par article), ligne libre, réfection anticipée, refacturation forcée (admin), arrêt définitif, réouverture (admin), suivi (acceptation, facture) ; page élargie (écran de bureau) |
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
+| `/marches` | administrateur | liste des marchés, activer / désactiver (un marché désactivé n'est plus proposé aux agents), créer un marché vide ou en copiant les paramètres d'un marché existant (`copier_marche`) |
 | `/utilisateurs` | administrateur | créer un agent, rôles par marché, changer le mot de passe, révoquer / réactiver |
 
 ## Exports (panneau « Exporter »)
@@ -46,6 +47,27 @@ de l'export (mesures minifiées + gzip) :
 Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel : vrai texte. PDF : jsPDF lie mal
 certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
 avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
+
+### Rapport PDF par fuite
+
+Bouton **Rapport PDF** sur la fiche d'une fuite, et **Rapports PDF (n)** sur la liste (toutes les fuites
+affichées après filtres, une fuite par page dans un seul fichier, barre de progression) ; droit
+« exports / lire ». Module `src/lib/export/rapport-fuite.ts`, chargé au clic (jsPDF + autotable, comme les
+exports ; en-tête dessiné par `dessinerEntete` de `pdf.ts`). Contenu : en-tête du marché ; identification
+(N°, référence client, origine, statut, dates de détection et jalons du client, zone, secteur, adresse,
+**coordonnées GPS** en degrés décimaux et sexagésimaux avec lien vers la carte, précision) ; réparations
+(équipe, chef, constat, travaux, fouille et volume, emplacement, revêtement, représentant du maître
+d'ouvrage, ouvriers, pièces posées, observation) ; réfections (nature FR / AR, dimensions, ou motif) ;
+quantités et prix du bordereau **seulement** avec le droit « quantités / lire » ; photos rangées par type
+(détection, avant, pendant, après, réfection), 3 par ligne, réduites dans le navigateur (800 px, JPEG 60 %),
+avec type, date et coordonnées ; visas des règles d'attachement du marché ; pied « édité le », page n / N.
+Mesures (pile locale, Chromium) : fuite avec 6 photos de 1 600 px → **2 pages, 393 Ko, 0,4 à 0,6 s** ;
+25 fuites du marché DEMO → 43 pages, 0,56 Mo, ≈ 1 s.
+Lien « Itinéraire vers la fuite » dans le rapport et bouton **Y aller** sur la fiche (`src/lib/itineraire.ts` :
+Google Maps en mode itinéraire, application sur la tablette Android, site sur ordinateur ; pas de carte Google
+intégrée). Lecture des photos (fiche et rapports) par une seule fonction, `urlsPhotos` dans `src/lib/photo.ts`,
+qui choisit selon `photos.stockage` (aujourd'hui `supabase` seulement) : le lot R2 ne changera qu'elle. Ces PDF gardent les images : ils serviront d'archive
+avant toute purge des anciennes photos (CLAUDE.md § 7).
 
 ## Mode hors ligne léger
 

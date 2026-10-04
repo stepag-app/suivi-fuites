@@ -199,3 +199,20 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .apercu-export table { font-size: 0.8rem; }
 .apercu-export td, .apercu-export th { white-space: nowrap; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .groupe-colonnes .cases { grid-template-columns: 1fr; } }
+
+/* Lot C : marchés, secteurs, natures, catalogue, règles de proposition */
+.secteurs-zone { margin: 0.4rem 0 0 1.2rem; padding-left: 0.8rem; border-left: 3px solid var(--bord); }
+.ligne-secteur { padding: 0.3rem 0; border-bottom: 1px dashed var(--bord); }
+.secteurs-zone > button { margin-top: 0.4rem; }
+.regles-prix { display: block; font-size: 0.85rem; margin-top: 0.15rem; }
+.cases-materiaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 0.8rem; }
+.cases-materiaux label { margin-bottom: 0.4rem; }
+.etiquette.symbole { margin-left: 0; min-width: 2.2rem; display: inline-block; text-align: center; }
+.liste-marches .designation { -webkit-line-clamp: 2; }
+@media (max-width: 640px) { .secteurs-zone { margin-left: 0.3rem; } }
+
+/* Rapport PDF par fuite (fiche) et rapports de la liste */
+.fuite-tete .bouton-rapport { margin-left: auto; }
+.progression-rapports { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
+.progression-rapports progress { flex: 1 1 14rem; height: 1rem; accent-color: var(--principal); }
+a.bouton.petit { display: inline-flex; min-height: 30px; padding: 0.1rem 0.7rem; font-size: 0.85rem; border-radius: 8px; text-decoration: none; }

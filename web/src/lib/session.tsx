@@ -19,7 +19,7 @@ interface Etat {
 
 const Contexte = createContext<Etat | null>(null);
 const CLE_MARCHE = 'suivi-fuites:marche';
-const COLONNES_MARCHE = 'id, code, intitule, client, ville, taux_majoration, taux_tva, rayon_redetection_m';
+const COLONNES_MARCHE = 'id, code, intitule, client, ville, actif, taux_majoration, taux_tva, rayon_redetection_m';
 const COLONNES_MARCHE_CLIENT = 'client_sigle, libelle_reference, masque_reference, jalons_client, delai_alerte_reparation_h, devise';
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -92,7 +92,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return;
       }
       setProfil(profilCharge);
-      const liste = (m.data as Marche[] | null) ?? [];
+      // Un marché désactivé n'est plus proposé ; l'administrateur le garde (page Marchés, réactivation).
+      const liste = ((m.data as Marche[] | null) ?? []).filter((x) => profilCharge?.est_admin || x.actif !== false);
       setMarches(liste);
       setDroits((d.data as Droit[] | null) ?? []);
       try {

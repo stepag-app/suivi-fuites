@@ -22,6 +22,7 @@ export interface Marche {
   intitule: string;
   client: string;
   ville: string | null;
+  actif?: boolean;
   taux_majoration: number;
   taux_tva: number;
   rayon_redetection_m: number;
@@ -125,6 +126,7 @@ export interface PhotoLigne {
   type: string;
   chemin: string;
   prise_le: string;
+  stockage?: string;
 }
 
 export interface Quantite {

@@ -32,6 +32,10 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
 | Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
 | **Lot A, tablette** : fiche d'une fuite (infos, statut, photos, réparations, réfections, sans prix), saisie d'une réparation (pièces du catalogue, ouvriers, photos avant / pendant / après) et d'une réfection, hors ligne (file d'attente ordonnée par fuite, reprise après coupure, erreurs claires dont fuite verrouillée), contrôle des doublons à la création (même fuite / nouvelle fuite liée), boutons de saisie selon les droits (détection en lecture), bouton « Y aller » (application de cartes externe ; carte intégrée reportée), photos regroupées dans `photos.ts` (prêt pour R2) | `mobile/src/` (`fiche.tsx`, `saisie.tsx`, `file-attente.ts`, `photos.ts`), `mobile/essais/` | PR [#13](https://github.com/stepag-app/suivi-fuites/pull/13) ; types et bundle Android vérifiés, **25 vérifications** contre une pile Supabase locale (chef, détection, DEMO) ; **à essayer sur la tablette** |
+| **Lot D : rapport PDF par fuite** (fiche : bouton « Rapport PDF » ; liste : « Rapports PDF (n) », une fuite par page) : en-tête du marché, identification et GPS, réparations, réfections, prix si droit « quantités / lire », photos par type réduites, visas ; 6 photos → 2 pages, 393 Ko, < 1 s | `web/src/lib/export/rapport-fuite.ts`, `web/README.md` § Rapport PDF par fuite | PR `claude/lot-d-rapport-pdf` ; testé sur pile locale (Playwright, PDF rendus et relus) ; PR #15 **fusionnée** ; **à faire valider par Issam** (contenu exigé par la SRM ?) |
+| Lot D, ajouts : itinéraire vers la fuite (lien dans le rapport, bouton « Y aller » sur la fiche) ; lecture des photos par `urlsPhotos` (point unique pour le futur passage à R2) | `web/src/lib/itineraire.ts`, `web/src/lib/photo.ts` | PR suivante |
+
+| **Lot C : paramètres à l'écran** : page `/marches` (admin : liste, activer / désactiver, créer vide ou par copie des paramètres d'un marché), Paramètres > Secteurs (zones et secteurs), Natures de réfection, Catalogue des pièces (recherche), règles de proposition des articles du bordereau (famille, matériaux, diamètres, sans nouvelle version) ; marché désactivé masqué aux agents | migration `20261005100000_copie_marche.sql` (`copier_marche`) ; `web/src/app/(app)/marches/`, `web/src/app/(app)/parametres/Onglet{Secteurs,Natures,Catalogue}.tsx` ; 36 tests pgTAP (`06_copie_marche_parametres`) | PR lot C ; tests pgTAP, tsc et parcours Playwright sur pile Supabase locale verts |
 
 ## 2. En attente d'Issam
 
@@ -119,10 +123,10 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 **Fait cette session** : le panneau d'export demandé (voir `web/README.md`, § Exports), fusionné et
 déployé ; marché DEMO pour les essais.
 
-**Application standard, ce qui manque encore à l'écran** (aujourd'hui seulement en base, par migration) :
-création d'un marché (et copie des paramètres d'un marché existant), zones et secteurs, natures de réfection
-(et leur article), catalogue des pièces, règles de proposition automatique des prix (famille, matériaux,
-diamètres) pour un bordereau saisi à l'écran.
+**Application standard, ce qui manquait à l'écran** : fait par le lot C (marchés, secteurs, natures,
+catalogue, règles de proposition). Reste : dessin des zones et secteurs (avec le plan du réseau), phases du
+marché, désactivation d'un marché qui bloquerait aussi les écritures en base (aujourd'hui : simplement masqué
+aux agents).
 
 **Retouches visuelles des exports** : si la SRM impose un gabarit (cartouche, logos, mentions, visas),
 passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste se règle dans les modèles.
@@ -137,7 +141,7 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
    existante sans réseau non gérées.
 4. Migration 2 dès réception du DXF : le balayage (prix 1 et 2) pourra alors s'attacher par tronçon ;
    en attendant, une **ligne libre** du lot d'attachement porte le linéaire balayé par secteur.
-5. Rapport PDF par fuite (photos, GPS), carte des fuites, état journalier au gabarit exact de la SRM.
+5. ~~Rapport PDF par fuite~~ (lot D, fait ; contenu à valider avec la SRM), carte des fuites, état journalier au gabarit exact de la SRM.
 
 ## 6. Prompt pour démarrer une nouvelle session
 

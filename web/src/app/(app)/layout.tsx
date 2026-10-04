@@ -33,12 +33,13 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
           {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
             lien('/parametres', 'Paramètres')}
           {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
+          {profil?.est_admin && lien('/marches', 'Marchés')}
         </nav>
         <div className="entete-droite">
           {marches.length > 1 && (
             <select value={marche?.id ?? ''} onChange={(e) => choisirMarche(e.target.value)} aria-label="Marché">
               {marches.map((m) => (
-                <option key={m.id} value={m.id}>{m.code}</option>
+                <option key={m.id} value={m.id}>{m.code}{m.actif === false ? ' (désactivé)' : ''}</option>
               ))}
             </select>
           )}
@@ -49,7 +50,8 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
       <StatutReseau />
       {/* Écrans de bureau (attachements) : plus larges, pour les listes compactes */}
       <main className={chemin.startsWith('/attachements') ? 'contenu large' : 'contenu'}>
-        {marche ? (
+        {/* La page Marchés reste accessible à l'administrateur sans marché (création du premier). */}
+        {marche || (profil?.est_admin && chemin.startsWith('/marches')) ? (
           children
         ) : (
           <p className="carte">

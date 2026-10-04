@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { dateSeule, libellesMarche, messageErreur, montant, nombre } from '@/lib/format';
+import { dateSeule, libellesMarche, MATERIAUX, messageErreur, montant, nombre } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 
@@ -12,6 +12,7 @@ interface Avenant {
 interface Article {
   id: string; numero: string; ordre: number; designation: string; unite: string;
   quantite_marche: number | null; pu_ht: number | null; hors_bordereau: boolean; actif: boolean;
+  famille: string; materiaux: string[] | null; diametre_min_mm: number | null; diametre_max_mm: number | null;
 }
 interface Version {
   id: string; prix_id: string; version: number; designation: string; unite: string;
@@ -20,6 +21,12 @@ interface Version {
 }
 
 const UNITES = ['ml', 'm2', 'm3', 'u', 'forfait'];
+// Familles de la proposition automatique des lignes de prix (type famille_prix en base).
+const FAMILLES: Record<string, string> = {
+  balayage: 'Balayage', maintien: 'Maintien', terrassement: 'Terrassement', refection: 'Réfection',
+  reparation_tuyau: 'Réparation de tuyau', robinet_pec: 'Robinet de prise en charge', collier_pec: 'Collier de prise en charge',
+  bouche_a_cle: 'Bouche à clé', autre: 'Autre (jamais proposé)',
+};
 const enNombre = (t: string) => (t.trim() === '' ? null : Number(t.replace(/\s/g, '').replace(',', '.')));
 const nombreValide = (t: string) => t.trim() === '' || (!Number.isNaN(enNombre(t)) && (enNombre(t) ?? 0) >= 0);
 
@@ -36,7 +43,7 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
     const sb = getSupabase();
     const [a, p, v] = await Promise.all([
       sb.from('avenants').select('*').eq('marche_id', marcheId).order('date_avenant'),
-      sb.from('prix').select('id, numero, ordre, designation, unite, quantite_marche, pu_ht, hors_bordereau, actif')
+      sb.from('prix').select('id, numero, ordre, designation, unite, quantite_marche, pu_ht, hors_bordereau, actif, famille, materiaux, diametre_min_mm, diametre_max_mm')
         .eq('marche_id', marcheId).order('hors_bordereau').order('ordre').order('numero'),
       sb.from('prix_versions').select('*').eq('marche_id', marcheId).order('version'),
     ]);
@@ -112,6 +119,7 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
             key={p.id} article={p} devise={devise} versions={versions.filter((v) => v.prix_id === p.id)}
             avenants={avenantsActifs} toutAvenants={avenants} peutModifier={peutModifier}
             nouvelleVersion={(v) => executer(() => sb.from('prix_versions').insert({ ...v, prix_id: p.id, marche_id: marcheId }))}
+            modifierRegles={(v) => executer(() => sb.from('prix').update(v).eq('id', p.id))}
           />
         ))}
         {peutCreer &&
@@ -137,6 +145,7 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
             key={p.id} article={p} devise={devise} versions={versions.filter((v) => v.prix_id === p.id)}
             avenants={avenantsActifs} toutAvenants={avenants} peutModifier={peutModifier}
             modifierDirectement={(v) => executer(() => sb.from('prix').update(v).eq('id', p.id))}
+            modifierRegles={(v) => executer(() => sb.from('prix').update(v).eq('id', p.id))}
             basculer={() => executer(() => sb.from('prix').update({ actif: !p.actif }).eq('id', p.id))}
           />
         ))}
@@ -158,14 +167,15 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
 }
 
 function LigneArticle({
-  article: p, devise, versions, avenants, toutAvenants, peutModifier, nouvelleVersion, modifierDirectement, basculer,
+  article: p, devise, versions, avenants, toutAvenants, peutModifier, nouvelleVersion, modifierDirectement, modifierRegles, basculer,
 }: {
   article: Article; devise: string; versions: Version[]; avenants: Avenant[]; toutAvenants: Avenant[]; peutModifier: boolean;
   nouvelleVersion?: (v: Record<string, unknown>) => Promise<boolean>;
   modifierDirectement?: (v: Record<string, unknown>) => Promise<boolean>;
+  modifierRegles: (v: Record<string, unknown>) => Promise<boolean>;
   basculer?: () => void;
 }) {
-  const [mode, setMode] = useState<'' | 'version' | 'historique'>('');
+  const [mode, setMode] = useState<'' | 'version' | 'historique' | 'regles'>('');
   const avenantDe = (id: string | null) => toutAvenants.find((a) => a.id === id);
   return (
     <div className="bloc">
@@ -176,6 +186,7 @@ function LigneArticle({
           {p.actif ? '' : ' (désactivé)'}
           <br />
           <span className="discret designation">{p.designation}</span>
+          <span className="discret regles-prix">Proposition automatique : {resumeRegles(p)}</span>
         </span>
         <span className="actions">
           {peutModifier && (
@@ -183,6 +194,7 @@ function LigneArticle({
               {p.hors_bordereau ? 'Modifier' : 'Nouvelle version'}
             </button>
           )}
+          {peutModifier && <button onClick={() => setMode(mode === 'regles' ? '' : 'regles')}>Règles</button>}
           <button onClick={() => setMode(mode === 'historique' ? '' : 'historique')}>Historique ({versions.length})</button>
           {peutModifier && basculer && <button onClick={basculer}>{p.actif ? 'Désactiver' : 'Réactiver'}</button>}
         </span>
@@ -195,6 +207,15 @@ function LigneArticle({
           onSubmit={async (v) => {
             const ok = p.hors_bordereau ? await modifierDirectement?.(v) : await nouvelleVersion?.(v);
             if (ok) setMode('');
+          }}
+        />
+      )}
+      {mode === 'regles' && (
+        <FormRegles
+          article={p}
+          annuler={() => setMode('')}
+          onSubmit={async (v) => {
+            if (await modifierRegles(v)) setMode('');
           }}
         />
       )}
@@ -222,6 +243,69 @@ function LigneArticle({
         </div>
       )}
     </div>
+  );
+}
+
+function resumeRegles(p: Article): string {
+  if (p.famille === 'autre') return 'jamais proposé';
+  const morceaux = [FAMILLES[p.famille] ?? p.famille];
+  if (p.materiaux?.length) morceaux.push(p.materiaux.map((m) => MATERIAUX[m] ?? m).join(', '));
+  if (p.diametre_min_mm != null && p.diametre_max_mm != null) morceaux.push(`Ø ${p.diametre_min_mm} à ${p.diametre_max_mm} mm`);
+  else if (p.diametre_min_mm != null) morceaux.push(`Ø ≥ ${p.diametre_min_mm} mm`);
+  else if (p.diametre_max_mm != null) morceaux.push(`Ø ≤ ${p.diametre_max_mm} mm`);
+  if (p.hors_bordereau) morceaux.push('(hors bordereau : jamais proposé)');
+  return morceaux.join(' · ');
+}
+
+// Règles de proposition : modifiables directement (pas de nouvelle version ; le journal garde la trace).
+function FormRegles({ article, onSubmit, annuler }: { article: Article; onSubmit: (v: Record<string, unknown>) => void; annuler: () => void }) {
+  const [famille, setFamille] = useState(article.famille);
+  const [materiaux, setMateriaux] = useState<string[]>(article.materiaux ?? []);
+  const [min, setMin] = useState(article.diametre_min_mm != null ? String(article.diametre_min_mm) : '');
+  const [max, setMax] = useState(article.diametre_max_mm != null ? String(article.diametre_max_mm) : '');
+  const entier = (t: string) => t.trim() === '' || /^\d+$/.test(t.trim());
+  const ordreValide = !min.trim() || !max.trim() || Number(max) >= Number(min);
+  const envoyer = (e: FormEvent) => {
+    e.preventDefault();
+    onSubmit({
+      famille,
+      materiaux: materiaux.length ? materiaux : null,
+      diametre_min_mm: min.trim() ? Number(min) : null,
+      diametre_max_mm: max.trim() ? Number(max) : null,
+    });
+  };
+  const basculer = (m: string) => setMateriaux((l) => (l.includes(m) ? l.filter((x) => x !== m) : [...l, m]));
+  return (
+    <form onSubmit={envoyer} className="sous-formulaire">
+      <p className="discret">
+        Ces règles choisissent l&apos;article proposé à partir des mesures de terrain (matériau et diamètre du tuyau).
+        Elles se modifient directement : pas de nouvelle version, le journal garde l&apos;ancienne valeur.
+        Les lignes déjà proposées ne sont recalculées qu&apos;à la prochaine modification de leur réparation ou réfection.{article.hors_bordereau ? ' Un article hors bordereau n\'est jamais proposé.' : ''}
+      </p>
+      <label>
+        Famille
+        <select value={famille} onChange={(e) => setFamille(e.target.value)}>
+          {Object.entries(FAMILLES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+        </select>
+      </label>
+      <fieldset>
+        <legend>Matériaux (aucun coché : tous)</legend>
+        <div className="cases-materiaux">
+          {Object.entries(MATERIAUX).map(([k, v]) => (
+            <label key={k} className="ligne"><input type="checkbox" checked={materiaux.includes(k)} onChange={() => basculer(k)} />{v}</label>
+          ))}
+        </div>
+      </fieldset>
+      <div className="deux">
+        <label>Diamètre minimum (mm)<input value={min} onChange={(e) => setMin(e.target.value)} inputMode="numeric" placeholder="sans minimum" /></label>
+        <label>Diamètre maximum (mm)<input value={max} onChange={(e) => setMax(e.target.value)} inputMode="numeric" placeholder="sans maximum" /></label>
+      </div>
+      {!ordreValide && <p className="erreur">Le diamètre maximum doit être supérieur ou égal au minimum.</p>}
+      <div className="actions">
+        <button className="primaire" disabled={!entier(min) || !entier(max) || !ordreValide}>Enregistrer les règles</button>
+        <button type="button" onClick={annuler}>Annuler</button>
+      </div>
+    </form>
   );
 }
 

@@ -140,3 +140,15 @@ tfoot td { font-weight: 700; }
   .infos dt { margin-top: 0.4rem; }
   .entete-droite .discret { display: none; }
 }
+
+/* Bandeau réseau / envois en attente */
+.bandeau { padding: 0.5rem 1rem; font-size: 0.95rem; text-align: center; }
+.bandeau.horsligne { background: #fde8c8; color: #7a3e00; }
+.bandeau.attente { background: #e0effa; color: #0b3d5c; }
+.bandeau a { color: inherit; font-weight: 700; }
+
+/* Paramètres */
+.onglets { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+.onglets button.actif { background: var(--principal); color: #fff; }
+.ligne-param { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem; }
+.actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }

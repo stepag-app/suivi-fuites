@@ -6,8 +6,8 @@ côté client. Les comptes sont créés par la fonction serveur `supabase/functi
 
 Une seule application, utilisable sur ordinateur (bureau, responsable) et sur la tablette Samsung
 (navigateur Chrome, « Ajouter à l'écran d'accueil » pour l'installer comme une application).
-C'est la **version rapide de test** : elle n'a pas encore de mode hors ligne ni de GPS en arrière-plan ;
-l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.
+C'est la **version rapide de test** : mode hors ligne léger pour la création de fuites (voir plus bas),
+pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.
 
 ## Écrans
 
@@ -17,7 +17,23 @@ l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
+| `/parametres` | droits « parametres » / « ouvriers » | ouvriers, équipes, motifs (FR / AR), articles hors bordereau ; prix du bordereau en lecture seule ; on désactive, on ne supprime pas |
+| `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/utilisateurs` | administrateur | créer un agent, rôles par marché, changer le mot de passe, révoquer / réactiver |
+
+## Mode hors ligne léger
+
+- **Nouvelle fuite** : toujours enregistrée d'abord sur la tablette (IndexedDB : fiche + photos déjà
+  compressées), puis envoyée. Sans réseau ou en cas de coupure, elle reste en attente et part toute seule
+  (retour du réseau, retour sur l'application, toutes les 30 s). Un bandeau indique l'état.
+- Les identifiants (uuid) sont créés sur l'appareil : renvoyer ne crée jamais de doublon. Les données
+  locales ne sont effacées qu'après confirmation du serveur.
+- Mis en cache : liste des secteurs, profil / marchés / droits du dernier utilisateur connecté
+  (effacés à la déconnexion), pages de l'application (service worker `public/sw.js`, actif en production).
+- **Hors périmètre** : consulter ou modifier une fuite existante sans réseau ; la détection des
+  doublons (re-détection) est muette sans réseau.
+- Limite : la session reste valable tant que le jeton se rafraîchit ; après une très longue coupure,
+  il faut se reconnecter en ligne (les envois en attente sont conservés).
 
 ## Variables d'environnement (Vercel et `web/.env.local`)
 

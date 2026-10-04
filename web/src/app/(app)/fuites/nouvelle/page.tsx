@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { OUVRAGES, STATUTS, dateHeure, formaterReferenceSrm, messageErreur } from '@/lib/format';
 import { preparerPhoto } from '@/lib/photo';
 import { useSession } from '@/lib/session';
+import { lireCache, mettreEnCache, mettreFuiteEnAttente, synchroniser, type PhotoEnAttente } from '@/lib/hors-ligne';
 import { getSupabase } from '@/lib/supabase';
 import type { Secteur, StatutFuite } from '@/lib/types';
 
@@ -44,7 +45,16 @@ export default function NouvelleFuite() {
       .eq('marche_id', marcheId)
       .eq('actif', true)
       .order('libelle')
-      .then(({ data }) => setSecteurs((data as Secteur[] | null) ?? []));
+      .then(async ({ data, error }) => {
+        const cle = `secteurs:${marcheId}`;
+        if (!error && data) {
+          setSecteurs(data as Secteur[]);
+          mettreEnCache(cle, data);
+        } else {
+          // Sans réseau : dernière liste connue.
+          setSecteurs((await lireCache<Secteur[]>(cle)) ?? []);
+        }
+      });
   }, [marcheId]);
 
   const localiser = useCallback(() => {
@@ -108,48 +118,46 @@ export default function NouvelleFuite() {
     }
     if (photos.length === 0 && !window.confirm('Aucune photo n\'est jointe. Enregistrer quand même ?')) return;
 
-    const sb = getSupabase();
+    // La fuite est d'abord gardée sur la tablette (photos comprises), puis envoyée : sans réseau
+    // ou en cas de coupure, rien n'est perdu et l'envoi reprend tout seul.
     const id = crypto.randomUUID();
     try {
-      setEnvoi('Enregistrement de la fuite…');
+      setEnvoi('Préparation des photos…');
+      const pos = position ? `SRID=4326;POINT(${position.longitude} ${position.latitude})` : null;
       const secteur = secteurs.find((s) => s.id === secteurId);
-      const { error } = await sb.from('fuites').insert({
-        id,
-        marche_id: marcheId,
-        reference_srm: reference.trim() || null,
-        secteur_id: secteur?.id ?? null,
-        zone_id: secteur?.zone_id ?? null,
-        visibilite: visibilite || null,
-        ouvrage: ouvrage || null,
-        adresse: adresse.trim() || null,
-        observation: observation.trim() || null,
-        position: position ? `SRID=4326;POINT(${position.longitude} ${position.latitude})` : null,
-        precision_gps_m: position ? Math.round(position.precision) : null,
-        fuite_liee_id: lierA || null,
-        source_saisie: 'tablette',
-      });
-      if (error) throw error;
-
-      for (let i = 0; i < photos.length; i++) {
-        setEnvoi(`Envoi de la photo ${i + 1} / ${photos.length}…`);
-        const prete = await preparerPhoto(photos[i]);
-        const photoId = crypto.randomUUID();
-        const chemin = `${marcheId}/${id}/${photoId}.jpg`;
-        const envoyee = await sb.storage.from('photos').upload(chemin, prete.blob, { contentType: 'image/jpeg' });
-        if (envoyee.error) throw envoyee.error;
-        const ligne = await sb.from('photos').insert({
-          id: photoId, marche_id: marcheId, fuite_id: id, type: 'detection', chemin,
-          position: position ? `SRID=4326;POINT(${position.longitude} ${position.latitude})` : null,
-          largeur_px: prete.largeur, hauteur_px: prete.hauteur, taille_octets: prete.blob.size,
+      const preparees: PhotoEnAttente[] = [];
+      for (const fichier of photos) {
+        const prete = await preparerPhoto(fichier);
+        preparees.push({
+          id: crypto.randomUUID(), fuite_id: id, marche_id: marcheId, blob: prete.blob,
+          largeur: prete.largeur, hauteur: prete.hauteur, position: pos, prise_le: new Date().toISOString(),
         });
-        if (ligne.error) throw ligne.error;
       }
-      router.replace(`/fuites/${id}`);
-    } catch (err) {
-      setErreur(
-        messageErreur(err) +
-          (photos.length ? ' (la fuite a peut-être été enregistrée : vérifiez la liste avant de réessayer)' : ''),
+      await mettreFuiteEnAttente(
+        {
+          id,
+          marche_id: marcheId,
+          ligne: {
+            reference_srm: reference.trim() || null,
+            secteur_id: secteur?.id ?? null,
+            zone_id: secteur?.zone_id ?? null,
+            visibilite: visibilite || null,
+            ouvrage: ouvrage || null,
+            adresse: adresse.trim() || null,
+            observation: observation.trim() || null,
+            position: pos,
+            precision_gps_m: position ? Math.round(position.precision) : null,
+            fuite_liee_id: lierA || null,
+            source_saisie: 'tablette',
+          },
+        },
+        preparees,
       );
+      setEnvoi(navigator.onLine ? 'Envoi…' : 'Enregistrement sur la tablette…');
+      const { restantes } = await synchroniser();
+      router.replace(restantes === 0 ? `/fuites/${id}` : '/en-attente');
+    } catch (err) {
+      setErreur(messageErreur(err));
       setEnvoi('');
     }
   }

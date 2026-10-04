@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useSession } from '@/lib/session';
+import { StatutReseau } from '@/lib/StatutReseau';
 
 export default function MiseEnPage({ children }: { children: ReactNode }) {
-  const { chargement, session, profil, marches, marche, choisirMarche, deconnecter } = useSession();
+  const { chargement, session, profil, marches, marche, choisirMarche, peut, deconnecter } = useSession();
   const router = useRouter();
   const chemin = usePathname();
 
@@ -28,6 +29,8 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         <nav>
           {lien('/fuites', 'Fuites')}
           {lien('/fuites/nouvelle', '+ Nouvelle fuite')}
+          {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer')) &&
+            lien('/parametres', 'Paramètres')}
           {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
         </nav>
         <div className="entete-droite">
@@ -42,6 +45,7 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
           <button onClick={deconnecter}>Quitter</button>
         </div>
       </header>
+      <StatutReseau />
       <main className="contenu">
         {marche ? (
           children

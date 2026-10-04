@@ -16,15 +16,15 @@ Dernière mise à jour : 2026-10-04 (fin de journée).
 | Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé et **vérifié** (`issam | true | true`) |
 | Réglages Auth Supabase : fournisseur e-mail activé, « Confirm email » désactivé | tableau de bord Supabase | vérifié sur captures (2026-10-04) |
 | Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
-| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | écrit, compilé, requêtes validées contre PostgREST (28 contrôles) ; **à mettre en ligne sur Vercel** |
+| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://suivi-fuites-web.vercel.app (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
+| Correctif droits `service_role` (migration `20261004130000`) | `supabase/migrations/` | déployé ; simulateur de test rendu strict (aucun droit par défaut), 64 tests |
 
 ## 2. En attente d'Issam
 
-1. **Inscriptions publiques** : *Authentication > Sign In / Providers > User Signups* : désactiver « Allow new users to sign up » puis Save changes (les comptes sont créés par la fonction serveur, qui n'en a pas besoin). Sinon n'importe qui peut créer un compte avec la clé publique.
-2. **Vercel** (équipe STEPAG) : importer le dépôt avec *Root Directory* `web` et les deux variables `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (procédure dans `web/README.md`).
-3. **Premier test** : se connecter en `issam`, créer un agent dans « Utilisateurs », signaler une fuite avec photo sur la tablette.
-4. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
-5. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
+1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
+2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
+3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
+4. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 
 ## 3. Décisions prises (à respecter)
 

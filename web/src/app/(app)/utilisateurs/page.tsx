@@ -180,7 +180,16 @@ function FormCreation({
   const [telephone, setTelephone] = useState('');
   const [marcheId, setMarcheId] = useState(marcheParDefaut);
   const [roles, setRoles] = useState<string[]>(['detection']);
+  const [voirMotDePasse, setVoirMotDePasse] = useState(false);
   const [occupe, setOccupe] = useState(false);
+
+  // Mot de passe lisible à dicter à l'agent : sans caractères ambigus (0/O, 1/l/I).
+  function genererMotDePasse() {
+    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const octets = crypto.getRandomValues(new Uint8Array(10));
+    setMotDePasse(Array.from(octets, (o) => alphabet[o % alphabet.length]).join(''));
+    setVoirMotDePasse(true);
+  }
 
   async function soumettre(e: FormEvent) {
     e.preventDefault();
@@ -208,7 +217,20 @@ function FormCreation({
       <div className="deux">
         <label>
           Mot de passe (8 caractères minimum)
-          <input value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)} minLength={8} required />
+          <input
+            type={voirMotDePasse ? 'text' : 'password'}
+            value={motDePasse}
+            onChange={(e) => setMotDePasse(e.target.value)}
+            minLength={8}
+            autoComplete="new-password"
+            required
+          />
+          <span className="actions">
+            <button type="button" onClick={() => setVoirMotDePasse(!voirMotDePasse)}>
+              {voirMotDePasse ? 'Masquer' : 'Afficher'}
+            </button>
+            <button type="button" onClick={genererMotDePasse}>Générer</button>
+          </span>
         </label>
         <label>
           Téléphone (facultatif)

@@ -47,6 +47,8 @@ a { color: var(--principal); }
 .entete-droite { display: flex; align-items: center; gap: 0.6rem; }
 .entete .discret { color: #d6e6f0; }
 .entete button, .entete select { min-height: 40px; }
+/* Le sélecteur de marché reprend le texte sombre (le reste de l'en-tête est en blanc). */
+.entete select { width: auto; max-width: 14rem; margin: 0; color: var(--texte); font-weight: 600; }
 
 .contenu { max-width: 960px; margin: 0 auto; padding: 1rem; }
 

@@ -60,7 +60,7 @@ export function Connexion() {
 }
 
 export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: () => void }) {
-  const { marche, peut, profil, deconnecter } = useSession();
+  const { marche, marches, choisirMarche, peut, profil, deconnecter } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [nbAttente, setNbAttente] = useState(0);
   const [message, setMessage] = useState('');
@@ -98,6 +98,21 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
       <View style={[s.contenu, { paddingTop: 48 }]}>
         <Text style={s.titre}>Fuites · {marche?.code}</Text>
         <Text style={s.discret}>{profil?.nom_complet}</Text>
+        {marches.length > 1 && (
+          <View style={s.ligne}>
+            {marches.map((m) => (
+              <Pressable
+                key={m.id}
+                onPress={() => choisirMarche(m.id)}
+                style={[s.puce, m.id === marche?.id && s.puceActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: m.id === marche?.id }}
+              >
+                <Text style={[s.etiquette, m.id === marche?.id && { color: '#fff' }]}>{m.code}</Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
         {peut('fuites', 'creer') && <Bouton titre="+ Nouvelle fuite" primaire onPress={nouvelle} />}
         {nbAttente > 0 && <Bouton titre={`${nbAttente} fuite(s) à envoyer`} onPress={attente} />}
         {!!message && <Text style={s.discret}>{message}</Text>}

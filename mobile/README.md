@@ -8,7 +8,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Écran | Contenu |
 |---|---|
 | Connexion | identifiant + mot de passe (compte créé par l'administrateur) |
-| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; dernière liste gardée hors ligne |
+| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; dernière liste gardée hors ligne ; choix du marché (mémorisé) si le compte en a plusieurs |
 | Nouvelle fuite | GPS, référence SRM, secteur, adresse, observation, photos (redimensionnées à 1 600 px, qualité 70, stockées dans le dossier privé de l'appli, jamais dans la galerie) |
 | Envois en attente | fuites gardées sur la tablette, envoi manuel, erreurs, abandon |
 
@@ -18,7 +18,7 @@ ne crée pas de doublon ; les fichiers locaux ne sont supprimés qu'après confi
 
 **Pas encore fait** : réparations, réfections et changement de statut sur la tablette (se font dans le
 panneau web ; les statuts avancent automatiquement), suivi GPS en arrière-plan (M4), notifications push,
-mise à jour intégrée de l'APK, choix entre plusieurs marchés, détection des doublons.
+mise à jour intégrée de l'APK, détection des doublons.
 
 ## Développement
 

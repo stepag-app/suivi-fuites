@@ -20,12 +20,15 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004180100_parametres_marche_standard.sql` | étape A : fiche du marché (titulaire, maître d'ouvrage, délai, montant), OS typés, arrêts et reprises, avenants, versions des articles du bordereau, journal des événements et pièces jointes (compartiment `evenements`), règles d'attachement, libellés propres au client, valeurs par défaut de tout nouveau marché |
 | `migrations/20261004200000_lots_attachement.sql` | étape B : lots d'attachement (`attachements`, `attachement_lignes`), solde par fuite × article (`v_a_attacher`), détail et récapitulatif (`v_attachement_lignes`, `v_attachement_recap`), `arreter_attachement`, `rouvrir_attachement` |
 | `migrations/20261004210000_exports.sql` | étape C : modèles d'export par marché (`modeles_export`, trois par défaut), vue `v_fuites_export` (fuite + dernière réparation, réfection, pièces, quantités) |
+| `migrations/20261004220000_anomalies_corrigees.sql` | `v_anomalies` : plus de « terrassement sans avis » sans fouille, ni de « référence en double » sur la fuite d'origine d'une re-détection |
+| `migrations/20261004230000_marche_demo.sql` | marché de démonstration `DEMO` (données fictives, voir ci-dessous) |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
 | `tests/database/02_parametres_marche.test.sql` | 49 tests de l'étape A (fiche, versions de prix, avenants, arrêts et délai, événements, libellés du client) |
 | `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) |
 | `tests/database/04_exports.test.sql` | 10 tests de l'étape C (modèles par défaut, droits, vue enrichie) |
+| `tests/database/05_marche_demo.test.sql` | 30 tests : marché DEMO, droits des agents de terrain (ni attachements, ni prix, ni paramètres, ni exports), isolation, lot N° 02 de bout en bout |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -146,6 +149,17 @@ avant de s'y fier.
   motif obligatoire).
 - **Réouverture** : administrateur, dernier lot arrêté seulement, motif obligatoire.
 - **Récapitulatif** : quantité du marché, antérieur (lots arrêtés précédents), ce lot, cumul, %.
+
+## Marché de démonstration `DEMO` (données fictives)
+
+Créé par `20261004230000_marche_demo.sql` pour les essais, sans rien écrire dans le marché SRM :
+copie des paramètres SRM (fiche, bordereau, zones, secteurs, équipes, natures, motifs, catalogue,
+règles d'attachement, modèles d'export), décalée au 3 août 2026, puis 25 fuites d'août à octobre
+(tous les statuts, origine SRM ou STEPAG, avec ou sans réfection, sondage négatif, réparation en deux
+temps, re-détection, gros diamètre, alertes et anomalies), le lot N° 01 d'août arrêté, puis une
+réfection tardive et une profondeur corrigée (régularisation + 0,160 m3) à attacher en septembre.
+L'administrateur le choisit dans le sélecteur de marché ; un agent n'y a accès que si on l'y affecte.
+**Après les essais** : désactiver le marché DEMO (administrateur) ; ses données restent isolées.
 
 ## Essai local complet (Docker)
 

@@ -9,12 +9,15 @@ interface Etat {
   session: Session | null;
   profil: Profil | null;
   marche: Marche | null;
+  marches: Marche[];
+  choisirMarche: (id: string) => void;
   peut: (type: string, action: 'lire' | 'creer') => boolean;
   deconnecter: () => Promise<void>;
 }
 
 const Contexte = createContext<Etat | null>(null);
 const cleContexte = (id: string) => `suivi-fuites:contexte:${id}`;
+const cleMarche = (id: string) => `suivi-fuites:marche:${id}`;
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [chargement, setChargement] = useState(true);
@@ -22,6 +25,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profil, setProfil] = useState<Profil | null>(null);
   const [marches, setMarches] = useState<Marche[]>([]);
   const [droits, setDroits] = useState<Droit[]>([]);
+  const [marcheChoisi, setMarcheChoisi] = useState<string | null>(null);
 
   useEffect(() => {
     if (configurationManquante) {
@@ -49,9 +53,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (!uid) return;
     let annule = false;
     (async () => {
+      AsyncStorage.getItem(cleMarche(uid)).then((id) => !annule && setMarcheChoisi(id)).catch(() => undefined);
       const [p, m, d] = await Promise.all([
         supabase.from('profils').select('id, identifiant, nom_complet, est_admin, actif').eq('id', uid).maybeSingle(),
-        supabase.from('marches').select('*').order('code'),
+        // Le marché commencé le plus récemment d'abord (un marché de démonstration passe après).
+        supabase.from('marches').select('*').order('date_commencement', { ascending: false, nullsFirst: false }).order('code'),
         supabase.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', uid),
       ]);
       if (annule) return;
@@ -85,8 +91,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, [uid]);
 
-  // Le premier marché affecté ; le choix entre plusieurs marchés viendra avec le 2e marché.
-  const marche = marches[0] ?? null;
+  // Marché choisi sur la tablette (mémorisé), sinon le premier de la liste.
+  const marche = marches.find((x) => x.id === marcheChoisi) ?? marches[0] ?? null;
+  const choisirMarche = useCallback(
+    (id: string) => {
+      setMarcheChoisi(id);
+      if (uid) AsyncStorage.setItem(cleMarche(uid), id).catch(() => undefined);
+    },
+    [uid],
+  );
 
   const peut = useCallback(
     (type: string, action: 'lire' | 'creer') => {
@@ -103,8 +116,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, [uid]);
 
   const valeur = useMemo(
-    () => ({ chargement, session, profil, marche, peut, deconnecter }),
-    [chargement, session, profil, marche, peut, deconnecter],
+    () => ({ chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter }),
+    [chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter],
   );
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;
 }

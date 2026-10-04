@@ -199,3 +199,8 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .apercu-export table { font-size: 0.8rem; }
 .apercu-export td, .apercu-export th { white-space: nowrap; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .groupe-colonnes .cases { grid-template-columns: 1fr; } }
+
+/* Rapport PDF par fuite (fiche) et rapports de la liste */
+.fuite-tete .bouton-rapport { margin-left: auto; }
+.progression-rapports { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
+.progression-rapports progress { flex: 1 1 14rem; height: 1rem; accent-color: var(--principal); }

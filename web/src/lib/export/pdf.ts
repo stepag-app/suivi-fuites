@@ -2,11 +2,66 @@
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
 import { etendueLibelle, parcourir, texteCellule, texteDate, type DocumentExport, type SectionDoc } from './modele';
 
-const BLEU: [number, number, number] = [11, 93, 138];
-const GRIS_TRAIT: [number, number, number] = [175, 186, 196];
-const FOND_GROUPE: [number, number, number] = [230, 238, 244];
+export const BLEU: [number, number, number] = [11, 93, 138];
+export const GRIS_TRAIT: [number, number, number] = [175, 186, 196];
+export const FOND_GROUPE: [number, number, number] = [230, 238, 244];
 const FOND_TOTAL: [number, number, number] = [242, 242, 242];
 const TAILLE_CELLULE = 8;
+
+type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
+
+// En-tête de première page (titulaire à gauche, maître d'ouvrage à droite, titre, infos).
+// Renvoie l'ordonnée sous l'en-tête. Partagé avec le rapport par fuite.
+export function dessinerEntete(pdf: Pdf, entete: DocumentExport['entete'], imagesEntete: Map<string, ImageTexte>, marge: number): number {
+  const largeur = pdf.internal.pageSize.getWidth();
+  const utile = largeur - 2 * marge;
+  pdf.setTextColor(20, 35, 46);
+  let yGauche = marge + 2;
+  let yDroite = marge + 2;
+  const demi = utile / 2 - 4;
+  entete.titulaire.forEach((t, i) => {
+    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
+    pdf.setFontSize(i === 0 ? 10.5 : 8);
+    const lignes = pdf.splitTextToSize(t, demi);
+    pdf.text(lignes, marge, yGauche);
+    yGauche += lignes.length * (i === 0 ? 4.6 : 3.6);
+  });
+  const imgTitulaire = entete.titulaireAr ? imagesEntete.get(entete.titulaireAr) : undefined;
+  if (imgTitulaire) {
+    pdf.addImage(imgTitulaire.donnees, 'PNG', marge, yGauche - 2.5, imgTitulaire.largeurMm, imgTitulaire.hauteurMm, imgTitulaire.alias, 'FAST');
+    yGauche += imgTitulaire.hauteurMm;
+  }
+  entete.client.forEach((t, i) => {
+    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
+    pdf.setFontSize(i === 0 ? 10.5 : 8);
+    const lignes = pdf.splitTextToSize(t, demi);
+    pdf.text(lignes, largeur - marge, yDroite, { align: 'right' });
+    yDroite += lignes.length * (i === 0 ? 4.6 : 3.6);
+  });
+  const imgClient = entete.clientAr ? imagesEntete.get(entete.clientAr) : undefined;
+  if (imgClient) {
+    pdf.addImage(imgClient.donnees, 'PNG', largeur - marge - imgClient.largeurMm, yDroite - 2.5, imgClient.largeurMm, imgClient.hauteurMm, imgClient.alias, 'FAST');
+    yDroite += imgClient.hauteurMm;
+  }
+  let y = Math.max(yGauche, yDroite) + 3;
+  pdf.setDrawColor(...BLEU);
+  pdf.setLineWidth(0.4);
+  pdf.line(marge, y, largeur - marge, y);
+  y += 6;
+  pdf.setFont('helvetica', 'bold');
+  pdf.setFontSize(13);
+  const titre = pdf.splitTextToSize(entete.titre, utile);
+  pdf.text(titre, largeur / 2, y, { align: 'center' });
+  y += titre.length * 5.5 + 1;
+  pdf.setFont('helvetica', 'normal');
+  pdf.setFontSize(8.5);
+  entete.infos.forEach((t) => {
+    const lignes = pdf.splitTextToSize(t, utile);
+    pdf.text(lignes, marge, y);
+    y += lignes.length * 3.8;
+  });
+  return y + 2;
+}
 
 export async function genererPdf(d: DocumentExport): Promise<Blob> {
   const [{ jsPDF, GState }, { default: autoTable }] = await Promise.all([import('jspdf'), import('jspdf-autotable')]);
@@ -43,52 +98,7 @@ export async function genererPdf(d: DocumentExport): Promise<Blob> {
   // En-tête de la première page : titulaire à gauche, maître d'ouvrage à droite
   // ---------------------------------------------------------------------------
   filigrane();
-  pdf.setTextColor(20, 35, 46);
-  let yGauche = marge + 2;
-  let yDroite = marge + 2;
-  const demi = utile / 2 - 4;
-  d.entete.titulaire.forEach((t, i) => {
-    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    pdf.setFontSize(i === 0 ? 10.5 : 8);
-    const lignes = pdf.splitTextToSize(t, demi);
-    pdf.text(lignes, marge, yGauche);
-    yGauche += lignes.length * (i === 0 ? 4.6 : 3.6);
-  });
-  const imgTitulaire = d.entete.titulaireAr ? imagesEntete.get(d.entete.titulaireAr) : undefined;
-  if (imgTitulaire) {
-    pdf.addImage(imgTitulaire.donnees, 'PNG', marge, yGauche - 2.5, imgTitulaire.largeurMm, imgTitulaire.hauteurMm, imgTitulaire.alias, 'FAST');
-    yGauche += imgTitulaire.hauteurMm;
-  }
-  d.entete.client.forEach((t, i) => {
-    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    pdf.setFontSize(i === 0 ? 10.5 : 8);
-    const lignes = pdf.splitTextToSize(t, demi);
-    pdf.text(lignes, largeur - marge, yDroite, { align: 'right' });
-    yDroite += lignes.length * (i === 0 ? 4.6 : 3.6);
-  });
-  const imgClient = d.entete.clientAr ? imagesEntete.get(d.entete.clientAr) : undefined;
-  if (imgClient) {
-    pdf.addImage(imgClient.donnees, 'PNG', largeur - marge - imgClient.largeurMm, yDroite - 2.5, imgClient.largeurMm, imgClient.hauteurMm, imgClient.alias, 'FAST');
-    yDroite += imgClient.hauteurMm;
-  }
-  let y = Math.max(yGauche, yDroite) + 3;
-  pdf.setDrawColor(...BLEU);
-  pdf.setLineWidth(0.4);
-  pdf.line(marge, y, largeur - marge, y);
-  y += 6;
-  pdf.setFont('helvetica', 'bold');
-  pdf.setFontSize(13);
-  const titre = pdf.splitTextToSize(d.entete.titre, utile);
-  pdf.text(titre, largeur / 2, y, { align: 'center' });
-  y += titre.length * 5.5 + 1;
-  pdf.setFont('helvetica', 'normal');
-  pdf.setFontSize(8.5);
-  d.entete.infos.forEach((t) => {
-    const lignes = pdf.splitTextToSize(t, utile);
-    pdf.text(lignes, marge, y);
-    y += lignes.length * 3.8;
-  });
-  y += 2;
+  let y = dessinerEntete(pdf, d.entete, imagesEntete, marge);
 
   // ---------------------------------------------------------------------------
   // Tableaux

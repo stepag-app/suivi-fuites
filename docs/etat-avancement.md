@@ -18,6 +18,7 @@ Dernière mise à jour : 2026-10-04 (session 3 : paramètres + hors ligne web, p
 | Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
 | Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://suivi-fuites-web.vercel.app (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
+| Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
 | Correctif droits `service_role` (migration `20261004130000`) | `supabase/migrations/` | déployé ; simulateur de test rendu strict (aucun droit par défaut), 64 tests |
 
 ## 2. En attente d'Issam
@@ -25,7 +26,9 @@ Dernière mise à jour : 2026-10-04 (session 3 : paramètres + hors ligne web, p
 1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
-4. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
+4. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que pour Vercel) pour que l'APK puisse se connecter ; puis télécharger l'artefact `suivi-fuites-apk` du workflow « Application Android (APK) » et l'installer sur la tablette de test.
+5. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
+6. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 
 ## 3. Décisions prises (à respecter)
 
@@ -76,8 +79,10 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 1. Retours du premier test terrain (parcours connexion → fuite → réparation → réfection).
 2. À ajouter dans le panneau selon les retours : paramètres (ouvriers, équipes, prix hors bordereau,
    motifs), carte des fuites, anomalies, journal, interface en arabe / mixte, exports PDF et Word.
-3. Application tablette Expo (APK) avec mode hors ligne léger et suivi GPS, si le test navigateur
-   montre ses limites (réseau coupé, batterie, photos).
+3. Application Expo : socle fait. À ajouter : réparations / réfections sur la tablette, suivi GPS en
+   arrière-plan (tracé par agent et par jour, M4), notifications push, mise à jour de l'APK, détection
+   des doublons, choix du marché. Mode hors ligne web : consultation et modification d'une fuite
+   existante sans réseau non gérées.
 4. Migration 2 dès réception du DXF ; migration 3 (attachements, factures, pénalités, exports).
 
 ## 6. Prompt pour démarrer une nouvelle session

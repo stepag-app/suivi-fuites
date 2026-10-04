@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export const COULEURS = { principal: '#0b5d8a', fond: '#f3f6f8', carte: '#ffffff', bord: '#d5dde3', danger: '#b3261e', discret: '#5b6b77' };
 
@@ -21,6 +21,30 @@ export function Bouton({ titre, onPress, primaire, desactive, occupe }: {
 }
 
 export const Carte = ({ children }: { children: ReactNode }) => <View style={s.carte}>{children}</View>;
+
+/**
+ * « Y aller » : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour
+ * destination. Repli sur le lien Google Maps si aucune application ne prend l'adresse « geo: ».
+ */
+export async function allerA(latitude: number, longitude: number, libelle: string) {
+  const geo = `geo:${latitude},${longitude}?q=${latitude},${longitude}(${encodeURIComponent(libelle)})`;
+  try {
+    await Linking.openURL(geo);
+  } catch {
+    await Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`).catch(() => undefined);
+  }
+}
+
+export function BoutonYAller({ latitude, longitude, libelle }: { latitude: number | null | undefined; longitude: number | null | undefined; libelle: string }) {
+  const position = latitude != null && longitude != null;
+  return (
+    <Bouton
+      titre={position ? '➜ Y aller' : 'Y aller (pas de position GPS)'}
+      desactive={!position}
+      onPress={() => position && void allerA(latitude, longitude, libelle)}
+    />
+  );
+}
 
 /** Choix unique par grosses puces ; un second appui sur la puce choisie la désélectionne (si facultatif). */
 export function Puces<T extends string>({ options, valeur, onChange, facultatif }: {

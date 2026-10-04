@@ -7,7 +7,7 @@ import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { ajouterEnvoi, effacerPhotos, synchroniser, type PhotoAttente, type PieceAttente } from './file-attente';
 import type { ContexteSaisie } from './fiche';
 import { useParametres, type Parametres } from './parametres';
-import { prendrePhoto } from './photo';
+import { prendrePhoto } from './photos';
 import { useSession } from './session';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, RESULTATS_REPARATION, TYPES_PHOTO, type ResultatReparation, type TypePhoto } from './types';
 import { Bouton, Carte, Case, Champ, COULEURS, Puces, s, Vignettes } from './ui';

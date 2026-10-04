@@ -7,15 +7,10 @@
 // les suivants (fuite → réparation → pièces / ouvriers → réfection → photos) jusqu'à ce qu'il passe
 // ou soit abandonné. Les statuts et les quantités sont recalculés par le serveur (déclencheurs).
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system/legacy';
+import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
 import { supabase } from './supabase';
-import type { TypePhoto } from './types';
 
-export interface PhotoAttente {
-  id: string; fichier: string; largeur: number; hauteur: number; taille: number; prise_le: string;
-  type?: TypePhoto; // absent : photo de détection (anciennes saisies)
-  position?: string | null;
-}
+export { effacerPhotos, type PhotoAttente };
 export interface PieceAttente { id: string; piece_id: string | null; designation: string; quantite: number }
 
 interface Commun {
@@ -39,7 +34,6 @@ export const estFuite = (e: Envoi): e is EnvoiFuite => !e.type || e.type === 'fu
 export const fuiteDe = (e: Envoi) => (estFuite(e) ? e.id : e.fuite_id);
 
 const CLE = 'suivi-fuites:attente';
-const DOSSIER = `${FileSystem.documentDirectory}attente/`;
 type Ecouteur = () => void;
 const ecouteurs = new Set<Ecouteur>();
 export const surChangement = (f: Ecouteur) => {
@@ -65,18 +59,6 @@ function modifier(f: (liste: Envoi[]) => Envoi[]): Promise<void> {
 }
 const majEnvoi = (id: string, f: (e: Envoi) => Envoi) => modifier((l) => l.map((e) => (e.id === id ? f(e) : e)));
 
-/** Copie une photo déjà compressée dans le dossier privé de l'appli (jamais la galerie). */
-export async function garderPhoto(uriTemporaire: string, id: string): Promise<string> {
-  await FileSystem.makeDirectoryAsync(DOSSIER, { intermediates: true });
-  const fichier = `${DOSSIER}${id}.jpg`;
-  await FileSystem.copyAsync({ from: uriTemporaire, to: fichier });
-  return fichier;
-}
-
-/** Efface des photos prises mais pas enregistrées (saisie annulée). */
-export const effacerPhotos = (photos: PhotoAttente[]) =>
-  Promise.all(photos.map((p) => FileSystem.deleteAsync(p.fichier, { idempotent: true }))).then(() => undefined);
-
 type Nouveau<T> = T extends Envoi ? Omit<T, 'creee_le' | 'erreur' | 'fait'> : never;
 export async function ajouterEnvoi(e: Nouveau<Envoi>) {
   await modifier((l) => [...l, { ...e, creee_le: new Date().toISOString(), erreur: null } as Envoi]);
@@ -100,8 +82,6 @@ export async function abandonner(id: string) {
 }
 
 interface ErreurApi { code?: string; message?: string; statusCode?: string | number }
-const dejaEnvoye = (e: ErreurApi) =>
-  e.code === '23505' || String(e.statusCode) === '409' || /already exists|duplicate/i.test(e.message ?? '');
 const erreurReseau = (e: unknown) =>
   /network|fetch|timeout|internet|aborted/i.test(String((e as ErreurApi)?.message ?? e));
 
@@ -142,17 +122,7 @@ async function verifier(r: PromiseLike<{ error: ErreurApi | null }>) {
 async function envoyerPhotos(e: Envoi, liens: { reparation_id?: string; refection_id?: string }) {
   const fuiteId = fuiteDe(e);
   for (const p of e.photos) {
-    const chemin = `${e.marche_id}/${fuiteId}/${p.id}.jpg`;
-    const octets = await (await fetch(p.fichier)).arrayBuffer();
-    const tele = await supabase.storage.from('photos').upload(chemin, octets, { contentType: 'image/jpeg' });
-    if (tele.error && !dejaEnvoye(tele.error as ErreurApi)) throw tele.error;
-    await verifier(supabase.from('photos').insert({
-      id: p.id, marche_id: e.marche_id, fuite_id: fuiteId, type: p.type ?? 'detection', chemin,
-      reparation_id: liens.reparation_id ?? null, refection_id: liens.refection_id ?? null,
-      position: p.position ?? (estFuite(e) ? e.position : null), prise_le: p.prise_le,
-      largeur_px: p.largeur, hauteur_px: p.hauteur, taille_octets: p.taille,
-    }));
-    await FileSystem.deleteAsync(p.fichier, { idempotent: true });
+    await envoyerPhoto(p, { marche_id: e.marche_id, fuite_id: fuiteId, ...liens, position: estFuite(e) ? e.position : null });
     await majEnvoi(e.id, (x) => ({ ...x, photos: x.photos.filter((y) => y.id !== p.id) }));
   }
 }

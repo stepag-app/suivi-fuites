@@ -2,7 +2,7 @@
 // gardées sur la tablette). Jamais de prix ni de quantités du bordereau.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
-import { Linking, ScrollView, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 import { chargerServeur, cleFiche, fuiteLocale, type Donnees } from './fiche-donnees';
 import { estFuite, fuiteDe, lireAttente, surChangement, type Envoi, type EnvoiReparation, type EnvoiRefection } from './file-attente';
 import { useParametres, type Parametres } from './parametres';
@@ -12,7 +12,7 @@ import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, RESULTATS_REPARATION, STATUTS, TYPES_PHOTO,
   type FicheFuite, type Refection, type Reparation,
 } from './types';
-import { Bouton, Carte, COULEURS, s, Vignettes } from './ui';
+import { Bouton, BoutonYAller, Carte, COULEURS, s, Vignettes } from './ui';
 
 export const dateHeure = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
@@ -129,12 +129,9 @@ export function Fiche({ id, retour, saisir }: {
         {fuite.latitude != null && fuite.longitude != null && (
           <>
             <Info libelle="Position" valeur={`${fuite.latitude.toFixed(6)}, ${fuite.longitude.toFixed(6)}`} />
-            <Bouton
-              titre="Itinéraire (Maps)"
-              onPress={() => Linking.openURL(`geo:${fuite.latitude},${fuite.longitude}?q=${fuite.latitude},${fuite.longitude}`).catch(() => undefined)}
-            />
           </>
         )}
+        <BoutonYAller latitude={fuite.latitude} longitude={fuite.longitude} libelle={libelleFuite(fuite)} />
         {!!fuite.fuite_liee_id && <Info libelle="Re-détection" valeur="liée à une fuite déjà signalée" />}
         {!!fuite.motif_sans_reparation && <Info libelle="Motif" valeur={fuite.motif_sans_reparation} />}
         {!!fuite.observation && <Info libelle="Observation" valeur={fuite.observation} />}

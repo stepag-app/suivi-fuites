@@ -25,6 +25,7 @@ export interface VFuite {
   id: string; numero: number; reference_srm: string | null; statut: StatutFuite;
   secteur: string | null; adresse: string | null; date_detection: string; nb_photos: number;
   alerte_non_reparee: boolean; alerte_sans_photo: boolean;
+  latitude?: number | null; longitude?: number | null; // absents d'une liste gardée avant leur ajout
 }
 
 // ---------------------------------------------------------------------------

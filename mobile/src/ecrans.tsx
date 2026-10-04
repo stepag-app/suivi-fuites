@@ -8,11 +8,11 @@ import {
   abandonner, dependants, effacerPhotos, estFuite, lireAttente, mettreEnAttente, surChangement, synchroniser,
   type Envoi, type EnvoiFuite, type PhotoAttente,
 } from './file-attente';
-import { prendrePhoto as photoCamera } from './photo';
+import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import { STATUTS, type Proche, type Secteur, type VFuite } from './types';
-import { Bouton, Carte, COULEURS, s } from './ui';
+import { Bouton, BoutonYAller, Carte, COULEURS, s } from './ui';
 // Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
 const formaterReference = (t: string, masque: string | null | undefined) => {
   if (!masque) return t;
@@ -73,7 +73,7 @@ export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; att
     const cle = `suivi-fuites:liste:${marche.id}`;
     const { data, error } = await supabase
       .from('v_fuites')
-      .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo')
+      .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
       .eq('marche_id', marche.id)
       .order('date_detection', { ascending: false })
       .limit(200);
@@ -154,6 +154,9 @@ export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; att
               <Text style={{ color: COULEURS.danger, fontWeight: '700' }}>
                 Non réparée depuis plus de {marche?.delai_alerte_reparation_h ?? 48} h
               </Text>
+            )}
+            {f.latitude != null && f.longitude != null && (
+              <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={`Fuite N° ${f.numero}`} />
             )}
           </Carte>
           </Pressable>

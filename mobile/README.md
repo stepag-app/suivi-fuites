@@ -10,7 +10,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Connexion | identifiant + mot de passe (compte créé par l'administrateur) |
 | Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; dernière liste gardée hors ligne ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche |
 | Nouvelle fuite | GPS, référence SRM, secteur, adresse, observation, photos (redimensionnées à 1 600 px, qualité 70, stockées dans le dossier privé de l'appli, jamais dans la galerie) ; **contrôle des doublons** (`rechercher_fuites_proches`) : « C'est la même fuite » ouvre la fiche existante, « Nouvelle fuite liée » remplit `fuite_liee_id` ; sans réseau, pas de contrôle (signalé) |
-| Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée hors ligne ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») |
+| Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée hors ligne ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position |
 | Saisir une réparation | résultat (réparée, en cours, non réparée + motif), date et heure, équipe, ouvrage, matériau, diamètre, travaux (cases), longueur PE, fouille L × l × p (alerte > 2 m), revêtement à refaire, emplacement, représentant du maître d'ouvrage, pièces posées (recherche dans le catalogue ou désignation libre, quantité), ouvriers, observation, photos avant / pendant / après |
 | Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date, équipe, photos de réfection |
 | Envois en attente | toutes les saisies gardées sur la tablette, dans l'ordre ; envoi manuel ; erreurs en clair (ex. fuite verrouillée) ; suppression avec confirmation (une fuite emporte ses réparations et réfections) |
@@ -27,8 +27,12 @@ une saisie refusée bloque les suivantes **de la même fuite** (les autres parte
 motifs, catalogue, équipes, ouvriers) gardés par marché (`src/parametres.ts`). Rien n'est recalculé sur la
 tablette : statut de la fuite et lignes de quantités avancent côté serveur (déclencheurs).
 
+**Photos** : tout le cycle (prise, compression 1 600 px / qualité 70, dossier privé, envoi, ligne `photos`
+avec `stockage = 'supabase'`, effacement local après confirmation) est dans `src/photos.ts`. Le passage à
+Cloudflare R2 (lot dédié) ne changera que `envoyerPhoto`.
+
 **Essai automatique** (`essais/lancer.sh`, pile Supabase locale) : vrai code de la file d'attente, de la fiche
-et des paramètres, avec stockage, fichiers et réseau simulés ; 24 vérifications (ordre d'envoi, coupures,
+et des paramètres, avec stockage, fichiers et réseau simulés ; 25 vérifications (ordre d'envoi, coupures,
 reprise, photos typées et rattachées, réfection reprise de la fouille, statut avancé par le serveur, fuite
 verrouillée, doublons, droits détection / chef, aucun prix visible).
 

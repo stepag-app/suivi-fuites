@@ -86,9 +86,10 @@ const ouv = await admin.from('reparation_ouvriers').select('ouvrier_id').eq('rep
 verifier(ouv.data.length === (o.data ? 1 : 0), 'ouvrier rattaché');
 const rf = await admin.from('refections').select('reparation_id, longueur_m, largeur_m, nature_id').eq('id', refe).single();
 verifier(rf.data.reparation_id === rep && Number(rf.data.longueur_m) === 1.2 && Number(rf.data.largeur_m) === 0.6 && rf.data.nature_id === n.data.id, 'réfection : nature et dimensions reprises de la fouille', rf.data);
-const phs = await admin.from('photos').select('type, reparation_id, refection_id').eq('fuite_id', fuite);
+const phs = await admin.from('photos').select('type, stockage, reparation_id, refection_id').eq('fuite_id', fuite);
 const types = phs.data.map((x) => x.type).sort().join(',');
 verifier(types === 'apres,avant,detection,pendant,refection', `5 photos typées (${types})`);
+verifier(phs.data.every((x) => x.stockage === 'supabase'), 'photos marquées stockage = supabase (futur passage à R2)');
 verifier(phs.data.filter((x) => x.reparation_id === rep).length === 3 && phs.data.filter((x) => x.refection_id === refe).length === 1, 'photos rattachées à la réparation et à la réfection');
 verifier(fs.readdirSync(D).length === 0, 'fichiers locaux supprimés après confirmation');
 const lq = await admin.from('lignes_quantites').select('id').eq('fuite_id', fuite);

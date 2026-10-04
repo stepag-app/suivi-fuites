@@ -302,6 +302,13 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTML
     e.preventDefault();
     ouvrir(`/fuites/${f.id}`);
   });
-  racine.append(lien);
+  // « Y aller » : itinéraire dans l'appli de cartes de l'appareil (Google Maps sur Android), vers la fuite.
+  const aller = el('a', 'bouton', 'Y aller') as HTMLAnchorElement;
+  aller.href = `https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}`;
+  aller.target = '_blank';
+  aller.rel = 'noreferrer';
+  const boutons = el('div', 'bulle-boutons');
+  boutons.append(lien, aller);
+  racine.append(boutons);
   return racine;
 }

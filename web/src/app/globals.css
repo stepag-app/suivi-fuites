@@ -200,6 +200,11 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .apercu-export td, .apercu-export th { white-space: nowrap; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
 @media (max-width: 640px) { .groupe-colonnes .cases { grid-template-columns: 1fr; } }
 
+/* Rapport PDF par fuite (fiche) et rapports de la liste */
+.fuite-tete .bouton-rapport { margin-left: auto; }
+.progression-rapports { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
+.progression-rapports progress { flex: 1 1 14rem; height: 1rem; accent-color: var(--principal); }
+
 /* Carte */
 .page-carte .barre { margin-bottom: 0.6rem; }
 .page-carte .barre .actions { margin-top: 0; }
@@ -230,7 +235,8 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .maplibregl-popup-content { padding: 0.8rem 0.9rem; border-radius: 10px; font: inherit; font-size: 0.95rem; }
 .maplibregl-popup-close-button { width: 36px; height: 36px; font-size: 1.4rem; }
 .bulle-fuite { display: grid; gap: 0.25rem; padding-right: 1.2rem; }
-.bulle-fuite .bouton { margin-top: 0.4rem; min-height: 44px; }
+.bulle-boutons { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+.bulle-boutons .bouton { flex: 1; min-height: 44px; }
 /* Boutons de zoom plus grands, pour le doigt */
 .carte-maplibre .maplibregl-ctrl-group button { width: 44px; height: 44px; }
 .carte-maplibre .maplibregl-ctrl-attrib { font-size: 0.75rem; }

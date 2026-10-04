@@ -15,7 +15,7 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
-| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche ») ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli. Voir § Carte |
+| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli. Voir § Carte |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
 | `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs ; on désactive, on ne supprime pas |
@@ -47,6 +47,23 @@ de l'export (mesures minifiées + gzip) :
 Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel : vrai texte. PDF : jsPDF lie mal
 certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
 avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
+
+### Rapport PDF par fuite
+
+Bouton **Rapport PDF** sur la fiche d'une fuite, et **Rapports PDF (n)** sur la liste (toutes les fuites
+affichées après filtres, une fuite par page dans un seul fichier, barre de progression) ; droit
+« exports / lire ». Module `src/lib/export/rapport-fuite.ts`, chargé au clic (jsPDF + autotable, comme les
+exports ; en-tête dessiné par `dessinerEntete` de `pdf.ts`). Contenu : en-tête du marché ; identification
+(N°, référence client, origine, statut, dates de détection et jalons du client, zone, secteur, adresse,
+**coordonnées GPS** en degrés décimaux et sexagésimaux avec lien vers la carte, précision) ; réparations
+(équipe, chef, constat, travaux, fouille et volume, emplacement, revêtement, représentant du maître
+d'ouvrage, ouvriers, pièces posées, observation) ; réfections (nature FR / AR, dimensions, ou motif) ;
+quantités et prix du bordereau **seulement** avec le droit « quantités / lire » ; photos rangées par type
+(détection, avant, pendant, après, réfection), 3 par ligne, réduites dans le navigateur (800 px, JPEG 60 %),
+avec type, date et coordonnées ; visas des règles d'attachement du marché ; pied « édité le », page n / N.
+Mesures (pile locale, Chromium) : fuite avec 6 photos de 1 600 px → **2 pages, 393 Ko, 0,4 à 0,6 s** ;
+25 fuites du marché DEMO → 43 pages, 0,56 Mo, ≈ 1 s. Ces PDF gardent les images : ils serviront d'archive
+avant toute purge des anciennes photos (CLAUDE.md § 7).
 
 ## Carte (`/carte`)
 

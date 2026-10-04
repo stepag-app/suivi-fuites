@@ -10,9 +10,9 @@
 |---|---|
 | Date d'extraction | 2026-10-04 |
 | Dossier source | dossier du marché sur le poste de STEPAG (lecture seule, jamais versionné) : 127 fichiers retenus, 15 exclus, 376 Mo |
-| Livrable | ce fichier unique ; environ 3693 lignes |
+| Livrable | ce fichier unique ; environ 3834 lignes |
 | Outils utilisés | pdftotext, pdfinfo, pdftoppm, pdfimages, pdffonts (poppler) ; tesseract et ocrmypdf (fra+ara) ; pandoc ; textutil ; openpyxl, xlrd, python-docx, Pillow (Python) ; lecture visuelle des pages scannées, des tableaux et des plans ; sous-agents pour les documents longs et les secondes lectures |
-| Limites rencontrées | dessin AutoCAD (DWG, 162,8 Mo) et sa sauvegarde non lisibles ; fichiers .xls lus en valeurs seules (formules non accessibles) ; ocrmypdf refusé sur les PDF signés (repli : pdftoppm + tesseract) ; aucun modèle Canva dans le dossier (connecteur Canva non utilisé) ; exemplaire du marché signé par la SRM absent |
+| Limites rencontrées | dessin AutoCAD (DWG, 162,8 Mo) et sa sauvegarde non lisibles ; fichiers .xls lus en valeurs seules (formules non accessibles) ; ocrmypdf refusé sur les PDF signés (repli : pdftoppm + tesseract) ; aucun modèle Canva dans le dossier (connecteur Canva non utilisé) ; exemplaire du marché signé par le Directeur Général de la SRM absent |
 | Pré-requis | tous les outils présents ; push à blanc réussi au démarrage |
 
 ### Statuts normatifs et marqueurs
@@ -35,20 +35,21 @@ Préfixes des règles : `R-ID` (section 2), `R-CPS` (3), `R-BPU` (4), `R-DEF` (5
 |---|---|---|---|
 | 0 | En-tête, table des matières, guide de lecture | 60 | ce préambule |
 | 1 | Inventaire des fichiers | 146 | les 127 fichiers du dossier : identifiant, nature, statut normatif, section qui les couvre |
-| 2 | Fiche d'identité du marché | 124 | numéros, parties, dates, nature et montants du marché, intervenants |
-| 3 | CPS : règles contractuelles | 1295 | CPS article par article (citations et règles R-CPS), renvois externes, délais, pénalités, états et rapports, paiement, moyens |
+| 2 | Fiche d'identité du marché | 127 | numéros, parties, dates, nature et montants du marché, intervenants |
+| 3 | CPS : règles contractuelles | 1299 | CPS article par article (citations et règles R-CPS), renvois externes, délais, pénalités, états et rapports, paiement, moyens |
 | 4 | Bordereau des prix | 113 | bordereau des 13 prix, totaux, recalcul, bloc CSV |
 | 5 | Définition des prix | 225 | définition de chaque prix, règles de métré, tableau « saisie terrain → prix » et CSV |
 | 6 | Matériaux et articles | 313 | matériaux contractuels et catalogue interne de 266 pièces |
 | 6 bis | Énumérations (listes de valeurs fermées) | 261 | toutes les listes de valeurs (zones, secteurs, revêtements, ouvrages, statuts…) |
 | 7 | Attachement modèle 2017 et pièces de paiement | 316 | modèle 2017 : bordereau, chaîne de calcul, attachement, décompte, état de suivi, facture, table de passage, exemple chiffré |
-| 8 | Fiches et modèles Canva | 291 | gabarits STEPAG actuels champ par champ : rapport journalier, fiche de réparation, rapport mensuel, classeur d'attachement |
+| 8 | Fiches et modèles Canva | 293 | gabarits STEPAG actuels champ par champ : rapport journalier, fiche de réparation, rapport mensuel, classeur d'attachement |
 | 9 | Plans | 73 | les 21 planches et le dessin AutoCAD |
 | 10 | Glossaire | 108 | termes, abréviations, équivalences d'unités |
 | 10 bis | Identifiants, références et numérotations | 39 | formats des numéros et références |
 | 11 | Règles dérivées pour l'application | 119 | cycle de vie, saisies par étape, calculs, contrôles, alertes, exports, suivi financier |
 | 11 bis | Dictionnaire de données consolidé | 126 | dictionnaire de données et cardinalités |
-| 12 | Points ambigus, contradictions et questions | 84 | 41 questions avec hypothèse par défaut, contradictions, pièces à demander |
+| 12 | Points ambigus, contradictions et questions | 85 | 41 questions avec hypothèse par défaut, contradictions, pièces à demander |
+| 13 | Journal de contrôle de complétude | 131 | preuves de lecture, secondes lectures, écarts, croisements, contrôle de forme |
 
 ### Guide de lecture
 
@@ -213,7 +214,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 
 **Résumé.** Marché de travaux à prix unitaires n° 4500004453 passé par la SRM Oriental avec STEPAG SARL après l'appel d'offres ouvert « au rabais ou à majoration » n° 10008883/1R : détection, recherche et réparation de fuites sur 1 466 km de réseau d'eau potable d'Oujda (5 zones), 12 mois à compter du 02/10/2026, 5 191 974,00 DH TTC après majoration de 15 %. Le marché se déroule en trois phases : balayage (4 mois), puis deux phases de maintien des débits nocturnes (4 + 4 mois).
 
-**Principaux `[NON PRÉCISÉ]`.** Numéro d'engagement et code fournisseur STEPAG chez la SRM ; exemplaire du marché signé par la SRM (seule la version signée par STEPAG est dans le dossier) ; nom de l'agent chargé du suivi (à notifier par OS, R-CPS-013) ; application de la majoration ligne à ligne ou sur le total ; montants minimum et maximum (sans objet : marché ordinaire).
+**Principaux `[NON PRÉCISÉ]`.** Numéro d'engagement et code fournisseur STEPAG chez la SRM ; exemplaire du marché signé par le Directeur Général de la SRM (le CPS du dossier porte seulement le cachet du Directeur Exploitation Eau Potable) ; nom de l'agent chargé du suivi (à notifier par OS, R-CPS-013) ; application de la majoration ligne à ligne ou sur le total ; montants minimum et maximum (sans objet : marché ordinaire).
 
 ### 2.1 Numéros et références
 
@@ -244,14 +245,14 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 | Maître d'ouvrage | Société Régionale Multiservices L'Oriental « SRM-Ori » / « SRM-ORI », société anonyme, capital 100 000 000.00 DH | [F056 p.2] |
 | Identifiants du maître d'ouvrage | ICE 003507258000090 ; RC Oujda n° 42897 ; IF 66022781 | [F056 p.2] ; [F036 p.1] |
 | Adresse du maître d'ouvrage | Hay Al Hikma, Bd la Liberté, BP 418 Oujda | [F056 p.2] |
-| Coordonnées génériques du maître d'ouvrage | tél. 05 36 50 56 84 ; fax 05 36 50 14 06 ; centre de relation clientèle 05 36 743 743 ; www.srm-ori.ma ; contact@srm-ori.ma ; bureau.ordre@srm-ori.ma | [F036 p.1] |
+| Coordonnées génériques du maître d'ouvrage | tél. 05 36 50 14 06 ; fax 05 36 50 56 84 ; centre de relation clientèle 05 36 743 743 ; www.srm-ori.ma ; contact@srm-ori.ma ; bureau.ordre@srm-ori.ma | [F036 p.1] |
 | Représentant légal du maître d'ouvrage | Directeur Général, M. Mounir OUKHOUYA, ou la personne déléguée | [F056 p.2] |
 | Représentant du maître d'ouvrage pour l'exécution | LE DIRECTEUR EXPLOITATION EAU POTABLE (M. Mohamed DAHMANI) | [F036 p.1] |
 | Service de suivi | Département Mesures et Amélioration du Rendement, Direction Exploitation Eau Potable (chef : M. Mohamed HIKMAT) ; adresse : ANNEXE LAZARET DHAR LAMHALA LAZARET (en face de la piscine municipale), Oujda | [F035 p.1] ; [F036 p.1] |
 | Service achats | Département Achats et Marchés (chef : M. Adil MAHROUG) | [F035 p.1] ; [F037 p.1] |
 | Service financier | Département Financement et Trésorerie (destinataire du cautionnement définitif) | [F035 p.1] |
 | Titulaire | STEPAG SARL (Société des Travaux d'Eau Potable, Assainissement liquide et Génie civil), capital 15.000.000,00 dhs | [F040 p.1] |
-| Identifiants du titulaire | RC Oujda 26239 ; taxe professionnelle 11265141 ; IF 14447728 ; CNSS 9628093 ; ICE 001544809000060 | [F040 p.1] ; [F020 p.1] |
+| Identifiants du titulaire | RC Oujda 26239 ; taxe professionnelle 11265141 ; CNSS 9628093 ; ICE 001544809000060 ; IF 14447728 | [F040 p.1] ; [F020 p.1] (IF) |
 | Siège et domicile élu du titulaire | Bureau N°02 sis à res nasrr imm 110 appt 08 oujda | [F040 p.1] |
 | Adresse de correspondance du titulaire | BP 356 Poste du Maroc Agence Sidi Yahya Oujda ; contact@stepag.ma | [F020 p.1] |
 | Signataire du titulaire | BOUSALAM Imad, « Gérant de la société » | [F040 p.1] |
@@ -260,7 +261,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 | Périmètre | 5 zones d'intervention, 34 secteurs dans le découpage proposé (à confirmer), 1466 km de réseau (voir liste `zone_intervention` et `secteur` en section 6 bis) | [F056 p.18-19, tableau n°1] |
 | Lots | lot unique | [F054 p.3, art. 3] |
 
-- **R-ID-006** [CONTRACTUEL] L'adresse de notification diffère entre les deux ordres de service : OS n° 01 → « Bureau N°02 SIS à RES NASRR IMM 110 APPT 08- OUJDA » ; OS n° 02 → « 19 rue Al Kaoutar II Hay 19 rue Al K 60000 OUJDA » (ancien siège). `[CONTRADICTION : F035 p.1 vs F036 p.1]` ; le domicile élu de l'acte d'engagement est le Bureau N°02. [F035 p.1 ; F036 p.1 ; F040 p.1]
+- **R-ID-006** [CONTRACTUEL] L'adresse de notification diffère entre les deux ordres de service : OS n° 01 → « Bureau N°02 SIS à RES NASRR IMM 110 APPT 08- OUJDA » ; OS n° 02 → « 19 rue Al Kaoutar II Hay 19 rue Al K 60000 OUJDA » (adresse du siège figurant sur les attestations de référence [F016], [F018] ; siège transféré en 2024 `[DÉDUIT]`). `[CONTRADICTION : F035 p.1 vs F036 p.1]` ; le domicile élu de l'acte d'engagement est le Bureau N°02. [F035 p.1 ; F036 p.1 ; F040 p.1]
 - **R-ID-007** [CONTRACTUEL] L'objet de l'article I-1 cite quatre zones (« ZONES UNIVERSITE 7000M3- CHAMP TIR, JBEL HAMRA, AIN SERRAK 5000, ET SIDI YAHYA ») alors que le tableau n° 1 en compte cinq, « Jbel Hamra » étant scindée en DN700 et DN600. `[CONTRADICTION : F056 p.3 vs F056 p.18-19]` ; le tableau n° 1 (5 zones, 1466 km) est retenu car il porte les linéaires et les débits. [F056 p.3 ; F056 p.18-19]
 
 ### 2.3 Passation et dates
@@ -269,7 +270,8 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 |---|---|---|
 | Signature du RC par la SRM (signature numérique) | 2026-07-18 | [F054 p.17] |
 | Visite des lieux (siège SRM-ORI, 10 h 00) | 2026-07-29 | [F039 p.1] |
-| Acte d'engagement daté | 2026-08-10 | [F040 p.1] |
+| Acte d'engagement daté (version initiale « n°10008883 », signée numériquement le 2026-08-12) | 2026-08-10 | [F030 p.1] |
+| Acte d'engagement rectifié (« 10008883/1R »), signé électroniquement au titre du complément de dossier | 2026-09-01 | [F040 p.1] |
 | Signature numérique des pièces par STEPAG | 2026-08-12 | [F056 p.30] ; [F032 p.1] |
 | Ouverture des plis (heure limite de remise 09h45) | 2026-08-13 | [F039 p.1] |
 | Lettre de résultat (offre retenue) | 2026-09-02 | [F037 p.1] |
@@ -283,7 +285,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 | **Fin du délai d'exécution (12 mois)** | **2027-10-02** `[DÉDUIT]` | [F056 p.8, art. I-19] ; [F036 p.1] |
 | Réception définitive au plus tôt (garantie 12 mois après réception provisoire) | 2028-10 `[DÉDUIT]` | [F056 p.10, art. I-28] |
 
-- **R-ID-008** [CONTRACTUEL] Mode de passation : appel d'offres ouvert « au rabais ou à majoration », en application du § I de l'article 17 et de l'alinéa a du § 3 de l'article 18 du règlement des marchés de la SRM Oriental ; attribution à l'offre la moins-disante. [F056 p.1 ; F054 p.13, art. 20]
+- **R-ID-008** [CONTRACTUEL] Mode de passation : appel d'offres ouvert « au rabais ou à majoration », en application du § I de l'article 17 et de l'alinéa a du § 3 de l'article 18 du règlement des marchés de la SRM Oriental ; attribution à l'offre la moins-disante. [F056 p.2 ; F054 p.13, art. 20]
 - **R-ID-009** [CONTRACTUEL] L'OS n° 02 invite STEPAG « À commencer l'exécution des travaux le : 02/10/2026 pour une durée maximale de : 12 mois ». [F036 p.1]
 - **R-ID-010** [DÉDUIT] Dates d'échéance calculées de date à date (mois calendaires) à partir du 2026-10-02 ; le CPS ne dit pas si le dernier jour est le 2027-10-01 ou le 2027-10-02 `[À CONFIRMER : mode de décompte des mois, règle du CCAG-T non reproduite]`. En 2017 la régie comptait un délai de 4 mois du 2016-11-28 au 2017-03-27 (veille du jour anniversaire, R-ATT-018) : les échéances seraient alors 2027-02-01, 2027-06-01 et 2027-10-01. [F056 p.8, art. I-19 ; F073]
 
@@ -300,13 +302,13 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 | **Montant du marché TTC après majoration** | **5191974.00 DH** (« Cinq millions cent quatre-vingt-onze mille neuf cent soixante-quatorze dirhams ») | [F040 p.1] ; [F037 p.1] |
 | Montant HT après majoration | 4326645.00 DH `[DÉDUIT : 3762300.00 × 1.15]` | [F059] |
 | TVA après majoration | 865329.00 DH `[DÉDUIT]` | [F059] |
-| Base d'enregistrement | 5191980.00 DH `[CONTRADICTION : F048 p.1 vs F040 p.1]`, écart de 6,00 DH (arrondi probable de l'administration fiscale) | [F048 p.1] |
+| Base d'enregistrement | 5191980.00 DH `[CONTRADICTION : F048 p.1 vs F040 p.1]`, écart de 6,00 DH, inexpliqué par les pièces `[À CONFIRMER]` ; droits : 0,1 % = 5 191,98 + timbre 20,00 = 5 211,98, arrondis à 5 212,00 (article 167) ; exigibles au 2026-10-12 | [F048 p.1] |
 | Devise | dirham marocain (DH) | [F032 p.1] |
 | Quantités du bordereau | prévisionnelles : paiement sur « quantités réellement exécutées » | [F056 p.10, art. I-29] |
 | Révision des prix | prix révisables, deux formules (voir R-CPS-051 à R-CPS-054) | [F056 p.10-11, art. I-30] |
 | Durée | 12 mois | [F056 p.8, art. I-19] |
 | Règle de fin | terme du délai de 12 mois ; pas de clause d'épuisement d'un maximum `[DÉDUIT]` | [F056 p.8] |
-| Reconduction ou prolongation | `[NON PRÉCISÉ]` ; seul l'avenant de force majeure prolonge le délai | [F056 p.8, art. I-23] |
+| Reconduction ou prolongation | reconduction `[NON PRÉCISÉ]` ; le délai peut être prolongé par avenant de force majeure et suspendu par ordre de service d'ajournement | [F056 p.8, art. I-21 et I-23] |
 | Variation dans la masse des travaux | renvoi aux articles 57 et 58 du CCAG-T ; changement dans les quantités : article 59 | [F056 p.13, art. I-33 et I-34] |
 | Cautionnement provisoire | 40000.00 DH | [F056 p.9, art. I-24] |
 | Cautionnement définitif | 3 % du montant initial arrondi au dirham supérieur = 155760.00 DH | [F056 p.9, art. I-25] ; [F035 p.1] |
@@ -317,21 +319,23 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 - **R-ID-011** [CONTRACTUEL] Le marché est à prix unitaires : les sommes dues résultent de l'application des prix unitaires du bordereau des prix – détail estimatif aux quantités réellement exécutées. [F056 p.10, art. I-29]
 - **R-ID-012** [CONTRACTUEL] La majoration de 15 % s'applique au montant issu du bordereau : le modèle calcule `TOTAL TTC × 1.15` ; le CPS dit que le décompte applique les prix du bordereau « accordés éventuellement du rabais ou de la majoration indiqués dans le marché ». [F059 feuille "Table 1" F21 ; F056 p.13, art. I-32 §4]
 - **R-ID-013** [DÉDUIT] Prix unitaires effectifs = PU du bordereau × 1.15 (exemple : prix 1 → 0.345 DH HT/ml) ; le dossier n'indique pas si la majoration est appliquée ligne par ligne ou sur le total `[À CONFIRMER : niveau d'application et arrondi de la majoration]`. Le gabarit de facture STEPAG l'applique sur le total TTC. [F001 feuille "facture" F30]
-- **R-ID-014** [CONTRACTUEL] Offre retenue « pour un montant total de 5 191 974,00 DH TTC (avec une majoration de 15,00%) ». [F037 p.1]
+- **R-ID-014** [CONTRACTUEL] Offre retenue « pour un montant total de 5 191 974,00 DH TTC (avec une majoration de 15,00%) » ; la lettre (tampon dateur du 02 Sept 2026) précise : « Le présent fax ne constitue pas un engagement de notre part de vous passer l'engagement. » [F037 p.1]
+- **R-ID-015** [CONTRACTUEL] L'OS n° 01 invite le titulaire à : acquitter les droits d'enregistrement et adresser le marché enregistré ou l'attestation au Département Achats et Marchés ; constituer le cautionnement définitif de 155 760,00 DH dans les vingt jours suivant la notification de l'approbation (échéance 2026-10-01 `[DÉDUIT]`) et l'adresser au Département Financement et Trésorerie ; produire les attestations d'assurance avant le commencement des prestations. Les accusés de réception du titulaire sur les deux OS ne sont pas datés. [F035 p.1 ; F036 p.1]
 
 ### 2.5 Intervenants et signataires
 
 | Fonction | Nom | Organisme | Rôle dans le dossier | Source |
 |---|---|---|---|---|
 | Directeur Général | M. Mounir OUKHOUYA | SRM-ORI | représente le maître d'ouvrage ; signe le marché | [F056 p.2] |
-| Directeur Exploitation Eau Potable | M. Mohamed DAHMANI | SRM-ORI | signe l'OS de commencement | [F036 p.1] |
+| Directeur Exploitation Eau Potable | M. Mohamed DAHMANI | SRM-ORI | signe l'OS de commencement ; cachet et paraphe sur la page de signatures du CPS | [F036 p.1] ; [F056 p.30] |
+| Organismes de contrôle technique, de contrôle de qualité et d'assistance technique | `[NON PRÉCISÉ]` (à notifier par OS « dès qu'ils soient connus ») | — | — | [F056 p.4, art. I-7] |
 | Chef de Département Mesures et Amélioration du Rendement | M. Mohamed HIKMAT | SRM-ORI | vise l'OS de commencement ; reçoit les attestations d'assurance | [F035 p.1] ; [F036 p.1] |
 | Chef de Département Achats et Marchés | M. Adil MAHROUG | SRM-ORI | signe la lettre de résultat et l'OS n° 01 | [F035 p.1] ; [F037 p.1] |
 | Agent chargé du suivi de l'exécution du marché | `[NON PRÉCISÉ]` (à notifier par OS sous 15 jours) | SRM-ORI | dresse les décomptes | [F056 p.4, art. I-7] |
 | Commission de réception | `[NON PRÉCISÉ]` | SRM-ORI | signe les PV de réception | [F056 p.9, art. I-27] |
 | Gérant | M. Imad BOUSALAM | STEPAG | signe l'offre et les pièces | [F040 p.1] |
 | Directeur de chantier | `[NON PRÉCISÉ]` | STEPAG | représente l'entrepreneur sur place | [F056 p.16, art. II-10] |
-| Organisme de cautionnement | FINEA (succursale Oujda) | — | cautions provisoire et définitive | [F002 p.1] ; [F053] |
+| Organisme de cautionnement | FINEA (siège à Casablanca ; succursale d'Oujda) | — | cautions provisoire et définitive | [F002 p.1] ; [F053] |
 
 ## 3. CPS : règles contractuelles
 
@@ -339,7 +343,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 
 **Principaux `[NON PRÉCISÉ]`.** Délai d'intervention et de réparation par fuite ; modèle des rapports et de la fiche de réparation ; photos exigées par fuite ; système de coordonnées et formats de fichiers ; classes de débit de fuite ; marquage au sol ; horaires, astreinte, jours fériés ; pénalité pour non-remise d'un rapport ; sort financier d'une fouille négative ; garantie par réparation ; périodicité des attachements.
 
-**Convention.** Chaque article est donné dans l'ordre du document. Les articles ayant un effet sur l'application sont recopiés en citation puis traduits en règles ; les autres sont résumés en une ligne. La version lue est celle signée numériquement par STEPAG le 2026-08-12 (mention « Lu et accepté ») ; l'exemplaire signé par la SRM n'est pas dans le dossier.
+**Convention.** Chaque article est donné dans l'ordre du document. Les articles ayant un effet sur l'application sont recopiés en citation puis traduits en règles ; les autres sont résumés en une ligne. La version lue porte, en page de signatures, le cachet de STEPAG avec la mention manuscrite « Lu et approuvé », la signature numérique de STEPAG du 2026-08-12 et, dans le cadre de la SRM, le cachet et le paraphe du Directeur Exploitation Eau Potable (R-CPS-167).
 
 ### 3.1 Préambule et parties
 
@@ -403,7 +407,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 
 #### Art. I-5 Textes généraux et spéciaux
 
-- **R-CPS-011** [CONTRACTUEL] Textes applicables : règlement des marchés de la SRM Oriental ; législation de l'emploi et des salaires ; Code général des impôts ; loi n° 112-13 (nantissement) ; dahir n° 1-56-211 et circulaire n° 72/CAB (garanties pécuniaires) ; arrêté n° 3-302-15 du 27 novembre 2015 (révision des prix) ; loi n° 09-08 (données personnelles) ; arrêté n° 1692-23 du 23 juin 2023 (dématérialisation) ; décret n° 2-14-272 du 14 mai 2014 (avances). Le titulaire ne peut exciper de leur ignorance. [F056 p.3-4, art. I-5]
+- **R-CPS-011** [CONTRACTUEL] Textes applicables : règlement des marchés de la SRM Oriental ; législation de l'emploi et des salaires ; Code général des impôts ; loi n° 112-13 (nantissement) ; dahir n° 1-56-211 et circulaire n° 72/CAB (garanties pécuniaires) ; arrêté n° 3-302-15 du 27 novembre 2015 (révision des prix) ; loi n° 09-08 (données personnelles) ; arrêté n° 1692-23 du 23 juin 2023 (dématérialisation) ; décret n° 2-14-272 du 14 mai 2014 (avances) ; « les lois et règlements en vigueur au Maroc à la date de la signature du présent marché ». Le titulaire doit se procurer ces textes et ne peut exciper de leur ignorance. [F056 p.3-4, art. I-5]
 
 #### Art. I-6 à I-9 (résumés)
 
@@ -419,21 +423,21 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 > Toute modification ultérieure relative à la désignation des intervenants est communiquée à
 > l’entrepreneur par ordre du service du maître d’ouvrage.
 
-- **R-CPS-013** [CONTRACTUEL] Art. I-7 : la SRM notifie par ordre de service, dans les quinze (15) jours suivant la notification de l'OS de commencement, le nom, la qualité et les missions de l'agent chargé du suivi de l'exécution du marché ; toute modification des intervenants est communiquée par OS. [F056 p.4, art. I-7]
+- **R-CPS-013** [CONTRACTUEL] Art. I-7 : la SRM notifie par ordre de service, dans les quinze (15) jours suivant la notification de l'OS de commencement, le nom, la qualité et les missions de l'agent chargé du suivi de l'exécution du marché ; les organismes chargés du contrôle technique, du contrôle de qualité et d'assistance technique sont notifiés par OS dès qu'ils sont connus ; toute modification des intervenants est communiquée par OS. [F056 p.4, art. I-7]
 - **R-CPS-014** [CONTRACTUEL] Art. I-8 : les notifications sont faites au domicile indiqué dans l'acte d'engagement ; tout changement de domicile est signalé par lettre recommandée avec accusé de réception dans les quinze (15) jours. [F056 p.4, art. I-8]
-- **R-CPS-015** [CONTRACTUEL] Art. I-9 : nantissement selon la loi n° 112-13 ; liquidation des sommes par le Directeur Général ; paiements effectués par le Directeur Général et le Directeur Administratif et Financier. [F056 p.4, art. I-9]
+- **R-CPS-015** [CONTRACTUEL] Art. I-9 : nantissement selon la loi n° 112-13 ; liquidation des sommes par le Directeur Général ; le Directeur Général fournit au titulaire et au bénéficiaire du nantissement les renseignements et états prévus par la loi ; paiements effectués par le Directeur Général et le Directeur Administratif et Financier, seuls qualifiés pour recevoir les significations des créanciers. [F056 p.4, art. I-9]
 
 #### Art. I-10 Sous-traitance
 
-- **R-CPS-016** [CONTRACTUEL] La sous-traitance ne peut dépasser cinquante pour cent (50 %) du montant TTC du marché ni porter sur le lot ou le corps d'état principal ; les sous-traitants doivent être installés au Maroc et remplir les conditions de l'article 25 du règlement. [F056 p.5, art. I-10]
-- **R-CPS-017** [CONTRACTUEL] Le titulaire notifie à la SRM une copie certifiée conforme du contrat de sous-traitance ; la SRM peut récuser le sous-traitant dans les quinze (15) jours suivant la réception du contrat ; le titulaire justifie les paiements faits au sous-traitant et reste seul responsable. [F056 p.5, art. I-10]
+- **R-CPS-016** [CONTRACTUEL] La sous-traitance ne peut dépasser cinquante pour cent (50 %) du montant TTC du marché ni porter sur le lot ou le corps d'état principal ; les sous-traitants doivent être installés au Maroc (notamment très petites, petites et moyennes entreprises, jeunes entreprises innovantes et auto-entrepreneurs) et remplir les conditions de l'article 25 du règlement. [F056 p.5, art. I-10]
+- **R-CPS-017** [CONTRACTUEL] Le titulaire notifie à la SRM une copie certifiée conforme du contrat de sous-traitance, qui précise la nature des prestations sous-traitées, l'identité, la raison sociale et l'adresse du sous-traitant ; la SRM peut récuser le sous-traitant dans les quinze (15) jours suivant la réception du contrat, par lettre motivée recommandée avec accusé de réception ; le titulaire justifie les paiements faits au sous-traitant, lui délivre à sa demande une attestation de bonne exécution et reste seul responsable ; le maître d'ouvrage ne reconnaît aucun lien juridique avec les sous-traitants. [F056 p.5, art. I-10]
 
 #### Art. I-11 à I-16 (résumés)
 
 - **R-CPS-018** [CONTRACTUEL] Art. I-11 : recours à la main-d'œuvre locale (commune, à défaut préfecture, province ou région) à hauteur de vingt pour cent (20 %) de l'effectif requis. [F056 p.5, art. I-11]
-- **R-CPS-019** [CONTRACTUEL] Art. I-12 : protection de la main-d'œuvre selon l'article 23 du CCAG-T. [F056 p.5, art. I-12]
-- **R-CPS-020** [CONTRACTUEL] Art. I-13 : avant tout commencement, attestations d'assurance couvrant les risques du marché, avec dates de validité (article 25 du CCAG-T), plus la police « dommages à l'ouvrage » (§ d de l'article 25). [F056 p.5, art. I-13]
-- **R-CPS-021** [CONTRACTUEL] Art. I-14 : garantie contre les revendications de propriété industrielle (article 26 du CCAG-T). Art. I-15 : cession du marché interdite sauf fusion ou scission, sur autorisation expresse et avenant. Art. I-16 : enregistrement du marché à la charge de l'entrepreneur. [F056 p.6, art. I-14 à I-16]
+- **R-CPS-019** [CONTRACTUEL] Art. I-12 : protection de la main-d'œuvre, conditions de travail et recrutement du personnel en dehors du Maroc selon l'article 23 du CCAG-T. [F056 p.5, art. I-12]
+- **R-CPS-020** [CONTRACTUEL] Art. I-13 : avant tout commencement, attestations délivrées par des établissements agréés, justifiant des assurances couvrant les risques du marché, avec dates de validité (article 25 du CCAG-T), plus la police « dommages à l'ouvrage » (§ d de l'article 25). [F056 p.5, art. I-13]
+- **R-CPS-021** [CONTRACTUEL] Art. I-14 : garantie contre les revendications de propriété industrielle (article 26 du CCAG-T) ; l'entrepreneur obtient les cessions, licences ou autorisations nécessaires et en supporte les frais et redevances. Art. I-15 : cession du marché interdite sauf fusion ou scission, sur autorisation expresse et avenant. Art. I-16 : enregistrement du marché à la charge de l'entrepreneur. [F056 p.6, art. I-14 à I-16]
 
 #### Art. I-17 Protection des données à caractère personnel
 
@@ -442,7 +446,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 - **R-CPS-024** [CONTRACTUEL] Pas de sous-traitant sur ces données sans habilitation préalable et expresse de la SRM-ORI, dans un contrat soumis à sa validation. [F056 p.7, art. I-17]
 - **R-CPS-025** [CONTRACTUEL] Le titulaire prend toutes mesures de sécurité matérielle et logique pour conserver l'intégrité des données et empêcher tout accès non autorisé ou usage détourné. [F056 p.6-7, art. I-17]
 - **R-CPS-026** [CONTRACTUEL] En fin de marché, le titulaire procède « à la destruction des données, fichiers informatisés ou manuels, figurant sur tout support ». [F056 p.7, art. I-17]
-- **R-CPS-027** [CONTRACTUEL] La SRM peut faire vérifier (audit) le respect de ces obligations ; le titulaire coopère, applique à ses frais et sans délai les mesures correctives, et aide la SRM à répondre aux demandes d'accès, de rectification et d'opposition des personnes. [F056 p.7, art. I-17]
+- **R-CPS-027** [CONTRACTUEL] Le titulaire est tenu au secret professionnel « le plus absolu », y compris lors des opérations de maintenance et de télémaintenance, et y engage ses dirigeants et son personnel ; il prouve à première demande qu'il dispose des moyens organisationnels, techniques et financiers nécessaires ; la SRM peut faire vérifier (audit, par des vérificateurs qui ne sont pas ses concurrents directs) le respect de ces obligations ; le titulaire coopère, applique à ses frais et sans délai les mesures correctives, et aide la SRM à répondre aux demandes d'accès, de rectification et d'opposition des personnes. [F056 p.7, art. I-17]
 - **R-CPS-028** [CONTRACTUEL] Le non-respect du secret, de la confidentialité ou de la sécurité des données permet la résiliation immédiate du marché sans indemnité et engage la responsabilité pénale et civile du titulaire. [F056 p.7-8, art. I-17]
 - **R-CPS-029** [DÉDUIT] Conséquence pour l'application : la « liste des branchements avec adresses des abonnés » remise par la SRM (R-CPS-163) et les références d'abonnés saisies sont des données personnelles : accès restreint par rôle, hébergement maîtrisé, purge en fin de marché. [F056 p.6-8 ; F056 p.27, art. II-29]
 
@@ -480,7 +484,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 > mandataire qui a, seul, qualité pour présenter des réserves au nom du groupement.
 
 - **R-CPS-033** [CONTRACTUEL] Les ordres de service sont écrits, signés par le maître d'ouvrage, datés, numérotés et enregistrés au registre du marché ; établis en deux exemplaires, notifiés par courrier porté contre récépissé ou lettre recommandée avec accusé de réception. [F056 p.8, art. I-20]
-- **R-CPS-034** [CONTRACTUEL] L'entrepreneur renvoie un exemplaire signé et daté dans les trois (3) jours ; à défaut, l'OS est réputé reçu à la date de sa notification. Réserves : article 11 du CCAG-T. [F056 p.8, art. I-20]
+- **R-CPS-034** [CONTRACTUEL] L'entrepreneur renvoie un exemplaire signé et daté dans les trois (3) jours ; à défaut, l'OS est réputé reçu à la date de sa notification. Réserves : article 11 du CCAG-T. En cas de groupement, les OS sont notifiés au mandataire, seul habilité à présenter des réserves. [F056 p.8, art. I-20]
 
 #### Art. I-21 à I-23 Ajournement, cessation, force majeure
 
@@ -504,9 +508,9 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 > En cas de survenance d’un événement de force majeure, il sera fait application des dispositions de
 > l’article 47 du C.C.A.G-T et toute législation en la matière en vigueur.
 
-- **R-CPS-035** [CONTRACTUEL] L'ajournement des travaux est prescrit par ordre de service motivé d'arrêt et de reprise (article 48 du CCAG-T) : c'est le seul mécanisme de suspension du délai prévu par le CPS, avec la force majeure. [F056 p.8, art. I-21]
+- **R-CPS-035** [CONTRACTUEL] L'ajournement des travaux est prescrit par ordre de service motivé d'arrêt et de reprise (article 48 du CCAG-T). `[DÉDUIT]` Le CPS ne cite pas d'autre mécanisme de suspension du délai, hormis la force majeure. [F056 p.8, art. I-21]
 - **R-CPS-036** [CONTRACTUEL] Cessation des travaux : article 49 du CCAG-T. [F056 p.8, art. I-22]
-- **R-CPS-037** [CONTRACTUEL] Force majeure (article 47 du CCAG-T) : droit à une augmentation raisonnable du délai, par avenant ; aucune indemnité. [F056 p.8, art. I-23]
+- **R-CPS-037** [CONTRACTUEL] Force majeure (article 47 du CCAG-T) : droit à une augmentation raisonnable du délai, par avenant ; aucune indemnité pour perte totale ou partielle de la fourniture, dont les frais d'assurance sont réputés compris dans les prix. [F056 p.8, art. I-23]
 - **R-CPS-038** [CONTRACTUEL] Seuils d'intempéries valant force majeure : neige 50 cm ; pluie 70 mm ; vent 70 km/h ; séisme de degré 5 sur l'échelle de Richter. La période de mesure (par jour, par épisode) est `[NON PRÉCISÉ]`. [F056 p.8-9, art. I-23]
 
 #### Art. I-24 à I-26 Cautionnements et retenue de garantie
@@ -534,7 +538,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 > mainlevée délivrée par le maître d’ouvrage dès la signature du procès-verbal de la réception
 > définitive des travaux.
 
-- **R-CPS-039** [CONTRACTUEL] Art. I-24 : cautionnement provisoire de 40 000 dhs (Quarante Mille dirhams), remplacé par le cautionnement définitif. [F056 p.9, art. I-24]
+- **R-CPS-039** [CONTRACTUEL] Art. I-24 : cautionnement provisoire de 40 000 dhs (Quarante Mille dirhams), remplacé par le cautionnement définitif ; il reste acquis au maître d'ouvrage dans quatre cas : offre écartée pour les motifs a) à e) du B) du § 9 du II) de l'article 41 du règlement ; retrait de l'offre pendant le délai de validité (article 34) ; refus de signer le marché ; refus d'accuser réception du marché notifié dans le délai de l'article 56. [F056 p.9, art. I-24]
 - **R-CPS-040** [CONTRACTUEL] Cautionnement définitif : caution bancaire personnelle et solidaire, sans délai de validité, égale à trois pour cent (3 %) du montant initial du marché arrondi au dirham supérieur, constituée dans les vingt (20) jours suivant la notification du marché ; libérée par mainlevée à la signature du PV de réception définitive. [F056 p.9, art. I-25]
 - **R-CPS-041** [CONTRACTUEL] Retenue de garantie : dix pour cent (10 %) du montant de chaque acompte ; elle cesse de croître lorsqu'elle atteint sept pour cent (7 %) du montant initial du marché augmenté le cas échéant des avenants. [F056 p.9, art. I-26]
 - **R-CPS-042** [CONTRACTUEL] La retenue de garantie peut être remplacée, à la demande de l'entrepreneur, par une caution personnelle et solidaire ; elle est restituée (ou la caution libérée) par mainlevée à la signature du PV de réception définitive. [F056 p.9, art. I-26]
@@ -566,7 +570,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 
 - **R-CPS-044** [CONTRACTUEL] Réception provisoire : à l'achèvement des travaux (article 73 du CCAG-T), le maître d'ouvrage vérifie en présence de l'entrepreneur la conformité aux spécifications ; en cas de défauts, l'entrepreneur répare ; à défaut la réception n'est pas prononcée et le délai n'est pas prorogé. [F056 p.9, art. I-27]
 - **R-CPS-045** [CONTRACTUEL] Réception définitive : après expiration du délai de garantie (article 76 du CCAG-T), une fois les malfaçons réparées. Chaque réception fait l'objet d'un procès-verbal signé par les membres de la commission de réception. [F056 p.9, art. I-27]
-- **R-CPS-046** [CONTRACTUEL] Délai de garantie : douze (12) mois à compter de la date du PV de réception provisoire (article 75 du CCAG-T) ; garantie globale du marché, il n'existe pas de délai de garantie par réparation. [F056 p.10, art. I-28]
+- **R-CPS-046** [CONTRACTUEL] Délai de garantie : douze (12) mois à compter de la date du PV de réception provisoire (article 75 du CCAG-T). `[DÉDUIT]` Il s'agit d'une garantie globale du marché : le CPS ne prévoit aucun délai de garantie par réparation. [F056 p.10, art. I-28]
 - **R-CPS-047** [CONTRACTUEL] Pendant la garantie, l'entrepreneur remet les plans des ouvrages conformes à l'exécution, rectifie les malfaçons et remédie à toutes les défectuosités sans paiement, sauf usure normale, abus d'usage ou dommages causés par des tiers. [F056 p.10, art. I-28]
 - **R-CPS-048** [DÉDUIT] Une fuite réapparaissant sur une réparation faite par STEPAG pendant le marché ou la garantie est à reprendre gratuitement (défectuosité) ; le critère du « même point » et la preuve sont `[NON PRÉCISÉ]`. [F056 p.10, art. I-28]
 
@@ -638,15 +642,15 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 - **R-CPS-050** [CONTRACTUEL] Les prix comprennent le bénéfice, tous droits, impôts, taxes, frais généraux, faux frais et toutes les dépenses conséquence nécessaire et directe du travail. [F056 p.10, art. I-30]
 - **R-CPS-051** [CONTRACTUEL] Les prix sont révisables. Formule a « terrassements et entretien réseau » : `P = Po × [0,15 + 0,30 × S(1+ChTp)/So(1+ChTpo) + 0,35 × McI/McIo + 0,20 × Mtn/Mtno]`. [F056 p.10, art. I-30 ; contrôle visuel]
 - **R-CPS-052** [CONTRACTUEL] Formule b « ouvrages annexes et réfection de trottoirs ou de chaussées » : `P = Po × [0,15 + 0,30 × S(1+ChTp)/So(1+ChTpo) + 0,20 × Mtn/Mtno + 0,15 × At/Ato + 0,2 × Cs/Cso]`. [F056 p.10, art. I-30 ; contrôle visuel]
-- **R-CPS-053** [CONTRACTUEL] Index : S(1+ChTp) = salaires et charges sociales (ouvrages de génie civil) ; McI = indice global des terrassements ordinaires ; Mtn = transport privé par route ; At = acier torsadé ; Cs = ciment en sacs ; publiés chaque mois par le ministère de l'Équipement. Les index « o » sont ceux du mois de la date limite de remise des offres (août 2026) ; les autres, ceux du mois de la date d'exigibilité de la révision. [F056 p.10-11, art. I-30 ; F039 p.1]
+- **R-CPS-053** [CONTRACTUEL] Index : S(1+ChTp) = salaires et charges sociales (ouvrages de génie civil) ; McI = indice global des terrassements ordinaires ; Mtn = transport privé par route ; At = acier torsadé ; Cs = ciment en sacs ; publiés chaque mois par le ministère de l'Équipement. Les index « o » sont ceux du mois de la date limite de remise des offres (août 2026) ; les autres, ceux du mois de la date d'exigibilité de la révision. Le CPS cite l'arrêté de référence sous deux numéros (« n° 03-302 du 27 Novembre 2015 » en page 10 ; « n°3-302-15 du 15 safar 1437 (27 novembre 2015) » en page 11) et imprime deux fois le même bloc de six alinéas en page 11. [F056 p.10-11, art. I-30 ; F039 p.1]
 - **R-CPS-054** [CONTRACTUEL] Le coefficient de révision et les rapports intermédiaires sont arrêtés à la quatrième décimale. La révision suit l'arrêté n° 3-302-15 du 27 novembre 2015. Partie fixe : 0,15 ; somme des coefficients de chaque formule : 1,00. [F056 p.11, art. I-30]
 - **R-CPS-055** [DÉDUIT] Affectation proposée : formule a → prix 3 et 6 à 13 (terrassement, entretien réseau) ; formule b → prix 4, 5 et 10 (réfections, ouvrages annexes) ; prix 1 et 2 (détection) : formule applicable `[À CONFIRMER : non écrit]`. [F056 p.10, art. I-30]
 - **R-CPS-056** [CONTRACTUEL] Les prix révisés s'appliquent aux travaux exécutés dans les délais normaux ; aucune autre augmentation ne peut être réclamée. [F056 p.11, art. I-30]
 
 #### Art. I-31 Avances
 
-- **R-CPS-057** [CONTRACTUEL] Une avance peut être accordée selon le décret n° 2-14-272, sur demande du titulaire et contre caution personnelle et solidaire du même montant. [F056 p.11, art. I-31]
-- **R-CPS-058** [CONTRACTUEL] Remboursement de l'avance : 20 % du montant de l'avance prélevés sur chaque acompte ; remboursement total au plus tard quand les prestations exécutées atteignent 80 % du montant TTC du marché ; liquidation immédiate en cas de résiliation. [F056 p.11, art. I-31]
+- **R-CPS-057** [CONTRACTUEL] Une avance peut être accordée selon le décret n° 2-14-272, sur demande du titulaire et contre caution personnelle et solidaire du même montant, délivrée par un établissement financier autorisé par le ministre chargé des finances. [F056 p.11, art. I-31]
+- **R-CPS-058** [CONTRACTUEL] Remboursement de l'avance : 20 % du montant de l'avance prélevés sur chaque acompte ; remboursement total au plus tard quand les prestations exécutées atteignent 80 % du montant TTC du marché ; liquidation immédiate en cas de résiliation, sur les sommes dues ou à défaut sur la caution ; en cas de sous-traitance après versement de l'avance, la part d'avance correspondante est prélevée immédiatement en totalité ; en cas de nantissement, les attestations de droits constatés tiennent compte de l'avance. [F056 p.11, art. I-31]
 
 #### Art. I-32 Modalités de règlement
 
@@ -746,7 +750,7 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 - **R-CPS-067** [CONTRACTUEL] Facture n° 1 (provisoire) : 100 % du montant du balayage (prix 1), diminué en fonction des performances (débits minimum atteints par rapport aux débits objectifs du tableau n° 1), adressée après achèvement du balayage et des mesures de débit nocturne ; elle comprend aussi 100 % des réparations et réfections réalisées pendant la période du balayage. [F056 p.12, art. I-32 §1]
 - **R-CPS-068** [CONTRACTUEL] Facture n° 2 (provisoire) : 40 % du montant du maintien (prix 2), adressée après quatre mois à compter de l'achèvement du balayage ; elle comprend 100 % des réparations et réfections des quatre premiers mois de maintien. [F056 p.12, art. I-32 §2]
 - **R-CPS-069** [CONTRACTUEL] Facture n° 3 (« facture dernière ») : 60 % du montant du maintien (prix 2), diminué en fonction des débits maintenus, adressée après huit mois à compter de l'achèvement du balayage ; elle comprend 100 % des réparations et réfections des quatre mois de la seconde période de maintien. [F056 p.13, art. I-32 §3]
-- **R-CPS-070** [CONTRACTUEL] Le montant de chaque décompte est réglé après réception par le maître d'ouvrage des prestations, par application des prix du bordereau affectés de la majoration, aux prestations réellement exécutées. [F056 p.13, art. I-32 §4]
+- **R-CPS-070** [CONTRACTUEL] Le montant de chaque décompte est réglé après réception par le maître d'ouvrage des prestations, par application des prix du bordereau, « y accordés éventuellement du rabais ou de la majoration indiqués dans le marché », aux prestations réellement exécutées. [F056 p.13, art. I-32 §4]
 - **R-CPS-071** [CONTRACTUEL] Les attachements du balayage, du maintien, des réparations et des réfections sont établis à partir de constatations contradictoires faites sur le terrain. [F056 p.13, art. I-32 §5]
 - **R-CPS-072** [CONTRACTUEL] À l'achèvement du balayage et à l'expiration de la période de maintien, la société soumet à l'approbation de la SRM la facture accompagnée de tous les attachements et pièces justificatives : factures en 5 exemplaires, pièces justificatives en 3 exemplaires. [F056 p.13, art. I-32 §6]
 - **R-CPS-073** [CONTRACTUEL] La SRM vérifie la facture et la rectifie si nécessaire ; la facture rectifiée est soumise à la SRM pour validation dans un délai maximal de quinze jours ; en cas de contestation, seul le montant arrêté par la SRM est payé tant qu'un accord n'est pas intervenu ; le désaccord n'autorise pas l'arrêt des travaux. [F056 p.13, art. I-32 §6]
@@ -792,13 +796,13 @@ Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeur
 > article.
 
 - **R-CPS-077** [CONTRACTUEL] Pénalité de retard : par jour calendaire de retard dans l'exécution des travaux, un pour mille (1/1000) du montant du marché (montant initial, éventuellement majoré des travaux supplémentaires et de l'augmentation dans la masse). [F056 p.13, art. I-35 A]
-- **R-CPS-078** [CONTRACTUEL] Les pénalités de retard sont plafonnées à huit pour cent (8 %) du montant initial du marché éventuellement majoré ; lorsque le plafond est atteint, le maître d'ouvrage est en droit de résilier le marché. [F056 p.13, art. I-35 A]
+- **R-CPS-078** [CONTRACTUEL] Les pénalités de retard sont plafonnées à huit pour cent (8 %) du montant initial du marché éventuellement majoré ; lorsque le plafond est atteint, le maître d'ouvrage est en droit de résilier le marché. L'application des pénalités ne libère en rien l'entrepreneur de ses autres obligations et responsabilités. [F056 p.13, art. I-35 A]
 - **R-CPS-079** [CONTRACTUEL] Pénalités particulières : non-respect de la signalisation du chantier : 1000 DH par jour de retard ; non-port des équipements de protection individuels : 500,00 DH par jour de retard et par ouvrier. Leur total est plafonné à deux pour cent (2 %) du montant initial éventuellement majoré ; elles sont prélevées comme les pénalités de retard. [F056 p.13-14, art. I-35 B]
 - **R-CPS-080** [CONTRACTUEL] Le chapeau du § B annonce des pénalités « à défaut de respect des conditions de remise […] des documents ou rapports », mais aucun montant n'est fixé pour la non-remise d'un rapport ou d'une fiche : `[NON PRÉCISÉ]`. [F056 p.13, art. I-35 B]
 
 #### Art. I-36 à I-39 (résumés)
 
-- **R-CPS-081** [CONTRACTUEL] Art. I-36 : retenue à la source de 10 % pour les titulaires étrangers non résidents (sans objet pour STEPAG). Art. I-37 : mesures coercitives, article 79 du CCAG-T. Art. I-38 : résiliation selon le règlement des marchés de la SRM et le CCAG-T, notamment l'article 69. Art. I-39 : différends réglés selon les articles 81 à 84 du CCAG-T ; tribunaux compétents d'Oujda. [F056 p.14, art. I-36 à I-39]
+- **R-CPS-081** [CONTRACTUEL] Art. I-36 : retenue à la source de 10 %, au titre de l'impôt sur les sociétés ou de l'impôt sur le revenu, sur le montant hors TVA des prestations réalisées au Maroc par les titulaires étrangers non résidents (sans objet pour STEPAG). Art. I-37 : mesures coercitives, article 79 du CCAG-T. Art. I-38 : résiliation selon le règlement des marchés de la SRM et le CCAG-T, notamment l'article 69. Art. I-39 : différends réglés selon les articles 81 à 84 du CCAG-T ; tribunaux compétents d'Oujda. [F056 p.14, art. I-36 à I-39]
 
 ### 3.3 Partie II : cahier des prescriptions spéciales
 
@@ -808,8 +812,8 @@ La numérotation recommence à l'article 1 : les articles ci-dessous sont cités
 
 - **R-CPS-082** [CONTRACTUEL] Art. II-1 : l'entrepreneur est réputé connaître les lieux et toutes les conditions d'exécution (accès, nature des terrains, géologie, pluies). [F056 p.15, art. II-1]
 - **R-CPS-083** [CONTRACTUEL] Art. II-2 : l'entrepreneur fait son affaire de l'occupation des terrains d'installation de chantier ; la SRM peut mettre des emprises à disposition, sur demande et accord préalables. [F056 p.15, art. II-2]
-- **R-CPS-084** [CONTRACTUEL] Art. II-3 : l'installation de chantier, à la charge de l'entreprise, comprend un bureau pour la SRM d'environ quinze (15) m2, équipé en eau, électricité, téléphone et mobilier de réunion (table, chaises, panneaux d'affichage). [F056 p.15, art. II-3]
-- **R-CPS-085** [CONTRACTUEL] Art. II-4 à II-6 : hygiène des cantonnements, service médical (dont bénéficie gratuitement le personnel de la SRM), gardiennage de jour et de nuit, propreté du chantier et respect des consignes de police de chantier sont à la charge de l'entrepreneur ; aucune indemnité pour vol. [F056 p.15-16, art. II-4 à II-6]
+- **R-CPS-084** [CONTRACTUEL] Art. II-3 : l'installation de chantier, à la charge de l'entreprise, comprend un bureau pour la SRM d'environ quinze (15) m2, équipé en eau, électricité, téléphone et mobilier de réunion (table, chaises, panneaux d'affichage) ; sont aussi à sa charge les formalités et indemnités d'occupation temporaire, les pistes d'accès, l'amenée d'eau et d'énergie, la clôture, le gardiennage et la démolition des ouvrages provisoires en fin de travaux. [F056 p.15, art. II-3]
+- **R-CPS-085** [CONTRACTUEL] Art. II-4 à II-6 : hygiène des cantonnements, service médical et évacuation sanitaire des cas graves vers les hôpitaux de la région (dont bénéficie gratuitement le personnel de la SRM), gardiennage de jour et de nuit, propreté du chantier et respect des consignes de police de chantier sont à la charge de l'entrepreneur ; aucune indemnité pour vol. [F056 p.15-16, art. II-4 à II-6]
 
 #### Art. II-7 Signalisation de chantier
 
@@ -866,7 +870,7 @@ La numérotation recommence à l'article 1 : les articles ci-dessous sont cités
 
 - **R-CPS-091** [CONTRACTUEL] Phase 1 : après réception de l'ordre de service de commencement, l'entreprise entame le balayage des secteurs conformément au tableau n° 1 ; délai de cette opération : 4 mois, sanctionnés par la mesure des performances atteintes. [F056 p.17, art. II-14]
 - **R-CPS-092** [CONTRACTUEL] Phases 2 et 3 : après expiration du délai du balayage, deux phases de maintien des performances de 4 mois chacune, soit 2 × 4 = 8 mois. [F056 p.17, art. II-14]
-- **R-CPS-093** [CONTRACTUEL] Un retard dans l'une de ces phases entraîne une pénalité « calculée conformément au CPS » (renvoi implicite à l'art. I-35 A : 1/1000 par jour calendaire). [F056 p.17, art. II-14 ; F056 p.13, art. I-35]
+- **R-CPS-093** [CONTRACTUEL] Un retard dans l'une de ces phases entraîne une pénalité « calculée conformément au CPS ». `[DÉDUIT]` Le taux n'est pas rappelé ; lecture proposée : celui de l'art. I-35 A (1/1000 par jour calendaire) `[À CONFIRMER]`. [F056 p.17, art. II-14 ; F056 p.13, art. I-35]
 - **R-CPS-094** [CONTRACTUEL] Le renvoi « conformément à l'article 52.8 » ne correspond à aucun article du CPS `[À CONFIRMER : renvoi hérité d'un ancien cahier des charges ; la mesure des performances après balayage est décrite à l'art. II-22]`. [F056 p.17, art. II-14]
 
 #### Art. II-15 Conditions de réalisation des travaux
@@ -902,7 +906,7 @@ La numérotation recommence à l'article 1 : les articles ci-dessous sont cités
 > Les conditions de réalisation des travaux sont arrêtées conformément au tableau récapitulatif N°1
 > ci-après :
 
-- **R-CPS-095** [CONTRACTUEL] Les prestations décrites sont « indicatives et nullement limitatives » ; l'entrepreneur apporte sans rémunération supplémentaire toutes les modifications jugées nécessaires à l'approbation de ses documents, qui tiennent compte des directives de la SRM. [F056 p.17, art. II-15]
+- **R-CPS-095** [CONTRACTUEL] Les prestations décrites sont « indicatives et nullement limitatives » ; l'entrepreneur apporte sans rémunération supplémentaire toutes les modifications jugées nécessaires à l'approbation de ses documents, qui tiennent compte des directives de la SRM ; l'approbation finale des prestations n'intervient que lorsque tous les intervenants ont donné leur accord définitif. [F056 p.17, art. II-15]
 - **R-CPS-096** [CONTRACTUEL] L'établissement des rapports journaliers et mensuels et le report des fuites sur plans, pour les secteurs objet des travaux, font partie des prestations, à la charge et aux frais de l'entreprise. [F056 p.17, art. II-15]
 - **R-CPS-097** [CONTRACTUEL] La SRM peut demander la substitution d'un secteur du tableau n° 1 par un autre de mêmes caractéristiques hydrauliques et performances, avec l'accord de l'entreprise consigné sur procès-verbal. [F056 p.17, art. II-15]
 - **R-CPS-098** [CONTRACTUEL] Les travaux de réparation des fuites sont réalisés par l'entreprise : fourniture, transport et pose du matériel à sa charge. [F056 p.17, art. II-15 N.B.]
@@ -983,13 +987,13 @@ Texte complet de la cellule « Périodicité » : « Hebdomadaire (moyennant le 
 
 - **R-CPS-100** [CONTRACTUEL] Le tableau n° 1 fixe, pour chacune des 5 zones, les secteurs, le linéaire approximatif (358, 362, 228, 399, 119 km ; total 1466 km) et le débit nocturne minimum à atteindre à la fin du balayage (Q exigé : 126, 130, 118, 112, 83 m3/h). [F056 p.18-19, tableau n° 1]
 - **R-CPS-101** [CONTRACTUEL] Pour toutes les zones : au moins un balayage de la totalité des secteurs ; délai maximum du balayage 4 mois ; contrôle du débit nocturne au plus hebdomadaire après le balayage ; garantie de maintien du gain 8 mois après l'achèvement du balayage. [F056 p.18, tableau n° 1]
-- **R-CPS-102** [CONTRACTUEL] Débits de référence par zone (1 à 5) : plus bas historiques 133, 136, 133, 99, 79 m3/h ; débits actuels mesurés 158, 162, 148, 140, 104 m3/h. Pour la zone 4, le Q exigé (112) est supérieur au plus bas historique (99) ; pour les autres zones il est inférieur. [F056 p.19]
+- **R-CPS-102** [CONTRACTUEL] Débits de référence par zone (1 à 5) : plus bas historiques 133, 136, 133, 99, 79 m3/h ; débits actuels mesurés 158, 162, 148, 140, 104 m3/h. Pour les zones 4 et 5, le Q exigé (112 ; 83) est supérieur au plus bas historique (99 ; 79) ; pour les zones 1, 2 et 3 il est inférieur. [F056 p.19]
 - **R-CPS-103** [CONTRACTUEL] Le débit d'une zone est la somme des débits relevés sur les ouvrages de comptage de chaque secteur de la zone ; les débits à assurer sont mesurés de cette manière. [F056 p.19]
 - **R-CPS-104** [CONTRACTUEL] Les secteurs hydrauliques sont identifiés par des points de mesure implantés sur le réseau, qui servent au contrôle et au suivi des débits nocturnes minimums. [F056 p.21, art. II-15]
 - **R-CPS-105** [CONTRACTUEL] Au cours du balayage, le linéaire d'une conduite inspectée n'est rémunéré qu'une seule fois, quel que soit le nombre de passages. [F056 p.21, art. II-15]
-- **R-CPS-106** [CONTRACTUEL] L'entrepreneur peut utiliser des techniques de pointe, telle la pré-localisation par capteurs enregistreurs de bruit, pour surveiller les réseaux pendant la période de garantie. [F056 p.21, art. II-15]
-- **R-CPS-107** [CONTRACTUEL] Les gains en distribution obtenus à la fin du balayage ne doivent pas connaître, par secteur, une détérioration supérieure à 25 %. [F056 p.21, art. II-15]
-- **R-CPS-108** [CONTRACTUEL] Pendant la période de garantie, les débits minimums sont contrôlés au plus une fois par semaine, par la télégestion (télé-relève) de la SRM ou, à défaut, par les enregistreurs de débit et de pression de l'adjudicataire ou de la SRM ayant reçu l'accord de celle-ci. [F056 p.21, art. II-15]
+- **R-CPS-106** [CONTRACTUEL] L'entrepreneur peut utiliser des techniques de pointe, telle la pré-localisation par capteurs enregistreurs de bruit, pour surveiller les réseaux pendant la « période de garantie » ; dans cet article, l'expression désigne la période de maintien du gain de 8 mois, non le délai de garantie de 12 mois de l'art. I-28 `[DÉDUIT]`. [F056 p.21, art. II-15]
+- **R-CPS-107** [CONTRACTUEL] Les gains en distribution obtenus à la fin du balayage ne doivent pas connaître, par secteur, une détérioration supérieure à 25 % ; plus généralement l'entrepreneur doit réduire « au maximum » les pertes d'eau, ramener pendant le balayage les débits nocturnes aux valeurs du tableau n° 1 et maintenir les gains obtenus. [F056 p.21, art. II-15]
+- **R-CPS-108** [CONTRACTUEL] Pendant la période de garantie, les débits minimums sont contrôlés au plus une fois par semaine, par la télégestion (télé-relève) de la SRM ou, à défaut, par les enregistreurs de débit et de pression « de l'adjudicataire ou de la SRM-ORI, ayant reçu l'accord de celui-ci » (référent ambigu `[À CONFIRMER]`). [F056 p.21, art. II-15]
 - **R-CPS-109** [CONTRACTUEL] Les dates de contrôle retenues pour le calcul sont fixées par la SRM ; l'intervalle entre deux dates est constant et ne dépasse pas sept jours. [F056 p.21, art. II-15]
 - **R-CPS-110** [CONTRACTUEL] Si l'entreprise ne participe pas aux contrôles, elle ne peut en contester les résultats ; ces mesures servent de base au calcul des pénalités. [F056 p.21, art. II-15]
 - **R-CPS-111** [CONTRACTUEL] Pour un secteur, dégradation ou amélioration des gains = moyenne des débits minimums enregistrés lors des contrôles du maintien − débit minimum enregistré à l'achèvement du balayage. [F056 p.21, art. II-15]
@@ -1124,9 +1128,9 @@ Texte complet de la cellule « Périodicité » : « Hebdomadaire (moyennant le 
 > En cas d’utilisation d’enrobé-résine pour les réfections de chaussées, l'entreprise ne pourra
 > prétendre à aucune rémunération supplémentaire.
 
-- **R-CPS-133** [CONTRACTUEL] La réfection de chaussée comprend : remblaiement de la tranchée en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée ; couche d'imprégnation de cut back ou émulsion ; couche d'enrobés à chaud de 7 cm (exigence de la Commune Urbaine). [F056 p.23, art. II-20]
+- **R-CPS-133** [CONTRACTUEL] La réfection de chaussée comprend : remblaiement de la tranchée en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée ; couche d'imprégnation de cut back ou émulsion (la définition du prix 5 ne cite que le cut back) ; couche d'enrobés à chaud « conformément à l'épaisseur originale de la chaussée conformément aux exigences de la Commune Urbaine (Epaisseur des enrobés de 7 cm) ». [F056 p.23, art. II-20]
 - **R-CPS-134** [CONTRACTUEL] Les réfections de chaussée sont exécutées dans un délai ne dépassant pas 1 mois à partir de la date de réparation de la fuite. [F056 p.23, art. II-20]
-- **R-CPS-135** [CONTRACTUEL] Passé ce délai, l'entreprise doit réaliser la réfection en enrobé-résine à froid à base de bitume et d'élastomère (granulométrie 0/4 selon UNE EN 12697-2 ; densité 1,7 / 1,9 g/cm3 selon UNE EN 12697-6 ; résistance à la perte de particules 0,0 / 5,0 selon EN 12697-17), sans aucune rémunération supplémentaire. [F056 p.23-24, art. II-20]
+- **R-CPS-135** [CONTRACTUEL] Passé ce délai, l'entreprise doit réaliser la réfection en enrobé-résine à froid à base de bitume et d'élastomère (granulométrie 0/4 selon UNE EN 12697-2 ; densité 1,7 / 1,9 g/cm3 selon UNE EN 12697-6 ; résistance à la perte de particules 0,0 / 5,0 selon « ONE EN 12697 - 17* », astérisque sans renvoi), sans aucune rémunération supplémentaire. [F056 p.23-24, art. II-20]
 - **R-CPS-136** [CONTRACTUEL] Aucun délai n'est fixé pour la réfection des trottoirs : `[NON PRÉCISÉ]`. [F056 p.23, art. II-20]
 
 #### Art. II-21 Essais et documents de suivi
@@ -1152,7 +1156,7 @@ Texte complet de la cellule « Périodicité » : « Hebdomadaire (moyennant le 
 > Rapport d’avancement mensuel dressant le bilan des travaux effectués
 
 - **R-CPS-137** [CONTRACTUEL] Essais à la charge de l'entreprise : contrôle des réfections de chaussée par carottage du corps de chaussée, à raison d'un prélèvement par 50 m2 réalisés. [F056 p.24, art. II-21]
-- **R-CPS-138** [CONTRACTUEL] Si les résultats ne sont pas satisfaisants, l'entreprise reprend les anomalies et refait les essais à sa charge ; une pénalité égale à deux fois le prix des travaux de réfection de la partie non conforme est appliquée. [F056 p.24, art. II-21]
+- **R-CPS-138** [CONTRACTUEL] Si les résultats ne sont pas satisfaisants, l'entreprise reprend les anomalies et refait les essais à sa charge, avec la même fréquence ; une pénalité égale à deux fois le prix des travaux de réfection de la partie non conforme est appliquée. [F056 p.24, art. II-21]
 - **R-CPS-139** [CONTRACTUEL] Rapport journalier de suivi : sous forme de tableau, il indique la zone balayée, le linéaire des conduites inspectées, les fuites détectées et leurs adresses ; il est illustré par un extrait du plan du réseau au format A4 localisant les conduites inspectées et les fuites détectées. [F056 p.24, art. II-21]
 - **R-CPS-140** [CONTRACTUEL] Fiche de réparation de fuites : remplie pour chaque fuite détectée et réparée par l'entreprise. Son modèle n'est pas annexé au CPS. [F056 p.24, art. II-21]
 - **R-CPS-141** [CONTRACTUEL] Rapport d'avancement mensuel : il dresse le bilan des travaux effectués. Contenu détaillé `[NON PRÉCISÉ]`. [F056 p.24, art. II-21]
@@ -1343,7 +1347,7 @@ Le symbole imprimé devant « 1 » et « 2 » est la lettre grecque τ (contrôl
 
 #### Page de signatures
 
-- **R-CPS-167** [CONTRACTUEL] La page de signatures prévoit une signature « pour la Société Régionale Multiservices l'Oriental S.A » (vide dans cet exemplaire) et une signature « pour le soumissionnaire », précédée des nom et prénom et de la mention manuscrite « Lu et Accepté » ; l'exemplaire porte la signature numérique de IMAD BOUSALAM (STEPAG) du 2026-08-12 17:38:57 +01:00. [F056 p.30]
+- **R-CPS-167** [CONTRACTUEL] La page de signatures (lue sur l'image) porte : dans le cadre « POUR LA SOCIETE REGIONALE MULTISERVICES L'ORIENTAL S.A », le cachet « Directeur Exploitation Eau Potable M. Mohamed DAHMANI » avec paraphe ; dans le cadre « POUR LE SOUMISSIONNAIRE », le cachet de STEPAG, la mention manuscrite « Lu et approuvé » (le CPS demandait « Lu et Accepté ») et la signature numérique de IMAD BOUSALAM (STEPAG) du 2026-08-12 17:38:57 +01:00 `[identifiant du certificat non recopié]`. La date du visa de la SRM n'est pas lisible ; ce visa étant un tampon sur le fichier déposé à l'offre, la signature formelle du marché par le Directeur Général (R-CPS-012) reste `[À CONFIRMER]`. [F056 p.30]
 
 ### 3.4 Renvois à des textes externes
 
@@ -1377,8 +1381,10 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 | art. II-20 | UNE EN 12697-2 ; UNE EN 12697-6 ; « ONE EN 12697 - 17* » | caractéristiques de l'enrobé-résine à froid | oui (valeurs) | — |
 | art. II-27 | instruction générale sur la signalisation routière | signalisation de chantier | non | — |
 | art. I-17 | loi n° 09-08 | données personnelles | oui (obligations) | — |
+| préambule | règlement des marchés SRM-ORI, art. 17 § I et art. 18 § 3 al. A | mode de passation | oui | — |
+| art. I-5 ; art. I-9 | loi n° 112-13 (dahir n° 1-15-05) ; dahir n° 1-56-211 ; circulaire n° 72/CAB ; arrêté n° 1692-23 | nantissement ; garanties pécuniaires ; dématérialisation | non | — |
 
-- **R-CPS-168** [CONTRACTUEL] Le CPS ne contient aucun article « Dérogations au CCAG » : `[NON PRÉCISÉ]` ; les dérogations éventuelles résultent des clauses elles-mêmes (plafond de pénalités 8 %, délai de paiement 90 jours, facturation en trois temps). [F056 p.3, art. I-3]
+- **R-CPS-168** [CONTRACTUEL] Le CPS ne contient aucun article « Dérogations au CCAG » et ne qualifie aucune clause de dérogation : `[NON PRÉCISÉ]`. `[DÉDUIT]` Des clauses propres au marché peuvent s'écarter du CCAG-T (plafond de pénalités, délai de paiement, facturation en trois temps) `[À CONFIRMER]`. [F056 p.3, art. I-3]
 - **R-CPS-169** [DÉDUIT] Règles par défaut du CCAG-T non reprises dans le dossier et non vérifiées `[À CONFIRMER]` : intérêts moratoires ; prix nouveaux ; seuils de variation dans la masse ; signature et contestation des attachements ; réserves à la réception ; procédure d'ajournement. Une ligne « règle par défaut du CCAG, non vérifiée dans le dossier » vaut pour chacune. [F056 p.3, art. I-3]
 
 ### 3.5 Objet, consistance, périmètre et opérations annexes
@@ -1397,7 +1403,7 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 | Assainissement | non cité | — | [F056 p.3] |
 | Fuites visibles | oui, à localiser comme les invisibles | aucun prix ni circuit distinct | [F056 p.25, art. II-25] |
 | Élément inconnu de la SRM (branchement clandestin…) | compté comme « fuite » | — | [F056 p.25, art. II-25] |
-| Mesures de débit nocturne | oui, sans rémunération | avant, après, puis hebdomadaires | [F056 p.22 ; p.24 ; p.21] |
+| Mesures de débit nocturne | oui ; aucun prix au bordereau ; rémunération expressément exclue quand la mesure est faite directement sur les conduites de la SRM | avant, après, puis hebdomadaires | [F056 p.22 ; p.24 ; p.21] |
 
 | Opération annexe | Qui la fait | Source |
 |---|---|---|
@@ -1406,7 +1412,7 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 | Avis préalable avant terrassement | à demander à la SRM par l'entreprise | [F056 p.26, art. II-27] |
 | Autorisations de circulation et plans de signalisation | entreprise, auprès des autorités | [F056 p.16, art. II-7] |
 | Correspondances avec les organismes tiers (administrations, commune, autres concessionnaires) | SRM, sur projets de lettres de l'entreprise | [F056 p.26, art. II-28] |
-| Dégâts sur le chantier, aux tiers ou aux bâtiments voisins | responsabilité de l'entreprise | [F056 p.16, art. II-9] |
+| Dégâts ou détournements commis par son personnel ou par des tiers sur son chantier ou dans les bâtiments avoisinants mis à sa disposition | responsabilité de l'entreprise | [F056 p.16, art. II-9] |
 | Détection des conduites, des bouches à clé ; curage | entreprise, à sa charge | [F056 p.23, art. II-19] ; [F056 p.25, art. II-24] |
 | Fourniture, transport et pose des pièces de réparation | entreprise | [F056 p.17, art. II-15 N.B.] |
 | Essais de laboratoire (carottage) | entreprise, à sa charge | [F056 p.24, art. II-21] |
@@ -1418,8 +1424,8 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 - **R-CPS-170** [CONTRACTUEL] Les secteurs à balayer et leur regroupement en zones sont fixés par la SRM (tableau n° 1) ; l'ordre de passage, la forme et la périodicité d'un programme de balayage et sa validation par la SRM sont `[NON PRÉCISÉ]`. [F056 p.18-19]
 - **R-CPS-171** [CONTRACTUEL] Rendement minimal : 4 km par jour et par équipe en moyenne pendant le balayage ; 4 équipes de détection au minimum pendant le balayage et le maintien. [F056 p.23, art. II-18]
 - **R-CPS-172** [CONTRACTUEL] Nombre de passages : un balayage complet au minimum (« Une fois au minimum ») en 4 mois ; les passages supplémentaires sont libres et non rémunérés. [F056 p.18 ; p.24, art. II-22]
-- **R-CPS-173** [CONTRACTUEL] Campagnes nocturnes : trois nuits de mesures de 0 h à 6 h avant le balayage, trois nuits après, puis un contrôle au plus hebdomadaire pendant 8 mois ; livrables : procès-verbaux signés par l'entreprise et la SRM. [F056 p.22 ; p.24 ; p.21]
-- **R-CPS-174** [DÉDUIT] Les cinq valeurs de Q exigé valent 80 % du débit actuel mesuré, arrondi à l'unité (158 → 126 ; 162 → 130 ; 148 → 118 ; 140 → 112 ; 104 → 83) : l'objectif implicite est une baisse de 20 % du débit nocturne de chaque zone. En conséquence, si rien ne change (Q réal = débit actuel), τ1 vaut −25 % environ (zone 4 : exactement −25,00 %), soit la pénalité maximale. [F056 p.18-19]
+- **R-CPS-173** [CONTRACTUEL] Campagnes nocturnes : trois nuits de mesures de 0 h à 6 h avant le balayage, trois nuits après, puis un contrôle au plus hebdomadaire pendant 8 mois ; livrables : procès-verbal « établi et signé par l'entreprise et la SRM-ORI » pour les mesures avant ; procès-verbal « établi entre l'entreprise et la SRM-ORI » pour les mesures après ; aucun procès-verbal n'est prévu pour les contrôles hebdomadaires. [F056 p.22 ; p.24 ; p.21]
+- **R-CPS-174** [DÉDUIT] Les cinq valeurs de Q exigé valent 80 % du débit actuel mesuré, arrondi à l'unité (158 → 126 ; 162 → 130 ; 148 → 118 ; 140 → 112 ; 104 → 83) : l'objectif implicite est une baisse de 20 % du débit nocturne de chaque zone. En conséquence, si rien ne change (Q réal = débit actuel), τ1 vaut : zone 1 −25,40 % ; zone 2 −24,62 % ; zone 3 −25,42 % ; zone 4 −25,00 % ; zone 5 −25,30 % : la pénalité atteint ou approche le plafond de 25 %, et les zones 1, 3 et 5 passeraient sous le seuil d'arrêt de zone (τ1 < −25 %, R-CPS-147). [F056 p.18-19]
 
 ### 3.7 Caractérisation des fuites
 
@@ -1472,7 +1478,7 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 | R-CPS-069 | facture n° 3 (60 % du prix 2) | achèvement du balayage | 8 | mois | calendaire | — | — | — | [F056 p.13, art. I-32] |
 | R-CPS-046 | délai de garantie | date du PV de réception provisoire | 12 | mois | calendaire | — | — | — | [F056 p.10, art. I-28] |
 
-- **R-CPS-179** [CONTRACTUEL] Suspension et neutralisation des délais : seuls l'ordre de service d'ajournement (arrêt puis reprise) et l'avenant de force majeure prolongent le délai. L'attente d'une manœuvre de vanne ou d'une coupure par la SRM, d'une autorisation de voirie ou d'un avis avant terrassement n'est pas prévue comme cause de suspension : `[NON PRÉCISÉ]` ; formalisme pour la faire reconnaître : `[NON PRÉCISÉ]`. [F056 p.8, art. I-21 et I-23]
+- **R-CPS-179** [DÉDUIT] Suspension et neutralisation des délais : le CPS ne cite que l'ordre de service d'ajournement (arrêt puis reprise) et l'avenant de force majeure. L'attente d'une manœuvre de vanne ou d'une coupure par la SRM, d'une autorisation de voirie ou d'un avis avant terrassement n'est pas prévue comme cause de suspension : `[NON PRÉCISÉ]` ; formalisme pour la faire reconnaître : `[NON PRÉCISÉ]`. [F056 p.8, art. I-21 et I-23]
 - **R-CPS-180** [CONTRACTUEL] Un arrêt ordonné par une autorité (travaux publics, municipalité, police) n'ouvre droit à aucune indemnité ; son effet sur le délai est `[NON PRÉCISÉ]`. [F056 p.17, art. II-13]
 - **R-CPS-181** [CONTRACTUEL] Interdictions horaires (nuit, ramadan, grands axes) et plus-values associées : `[NON PRÉCISÉ]`. [F056]
 - **R-CPS-182** [DÉDUIT] Pour l'application : enregistrer l'heure de chaque demande faite à la SRM (avis avant terrassement, manœuvre de vanne, validation) et l'heure de la réponse, afin de justifier un retard non imputable. [F056 p.26, art. II-27]
@@ -1483,7 +1489,7 @@ Montant de référence pour les exemples : montant du marché 5191974.00 DH TTC 
 
 | ID règle | Fait générateur | Montant ou taux | Unité de temps | Assiette | Point de départ | Plafond individuel | Plafond global | Recouvrement | Exemple chiffré | Source |
 |---|---|---|---|---|---|---|---|---|---|---|
-| R-CPS-077 | retard dans l'exécution des travaux (délai global ou phase) | 1/1000 | jour calendaire | montant du marché initial + travaux supplémentaires + augmentation de masse | lendemain de l'échéance `[À CONFIRMER]` | 8 % | 8 % ; au plafond, résiliation possible | prélevée sur les décomptes `[À CONFIRMER : mode non écrit]` | 10 jours → 10 × 5191.974 = 51919.74 DH ; plafond 415357.92 DH atteint au 80e jour | [F056 p.13, art. I-35 A] |
+| R-CPS-077 | retard dans l'exécution des travaux (délai global ; application aux retards de phase déduite, R-CPS-093) | 1/1000 | jour calendaire | montant du marché initial + travaux supplémentaires + augmentation de masse | lendemain de l'échéance `[À CONFIRMER]` | 8 % | 8 % ; au plafond, résiliation possible | prélevée sur les décomptes `[À CONFIRMER : mode non écrit]` | 10 jours → 10 × 5191.974 = 51919.74 DH ; plafond 415357.92 DH atteint au 80e jour | [F056 p.13, art. I-35 A] |
 | R-CPS-079 | signalisation de chantier non conforme | 1000 DH | jour de retard | forfait | constat `[NON PRÉCISÉ]` | — | 2 % pour l'ensemble des pénalités particulières (103839.48 DH) | comme les pénalités de retard | 3 jours → 3000 DH | [F056 p.14, art. I-35 B] |
 | R-CPS-079 | non-port des EPI | 500,00 DH | jour de retard et par ouvrier | forfait | constat `[NON PRÉCISÉ]` | — | 2 % (commun avec la ligne précédente) | comme les pénalités de retard | 2 ouvriers pendant 3 jours → 3000 DH | [F056 p.14, art. I-35 B] |
 | R-CPS-146 | objectif de débit non atteint à la fin du balayage (τ1 < 0) | 1 % par point de τ1 | une fois, à la fin du balayage | montant du balayage (prix 1) | mesure de Qf | 25 % | — | diminution de la facture n° 1 | zone 4 : Q exigé 112, Q réal 120 → τ1 = −7.1429 % → 7.1429 % × (399000 × 0.30 = 119700.00) = 8550.00 DH HT | [F056 p.25, art. II-23] ; [F056 p.12, art. I-32 §1] |
@@ -1493,6 +1499,7 @@ Montant de référence pour les exemples : montant du marché 5191974.00 DH TTC 
 | R-CPS-135 | réfection de chaussée après plus d'un mois | pas de pénalité en argent : enrobé-résine à froid imposé sans supplément | — | — | date de réparation + 1 mois | — | — | — | réparation le 2026-10-03 → réfection à faire avant le 2026-11-03 | [F056 p.23-24, art. II-20] |
 | R-CPS-080 | non-remise d'un rapport, d'une fiche ou d'un état | `[NON PRÉCISÉ]` (annoncée, non chiffrée) | — | — | — | — | — | — | — | [F056 p.13, art. I-35 B] |
 | — | absence d'agent ou de matériel ; absence à une réunion ; déblais non évacués ; travaux non conformes (hors chaussée) | `[NON PRÉCISÉ]` | — | — | — | — | — | — | — | — |
+| R-CPS-081 | retenue à la source (titulaires étrangers non résidents ; sans objet pour STEPAG) | 10 % | à chaque paiement | montant hors TVA des prestations réalisées au Maroc | — | — | — | prélèvement | sans objet | [F056 p.14, art. I-36] |
 | R-CPS-041 | retenue de garantie (n'est pas une pénalité) | 10 % de chaque acompte | à chaque acompte | montant de l'acompte | premier acompte | 7 % du montant initial + avenants | — | prélèvement ; remplaçable par caution | acompte 400000.00 → 40000.00 retenus | [F056 p.9, art. I-26] |
 
 - **R-CPS-183** [CONTRACTUEL] Plafonds cumulés : 8 % (retard) + 2 % (pénalités particulières) ; les pénalités de résultat (25 % du prix 1, 25 % du prix 2) s'y ajoutent sans plafond commun écrit. Remise gracieuse : `[NON PRÉCISÉ]`. [F056 p.13-14, art. I-35 ; F056 p.25, art. II-23]
@@ -1507,7 +1514,7 @@ Montant de référence pour les exemples : montant du marché 5191974.00 DH TTC 
 
 ### 3.12 Garantie des réparations
 
-- **R-CPS-189** [CONTRACTUEL] Garantie globale de 12 mois après la réception provisoire (R-CPS-046, R-CPS-047) ; aucun délai par réparation ; reprise gratuite des défectuosités, sauf usure normale, abus d'usage ou dommages causés par des tiers ; réparations provisoires : `[NON PRÉCISÉ]`. [F056 p.10, art. I-28]
+- **R-CPS-189** [CONTRACTUEL] Garantie globale de 12 mois après la réception provisoire (R-CPS-046, R-CPS-047) ; aucun délai par réparation n'est écrit `[DÉDUIT]` ; reprise gratuite des défectuosités, sauf usure normale, abus d'usage ou dommages causés par des tiers ; réparations provisoires : `[NON PRÉCISÉ]`. [F056 p.10, art. I-28]
 - **R-CPS-190** [DÉDUIT] Une reprise sous garantie ne doit pas générer de ligne payante à l'attachement : l'application doit pouvoir marquer une intervention « reprise sans paiement » liée à la réparation d'origine `[À CONFIRMER : critère du même point]`. [F056 p.10, art. I-28]
 
 ### 3.13 Constat et attachements contradictoires
@@ -1523,17 +1530,17 @@ Chaque état est décrit par une fiche normalisée. Les colonnes des modèles r�
 
 | Nom exact | Périodicité et bornes | Déclencheur ou heure limite | Destinataires | Support exigé | Langue | Signatures et visas | Statut normatif | Source |
 |---|---|---|---|---|---|---|---|---|
-| « Rapport journalier de suivi » | chaque jour de balayage ; bornes de la journée `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` ; les fuites sont communiquées le jour même | SRM-ORI (service `[NON PRÉCISÉ]` ; en pratique Département Mesures et Amélioration du Rendement) | tableau + extrait de plan A4 ; papier ou fichier `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` (français en pratique) | `[NON PRÉCISÉ]` (gabarit : STEPAG et S.R.M) | CONTRACTUEL | [F056 p.24, art. II-21] |
+| « Rapport journalier de suivi » | journalier pendant l'opération de recherche de fuites (limitation au balayage non écrite) ; bornes de la journée `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` ; les fuites sont communiquées le jour même | SRM-ORI (service `[NON PRÉCISÉ]` ; en pratique Département Mesures et Amélioration du Rendement) | tableau + extrait de plan A4 ; papier ou fichier `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` (français en pratique) | `[NON PRÉCISÉ]` (gabarit : STEPAG et S.R.M) | CONTRACTUEL | [F056 p.24, art. II-21] |
 | « Fiche de réparation de fuites » | une par fuite détectée et réparée | après constat de la fuite dans la tranchée | SRM-ORI (copie) | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` | renseignée et signée par l'entreprise | CONTRACTUEL | [F056 p.23, art. II-19] ; [F056 p.24, art. II-21] |
 | « Rapport d'avancement mensuel » | mensuel ; mois calendaire `[À CONFIRMER]` | `[NON PRÉCISÉ]` | SRM-ORI | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` (gabarit : STEPAG et SRM ORIENTAL) | CONTRACTUEL | [F056 p.24, art. II-21] |
 | Rapport hebdomadaire | non exigé par le CPS 2026 (exigé en 2017) | — | — | — | — | — | 2017 | [F077 art. 45] ; [F088] |
 | Procès-verbal des mesures de débit de nuit (avant) | une fois, après l'OS | après les 3 nuits de mesure | SRM-ORI | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` | entreprise et SRM-ORI | CONTRACTUEL | [F056 p.22, art. II-17] |
-| Procès-verbal des mesures de débit de nuit (après) | une fois, après le balayage | après les 3 nuits de mesure | SRM-ORI | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` | entreprise et SRM-ORI | CONTRACTUEL | [F056 p.24, art. II-22] |
+| Procès-verbal des mesures de débit de nuit (après) | une fois, après le balayage | après les 3 nuits de mesure | SRM-ORI | `[NON PRÉCISÉ]` | `[NON PRÉCISÉ]` | « établi entre l'entreprise et la SRM-ORI » (signature non écrite) | CONTRACTUEL | [F056 p.24, art. II-22] |
 | Relevé des contrôles hebdomadaires du maintien | au plus hebdomadaire pendant 8 mois | dates fixées par la SRM | SRM-ORI | `[NON PRÉCISÉ]` | — | `[NON PRÉCISÉ]` | CONTRACTUEL (contrôle) ; forme `[NON PRÉCISÉ]` | [F056 p.21, art. II-15] |
-| Procès-verbal de substitution de secteur | à l'occasion | accord de l'entreprise | — | — | — | les deux parties | CONTRACTUEL | [F056 p.17, art. II-15] |
-| Attachement | au fur et à mesure | constat contradictoire | agent chargé du suivi | `[NON PRÉCISÉ]` ; 3 exemplaires joints à la facture | — | contradictoire | CONTRACTUEL | [F056 p.12-13, art. I-32] |
+| Procès-verbal de substitution de secteur | à l'occasion | accord de l'entreprise | — | — | — | `[NON PRÉCISÉ]` (« cet accord sera consigné sur un procès-verbal ») | CONTRACTUEL | [F056 p.17, art. II-15] |
+| Attachement | au fur et à mesure | constat contradictoire | agent chargé du suivi | `[NON PRÉCISÉ]` ; joint à la facture (pièces justificatives en 3 exemplaires ; nombre d'exemplaires de l'attachement non écrit) | — | contradictoire | CONTRACTUEL | [F056 p.12-13, art. I-32] |
 | Décompte provisoire | chaque fois que nécessaire | attachements acceptés | maître d'ouvrage ; copie à l'entrepreneur sous 10 jours | — | — | dressé par l'agent de suivi, signé par le maître d'ouvrage | CONTRACTUEL | [F056 p.12, art. I-32] |
-| Facture | trois factures (fin de balayage ; + 4 mois ; + 8 mois) | dépôt au bureau d'ordre | SRM-ORI | papier, 5 exemplaires | — | entreprise | CONTRACTUEL | [F056 p.11-13, art. I-32] |
+| Facture | trois factures (fin de balayage ; + 4 mois ; + 8 mois) | dépôt au bureau d'ordre | SRM-ORI | 5 exemplaires (support non précisé) | — | entreprise | CONTRACTUEL | [F056 p.11-13, art. I-32] |
 | Rapport de synthèse par secteur | une fois par secteur inspecté | 15 jours après la mission | SRM-ORI | 2 exemplaires | — | — | CONTRACTUEL | [F056 p.27, art. II-30] |
 | Rapport final de synthèse | fin des travaux | — | SRM-ORI | papier et informatique | — | — | CONTRACTUEL | [F056 p.27, art. II-30] |
 | Report sur plans de la répartition spatiale des fuites | fin des travaux | — | SRM-ORI | papier et informatique | — | — | CONTRACTUEL | [F056 p.27, art. II-30] |
@@ -1550,7 +1557,7 @@ Chaque état est décrit par une fiche normalisée. Les colonnes des modèles r�
 | 3 | « les fuites détectées » | liste | — | fuite_numero ; fuite_visibilite | nombre du jour | [F056 p.24] |
 | 4 | « leurs adresses » | texte | — | fuite_adresse ; reference_srm | — | [F056 p.24] |
 | 5 | « un extrait du plan du réseau (format A4) permettant de localiser l'emplacement des conduites inspectées et des fuites détectées » | image ou PDF | — | extrait_plan | — | [F056 p.24] |
-| 6 | nature et diamètre de la conduite constatés après ouverture (« rapport de détection ») | énumération ; entier | mm | conduite_materiau ; conduite_dn_mm | — | [F056 p.25, art. II-25] |
+| 6 | nature et diamètre de la conduite constatés après ouverture (exigés dans le « rapport de détection », art. II-25 : document distinct du rapport journalier ou synonyme `[À CONFIRMER]`) | énumération ; entier | mm (unité non écrite) | conduite_materiau ; conduite_dn_mm | — | [F056 p.25, art. II-25] |
 
 **Fiche de réparation de fuites.** Modèle : `[NON PRÉCISÉ]` — mentions imposées par le texte : une fiche par fuite détectée et réparée ; renseignée et signée par l'entreprise ; copie à la SRM. Aucun champ n'est énuméré par le CPS. Champs du modèle STEPAG : section 8.3.
 
@@ -1603,11 +1610,12 @@ Chaque état est décrit par une fiche normalisée. Les colonnes des modèles r�
 
 ### 3.19 Engagements de l'offre et règlement de consultation
 
-- **R-CPS-209** [CONTRACTUEL] Le règlement de consultation n'exige pas d'offre technique, interdit les variantes et ne fixe aucun moyen humain ou matériel ; il demande seulement une « note indiquant les moyens humains et techniques ». [F054 p.7-9, art. 14-B, 14-D, 14-E]
+- **R-CPS-209** [CONTRACTUEL] Le règlement de consultation n'exige pas d'offre technique, interdit les variantes et ne fixe aucun moyen humain ou matériel ; son dossier technique comprend une « note indiquant les moyens humains et techniques », les attestations de référence, la déclaration du plan de charge et les attestations de chiffre d'affaires des trois dernières années. [F054 p.7-9, art. 14-B, 14-D, 14-E]
 - **R-CPS-210** [CONTRACTUEL] Critères d'admissibilité du RC : au moins une référence de travaux similaires en 10 ans d'un montant ≥ 1 000 000 DH TTC pour un gestionnaire public d'eau potable au Maroc ; chiffre d'affaires moyen annuel sur 3 ans ≥ 100 % de l'estimation HT ; reste à réaliser du plan de charge ≤ moyenne du chiffre d'affaires majorée de 50 %. [F054 p.9, art. 14-B]
-- **R-CPS-211** [CONTRACTUEL] Offre excessive si supérieure de plus de 20 % à l'estimation ; anormalement basse si inférieure de plus de 20 % ; validité des offres 60 jours à compter de l'ouverture des plis. [F054 p.13, art. 20 ; p.15, art. 22]
-- **R-CPS-212** [CONTRACTUEL] Note des moyens humains de l'offre : 73 personnes déclarées (directeur technique et commercial ; assistante technique ; chef de chantier ; magasinier ; technicien électricien ; soudeur ; chauffeurs ; plombiers et poseurs ; ferrailleurs ; maçons ; 40 ouvriers et aides). Aucun profil « agent de détection de fuites » n'y est nommé. `[noms et numéros CNSS individuels non recopiés]`. [F020 p.1]
-- **R-CPS-213** [CONTRACTUEL] Note des moyens matériels de l'offre : engins de génie civil et de transport (pelles, tractopelles, camions, camionnettes, compresseurs, compacteurs, pompes, scies à sol…). Aucun matériel de détection (corrélateur, pré-localisateur, débitmètre, enregistreur) n'y figure `[CONTRADICTION : F023 p.1 vs F056 p.25-26, art. II-26]` : le matériel minimal de l'art. II-26 reste dû et doit être présenté à l'approbation de la SRM. [F023 p.1]
+- **R-CPS-211** [CONTRACTUEL] Offre excessive si supérieure de plus de 20 % à l'estimation ; anormalement basse si inférieure de plus de 20 % ; validité des offres 60 jours à compter de l'ouverture des plis. Mesures coercitives du RC (déclaration inexacte, fraude, manquements graves) : exclusion et résiliation aux frais et risques du titulaire, après un délai d'observations d'au moins 15 jours. [F054 p.13, art. 20 ; p.15, art. 22 ; p.15-16, art. 24]
+- **R-CPS-212** [CONTRACTUEL] Note des moyens humains de l'offre : 73 personnes déclarées (directeur technique et commercial 1 ; assistante technique 1 ; chef de chantier 1 ; magasinier 1 ; technicien électricien 1 ; soudeur 1 ; chauffeurs 12 ; plombiers et poseurs 6 ; ferrailleurs 2 ; maçons 7 ; ouvriers et aides 40). Aucun profil « agent de détection de fuites » n'y est nommé. `[noms et numéros CNSS individuels non recopiés]`. [F020 p.1]
+- **R-CPS-213** [CONTRACTUEL] « Note des Moyens Techniques » de l'offre : engins de génie civil et de transport (pelles, tractopelles, camions, camionnettes, compresseurs, compacteurs, pompes, scies à sol…). Aucun matériel de détection (corrélateur, pré-localisateur, débitmètre, enregistreur) n'y figure `[CONTRADICTION : F023 p.1 vs F056 p.25-26, art. II-26]` : le matériel minimal de l'art. II-26 reste dû et doit être présenté à l'approbation de la SRM. [F023 p.1]
+- **R-CPS-216** [CONTRACTUEL] Références produites à l'offre : attestation Amendis n° 126TA (marché n° 15/18 TA, détection et réparation des fuites aux quartiers périphériques de Tanger, lot 2, en sous-traitance, 2.399.852,00 DH TTC, 12 mois, achevé le 30/08/2019) : seule référence de détection de fuites du dossier ; attestation RADEEO de bonne fin du marché n° 65/E/2022 (réseau d'eau potable d'Oujda, 4 081 561.46 DH TTC). [F018 p.1 ; F016 p.1]
 - **R-CPS-214** [INTERNE] Le gabarit de rapport mensuel STEPAG cite comme équipements « Aquaphone A 50, Aquaphone Mikron Junior 3, Eureka ». [F122 feuille "Table 2" A12]
 - **R-CPS-215** [DÉDUIT] Aucun engagement chiffré de l'offre ne porte sur un outil informatique, un délai par fuite ou un format de rapport : l'application de suivi est une initiative de STEPAG. [F020 ; F023 ; F027]
 
@@ -1634,7 +1642,7 @@ Chaque état est décrit par une fiche normalisée. Les colonnes des modèles r�
 
 **Principaux `[NON PRÉCISÉ]`.** Prix unitaires en lettres (le modèle n'a pas de colonne en lettres) ; sous-détail des prix (absent du dossier) ; niveau d'application de la majoration (ligne ou total) et arrondi ; prix pour les conduites de diamètre supérieur à 315 mm, pour les matériaux autres qu'amiante-ciment et PVC (fonte, acier, PEHD de gros diamètre), pour les pièces spéciales, vannes et ventouses, pour le terrain naturel et les pavés.
 
-**Décimales telles qu'imprimées.** Quantités : entières, séparateur de milliers « . » dans le PDF (`1.466.000`). Prix unitaires : 2 décimales, virgule décimale (`0,30`). Montants : 2 décimales (`439.800,00` dans le tableau ; `3 762 300,00` dans les totaux de la version signée). Montants en DH HT, sauf les lignes TTC indiquées.
+**Décimales telles qu'imprimées.** Quantités : entières ; séparateur de milliers « . » dans les modèles F058 et F060 (`1.466.000`, `439.800,00`), espace dans la version signée F032 (`1 466 000`, `439 800,00`). Prix unitaires : 2 décimales, virgule décimale (`0,30`). Montants : 2 décimales. Dans le tableau ci-dessous les quantités sont écrites sans séparateur. Montants en DH HT, sauf les lignes TTC indiquées.
 
 ### 4.1 Versions du bordereau présentes dans le dossier
 
@@ -1648,8 +1656,8 @@ Chaque état est décrit par une fiche normalisée. Les colonnes des modèles r�
 | F001 | feuille « BP » de l'attachement | copie du classeur F059 | non | — |
 
 - **R-BPU-001** [CONTRACTUEL] Le bordereau porte l'en-tête « Bordereau des prix à majoration », « Numéro DA/Marché : 10008883/1R » et six colonnes : « N° de prix », « Désignation des prestations », « Unité de mesure », « Quantité », « Prix unitaire en DH HT », « Prix total en DH HT ». [F032 p.1 ; F060 p.1]
-- **R-BPU-002** [CONTRACTUEL] Les treize désignations, unités, quantités et prix unitaires sont identiques dans les versions F058, F060, F059, F034 et F032 (comparaison par script des textes extraits) ; seuls changent le titre et le taux. [F058 ; F060 ; F032]
-- **R-BPU-003** [CONTRACTUEL] La version signée numériquement par STEPAG (F032) fait foi pour le taux de majoration et le montant ; `[À CONFIRMER : exemplaire signé par la SRM absent du dossier]`. [F032 p.1]
+- **R-BPU-002** [CONTRACTUEL] Les treize désignations, unités, quantités et prix unitaires sont identiques dans les versions F058, F060, F059, F034 et F032 (comparaison par script des textes extraits) ; seuls changent le titre, le taux et le format d'écriture des nombres ; la coquille « D#OUJDA » figure sur F060, F059 et F032. [F058 ; F060 ; F032]
+- **R-BPU-003** [CONTRACTUEL] La version signée numériquement par STEPAG (F032) fait foi pour le taux de majoration et le montant ; `[À CONFIRMER : exemplaire du bordereau visé par la SRM absent du dossier]`. [F032 p.1]
 
 ### 4.2 Tableau complet (verbatim)
 
@@ -1681,7 +1689,7 @@ Les désignations sont recopiées telles qu'écrites (fautes comprises : « poly
 
 - **R-BPU-004** [CONTRACTUEL] Montant de chaque ligne = quantité × prix unitaire HT (formule `=D×E`) ; total HT = somme des 13 lignes ; TVA = total HT × 0,2 ; TTC = HT + TVA ; montant après majoration = TTC × 1,15. [F059 feuille "Table 1" F4:F21]
 - **R-BPU-005** [CONTRACTUEL] Le total est qualifié d'« ANNUEL » (« TOTAL ANNUEL HORS TVA », « TOTAL ANNUEL TTC ») : les quantités sont celles des 12 mois du marché. [F032 p.1]
-- **R-BPU-006** [CONTRACTUEL] Les quantités des prix 1 et 2 sont toutes deux de 1.466.000 m, soit les 1466 km du tableau n° 1 du CPS : le balayage et le maintien portent sur le même linéaire. [F032 p.1 ; F056 p.19]
+- **R-BPU-006** [CONTRACTUEL] Les quantités des prix 1 et 2 sont toutes deux de 1 466 000 m, soit les 1466 km du tableau n° 1 du CPS : le balayage et le maintien portent sur le même linéaire. [F032 p.1 ; F056 p.19]
 - **R-BPU-007** [CONTRACTUEL] Les unités du bordereau sont `M` (mètre linéaire, prix 1 et 2), `M3` (prix 3), `M2` (prix 4 et 5) et `U` (prix 6 à 13). [F032 p.1]
 - **R-BPU-008** [CONTRACTUEL] Aucun prix n'est « pour mémoire », à quantité nulle, optionnel ou en variante ; les variantes sont interdites par le RC. [F032 p.1 ; F054 p.9, art. 14-E]
 - **R-BPU-009** [CONTRACTUEL] Le taux de majoration ne peut être nul et s'exprime avec deux décimales au plus. [F054 p.10, art. 14-G]
@@ -1726,19 +1734,19 @@ Le marché ne publie pas de prix unitaires majorés. Valeurs calculées `PU × 1
 
 ```csv
 numero;designation;unite;quantite;pu_ht;montant_ht;source
-1;Recherche et détection de fuites sur conduites, tous diamètres et toutes natures ( Balayage);ml;1466000;0.30;439800.00;F032 p.1
-2;Recherche et détection de fuites sur conduites pour le maintien des résultats;ml;1466000;0.45;659700.00;F032 p.1
-3;Confection de tranchée en terrain de toute nature y compris remblaiement de la tranchée, compactage, transport des terres en excédent et toutes sujétions, pour conduites et branchements y compris réglage du fond de fouille, étaiement, blindage et épuisement en cas de terrassement pour réparation de fuite ou sondage L'Unité = Le Mètre Cube;m3;2400;50.00;120000.00;F032 p.1
-4;Réfection et revêtement des trottoirs en béton, granito lavé, en carreaux ciment ou en mosaïque conforme à l'original épaisseur 0,10 m y compris blocage en pierre d'une épaisseur minimale de 15 cm,couche en tout venant GNA compactée et toutes sujétions;m2;2000;100.00;200000.00;F032 p.1
-5;Réfection et revêtement de chaussée goudronnée en enrobé à chaud d'épaisseur de 7 cm, y compris couche en tout venant GNA de 0,50 m;m2;800;150.00;120000.00;F032 p.1
-6;Fourniture,Transport et pose pour réparation de fuites au niveau du tuyau polyéthylène de diamètre extérieur strictement inférieur à 40 mm (longueur polyéthylène inférieur ou égale à 2m) y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue de largeur (50 cm), cisaillement, montage par mise en place de raccords , collier pour polyéthèlyne et ou manchon ou bouchon;u;2400;400.00;960000.00;F032 p.1
-7;Fourniture ,Transport et pose pour changement de Robinet PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise);u;900;460.00;414000.00;F032 p.1
-8;Fourniture ,Transport et pose pour changement de collier PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise);u;500;460.00;230000.00;F032 p.1
-9;Fourniture,Transport et pose pour réparation de fuites au niveau du tuyau polyéthylène de diamètre extérieur supérieur ou égal à 40 mm (longueur polyéthylène inférieur ou égale à 2m) y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue de largeur (50 cm), cisaillement, montage par mise en place de raccords , collier pour polyéthèlyne et ou manchon ou bouchon;u;600;400.00;240000.00;F032 p.1
-10;Mise à niveau de bouche à clé carrée ou ronde y compris pose de tube allonge en PVC, tabernacle et socle en béton de 0,40 m x 0,40 m x 0,20;u;300;140.00;42000.00;F032 p.1
-11;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam compris entre 315 mm et 225 mm;u;8;4600.00;36800.00;F032 p.1
-12;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam compris entre 200 mm et 110 mm;u;40;2900.00;116000.00;F032 p.1
-13;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam inférieur à 110 mm;u;80;2300.00;184000.00;F032 p.1
+00001;Recherche et détection de fuites sur conduites, tous diamètres et toutes natures ( Balayage);ml;1466000;0.30;439800.00;F032 p.1
+00002;Recherche et détection de fuites sur conduites pour le maintien des résultats;ml;1466000;0.45;659700.00;F032 p.1
+00003;Confection de tranchée en terrain de toute nature y compris remblaiement de la tranchée, compactage, transport des terres en excédent et toutes sujétions, pour conduites et branchements y compris réglage du fond de fouille, étaiement, blindage et épuisement en cas de terrassement pour réparation de fuite ou sondage L'Unité = Le Mètre Cube;m3;2400;50.00;120000.00;F032 p.1
+00004;Réfection et revêtement des trottoirs en béton, granito lavé, en carreaux ciment ou en mosaïque conforme à l'original épaisseur 0,10 m y compris blocage en pierre d'une épaisseur minimale de 15 cm,couche en tout venant GNA compactée et toutes sujétions;m2;2000;100.00;200000.00;F032 p.1
+00005;Réfection et revêtement de chaussée goudronnée en enrobé à chaud d'épaisseur de 7 cm, y compris couche en tout venant GNA de 0,50 m;m2;800;150.00;120000.00;F032 p.1
+00006;Fourniture,Transport et pose pour réparation de fuites au niveau du tuyau polyéthylène de diamètre extérieur strictement inférieur à 40 mm (longueur polyéthylène inférieur ou égale à 2m) y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue de largeur (50 cm), cisaillement, montage par mise en place de raccords , collier pour polyéthèlyne et ou manchon ou bouchon;u;2400;400.00;960000.00;F032 p.1
+00007;Fourniture ,Transport et pose pour changement de Robinet PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise);u;900;460.00;414000.00;F032 p.1
+00008;Fourniture ,Transport et pose pour changement de collier PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise);u;500;460.00;230000.00;F032 p.1
+00009;Fourniture,Transport et pose pour réparation de fuites au niveau du tuyau polyéthylène de diamètre extérieur supérieur ou égal à 40 mm (longueur polyéthylène inférieur ou égale à 2m) y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue de largeur (50 cm), cisaillement, montage par mise en place de raccords , collier pour polyéthèlyne et ou manchon ou bouchon;u;600;400.00;240000.00;F032 p.1
+00010;Mise à niveau de bouche à clé carrée ou ronde y compris pose de tube allonge en PVC, tabernacle et socle en béton de 0,40 m x 0,40 m x 0,20;u;300;140.00;42000.00;F032 p.1
+00011;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam compris entre 315 mm et 225 mm;u;8;4600.00;36800.00;F032 p.1
+00012;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam compris entre 200 mm et 110 mm;u;40;2900.00;116000.00;F032 p.1
+00013;réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris Fourniture, transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : -Diam inférieur à 110 mm;u;80;2300.00;184000.00;F032 p.1
 ```
 
 ## 5. Définition des prix
@@ -1762,7 +1770,7 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 - **R-DEF-002** [CONTRACTUEL] Le prix 1 a pour finalité d'atteindre les débits nocturnes fixés par le tableau n° 1 ; son paiement est diminué par la pénalité de résultat τ1 (R-CPS-146). [F056 p.28 ; F056 p.12, art. I-32 §1 ; F056 p.25, art. II-23]
 - **R-DEF-003** [CONTRACTUEL] Le linéaire d'une conduite inspectée n'est rémunéré qu'une seule fois, quel que soit le nombre de passages et de procédés (corrélation, écoute, pré-localisation). [F056 p.21, art. II-15 ; F056 p.23, art. II-19 ; F056 p.24, art. II-22]
 - **R-DEF-004** [CONTRACTUEL] Le linéaire des branchements inspectés n'est pas pris en compte dans la rémunération. [F056 p.23, art. II-19]
-- **R-DEF-005** [CONTRACTUEL] Les mesures de débit de nuit, la vérification de la sectorisation, la détection des conduites et accessoires, le curage des bouches à clé, les rapports et le report sur plans ne font l'objet d'aucun prix : ils sont compris dans les prix 1 et 2. [F056 p.22, art. II-17 ; F056 p.23, art. II-19 ; F056 p.25, art. II-24 ; F056 p.17, art. II-15]
+- **R-DEF-005** [CONTRACTUEL] Les mesures de débit de nuit, la vérification de la sectorisation, la détection des conduites et accessoires, le curage des bouches à clé, les rapports et le report sur plans ne font l'objet d'aucun prix au bordereau. `[DÉDUIT]` Ils sont donc réputés compris dans les prix 1 et 2 ; le texte n'exclut expressément la rémunération que pour les mesures de débit faites directement sur les conduites de la SRM. [F056 p.22, art. II-17 ; F056 p.23, art. II-19 ; F056 p.25, art. II-24 ; F056 p.17, art. II-15]
 - **R-DEF-006** [DÉDUIT] Quantité plafond théorique du prix 1 : 1466000 m (somme des linéaires « approximatifs » des 5 zones) ; le linéaire payé est celui réellement balayé et constaté contradictoirement, qui peut différer du linéaire approximatif du tableau n° 1 `[À CONFIRMER : source du linéaire de référence par secteur (plans AutoCAD, SIG SRM)]`. [F056 p.18-19 ; F056 p.29]
 
 #### Prix n° 2 : maintien des résultats
@@ -1794,8 +1802,8 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 > Ce prix est rémunéré au mètre cube.
 
 - **R-DEF-010** [CONTRACTUEL] Le prix 3 rémunère au mètre cube la confection de tranchée en terrain de toute nature, pour réparation de fuite ou sondage, sur conduites et branchements. [F056 p.28, prix 3 ; F032 p.1, prix 00003]
-- **R-DEF-011** [CONTRACTUEL] Le prix 3 comprend : remblaiement, compactage, transport des terres en excédent, réglage du fond de fouille, étaiement, blindage, épuisement et toutes sujétions. Aucune plus-value pour rocher, nappe ou profondeur. [F056 p.28, prix 3]
-- **R-DEF-012** [CONTRACTUEL] La longueur de tranchée prise en compte est celle nécessaire à la réparation, sans dépasser deux (2) mètres ; exception : si la réparation exige le remplacement d'un élément, la longueur est celle de l'élément à changer majorée de un (1) mètre. [F056 p.28, prix 3]
+- **R-DEF-011** [CONTRACTUEL] Le prix 3 comprend : remblaiement, compactage, transport des terres en excédent, réglage du fond de fouille, étaiement, blindage, épuisement et toutes sujétions, en « terrain de toute nature ». `[DÉDUIT]` Le bordereau ne prévoit donc aucune plus-value pour rocher, nappe ou profondeur. [F056 p.28, prix 3]
+- **R-DEF-012** [CONTRACTUEL] La longueur de tranchée prise en compte est celle nécessaire à la réparation, sans dépasser deux (2) mètres ; exception : si la réparation exige le remplacement d'un élément, la longueur est celle de l'élément à changer majorée de un (1) mètre `[À CONFIRMER : la phrase source est bancale, « sauf si cette réparation nécessite le remplacement d'un élément à changer majorée de (1) mètre »]`. [F056 p.28, prix 3]
 - **R-DEF-013** [DÉDUIT] Volume = longueur × largeur × profondeur de la fouille, en mètres ; la largeur et la profondeur admises, la façon de mesurer la profondeur et l'arrondi sont `[NON PRÉCISÉ]`. Le gabarit STEPAG relève les trois dimensions par fuite avec une ou deux décimales (ex. 1.2 × 0.7 × 0.8). [F001 feuille "Fiche de réparation Zone " E14:G14]
 - **R-DEF-014** [2017] Dans le marché de 2017, la largeur prise en attachement était le « diamètre externe de la conduite majorée de 25 cm de chaque coté » ; cette règle n'est PAS reprise dans le CPS 2026. [F077 art. 16, prix 4]
 - **R-DEF-015** [CONTRACTUEL] Le terrassement d'un « sondage » est payable au prix 3 (désignation : « en cas de terrassement pour réparation de fuite ou sondage ») ; le CPS ne dit pas si une fouille ne révélant aucune fuite est payée `[À CONFIRMER : fouille négative]` (voir R-CPS-127). [F032 p.1, prix 00003 ; F056 p.23, art. II-19]
@@ -1817,7 +1825,7 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 - **R-DEF-016** [CONTRACTUEL] Le prix 4 rémunère au mètre carré la réfection et le revêtement des trottoirs en béton, granito lavé, carreaux ciment ou mosaïque, conforme à l'original, épaisseur 0,10 m, y compris blocage en pierre d'au moins 15 cm et couche de tout venant GNA compactée. Un seul prix pour les quatre natures de revêtement. [F032 p.1, prix 00004 ; F056 p.28, prix 4]
 - **R-DEF-017** [CONTRACTUEL] L'empierrement, le blocage et la forme sont refaits identiques à l'état initial avec les matériaux de récupération, complétés de matériaux neufs si nécessaire ; le revêtement de surface est le plus possible identique au revêtement initial. [F056 p.28, prix 4]
-- **R-DEF-018** [CONTRACTUEL] Si les services de voirie municipaux font des observations, l'entreprise reprend les travaux à ses frais jusqu'à obtenir la réception conforme de ces services. [F056 p.28, prix 4]
+- **R-DEF-018** [CONTRACTUEL] Si les services de voirie municipaux font des observations, l'entreprise est tenue de reprendre les travaux et d'obtenir la réception conforme de ces services (sans rémunération prévue `[DÉDUIT]`). [F056 p.28, prix 4]
 - **R-DEF-019** [INTERNE] Surface de réfection = longueur × largeur de la fouille (formule `=IF($H17="C",D17*E17,"-")` du gabarit), sans débord ; débord autour de la fouille et surface minimale : `[NON PRÉCISÉ]` dans le CPS. [F001 feuille "REFECTION" I17:M17]
 - **R-DEF-020** [INTERNE] Le gabarit STEPAG range les natures « Béton » (B), « Mosaique » (M), « Lavé » (L) et « Carreaux » (C) sous le prix 4, « Asphalt à chaud » (AC) sous le prix 5 et compte « Terrain naturel » (TN) pour zéro. [F001 feuille "REFECTION" I14:N17]
 - **R-DEF-021** [DÉDUIT] Les pavés (« pave », rencontré dans la fiche de réparation) et le terrain naturel n'ont pas de prix de réfection au bordereau `[À CONFIRMER : rattachement des pavés au prix 4 ou hors bordereau]`. [F001 feuille "Fiche de réparation Zone " colonne H ; F032 p.1]
@@ -1833,7 +1841,7 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 > cm
 > Ce prix est rémunéré au mètre carré.
 
-- **R-DEF-022** [CONTRACTUEL] Le prix 5 rémunère au mètre carré la réfection de chaussée goudronnée : remblaiement en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée, couche d'imprégnation de cut back, couche d'enrobés à chaud de 7 cm. [F056 p.28, prix 5 ; F032 p.1, prix 00005]
+- **R-DEF-022** [CONTRACTUEL] Le prix 5 rémunère au mètre carré la réfection de chaussée goudronnée : remblaiement en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée, couche d'imprégnation de cut back (l'art. II-20 admet « cut back ou émulsion »), couche d'enrobés à chaud conforme à l'épaisseur originale de la chaussée, 7 cm. [F056 p.28, prix 5 ; F032 p.1, prix 00005]
 - **R-DEF-023** [CONTRACTUEL] La réfection de chaussée doit être faite dans un délai d'un mois après la réparation ; au-delà, l'entreprise doit utiliser un enrobé-résine à froid, sans aucune rémunération supplémentaire (même prix 5). [F056 p.23-24, art. II-20]
 - **R-DEF-024** [CONTRACTUEL] Les réfections de chaussée sont contrôlées par carottage (1 prélèvement par 50 m2) à la charge de l'entreprise ; une réfection non conforme est reprise et pénalisée de deux fois son prix (R-CPS-138). [F056 p.24, art. II-21]
 
@@ -1868,7 +1876,7 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 > c
 > Ce prix est rémunéré à l’unité.
 
-- **R-DEF-034** [CONTRACTUEL] Le prix 10 rémunère à l'unité la mise à niveau d'une bouche à clé carrée ou ronde, y compris fourniture, transport et pose du tube allonge en PVC, du tabernacle en polyester et d'un socle en béton de 0,40 m × 0,40 m × 0,20. [F056 p.29, prix 10 ; F032 p.1, prix 00010]
+- **R-DEF-034** [CONTRACTUEL] Le prix 10 rémunère à l'unité la mise à niveau d'une bouche à clé carrée ou ronde, y compris fourniture, transport et pose du tube PVC (« tube allonge en PVC » au bordereau), du tabernacle en polyester et d'un socle en béton de longueur = largeur = 40 cm et profondeur = 20 cm (le CPS est tronqué : « profondeur = 20 c » ; le bordereau écrit « 0,40 m x 0,40 m x 0,20 »). [F056 p.29, prix 10 ; F032 p.1, prix 00010]
 - **R-DEF-035** [CONTRACTUEL] La mise en évidence des accès aux conduites pendant la recherche (détection des bouches à clé, curage) reste à la charge de l'entreprise et n'est pas payée par le prix 10. [F056 p.23, art. II-19]
 - **R-DEF-036** [DÉDUIT] Les prix 7 et 8 incluent déjà le tabernacle, le tube PVC et le socle : le prix 10 ne se cumule pas avec eux pour la même bouche à clé `[À CONFIRMER]`. [F032 p.1]
 
@@ -1952,7 +1960,7 @@ numero;mesures_a_relever;unite_saisie;formule_quantite;conditions;source
 
 | N° prix | Inclus | Exclus | Mode de métré | Conditions | Prix liés | Source |
 |---|---|---|---|---|---|---|
-| 1 | balayage de l'ensemble des réseaux ; toutes méthodes de détection ; mesures de débit ; rapports | linéaire des branchements ; second passage | ml de conduite balayée, une fois | objectif Q exigé du tableau n° 1 | pénalité τ1 ; prix 2 | [F056 p.28] |
+| 1 | balayage de l'ensemble des réseaux ; toutes méthodes de détection ; mesures de débit et rapports (sans prix propre, DÉDUIT) | linéaire des branchements ; second passage | ml de conduite balayée, une fois | objectif Q exigé du tableau n° 1 | pénalité τ1 ; prix 2 | [F056 p.28] |
 | 2 | maintien des débits nocturnes atteints ; contrôles hebdomadaires | — | ml de réseau maintenu | 8 mois après le balayage | pénalité τ2 ; prix 1 | [F056 p.28] |
 | 3 | tranchée tout terrain ; remblaiement ; compactage ; transport des terres ; réglage ; étaiement ; blindage ; épuisement | [NON PRÉCISÉ] | m3 | longueur ≤ 2 m ou élément + 1 m | prix 4 ; 5 ; 6 à 13 | [F056 p.28] |
 | 4 | empierrement ; blocage pierre ≥ 15 cm ; forme ; revêtement identique épaisseur 0,10 m ; tout venant GNA | [NON PRÉCISÉ] | m2 | trottoir béton, granito lavé, carreaux ciment, mosaïque ; reprise si observations de la voirie | prix 3 | [F056 p.28] ; [F032 p.1] |
@@ -1968,7 +1976,7 @@ numero;mesures_a_relever;unite_saisie;formule_quantite;conditions;source
 
 ## 6. Matériaux et articles
 
-**Résumé.** Les documents contractuels ne citent que peu de matériaux (polyéthylène, PVC, amiante-ciment, robinet et collier de prise en charge, collier Astor, joint gibault, joint dissymétrique, tabernacle, tube PVC, bouche à clé, sable, grillage avertisseur, GNA, cut back, enrobés). Le catalogue détaillé (268 désignations) vient du classeur d'attachement STEPAG ([F001], feuille « LISTE ») : c'est une liste interne, héritée de 2017, qui sert à saisir les pièces posées. En 2026 toutes les fournitures sont à la charge de l'entreprise et comprises dans les prix unitaires de réparation.
+**Résumé.** Les documents contractuels ne citent que peu de matériaux (polyéthylène, PVC, amiante-ciment, robinet et collier de prise en charge, collier Astor, joint gibault, joint dissymétrique, tabernacle, tube PVC, bouche à clé, sable, grillage avertisseur, GNA, cut back, enrobés). Le catalogue détaillé (268 cellules, 266 désignations distinctes) vient du classeur d'attachement STEPAG ([F001], feuille « LISTE ») : c'est une liste interne, héritée de 2017, qui sert à saisir les pièces posées. En 2026 toutes les fournitures sont à la charge de l'entreprise et comprises dans les prix unitaires de réparation.
 
 **Principaux `[NON PRÉCISÉ]`.** Normes et agréments exigés par pièce (le CPS dit seulement « conforme aux normes en vigueur », approbation préalable de la SRM) ; marques ; pression nominale ; informations à relever à la pose (marque, série) ; rattachement officiel de chaque pièce à un prix.
 
@@ -2275,13 +2283,13 @@ Statut `[INTERNE]`. Colonnes « Famille proposée » et « Prix 2026 proposé »
 | 265 | monchette dn 100 | pièce spéciale, robinetterie ou ouvrage | u | hors bordereau probable | — | [F001 feuille "LISTE" A] |
 | 266 | Robinet FF 50 | côté compteur (cache-entrée, raccord standard, compteur) | u | hors périmètre des prix 6 à 9 | — | [F001 feuille "LISTE" A] |
 
-- **R-MAT-005** [INTERNE] Le catalogue compte 266 désignations distinctes (268 cellules, doublons compris), dont 5 motifs qui ne sont pas des pièces (« A DETECTER », « RAS », « Assainissement », « refusé par l'abonné », « sondage negatif »). [F001 feuille "LISTE"]
+- **R-MAT-005** [INTERNE] Le catalogue compte 266 désignations distinctes (268 cellules ; deux doublons : « Robinet PEC 63/40 » et « Collier PEC 100/40 » ; colonnes B et C vides) ; il sert de source à la liste déroulante de la colonne « Détail des pieces de reparation des fuites » (validation `LISTE!$A:$A` sur I14:I977), dont 5 motifs qui ne sont pas des pièces (« A DETECTER », « RAS », « Assainissement », « refusé par l'abonné », « sondage negatif »). [F001 feuille "LISTE"]
 - **R-MAT-006** [DÉDUIT] 109 désignations n'ont pas de prix évident au bordereau 2026 (robinets-vannes, ventouses, tés, cônes, brides, adaptateurs, obturateurs, plaques de regard, conduites de diamètre > 315, fonte, acier, pièces côté compteur) : hors bordereau probable, à traiter par prix nouveaux (question en section 12). [F001 feuille "LISTE" ; F032 p.1]
 - **R-MAT-007** [DÉDUIT] Diamètres de conduite cités dans le catalogue : 60, 63, 75, 80, 90, 100, 110, 125, 140, 150, 160, 200, 225, 250, 300, 315, 400, 500, 600, 700 ; diamètres de polyéthylène : 15, 20, 25, 32, 40, 50, 63, 75 (voir liste `diametre_nominal` en 6 bis). [F001 feuille "LISTE"]
 
 ## 6 bis. Énumérations (listes de valeurs fermées)
 
-**Résumé.** Toutes les listes de valeurs sont réunies ici ; les autres sections y renvoient par le nom de la liste. Aucun classeur du dossier ne contient de liste de validation Excel (vérifié par script sur tous les `.xlsx` ; non vérifiable sur les `.xls`) : les listes ci-dessous sont reconstituées à partir du CPS, du bordereau et des valeurs réellement saisies. La colonne « Code proposé » est une proposition de l'extracteur.
+**Résumé.** Toutes les listes de valeurs sont réunies ici ; les autres sections y renvoient par le nom de la liste. Une seule liste de validation Excel existe dans le dossier : dans [F001], feuille « Fiche de réparation Zone », plage I14:I977, source `LISTE!$A:$A` (le catalogue de pièces et de motifs, reproduit intégralement en section 6.2) ; les autres listes ci-dessous sont reconstituées à partir du CPS, du bordereau et des valeurs réellement saisies. La colonne « Code proposé » est une proposition de l'extracteur.
 
 **Principaux `[NON PRÉCISÉ]`.** Classes de débit de fuite ; classes de profondeur ; nature du terrain ; origine du signalement ; quartiers ; liste officielle des tournées ; statuts contractuels d'une fuite ; découpage exact des secteurs de la zone 1 et de la zone 3.
 
@@ -2862,7 +2870,7 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 
 **Principaux `[NON PRÉCISÉ]`.** Numérotation des fiches et des rapports ; nombre d'exemplaires ; qui signe côté SRM (fonction exacte) ; heure limite de remise ; version arabe (aucun libellé arabe dans les fiches, hors raison sociale de STEPAG) ; modèles imposés par la SRM (aucun dans le dossier).
 
-**Convention.** « Obligatoire » : `oui` si le CPS impose l'information, `interne` si seul le gabarit la prévoit. Aucun classeur ne contient de commentaire de cellule, de modification suivie ni de liste de validation ; il n'y a donc pas de mention `[brouillon]`.
+**Convention.** « Obligatoire » : `oui` si le CPS impose l'information, `interne` si seul le gabarit la prévoit. Aucun classeur ne contient de commentaire de cellule ni de modification suivie ; il n'y a donc pas de mention `[brouillon]`. Une seule liste de validation existe (pièces de la fiche de réparation de [F001], voir 8.4).
 
 ### 8.1 Rapport journalier de recherche de fuites (en usage, octobre 2026)
 
@@ -2908,6 +2916,7 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 - **R-FICHE-002** [INTERNE] Une mise en forme conditionnelle « valeurs en double » porte sur la colonne des références : une même référence ne doit pas figurer deux fois dans un rapport. [F121 A16:A20]
 - **R-FICHE-003** [INTERNE] Le gabarit traite les quatre équipes ensemble (« EQUIPE N° : 1-2-3-4 ») : il ne permet pas de vérifier la cadence contractuelle de 4 km par jour et par équipe (R-CPS-121) `[À CONFIRMER : un rapport par équipe ou une colonne équipe]`. [F119 A8]
 - **R-FICHE-004** [DÉDUIT] Manquent au gabarit par rapport au CPS : le linéaire renseigné, l'extrait de plan A4, la nature (matériau) de la canalisation ; par rapport au modèle 2017 : « Planche N° », « Equipements utilisés », « Nbre de Branchement prospecté », « Observation ». [F056 p.24 ; F087]
+- **R-FICHE-020** [INTERNE] Variante [F121] (données d'exemple) : « Journée du: 25/04/2026 » (D9) ; « MARCHE 45000004453 » (A10, 11 chiffres) ; « EQUIPE N°1 ,2,3,4 » (A11) ; « Zone d'intervention : » (D11, vide) ; « Linéaire en Km : 16 Km » ; colonnes « Réf » (A14), « Adresse » (B14), « Canalisation prospectée » › « Calibre » (C14:C15), « Fuite » › « N° » (D15), « Nature » (E15), « Visibles » (F15), « Invisibles » (G15), « Nature Dégradation » (H14) ; trois fuites, toutes « Visibles » : 075-169-010 (CDT, Carrelage), 075-324-001 (CDT, Carrelage), 513-157-010 (BRT, Mozaig). [F121 A9:H18]
 - **R-FICHE-005** [INTERNE] Données réelles du 2026-10-02 : secteur Abdellah Guenoun, 15 références (402-673-001 ; 040-152-010 ; 400-474-001…) ; secteur Lazaret Haut, 32 références (302-560-030 ; 037-287-009 ; 058-149-001…) ; toutes « Invisibles ». [F119 ; F120]
 
 ### 8.2 Fiche individuelle de réparation des fuites
@@ -2974,10 +2983,10 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 | 5 | « Mois » | — | H11 ; valeur I11 | choix | — | JANVIER à DÉCEMBRE | oui | mois_rapport | [F122 H11] |
 | 6 | « Equipements Utilisés : Aquaphone A 50 , Aquaphone Mikron Junior 3 , Eureka » | — | A12 | texte | — | `equipement_detection` | interne | equipements_utilises | [F122 A12] |
 | 7 | « Nbr Jours » | — | A13 ; valeur A14 | nombre | j | — | interne | nb_jours_travailles | [F122 A13] |
-| 8 | « Linéaire Balayé » | — | B13 ; valeur B14 | nombre | km | — | oui | lineaire_inspecte_m (somme du mois) | [F122 B13] |
+| 8 | « Linéaire Balayé » | — | B13 ; valeur B14 | nombre | km | — | oui | lineaire_inspecte_m | [F122 B13] |
 | 9 | « Nombre de fuites localisées » › « Fuites localisée » | — | D13:D14 | en-tête | — | — | oui | — | [F122 D13] |
-| 10 | « Visibles » (ligne) | — | D15 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (visibles) | [F122 D15] |
-| 11 | « Invisibles » (ligne) | — | D16 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (invisibles) | [F122 D16] |
+| 10 | « Visibles » (ligne) | — | D15 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites | [F122 D15] |
+| 11 | « Invisibles » (ligne) | — | D16 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites | [F122 D16] |
 | 12 | « Conduites » (colonne) | — | F14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 F14] |
 | 13 | « Branchement » (colonne) | — | G14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 G14] |
 | 14 | « Piece Spéciale » (colonne) | — | H14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 H14] |
@@ -3006,8 +3015,9 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 | Qui la remplit ; quand | bureau STEPAG ; au fil des réparations, arrêté en fin de mois (« Travaux executés au 31/10/2026 ») |
 | Qui signe | « SRM.ORI » et « Sté STEPAG » (attachement récapitulatif) ; « Signature: » (facture) |
 | Statut normatif | attachement et facture `[CONTRACTUEL]` dans leur principe et leurs mentions (R-CPS-061, R-CPS-064) ; forme `[INTERNE]` |
-| Maturité | brouillon en cours : 22 fuites saisies (détectées le 2026-10-02, réparées le 2026-10-03) ; détail d'attachement et récapitulatif encore vides ; restes de gabarit (titre « au 30/01/2026 », bordereau d'envoi d'un autre marché, numéro de marché à 11 chiffres) |
-| Où les champs réapparaissent | Parametre → en-têtes de toutes les feuilles ; fiche de réparation → REFECTION → détail → récapitulatif → facture |
+| Maturité | brouillon en cours : 22 fuites saisies (dates renseignées pour les fuites 1 à 6 seulement : détection 2026-10-02, réparation 2026-10-03) ; détail d'attachement et récapitulatif encore vides ; restes de gabarit (titre « au 30/01/2026 », bordereau d'envoi d'un autre marché, numéro de marché à 11 chiffres) |
+| Où les champs réapparaissent | Parametre → en-têtes de toutes les feuilles ; par formules : fiche de réparation → REFECTION, et récapitulatif → facture ; rien n'alimente encore par formule le détail d'attachement ni la « Quantité partielle » du récapitulatif (E14:E26 vides) |
+| Autres feuilles | « BP » : copie du bordereau (13 prix, mêmes formules et totaux qu'en section 4) ; « LISTE » : catalogue de pièces (section 6.2) ; nom défini `PCS = '[2]Détail BS'!$A$5:$A$105` et deux liens externes hérités du classeur de 2017 |
 
 **Feuille « Parametre »** (source unique des en-têtes ; les autres feuilles y pointent par formule `=Parametre!A3` etc.) :
 
@@ -3028,14 +3038,14 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 | N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
 |---|---|---|---|---|---|---|---|---|---|
 | 1 | « N° de fuite » | — | col. A | nombre | — | — | interne | fuite_numero | [F001 feuille "Fiche de réparation Zone " A12] |
-| 2 | « Tournée » | — | col. B | texte | — | format `NNN-NNN-NNN` ; doublons signalés | interne | reference_srm | [F001 feuille "Fiche de réparation Zone " B12] |
+| 2 | « Tournée » | — | col. B | texte | — | format `NNN-NNN-NNN` (la règle de doublons ne couvre que l'en-tête B12:B13) | interne | reference_srm | [F001 feuille "Fiche de réparation Zone " B12] |
 | 3 | « DATE DE DETECTION » | — | col. C | date | — | — | interne | date_detection | [F001 feuille "Fiche de réparation Zone " C12] |
 | 4 | « DATE DE REPARATION » | — | col. D | date | — | — | interne | date_reparation | [F001 feuille "Fiche de réparation Zone " D12] |
 | 5 | « Terrassement » › « Longueur » | — | col. E | nombre | m | — | interne | fouille_longueur_m | [F001 feuille "Fiche de réparation Zone " E13] |
 | 6 | « Terrassement » › « Largeur » | — | col. F | nombre | m | — | interne | fouille_largeur_m | [F001 feuille "Fiche de réparation Zone " F13] |
 | 7 | « Terrassement » › « Profondeur » | — | col. G | nombre | m | — | interne | fouille_profondeur_m | [F001 feuille "Fiche de réparation Zone " G13] |
 | 8 | « Nature de degradation » | — | col. H | choix | — | `nature_revetement` | interne | nature_revetement | [F001 feuille "Fiche de réparation Zone " H12] |
-| 9 | « Détail des pieces de reparation des fuites » | — | col. I | choix | — | catalogue (section 6.2) ; `motif_sans_reparation` | interne | piece_designation | [F001 feuille "Fiche de réparation Zone " I12] |
+| 9 | « Détail des pieces de reparation des fuites » | — | col. I | choix (liste déroulante, validation `LISTE!$A:$A` sur I14:I977) | — | catalogue (section 6.2) ; `motif_sans_reparation` | interne | piece_designation | [F001 feuille "Fiche de réparation Zone " I12] |
 | 10 | « Qté posée » | — | col. J | nombre | u, ou m pour le PEHD | — | interne | piece_quantite | [F001 feuille "Fiche de réparation Zone " J12] |
 | 11 | « Observations » | — | col. K | texte | — | — | interne | observation | [F001 feuille "Fiche de réparation Zone " K12] |
 
@@ -3062,18 +3072,18 @@ Lignes réelles (extrait) :
 | 4 | « Long » ; « Larg » ; « prof » | — | col. D ; E ; F | lien | m | — | interne | fouille_longueur_m ; fouille_largeur_m ; fouille_profondeur_m | [F001 feuille "REFECTION" D14:F14] |
 | 5 | « Nature de degradation » | — | col. G | lien | — | `nature_revetement` | interne | nature_revetement | [F001 feuille "REFECTION" G14] |
 | 6 | « Symbole » | — | col. H | choix (saisie) | — | B ; M ; L ; C ; AC ; TN | interne | symbole_refection | [F001 feuille "REFECTION" H14] |
-| 7 | « Béton » (B) ; « Mosaique » (M) ; « Lavé » (L) ; « Carreaux » (C) | — | col. I ; J ; K ; L ; n° de prix 4 en I16 | nombre calculé | m2 | — | interne | surface_refection_m2 (prix 4) | [F001 feuille "REFECTION" I14:L16] |
-| 8 | « Asphalt à chaud » (AC) | — | col. M ; n° de prix 5 en M16 | nombre calculé | m2 | — | interne | surface_refection_m2 (prix 5) | [F001 feuille "REFECTION" M14:M16] |
+| 7 | « Béton » (B) ; « Mosaique » (M) ; « Lavé » (L) ; « Carreaux » (C) | — | col. I ; J ; K ; L ; n° de prix 4 en I16 | nombre calculé | m2 | — | interne | surface_refection_m2 | [F001 feuille "REFECTION" I14:L16] |
+| 8 | « Asphalt à chaud » (AC) | — | col. M ; n° de prix 5 en M16 | nombre calculé | m2 | — | interne | surface_refection_m2 | [F001 feuille "REFECTION" M14:M16] |
 | 9 | « Terrain naturel » (TN) | — | col. N | nombre calculé (toujours 0) | m2 | — | interne | — | [F001 feuille "REFECTION" N14] |
 | 10 | « Ovservation » | — | col. O | texte | — | — | interne | observation | [F001 feuille "REFECTION" O14] |
 | 11 | « Total » | — | ligne 445 | somme | m2 | — | interne | — | [F001 feuille "REFECTION" A445] |
 
-- **R-FICHE-011** [INTERNE] Formules de la feuille REFECTION : `A17 ='Fiche de réparation Zone '!A14` (recopie ligne à ligne) ; `I17 =IF($H17="B",D17*E17,"-")` ; `J17 =IF($H17="M",D17*E17,"-")` ; `K17 =IF($H17="L",D17*E17,"-")` ; `L17 =IF($H17="C",D17*E17,"-")` ; `M17 =IF($H17="AC",D17*E17,"-")` ; `N17 =IF($H17="TN",E17*F17*0,"-")` ; totaux `=SUM(I17:I444)`. Surface = longueur × largeur de la fouille, placée dans la colonne du symbole saisi. [F001 feuille "REFECTION" A17:N445]
+- **R-FICHE-011** [INTERNE] Formules de la feuille REFECTION : `A17 ='Fiche de réparation Zone '!A14` (recopie ligne à ligne) ; `I17 =IF($H17="B",D17*E17,"-")` ; `J17 =IF($H17="M",D17*E17,"-")` ; `K17 =IF($H17="L",D17*E17,"-")` ; `L17 =IF($H17="C",D17*E17,"-")` ; `M17 =IF($H17="AC",D17*E17,"-")` ; `N17 =IF($H17="TN",E17*F17*0,"-")` ; totaux `=SUM(I17:I444)`. Surface = longueur × largeur de la fouille, placée dans la colonne du symbole saisi. Les formules de recopie s'arrêtent à la ligne 280 (lignes 281 à 444 sans lien) et les formules de surface manquent aux lignes 261, 321 et 378 : gabarit incomplet. [F001 feuille "REFECTION" A17:N445]
 - **R-FICHE-012** [INTERNE] Le symbole de réfection est saisi à la main et seulement une fois la réfection faite (5 symboles saisis pour 22 fuites : 4 « c », 1 « m » ; totaux 4.67 m2 de carreaux et 0.84 m2 de mosaïque) : la saisie du symbole tient lieu de constat « réfection faite ». [F001 feuille "REFECTION" H ; L445 ; J445]
 
 **Feuille « DETAIL ATTACHEMENT Zone »** (matrice fuite × prix, vide de données) : colonnes « DATE » ; « Tournée » ; « Terrassement » (« Longueur », « Largeur », « Profondeur », « Nature de degradation ») ; « Détail des de reparation des fuites » ; « Qté Posée » ; puis une colonne par prix du bordereau, libellé complet en ligne 14 et numéro 1 à 13 en ligne 15 ; lignes de pied « Total » `=SUM(K16:K929)`, « Total mois -1 » (saisie), « total partiel » `=K930-K932`. [F001 feuille "DETAIL ATTACHEMENT Zone" A14:U933]
 
-- **R-FICHE-013** [INTERNE] Le détail d'attachement porte des cumuls ; la quantité de la période (« total partiel ») = total cumulé − total du mois précédent, pour chacun des 13 prix. [F001 feuille "DETAIL ATTACHEMENT Zone" 930:933]
+- **R-FICHE-013** [INTERNE] Le détail d'attachement porte des cumuls ; la quantité de la période (« total partiel ») = total cumulé − total du mois précédent, pour les colonnes K et N à U (prix 3 et 6 à 13) ; les prix 1, 2, 4 et 5 n'ont pas de total dans cette feuille ; une formule résiduelle `F930 =SUM(F16:F916)` et 44 colonnes masquées subsistent. [F001 feuille "DETAIL ATTACHEMENT Zone" 930:933]
 
 **Feuille « attachement recap »** :
 
@@ -3118,14 +3128,14 @@ Lignes réelles (extrait) :
 - **R-FICHE-016** [DÉDUIT] La facture du gabarit ne comporte ni retenue de garantie, ni pénalité, ni révision, ni arrondi, ni règle des 100 % / 40 % / 60 % des prix 1 et 2 : ces éléments relèvent du décompte dressé par la SRM (R-CPS-065) ou restent à ajouter. Les libellés « TOTAL ANNUEL » viennent du bordereau et sont impropres pour une facture partielle. [F001 feuille "facture" ; F056 p.12-13]
 - **R-FICHE-017** [INTERNE] Format du numéro de facture STEPAG : `FA AAMM-NNNN` (« FA 2610-0002 » = octobre 2026, n° 0002 ; « FA2607-0002 »). [F001 feuille "facture" A4 ; feuille "B.ENVOI" B20]
 
-**Feuille « B.ENVOI »** : bordereau d'envoi à « MONSIEUR LE DIRECTEUR GENERAL SRM -ORI » ; colonnes « DESIGNATION » ; « NBRE » ; « OBSERVATION » ; lignes « OBJET : MARCHE N°… » ; « FACTURE N° … » (5) ; « ATTACHEMENT N°… » (3). [F001 feuille "B.ENVOI" A7:D21]
+**Feuille « B.ENVOI »** : bordereau d'envoi à « MONSIEUR LE DIRECTEUR GENERAL SRM -ORI » ; colonnes « DESIGNATION » ; « NBRE » ; « OBSERVATION » ; « OUJDA LE : » (D4) ; titre « BORDEREAU D'ENVOI » (A11) ; lignes « OBJET : MARCHE N°4500000169 » et son intitulé (B16:B17, autre marché) ; « FACTURE N° … » (5) ; « ATTACHEMENT N°… » (3) ; total 8 en ligne masquée (C22) ; pied STEPAG `[comptes bancaires et téléphone non recopiés]`. [F001 feuille "B.ENVOI" A1:D22]
 
 ### 8.5 Bordereau d'envoi (Word)
 
 | Élément | Valeur |
 |---|---|
 | Nom | « BORDEREAU D'ENVOI » |
-| Fichiers | [F050], [F051], [F052] ; lettre [F053] (demande de caution) |
+| Fichiers | [F050] (2026-09-15, attestation d'assurance accident de travail, responsabilité civile, parc engins et automobiles ; objet « MARCHÉ N° 4500004350 ») ; [F051] (2026-09-16, cautionnement définitif FINEA n° 231882) ; [F052] (2026-09-15, attestation d'enregistrement du marché ; objet « MARCHÉ N° 4500004350 ») ; [F053] : lettre du 2026-09-15 à FINEA demandant une caution définitive de 155 760,00 Dhs pour le marché n° 4500004453 (lettre libre, sans tableau) |
 | Usage | transmettre une pièce à un département de la SRM |
 | Support ; numérotation | Word ; aucune |
 | Qui signe | STEPAG |
@@ -3336,7 +3346,7 @@ Lignes réelles (extrait) :
 
 | Référence | Émetteur | Format exact ou motif | Exemples réels (3 au moins) | Portée d'unicité | Qui l'attribue et quand | Obligatoire sur quels documents | Source |
 |---|---|---|---|---|---|---|---|
-| Numéro du marché | SRM-ORI (SAP) | `^45\d{8}$` (10 chiffres) | 4500004453 ; 4500000150 ; 4500003179 | SRM | SRM, à l'approbation du marché | facture et attachement (« référence du marché ») ; ordres de service | [F035 p.1] ; [F027 p.1] ; [F056 p.11-12] |
+| Numéro du marché | SRM-ORI (SAP) | `^45\d{8}$` (10 chiffres) ; ancien format de la régie : `NN/E/AAAA` (46/E/2024 ; 65/E/2022 ; 59/E/2016) | 4500004453 ; 4500000150 ; 4500003179 | SRM | SRM, à l'approbation du marché | facture et attachement (« référence du marché ») ; ordres de service | [F035 p.1] ; [F027 p.1] ; [F056 p.11-12] |
 | Numéro de l'appel d'offres | SRM-ORI | `^\d{8}(/\dR)?$` | 10008883/1R ; 10009837 ; 10010170 | SRM | SRM, au lancement | CPS, RC, bordereau, acte d'engagement | [F039 p.1] ; [F056 p.1] |
 | Numéro d'ordre de service | SRM-ORI | `NN/<numéro du marché>` ; au registre : `NN/<numéro du marché>/AAAA` | 01/4500004453 ; 02/4500004453 ; 01/4500004453/2026 | marché | SRM, à chaque OS | attachement (« référence de l'ordre de service correspondant ») | [F035 p.1] ; [F036 p.1] ; [F056 p.12] |
 | Numéro d'ordre de service `[2017]` | RADEEO | `NNN/AAAA` | 285/2016 ; 286/2016 ; 287/2016 ; 288/2016 | régie | un OS global puis un OS partiel par zone | décompte, facture, fiche de suivi du délai | [F073] ; [F069] |
@@ -3362,8 +3372,8 @@ Lignes réelles (extrait) :
 | Numéro de marquage au sol | — | `[NON PRÉCISÉ]` | — | — | — | — | — |
 | Numéro d'engagement ; code fournisseur | — | `[NON PRÉCISÉ]` | — | — | — | — | — |
 
-- **R-IDF-001** [INTERNE] La référence `NNN-NNN-NNN` est la clé de rapprochement entre le rapport journalier (colonne « Adresse ou Référence »), la fiche de réparation (« Tournée ») et la feuille de réfection (« Référence ») ; les gabarits signalent les doublons par mise en forme conditionnelle mais ne les interdisent pas. [F001 feuille "Fiche de réparation Zone " B12:B13 ; F121 A16:A20]
-- **R-IDF-002** [DÉDUIT] Les préfixes observés semblent liés au secteur (302-… et 03x-… à Lazaret Haut ; 040-… et 40x-… à Abdellah Guenoun ; 461-… à Lazaret Bas) : le premier bloc serait un code de tournée de relève, le deuxième un rang, le troisième un indice `[À CONFIRMER auprès de la SRM]`. [F119 ; F120 ; F123]
+- **R-IDF-001** [INTERNE] La référence `NNN-NNN-NNN` est la clé de rapprochement entre le rapport journalier (colonne « Adresse ou Référence »), la fiche de réparation (« Tournée ») et la feuille de réfection (« Référence ») ; des mises en forme conditionnelles « valeurs en double » existent sur cette donnée dans F121 (A16:A20) et F123 (D8) ; dans F001 la règle ne couvre que l'en-tête B12:B13 et ne contrôle donc rien. Trois tournées de la fiche de réparation (302-650-030, 040-151-001, 037-296-001) ne figurent dans aucun rapport journalier du dossier. [F001 feuille "Fiche de réparation Zone " B12:B13 ; F121 A16:A20 ; F123 D8]
+- **R-IDF-002** [DÉDUIT] Les préfixes observés semblent liés au secteur (302-…, 03x-…, 029-…, 058-… et 372-… à Lazaret Haut ; 040-… et 40x-… à Abdellah Guenoun ; 461-… à Lazaret Bas) : le premier bloc serait un code de tournée de relève, le deuxième un rang, le troisième un indice `[À CONFIRMER auprès de la SRM]`. [F119 ; F120 ; F123]
 - **R-IDF-003** [DÉDUIT] Clé proposée d'une fuite dans l'application : identifiant interne unique + numéro de fuite séquentiel par marché (affiché) + référence SRM (non unique) ; le couple (référence SRM, date de détection) sert de contrôle de doublon. [F001 ; F065 § 8]
 - **R-IDF-004** [CONTRACTUEL] Mentions de référence obligatoires : sur l'attachement, la référence du marché et celle de l'ordre de service ; sur la facture, la référence du marché. [F056 p.11-12, art. I-32]
 
@@ -3658,7 +3668,7 @@ Lignes réelles (extrait) :
 
 | N° | Question | Règles et sources | Impact | Hypothèse par défaut |
 |---|---|---|---|---|
-| Q-32 | Le marché a-t-il un exemplaire signé par la SRM (CPS, acte d'engagement) ? Le dossier ne contient que les versions signées par STEPAG. | R-BPU-003 ; R-CPS-167 | fiabilité | les versions signées par STEPAG font foi |
+| Q-32 | Existe-t-il un exemplaire du marché signé par le Directeur Général de la SRM ? Le CPS du dossier porte le cachet du Directeur Exploitation Eau Potable ; l'acte d'engagement et le bordereau ne portent que la signature de STEPAG ; la mention manuscrite est « Lu et approuvé » au lieu de « Lu et Accepté ». | R-BPU-003 ; R-CPS-167 ; R-CPS-012 | fiabilité | les versions du dossier font foi |
 | Q-33 | Le matériel de détection exigé (2 corrélateurs, 2 débitmètres portables, 6 enregistreurs, 50 pré-localisateurs, 4 détecteurs acoustiques) est-il disponible et approuvé par la SRM ? Il n'apparaît pas dans la note des moyens matériels. | R-CPS-156 ; R-CPS-213 | hors application | à présenter à l'approbation de la SRM |
 | Q-34 | Rapport journalier : un rapport par équipe ou un rapport commun aux 4 équipes ? (la cadence contractuelle est par équipe) | R-FICHE-003 ; R-CPS-121 | schéma ; écran | une journée de balayage par équipe et par secteur ; rapport consolidé par secteur |
 | Q-35 | Numérotation des fuites : par marché, par zone ou par secteur ? | R-IDF-003 ; liste 10 bis | schéma | séquence unique par marché |
@@ -3691,8 +3701,140 @@ Lignes réelles (extrait) :
 | Export DXF (ou GeoJSON) du dessin « Reseau aep oujda.dwg », avec le système de coordonnées (Lambert Nord Maroc, Merchich ?) et la liste des calques | le DWG de 162,8 Mo n'est pas lisible sans conversion ; les planches PDF n'ont ni échelle ni coordonnées | Issam (poste AutoCAD) ; SRM pour le système de coordonnées |
 | Planches des zones 3 et 5 et du secteur Sidi Yahya ; « part 2 » de Ballaoui Bas-Irfane | absentes du dossier | Issam |
 | Modèles Canva éventuels (Partager → Télécharger → PDF standard) | aucun modèle Canva dans le dossier | Issam |
-| Exemplaire du marché signé par la SRM ; OS désignant l'agent de suivi | non présents | SRM |
+| Exemplaire du marché signé par le Directeur Général de la SRM ; OS désignant l'agent de suivi | non présents | SRM |
 | Règlement des marchés de la SRM-ORI ; CCAG-T (décret n° 2-14-394) | renvois non résolus (section 3.4) | SRM ; texte public |
 | Liste des branchements avec adresses des abonnés ; linéaire par secteur ; emplacement des points de mesure | prévus par le CPS (art. II-29), nécessaires au paramétrage | SRM |
 | Procès-verbaux des mesures de débit de nuit avant intervention (Qi par zone) | point de départ du calcul des gains | SRM / STEPAG |
 | Version arabe de l'avis ([F038]) : non exploitée au-delà du constat d'équivalence avec la version française | sans effet sur les règles | — |
+
+## 13. Journal de contrôle de complétude
+
+**Résumé.** 127 fichiers inventoriés, 127 journaux de lecture, 307 pages ou feuilles tracées dont 304 lues ; 3 fichiers non exploitables (F007 vide ; F124 et F125 au format AutoCAD). Les montants du bordereau ont été recalculés sans écart. Quatre secondes lectures indépendantes ont été faites par des sous-agents sans contexte ; leurs constats ont été intégrés ou sont listés ci-dessous.
+
+**Principaux `[NON PRÉCISÉ]`.** Les formules des classeurs `.xls` de 2017 ne sont pas lisibles (valeurs seules) ; le contenu du dessin AutoCAD est inconnu.
+
+### 13.1 Couverture de lecture
+
+| Méthode de lecture | Pages ou feuilles |
+|---|---|
+| classeur lu par script (openpyxl, xlrd), feuille par feuille | 148 |
+| texte natif (pdftotext, pandoc) | 117 |
+| lecture visuelle de la page ou de l'aperçu | 21 |
+| OCR (ocrmypdf ou tesseract fra+ara) | 19 |
+| non lu (format non lisible) | 2 |
+
+| Fichiers | Statut de lecture |
+|---|---|
+| F056 (CPS, 30 pages) | texte lu en entier par l'extracteur ; pages 8, 10, 16 à 19, 22 et 25 contrôlées visuellement (tableau n° 1, formules de révision, formules τ) ; page 20 blanche (vérifiée visuellement) |
+| F054 (RC, 17 pages) | lu en entier par un sous-agent, notes relues |
+| F032, F058, F060, F059, F034 (bordereau) | double extraction texte + classeur ; comparaison par script des versions |
+| F035, F036 (ordres de service scannés) | lecture visuelle intégrale |
+| F037 (lettre de résultat, scan avec couche OCR) | chiffres vérifiés sur l'image `[OCR vérifié]` : 5 191 974,00 ; 15,00 % ; 02 Sept 2026 ; réf. 1132/2026 |
+| F016, F018 (attestations scannées) | lecture visuelle |
+| F002 p.2, F006, F008 p.2-13, F047 (pièces administratives scannées) | OCR ; aucun chiffre repris dans le livrable (données personnelles non recopiées) |
+| F001, F119 à F123 (classeurs STEPAG) | dump de toutes les cellules et formules, lu par feuille |
+| F065 à F095 (2017) | lus par deux sous-agents par script (toutes les feuilles) ; notes relues par l'extracteur |
+| F096 à F117 (21 plans) | pdfinfo, pdffonts, pdfimages, texte, et un aperçu à 40 dpi par planche lu visuellement |
+| F038 (avis en arabe) | texte extrait ; chiffres clés identiques à la version française (10008883/1R ; 4 514 760,00 ; 40 000,00) ; texte arabe non traduit |
+| F005, F009, F011… (14 preuves de signature XML) | structure lue (XML-DSig) ; sans contenu métier |
+| F124, F125 | non lus (DWG) ; F007 vide |
+
+### 13.2 Pages illisibles ou partiellement lisibles
+
+| Fichier | Page | Problème | Traitement |
+|---|---|---|---|
+| F056 | 18-19 | tableau n° 1 aplati par l'extraction texte | retranscrit d'après l'image des pages |
+| F056 | 25 | symbole τ perdu à l'extraction | rétabli d'après l'image |
+| F056 | 10 | fractions des formules de révision sur deux lignes | reconstituées d'après l'image |
+| F032, F058, F060 | toutes | « œ » remplacé par « # » (« #uvre », « D#OUJDA ») dans la source | rétabli en « œuvre » dans les tableaux, signalé |
+| F008, F012, F016, F018 | — | PDF signés : ocrmypdf refuse l'OCR | repli pdftoppm + tesseract, ou lecture visuelle |
+| F077 (2017) | — | tableau n° 1 du marché 2017 aplati dans le .doc | reconstruit par le sous-agent `[À CONFIRMER]` ; non repris en détail |
+| F066 à F080 (.xls) | — | formules non lisibles avec xlrd | valeurs seules ; formules connues par les versions .xlsx équivalentes |
+
+### 13.3 Divergences entre extractions et écarts de totaux
+
+| Objet | Contrôle | Résultat |
+|---|---|---|
+| Bordereau 2026 | texte PDF (F032, F058, F060) contre classeur (F059, F034) : 13 lignes | identiques ; seule différence : titre et lignes de rabais ou de majoration |
+| Bordereau 2026 | quantité × PU, somme, TVA, TTC, majoration (script) | 0 écart ; 3762300.00 ; 752460.00 ; 4514760.00 ; 5191974.00 |
+| Cautionnement définitif | 3 % × 5191974.00 arrondi au dirham supérieur | 155760 = OS n° 01 |
+| Enregistrement | base 5 191 980,00 contre marché 5 191 974,00 | écart de 6,00 DH, signalé (C-03) |
+| Tableau n° 1 | somme des linéaires | 358 + 362 + 228 + 399 + 119 = 1466 = total imprimé = quantité des prix 1 et 2 |
+| Bordereau 2017 | quantité × PU, total | 0 écart ; 1 719 636,50 |
+| Décompte 2017 (F065, F068, F084) | chaîne recalculée | conforme aux valeurs affichées ; montant en lettres faux dans F068 et F084 ; trois versions du décompte n° 1 (HT 739 906 ; 748 979 ; 746 318) |
+| État de suivi 2017 (F071) | colonne « disponible » | somme 968 318,57 pour un total affiché de 973 318,57 (ligne du prix 17 vide) |
+| Rapports 2017 | hebdomadaires contre journaliers | écarts de linéaire et de répartition signalés dans les notes (28/12/2016 : 11,44 contre 6,94 km) |
+| Gabarits 2026 (F119, F120) | formule de total | total 31 pour 15 et 32 lignes : formule fausse (R-FICHE-001) |
+| Numéros de prix | bordereau contre définition des prix | 1 à 13 des deux côtés, aucun orphelin |
+
+### 13.4 Secondes lectures (sous-agents sans contexte)
+
+| Fichier de contrôle | Constats relevés |
+|---|---|
+| controle/F001-omissions.md | 31 |
+| controle/F002-omissions.md | 3 |
+| controle/F016-omissions.md | 2 |
+| controle/F018-omissions.md | 2 |
+| controle/F020-omissions.md | 4 |
+| controle/F023-omissions.md | 3 |
+| controle/F027-omissions.md | 2 |
+| controle/F030-omissions.md | 2 |
+| controle/F032-omissions.md | 7 |
+| controle/F035-omissions.md | 5 |
+| controle/F036-omissions.md | 4 |
+| controle/F037-omissions.md | 3 |
+| controle/F039-omissions.md | aucun écart |
+| controle/F040-omissions.md | 5 |
+| controle/F048-omissions.md | 4 |
+| controle/F049-omissions.md | 3 |
+| controle/F050-omissions.md | 4 |
+| controle/F051-omissions.md | 3 |
+| controle/F052-omissions.md | 4 |
+| controle/F053-omissions.md | 4 |
+| controle/F054-omissions.md | 5 |
+| controle/F056-omissions.md | 53 |
+| controle/F058-omissions.md | aucun écart |
+| controle/F059-omissions.md | aucun écart |
+| controle/F060-omissions.md | 3 |
+| controle/F119-omissions.md | 4 |
+| controle/F120-omissions.md | 3 |
+| controle/F121-omissions.md | 7 |
+| controle/F122-omissions.md | 5 |
+| controle/F123-omissions.md | 4 |
+
+Suites données aux secondes lectures :
+
+| Document | Constats du sous-agent | Suite |
+|---|---|---|
+| F056 (CPS) | 47 constats : 30 écarts ou affirmations non fondées, 17 omissions ; 718 lignes de citation vérifiées littérales ; formules, tableau n° 1 et pénalités conformes aux images | intégrés : page de signatures (cachet du Directeur Exploitation Eau Potable, mention « Lu et approuvé »), zone 5 de R-CPS-102, calcul de τ1 par zone (R-CPS-174), règles requalifiées `[DÉDUIT]` (R-CPS-035, R-CPS-093, R-CPS-179, R-DEF-005, R-DEF-011), omissions des art. I-9, I-10, I-17, I-24, I-31, I-36, II-3, II-15 |
+| F032, F058, F059, F060 (bordereau) | 13 lignes × 6 cellules et totaux conformes à l'image ; écarts de forme seulement | intégrés : format des nombres, numéros `00001` à `00013` dans le CSV, coquille « D#OUJDA » |
+| F030, F035, F036, F037, F040, F048, F049, F002 | téléphone et fax de la SRM inversés ; acte rectifié signé le 2026-09-01 ; obligations de l'OS n° 01 omises | intégrés (section 2 ; R-ID-015) |
+| F054, F020, F023, F016, F018 | R-CPS-209 incomplète ; effectifs par catégorie ; référence Amendis non exploitée | intégrés (section 3.19 ; R-CPS-216) |
+| F001 | liste de validation `LISTE!$A:$A` non vue par l'extraction ; dates renseignées pour 6 fuites sur 22 ; formules de REFECTION incomplètes ; feuilles BP et LISTE non décrites en 8.4 | intégrés (sections 6, 6 bis, 8.4, 10 bis) |
+| F119 à F123, F050 à F053 | libellés, formules et valeurs exacts ; variante F121 peu décrite ; lettre F053 | intégrés (R-FICHE-020 ; section 8.5) |
+| Données personnelles | aucune fuite relevée par les deux contrôles | — |
+
+
+### 13.5 Croisements d'exploitabilité (script `croisements.py`)
+
+| Croisement | Résultat |
+|---|---|
+| Identifiants de règles uniques | 0 doublon |
+| Renvois `R-…` et `Q-…` pointant vers une règle ou une question existante | 100 % |
+| Chaque règle porte un statut normatif et une source | 100 % |
+| Chaque numéro de prix (1 à 13) a une définition (section 5.1), une ligne « saisie terrain → prix » et une ligne CSV | oui |
+| Chaque pénalité renvoie à son fait générateur et, s'il existe, à un délai | oui (section 3.10) ; non-remise de rapport : montant `[NON PRÉCISÉ]` |
+| Chaque délai a une unité, un déclencheur et une règle de suspension | oui pour l'unité et le déclencheur (section 3.9) ; suspension : R-CPS-179 (ajournement et force majeure seulement) |
+| Chaque fiche de la section 8 indique où ses champs réapparaissent | oui (ligne « Où les champs réapparaissent ») |
+| Chaque nom canonique de la section 8 existe en 11 bis | oui |
+| Chaque fichier de l'inventaire a une colonne « Couvert dans » | 127 sur 127 |
+| Aucune donnée personnelle (RIB, CIN, téléphone ou e-mail nominatif) | contrôle par motifs : aucune occurrence |
+
+### 13.6 Contrôle de forme
+
+| Contrôle | Résultat |
+|---|---|
+| Titres `## 0.` à `## 13.` présents et dans l'ordre | oui |
+| Tableaux : même nombre de colonnes sur toutes les lignes | oui (tous les tableaux, par script) |
+| Aucun chemin absolu | oui |
+| Fichier unique dans le dépôt | `references/regles-marche-4500004453.md` |

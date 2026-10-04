@@ -3,7 +3,7 @@
 
 **Résumé.** Marché de travaux à prix unitaires n° 4500004453 passé par la SRM Oriental avec STEPAG SARL après l'appel d'offres ouvert « au rabais ou à majoration » n° 10008883/1R : détection, recherche et réparation de fuites sur 1 466 km de réseau d'eau potable d'Oujda (5 zones), 12 mois à compter du 02/10/2026, 5 191 974,00 DH TTC après majoration de 15 %. Le marché se déroule en trois phases : balayage (4 mois), puis deux phases de maintien des débits nocturnes (4 + 4 mois).
 
-**Principaux `[NON PRÉCISÉ]`.** Numéro d'engagement et code fournisseur STEPAG chez la SRM ; exemplaire du marché signé par la SRM (seule la version signée par STEPAG est dans le dossier) ; nom de l'agent chargé du suivi (à notifier par OS, R-CPS-012) ; application de la majoration ligne à ligne ou sur le total ; montants minimum et maximum (sans objet : marché ordinaire).
+**Principaux `[NON PRÉCISÉ]`.** Numéro d'engagement et code fournisseur STEPAG chez la SRM ; exemplaire du marché signé par la SRM (seule la version signée par STEPAG est dans le dossier) ; nom de l'agent chargé du suivi (à notifier par OS, R-CPS-013) ; application de la majoration ligne à ligne ou sur le total ; montants minimum et maximum (sans objet : marché ordinaire).
 
 ### 2.1 Numéros et références
 
@@ -93,7 +93,7 @@
 | Base d'enregistrement | 5191980.00 DH `[CONTRADICTION : F048 p.1 vs F040 p.1]`, écart de 6,00 DH (arrondi probable de l'administration fiscale) | [F048 p.1] |
 | Devise | dirham marocain (DH) | [F032 p.1] |
 | Quantités du bordereau | prévisionnelles : paiement sur « quantités réellement exécutées » | [F056 p.10, art. I-29] |
-| Révision des prix | prix révisables, deux formules (voir R-CPS-046 à R-CPS-050) | [F056 p.10-11, art. I-30] |
+| Révision des prix | prix révisables, deux formules (voir R-CPS-051 à R-CPS-054) | [F056 p.10-11, art. I-30] |
 | Durée | 12 mois | [F056 p.8, art. I-19] |
 | Règle de fin | terme du délai de 12 mois ; pas de clause d'épuisement d'un maximum `[DÉDUIT]` | [F056 p.8] |
 | Reconduction ou prolongation | `[NON PRÉCISÉ]` ; seul l'avenant de force majeure prolonge le délai | [F056 p.8, art. I-23] |
@@ -122,6 +122,1018 @@
 | Gérant | M. Imad BOUSALAM | STEPAG | signe l'offre et les pièces | [F040 p.1] |
 | Directeur de chantier | `[NON PRÉCISÉ]` | STEPAG | représente l'entrepreneur sur place | [F056 p.16, art. II-10] |
 | Organisme de cautionnement | FINEA (succursale Oujda) | — | cautions provisoire et définitive | [F002 p.1] ; [F053] |
+
+## 3. CPS : règles contractuelles
+
+**Résumé.** Le CPS de l'AO 10008883/1R (30 pages, [F056]) comprend trois parties dont la numérotation des articles recommence : I « Cahier des clauses administratives et financières » (articles 1 à 39, cités `art. I-n`), II « Cahier des prescriptions spéciales » (articles 1 à 30, cités `art. II-n`), III « Définition des prix » (section 5). Le marché est un marché de **performance** : la SRM paie un linéaire balayé puis maintenu, sous condition d'atteindre et de conserver des débits nocturnes par zone, et paie les réparations à l'unité. Il n'existe **aucun délai contractuel de réparation par fuite** ni seuil de 48 h : les délais du CPS portent sur les phases (4 + 4 + 4 mois), la communication des fuites (le jour même), la réfection de chaussée (1 mois) et les rapports.
+
+**Principaux `[NON PRÉCISÉ]`.** Délai d'intervention et de réparation par fuite ; modèle des rapports et de la fiche de réparation ; photos exigées par fuite ; système de coordonnées et formats de fichiers ; classes de débit de fuite ; marquage au sol ; horaires, astreinte, jours fériés ; pénalité pour non-remise d'un rapport ; sort financier d'une fouille négative ; garantie par réparation ; périodicité des attachements.
+
+**Convention.** Chaque article est donné dans l'ordre du document. Les articles ayant un effet sur l'application sont recopiés en citation puis traduits en règles ; les autres sont résumés en une ligne. La version lue est celle signée numériquement par STEPAG le 2026-08-12 (mention « Lu et accepté ») ; l'exemplaire signé par la SRM n'est pas dans le dossier.
+
+### 3.1 Préambule et parties
+
+- **R-CPS-001** [CONTRACTUEL] Marché passé par appel d'offres ouvert au rabais ou à majoration (§ I de l'article 17 et alinéa A du § 3 de l'article 18 du règlement des marchés de la SRM Oriental), entre la SRM-Ori (« MAITRE D'OUVRAGE ») et l'« ENTREPRENEUR » ou « ENTREPRISE ». [F056 p.2, préambule]
+- **R-CPS-002** [CONTRACTUEL] Les champs d'identité du titulaire sont vides dans le CPS du dossier d'appel d'offres ; l'identité du titulaire vient de l'acte d'engagement (section 2). [F056 p.2 ; F040 p.1]
+
+### 3.2 Partie I : cahier des clauses administratives et financières
+
+#### Art. I-1 Objet du marché
+
+> ARTICLE N° 1. OBJET DU MARCHE
+> Le présent marché a pour objet la réalisation de travaux relatifs de détection, recherche et
+> réparation de fuites sur le réseau de distribution d’eau potable de la ville d’Oujda :
+> ZONES UNIVERSITE 7000M3- CHAMP TIR, JBEL HAMRA, AIN SERRAK 5000, ET SIDI YAHYA
+> Le Lieu d’exécution des travaux objet du marché se situe à : ville d’Oujda
+
+- **R-CPS-003** [CONTRACTUEL] L'objet est la réalisation de travaux de détection, recherche et réparation de fuites sur le réseau de distribution d'eau potable de la ville d'Oujda. [F056 p.3, art. I-1]
+- **R-CPS-004** [CONTRACTUEL] Zones citées : Université 7000 m3 - Champ de tir ; Jbel Hamra ; Ain Serrak 5000 ; Sidi Yahya. Le détail par secteur est au tableau n° 1 (R-CPS-100). [F056 p.3, art. I-1]
+
+#### Art. I-2 Consistance des travaux
+
+> ARTICLE N° 2. CONSISTANCE DES TRAVAUX
+> Les travaux à exécuter au titre du présent marché consistent en ce qui suit :
+> Recherche et détection de fuites sur conduites, tous diamètres et toutes natures
+> Réfection de trottoirs et chaussées.
+> Réparation des fuites sur conduites de différents diamètres.
+> Réparation des fuites sur branchements
+> La signalisation du chantier.
+
+- **R-CPS-005** [CONTRACTUEL] Les travaux comprennent cinq natures : (1) recherche et détection de fuites sur conduites, tous diamètres et toutes natures ; (2) réfection de trottoirs et chaussées ; (3) réparation des fuites sur conduites de différents diamètres ; (4) réparation des fuites sur branchements ; (5) signalisation du chantier. [F056 p.3, art. I-2]
+- **R-CPS-006** [DÉDUIT] Ne sont pas cités dans la consistance : l'assainissement, les compteurs, les fuites après compteur (domaine privé), les vannes, ventouses et ouvrages ; aucune limite de pression. Le catalogue interne STEPAG prévoit le motif « Assainissement » pour une fouille révélant une fuite d'égout. [F056 p.3 ; F001 feuille "LISTE" A3]
+
+#### Art. I-3 Documents constitutifs du marché
+
+> ARTICLE N° 3. DOCUMENTS CONSTITUTIFS DU MARCHE
+> Les documents constitutifs du marché sont ceux énumérés ci-après :
+> 1. L'acte d'engagement ;
+> 2. Le présent Cahier des Prescriptions Spéciales ;
+> 3. Le bordereau des prix – détail estimatif ;
+> 4. Le cahier des clauses administratives générales applicable aux marchés de travaux,
+> approuvé par le Décret n° 2-14-394 du 06 chaabane 1437 (13 Mai 2016), à l’exception
+> des clauses auxquelles il est dérogé dans le présent marché.
+> En cas de discordance ou contradiction entre les documents constitutifs du marché autres que celle
+> se rapportant à l’offre financière telle que décrite par l’article 28 du règlement des marchés de la
+> SRM- ORI, ceux-ci prévalent dans l’ordre où ils sont énumérés ci-dessus.
+
+- **R-CPS-007** [CONTRACTUEL] Pièces constitutives, dans l'ordre : (1) acte d'engagement ; (2) CPS ; (3) bordereau des prix – détail estimatif ; (4) CCAG-Travaux approuvé par le décret n° 2-14-394 du 13 mai 2016, sauf clauses auxquelles le marché déroge. [F056 p.3, art. I-3]
+- **R-CPS-008** [CONTRACTUEL] En cas de discordance entre ces pièces, elles prévalent dans l'ordre de leur énumération, sauf pour les discordances de l'offre financière, traitées selon l'article 28 du règlement des marchés de la SRM-ORI. [F056 p.3, art. I-3]
+- **R-CPS-009** [DÉDUIT] Le règlement de consultation, les notes de moyens humains et matériels et les rapports-types ne sont pas des pièces constitutives : le RC et l'offre technique n'engagent qu'au titre de la procédure d'attribution. [F056 p.3, art. I-3]
+
+#### Art. I-4 Pièces contractuelles postérieures
+
+> ARTICLE N° 4. PIECES CONTRACTUELLES POSTERIEURES A LA CONCLUSION DU MARCHE
+> Les pièces contractuelles postérieures à la conclusion du marché comprennent :
+> Les ordres de service ;
+> Les avenants éventuels ;
+> La décision prévue à l’article 57 du CCAG applicable aux marchés de travaux, le cas
+> échéant.
+
+- **R-CPS-010** [CONTRACTUEL] Pièces postérieures à la conclusion : ordres de service ; avenants éventuels ; décision prévue à l'article 57 du CCAG-T (augmentation dans la masse des travaux). [F056 p.3, art. I-4]
+
+#### Art. I-5 Textes généraux et spéciaux
+
+- **R-CPS-011** [CONTRACTUEL] Textes applicables : règlement des marchés de la SRM Oriental ; législation de l'emploi et des salaires ; Code général des impôts ; loi n° 112-13 (nantissement) ; dahir n° 1-56-211 et circulaire n° 72/CAB (garanties pécuniaires) ; arrêté n° 3-302-15 du 27 novembre 2015 (révision des prix) ; loi n° 09-08 (données personnelles) ; arrêté n° 1692-23 du 23 juin 2023 (dématérialisation) ; décret n° 2-14-272 du 14 mai 2014 (avances). Le titulaire ne peut exciper de leur ignorance. [F056 p.3-4, art. I-5]
+
+#### Art. I-6 à I-9 (résumés)
+
+- **R-CPS-012** [CONTRACTUEL] Art. I-6 : le marché n'est valable, définitif et exécutoire qu'après sa signature par le Directeur Général de la SRM-ORI ou son délégué. [F056 p.4, art. I-6]
+
+> ARTICLE N° 7. DEVOLUTION DES ATTRIBUTIONS
+> Conformément à l’article 4 du CCAG applicable aux marchés des travaux, le maître d’ouvrage
+> notifie, par ordre de service, à l’entrepreneur dans les quinze (15) jours qui suivent la date de
+> notification de l’ordre de service prescrivant le commencement de l’exécution des travaux, le nom,
+> la qualité et les missions de l’agent chargé du suivi de l’exécution du marché.
+> Les noms des organismes chargés du contrôle technique, du contrôle de qualité et d’assistance
+> technique sont notifiés par ordre de service dès qu’ils soient connus le cas échéant.
+> Toute modification ultérieure relative à la désignation des intervenants est communiquée à
+> l’entrepreneur par ordre du service du maître d’ouvrage.
+
+- **R-CPS-013** [CONTRACTUEL] Art. I-7 : la SRM notifie par ordre de service, dans les quinze (15) jours suivant la notification de l'OS de commencement, le nom, la qualité et les missions de l'agent chargé du suivi de l'exécution du marché ; toute modification des intervenants est communiquée par OS. [F056 p.4, art. I-7]
+- **R-CPS-014** [CONTRACTUEL] Art. I-8 : les notifications sont faites au domicile indiqué dans l'acte d'engagement ; tout changement de domicile est signalé par lettre recommandée avec accusé de réception dans les quinze (15) jours. [F056 p.4, art. I-8]
+- **R-CPS-015** [CONTRACTUEL] Art. I-9 : nantissement selon la loi n° 112-13 ; liquidation des sommes par le Directeur Général ; paiements effectués par le Directeur Général et le Directeur Administratif et Financier. [F056 p.4, art. I-9]
+
+#### Art. I-10 Sous-traitance
+
+- **R-CPS-016** [CONTRACTUEL] La sous-traitance ne peut dépasser cinquante pour cent (50 %) du montant TTC du marché ni porter sur le lot ou le corps d'état principal ; les sous-traitants doivent être installés au Maroc et remplir les conditions de l'article 25 du règlement. [F056 p.5, art. I-10]
+- **R-CPS-017** [CONTRACTUEL] Le titulaire notifie à la SRM une copie certifiée conforme du contrat de sous-traitance ; la SRM peut récuser le sous-traitant dans les quinze (15) jours suivant la réception du contrat ; le titulaire justifie les paiements faits au sous-traitant et reste seul responsable. [F056 p.5, art. I-10]
+
+#### Art. I-11 à I-16 (résumés)
+
+- **R-CPS-018** [CONTRACTUEL] Art. I-11 : recours à la main-d'œuvre locale (commune, à défaut préfecture, province ou région) à hauteur de vingt pour cent (20 %) de l'effectif requis. [F056 p.5, art. I-11]
+- **R-CPS-019** [CONTRACTUEL] Art. I-12 : protection de la main-d'œuvre selon l'article 23 du CCAG-T. [F056 p.5, art. I-12]
+- **R-CPS-020** [CONTRACTUEL] Art. I-13 : avant tout commencement, attestations d'assurance couvrant les risques du marché, avec dates de validité (article 25 du CCAG-T), plus la police « dommages à l'ouvrage » (§ d de l'article 25). [F056 p.5, art. I-13]
+- **R-CPS-021** [CONTRACTUEL] Art. I-14 : garantie contre les revendications de propriété industrielle (article 26 du CCAG-T). Art. I-15 : cession du marché interdite sauf fusion ou scission, sur autorisation expresse et avenant. Art. I-16 : enregistrement du marché à la charge de l'entrepreneur. [F056 p.6, art. I-14 à I-16]
+
+#### Art. I-17 Protection des données à caractère personnel
+
+- **R-CPS-022** [CONTRACTUEL] Le titulaire traite les données personnelles communiquées par la SRM conformément à la loi n° 09-08, uniquement dans le cadre des instructions et de l'autorisation de la SRM, « entièrement et exclusivement en son sein ». [F056 p.6-7, art. I-17]
+- **R-CPS-023** [CONTRACTUEL] Il lui est interdit d'exploiter, copier ou stocker des fichiers de données personnelles de la SRM pour d'autres fins que la mission, et de les divulguer. [F056 p.6-7, art. I-17]
+- **R-CPS-024** [CONTRACTUEL] Pas de sous-traitant sur ces données sans habilitation préalable et expresse de la SRM-ORI, dans un contrat soumis à sa validation. [F056 p.7, art. I-17]
+- **R-CPS-025** [CONTRACTUEL] Le titulaire prend toutes mesures de sécurité matérielle et logique pour conserver l'intégrité des données et empêcher tout accès non autorisé ou usage détourné. [F056 p.6-7, art. I-17]
+- **R-CPS-026** [CONTRACTUEL] En fin de marché, le titulaire procède « à la destruction des données, fichiers informatisés ou manuels, figurant sur tout support ». [F056 p.7, art. I-17]
+- **R-CPS-027** [CONTRACTUEL] La SRM peut faire vérifier (audit) le respect de ces obligations ; le titulaire coopère, applique à ses frais et sans délai les mesures correctives, et aide la SRM à répondre aux demandes d'accès, de rectification et d'opposition des personnes. [F056 p.7, art. I-17]
+- **R-CPS-028** [CONTRACTUEL] Le non-respect du secret, de la confidentialité ou de la sécurité des données permet la résiliation immédiate du marché sans indemnité et engage la responsabilité pénale et civile du titulaire. [F056 p.7-8, art. I-17]
+- **R-CPS-029** [DÉDUIT] Conséquence pour l'application : la « liste des branchements avec adresses des abonnés » remise par la SRM (R-CPS-163) et les références d'abonnés saisies sont des données personnelles : accès restreint par rôle, hébergement maîtrisé, purge en fin de marché. [F056 p.6-8 ; F056 p.27, art. II-29]
+
+#### Art. I-18 (résumé)
+
+- **R-CPS-030** [CONTRACTUEL] Art. I-18 : interdiction des actes de corruption, manœuvres frauduleuses, pratiques collusoires, promesses, dons ou présents. [F056 p.8, art. I-18]
+
+#### Art. I-19 Délai d'exécution
+
+> ARTICLE N° 19. DELAI D’EXECUTION
+> L’entrepreneur devra exécuter les travaux désignés en objet dans un délai de 12 mois.
+> Le délai d’exécution court à partir de la date prévue par l’ordre de service prescrivant le
+> commencement de l’exécution des travaux.
+> Ce délai s’applique à l’achèvement de tous les travaux incombant au titulaire y compris le
+> repliement des installations de chantier et la remise en état des terrains et des lieux.
+
+- **R-CPS-031** [CONTRACTUEL] Le délai d'exécution est de 12 mois ; il court à partir de la date prévue par l'ordre de service de commencement (2026-10-02). [F056 p.8, art. I-19 ; F036 p.1]
+- **R-CPS-032** [CONTRACTUEL] Ce délai couvre l'achèvement de tous les travaux, y compris le repliement des installations de chantier et la remise en état des lieux. [F056 p.8, art. I-19]
+
+#### Art. I-20 Ordres de service
+
+> ARTICLE N° 20. ORDRES DE SERVICE
+> Les ordres de service sont écrits et signés par le maître d’ouvrage. Ils sont datés, numérotés et
+> enregistrés dans le registre du marché.
+> Les ordres de service sont établis en deux exemplaires et notifiés par courrier porté contre récépissé
+> ou par lettre recommandée avec accusé de réception à l’entrepreneur. Celui-ci renvoie dans les
+> trois (3) jours suivants, au maître d’ouvrage l’un des deux exemplaires après l’avoir signé et y avoir
+> porté la date à laquelle il l’a reçu ; à défaut, l’ordre de service est réputé être reçu à la date de sa
+> notification.
+> L'entrepreneur doit se conformer aux prescriptions des ordres de service qui lui sont notifiés.
+> Lorsque l’entrepreneur estime que les prescriptions d’un ordre de service dépassent les obligations
+> découlant du présent marché ou soulèvent de sa part des réserves, les dispositions de l’article 11
+> du CCAG-T sont applicables.
+> En cas de groupement d’entreprises, les notifications des ordres de service sont faites au
+> mandataire qui a, seul, qualité pour présenter des réserves au nom du groupement.
+
+- **R-CPS-033** [CONTRACTUEL] Les ordres de service sont écrits, signés par le maître d'ouvrage, datés, numérotés et enregistrés au registre du marché ; établis en deux exemplaires, notifiés par courrier porté contre récépissé ou lettre recommandée avec accusé de réception. [F056 p.8, art. I-20]
+- **R-CPS-034** [CONTRACTUEL] L'entrepreneur renvoie un exemplaire signé et daté dans les trois (3) jours ; à défaut, l'OS est réputé reçu à la date de sa notification. Réserves : article 11 du CCAG-T. [F056 p.8, art. I-20]
+
+#### Art. I-21 à I-23 Ajournement, cessation, force majeure
+
+> ARTICLE N° 21. AJOURNEMENTS DE L’EXECUTION DES TRAVAUX
+> L’ajournement de l’exécution des travaux est prescrit par ordre de service motivé d’arrêt et de
+> reprise de l’exécution, et ce conformément aux dispositions de l’article 48 du CCAG-T.
+> ARTICLE N° 22. CESSATION DES TRAVAUX
+> Les dispositions de l’article 49 du CCAG-Travaux sont applicables.
+> ARTICLE N° 23. CAS DE FORCE MAJEURE
+> Conformément aux prescriptions de l’article 47 du C.C.A.G-T, et en cas de survenance d’un
+> événement de force majeure, le titulaire a droit à une augmentation raisonnable des délais
+> d’exécution qui doit faire l’objet d’un avenant. Aucune indemnité ne peut être accordée au titulaire
+> pour perte totale ou partielle de sa fourniture, les frais d’assurance de cette fourniture étant
+> réputés compris dans les prix du marché.
+> Les seuils d’intempéries qui sont réputés constituer un événement de force majeure sont définis
+> comme suit :
+> - La neige : 50 cm
+> - La pluie : 70 mm
+> - Le vent : 70 km/h
+> - Le séisme : 5 degré sur l’échelle de Richter.
+> En cas de survenance d’un événement de force majeure, il sera fait application des dispositions de
+> l’article 47 du C.C.A.G-T et toute législation en la matière en vigueur.
+
+- **R-CPS-035** [CONTRACTUEL] L'ajournement des travaux est prescrit par ordre de service motivé d'arrêt et de reprise (article 48 du CCAG-T) : c'est le seul mécanisme de suspension du délai prévu par le CPS, avec la force majeure. [F056 p.8, art. I-21]
+- **R-CPS-036** [CONTRACTUEL] Cessation des travaux : article 49 du CCAG-T. [F056 p.8, art. I-22]
+- **R-CPS-037** [CONTRACTUEL] Force majeure (article 47 du CCAG-T) : droit à une augmentation raisonnable du délai, par avenant ; aucune indemnité. [F056 p.8, art. I-23]
+- **R-CPS-038** [CONTRACTUEL] Seuils d'intempéries valant force majeure : neige 50 cm ; pluie 70 mm ; vent 70 km/h ; séisme de degré 5 sur l'échelle de Richter. La période de mesure (par jour, par épisode) est `[NON PRÉCISÉ]`. [F056 p.8-9, art. I-23]
+
+#### Art. I-24 à I-26 Cautionnements et retenue de garantie
+
+> ARTICLE N° 25. CAUTIONNEMENT DEFINITIF
+> En garantie des engagements contractés par lui, l’entrepreneur fournira un cautionnement définitif
+> sous forme d’une caution bancaire personnelle et solidaire délivrée par un organisme financier
+> choisi parmi les établissements bancaires marocains agrées à cet effet. Il ne devra en aucun cas
+> inclure un délai de validité.
+> Le montant du cautionnement définitif est fixé à trois pour cent (3%) du montant initial du marché
+> arrondi au dirham supérieur.
+> Le cautionnement définitif doit être constitué dans les vingt (20) jours qui suivent la notification du
+> marché. Il reste affecté à la garantie des engagements contractuels de l’entrepreneur jusqu’à la
+> réception définitive des travaux.
+> Le cautionnement définitif est libéré à la suite d’une main levée délivrée par le maître d’ouvrage
+> dès la signature du procès-verbal de la réception définitive des travaux.
+> ARTICLE N° 26. RETENUE DE GARANTIE
+> Une retenue de garantie sera prélevée sur les acomptes. Elle est égale à dix pour cent (10 %) du
+> montant de chaque acompte.
+> Elle cessera de croître lorsqu'elle atteindra sept pour cent (7%) du montant initial du marché
+> augmenté le cas échéant, du montant des avenants.
+> La retenue de garantie peut être remplacée, à la demande de l’entrepreneur, par une caution
+> personnelle et solidaire constituée dans les conditions prévues par la réglementation en vigueur.
+> La retenue de garantie est restituée ou la caution qui la remplace est libérée à la suite d’une
+> mainlevée délivrée par le maître d’ouvrage dès la signature du procès-verbal de la réception
+> définitive des travaux.
+
+- **R-CPS-039** [CONTRACTUEL] Art. I-24 : cautionnement provisoire de 40 000 dhs (Quarante Mille dirhams), remplacé par le cautionnement définitif. [F056 p.9, art. I-24]
+- **R-CPS-040** [CONTRACTUEL] Cautionnement définitif : caution bancaire personnelle et solidaire, sans délai de validité, égale à trois pour cent (3 %) du montant initial du marché arrondi au dirham supérieur, constituée dans les vingt (20) jours suivant la notification du marché ; libérée par mainlevée à la signature du PV de réception définitive. [F056 p.9, art. I-25]
+- **R-CPS-041** [CONTRACTUEL] Retenue de garantie : dix pour cent (10 %) du montant de chaque acompte ; elle cesse de croître lorsqu'elle atteint sept pour cent (7 %) du montant initial du marché augmenté le cas échéant des avenants. [F056 p.9, art. I-26]
+- **R-CPS-042** [CONTRACTUEL] La retenue de garantie peut être remplacée, à la demande de l'entrepreneur, par une caution personnelle et solidaire ; elle est restituée (ou la caution libérée) par mainlevée à la signature du PV de réception définitive. [F056 p.9, art. I-26]
+- **R-CPS-043** [DÉDUIT] Exemple : acompte de 400000.00 DH → retenue 40000.00 DH ; plafond cumulé 7 % × 5191974.00 = 363438.18 DH (assiette TTC ou HT `[À CONFIRMER : le CPS dit « montant initial du marché » sans préciser]`). [F056 p.9, art. I-26]
+
+#### Art. I-27 et I-28 Réceptions et garantie
+
+> ARTICLE N° 27. RECEPTIONS PROVISOIRE ET DEFINITIVE
+> A l’achèvement des travaux et en application de l’article 73 du CCAG-T, le maître d’ouvrage s’assure
+> en présence de l’entrepreneur de la conformité des travaux aux spécifications techniques du
+> marché et prononcera la réception provisoire.
+> S’il constate que les travaux présentent des insuffisances ou des défauts ou ne sont pas conformes
+> aux spécifications du marché, l’entrepreneur procédera aux réparations nécessaires conformément
+> aux règles de l’art. A défaut, la réception ne sera pas prononcée, et le délai d’exécution ne sera pas
+> prorogé pour autant.
+> Conformément aux stipulations de l’article 76 du CCAG-T et après expiration du délai de garantie,
+> il sera procédé à la réception définitive, après que le maître d’ouvrage se soit assuré que les
+> malfaçons ou les imperfections éventuelles ont été réparées par l’entrepreneur.
+> Les opérations sus mentionnées sont sanctionnées, selon le cas, par un procès-verbal de réception
+> provisoire ou définitive signé par les membres de la commission de réception désignée à cet effet.
+> ARTICLE N° 28. DELAI DE GARANTIE
+> Le délai de garantie est fixé à douze (12) mois à compter de la date du procès-verbal de la réception
+> provisoire des travaux, et ce conformément aux dispositions de l’article 75 du CCAG-T.
+> Pendant le délai de garantie, l’entrepreneur sera tenu de remettre au maître d’ouvrage les plans
+> des ouvrages conformes à l’exécution, de procéder aux rectifications qui lui seraient demandées en
+> cas de malfaçons ou d’insuffisances constatées et de remédier à l’ensemble des défectuosités, sans
+> pour autant que ces travaux supplémentaires puissent donner lieu à paiement à l'exception de ceux
+> résultant de l’usure normale, d'un abus d'usage ou de dommages causés par des tiers.
+
+- **R-CPS-044** [CONTRACTUEL] Réception provisoire : à l'achèvement des travaux (article 73 du CCAG-T), le maître d'ouvrage vérifie en présence de l'entrepreneur la conformité aux spécifications ; en cas de défauts, l'entrepreneur répare ; à défaut la réception n'est pas prononcée et le délai n'est pas prorogé. [F056 p.9, art. I-27]
+- **R-CPS-045** [CONTRACTUEL] Réception définitive : après expiration du délai de garantie (article 76 du CCAG-T), une fois les malfaçons réparées. Chaque réception fait l'objet d'un procès-verbal signé par les membres de la commission de réception. [F056 p.9, art. I-27]
+- **R-CPS-046** [CONTRACTUEL] Délai de garantie : douze (12) mois à compter de la date du PV de réception provisoire (article 75 du CCAG-T) ; garantie globale du marché, il n'existe pas de délai de garantie par réparation. [F056 p.10, art. I-28]
+- **R-CPS-047** [CONTRACTUEL] Pendant la garantie, l'entrepreneur remet les plans des ouvrages conformes à l'exécution, rectifie les malfaçons et remédie à toutes les défectuosités sans paiement, sauf usure normale, abus d'usage ou dommages causés par des tiers. [F056 p.10, art. I-28]
+- **R-CPS-048** [DÉDUIT] Une fuite réapparaissant sur une réparation faite par STEPAG pendant le marché ou la garantie est à reprendre gratuitement (défectuosité) ; le critère du « même point » et la preuve sont `[NON PRÉCISÉ]`. [F056 p.10, art. I-28]
+
+#### Art. I-29 et I-30 Nature, caractère et révision des prix
+
+> ARTICLE N° 29. NATURE DES PRIX
+> Le présent marché est à prix unitaires.
+> Les sommes dues au titulaire du marché sont calculées par application des prix unitaires portés au
+> bordereau des prix - détail estimatif, joint au présent cahier des prescriptions spéciales, aux
+> quantités réellement exécutées conformément au marché.
+> ARTICLE N° 30. CARACTERE DES PRIX
+> Les prix du marché comprennent le bénéfice et tous droits, impôts, taxes, frais généraux, faux frais
+> et, de manière générale, toutes les dépenses induites par la prestation objet du marché jusqu’à
+> l’exécution de celle-ci.
+> Les prix seront révisables pour tenir compte des variations éventuelles des conditions
+> économiques.
+> Les prix du marché sont réputés comprendre toutes les dépenses résultant de l’exécution des
+> prestations y compris tous les droits, impôts, taxes, frais généraux, faux frais et assurer au titulaire
+> une marge pour bénéfice et risques et d'une façon générale toutes les dépenses qui sont la
+> conséquence nécessaire et directe du travail.
+> les prix de marché sont révisables selon les formules suivantes :
+> a – TERRASSEMENTS, ET ENTRETIEN RESEAU :
+> P = Po 0,15 + 0,30 S (1 + ChTp ) + 0,35McI+ 0,20 Mtn
+> So (1 + ChTpo) McIo Mtno
+> b – OUVRAGES ANNEXES ET REFECTION DE TROTTOIRS OU DE CHAUSSEES
+> P = Po 0, 15 + 0, 30S (1 + ChTp ) + 0,20 Mtn + 0,15 At + 0,2 Cs
+> So (1 + ChTpo) Mtno Ato Cso
+> Les index “o” sont les valeurs de références des Index du mois de la date limite de remise des
+> offres.
+> Dans ces formules :
+> P = Désigne le prix révisé
+> Po = Désigne le prix initial du bordereau des prix établis par le contractant et qui doit être
+> déterminé suivant les conditions économiques en vigueur au jour J (J étant la date limite fixée pour
+> la remise des offres).
+> Les index sont extraits de la liste des indices économiques publiée chaque mois par le Ministère de
+> l’équipement, du transport et de la logistique conformément à l’arrêté du Chef de Gouvernement
+> n° 03-302 du 27 Novembre 2015 fixant les règles et conditions de révision des prix des marchés
+> publics.
+> Les Indices suivants représentent les valeurs des indexes du mois de la date d’exigibilité de la
+> révision :
+> S (1 + ChTp) = Indice salaire et charge sociales (Ouvrages de Génie Civil)
+> McI = Indice global pour les terrassements ordinaires
+> Mtn = Indice transport privé par route
+> At= Indice acier torsadé
+> Cs= Indice ciment en sacs
+> Les valeurs à prendre en compte seront celles publiées par le ministère de l’Equipement.
+> La révision du prix contractuel se fera après consultation des valeurs publiées des index globaux à
+> la date limite de remise des offres d’une part et à la date d’exigibilité de la révision d’autre part.
+> Le résultat final du coefficient de révision des prix ainsi que les résultats des rapports relatifs aux
+> calculs intermédiaires sont arrêtés à la quatrième décimale.
+> Les prix ainsi calculés s’appliquent à tous les travaux exécutés dans les délais normaux.
+> Au cours de l’exécution des travaux, l’Entrepreneur ne pourra se prévaloir d’aucun élément de
+> variation des conditions économiques de son offre pour réclamer des augmentations qui ne
+> résulteraient pas de la formule de révision ci-dessus.
+> Les valeurs à prendre en compte seront celles publiées par le ministère de l’Equipement.
+> La révision du prix contractuel se fera après consultation des valeurs publiées des index globaux à
+> la date limite de remise des offres d’une part et à la date d’exigibilité de la révision d’autre part.
+> Le résultat final du coefficient de révision des prix ainsi que les résultats des rapports relatifs aux
+> calculs intermédiaires sont arrêtés à la quatrième décimale.
+> Les prix ainsi calculés s’appliquent à tous les travaux exécutés dans les délais normaux.
+> Au cours de l’exécution des travaux, l’Entrepreneur ne pourra se prévaloir d’aucun élément de
+> variation des conditions économiques de son offre pour réclamer des augmentations qui ne
+> résulteraient pas de la formule de révision ci-dessus.
+> L’application de la révision des prix sera faite conformément aux dispositions de l’arrêté du Chef du
+> gouvernement n°3-302-15 du 15 safar 1437 (27 novembre 2015) fixant les règles et les conditions
+> de révision des prix des marchés publics.
+
+- **R-CPS-049** [CONTRACTUEL] Marché à prix unitaires ; sommes dues = prix unitaires du bordereau × quantités réellement exécutées. [F056 p.10, art. I-29]
+- **R-CPS-050** [CONTRACTUEL] Les prix comprennent le bénéfice, tous droits, impôts, taxes, frais généraux, faux frais et toutes les dépenses conséquence nécessaire et directe du travail. [F056 p.10, art. I-30]
+- **R-CPS-051** [CONTRACTUEL] Les prix sont révisables. Formule a « terrassements et entretien réseau » : `P = Po × [0,15 + 0,30 × S(1+ChTp)/So(1+ChTpo) + 0,35 × McI/McIo + 0,20 × Mtn/Mtno]`. [F056 p.10, art. I-30 ; contrôle visuel]
+- **R-CPS-052** [CONTRACTUEL] Formule b « ouvrages annexes et réfection de trottoirs ou de chaussées » : `P = Po × [0,15 + 0,30 × S(1+ChTp)/So(1+ChTpo) + 0,20 × Mtn/Mtno + 0,15 × At/Ato + 0,2 × Cs/Cso]`. [F056 p.10, art. I-30 ; contrôle visuel]
+- **R-CPS-053** [CONTRACTUEL] Index : S(1+ChTp) = salaires et charges sociales (ouvrages de génie civil) ; McI = indice global des terrassements ordinaires ; Mtn = transport privé par route ; At = acier torsadé ; Cs = ciment en sacs ; publiés chaque mois par le ministère de l'Équipement. Les index « o » sont ceux du mois de la date limite de remise des offres (août 2026) ; les autres, ceux du mois de la date d'exigibilité de la révision. [F056 p.10-11, art. I-30 ; F039 p.1]
+- **R-CPS-054** [CONTRACTUEL] Le coefficient de révision et les rapports intermédiaires sont arrêtés à la quatrième décimale. La révision suit l'arrêté n° 3-302-15 du 27 novembre 2015. Partie fixe : 0,15 ; somme des coefficients de chaque formule : 1,00. [F056 p.11, art. I-30]
+- **R-CPS-055** [DÉDUIT] Affectation proposée : formule a → prix 3 et 6 à 13 (terrassement, entretien réseau) ; formule b → prix 4, 5 et 10 (réfections, ouvrages annexes) ; prix 1 et 2 (détection) : formule applicable `[À CONFIRMER : non écrit]`. [F056 p.10, art. I-30]
+- **R-CPS-056** [CONTRACTUEL] Les prix révisés s'appliquent aux travaux exécutés dans les délais normaux ; aucune autre augmentation ne peut être réclamée. [F056 p.11, art. I-30]
+
+#### Art. I-31 Avances
+
+- **R-CPS-057** [CONTRACTUEL] Une avance peut être accordée selon le décret n° 2-14-272, sur demande du titulaire et contre caution personnelle et solidaire du même montant. [F056 p.11, art. I-31]
+- **R-CPS-058** [CONTRACTUEL] Remboursement de l'avance : 20 % du montant de l'avance prélevés sur chaque acompte ; remboursement total au plus tard quand les prestations exécutées atteignent 80 % du montant TTC du marché ; liquidation immédiate en cas de résiliation. [F056 p.11, art. I-31]
+
+#### Art. I-32 Modalités de règlement
+
+> ARTICLE N° 32. MODALITES DE REGLEMENT
+> Le règlement des travaux réalisés sera effectué sur la base de décomptes. Une copie de chaque
+> décompte sera communiquée à l’entrepreneur dans un délai n'excédant pas dix (10) jours à partir
+> de la date de sa signature par le maître d’ouvrage.
+> L’entrepreneur établie les factures correspondantes aux décomptes en cinq (5) exemplaires. Les
+> factures doivent mentionner :
+> La référence du marché ;
+> Les mentions légales, à savoir :
+> - L’identité de l’entrepreneur ;
+> - Le numéro d’identification fiscale attribué par le service local des impôts, ainsi que
+> le numéro d’article d’imposition à la taxe professionnelle ;
+> - L’identifiant commun de l’entreprise ;
+> - La date de la fature;
+> - Le nom, prénom ou raison sociale et adresses ;
+> - Les prix, quantités et nature des marchandises vendues, des travaux exécutés ou des
+> services rendus ;
+> - D’une manière distincte le montant de la taxe sur la valeur ajoutée réclamée en sus
+> du prix ou comprise dans le prix ;
+> - Les références et le mode de paiement se rapportant à ces factures ;
+> - et tous autres renseignements prescrits par les dispositions légales.
+> Le montant de chaque facture est réglé au prestataire, dans un délai maximum de Quatre-vingt-
+> dix (90) jours.
+> Attachements :
+> Les attachements seront pris au fur et à mesure de l'exécution des travaux.
+> Les attachements sont établis et validés conformément aux dispositions de l’article 61 du CCAG-T.
+> Les attachements mentionneront :
+> La référence du marché ;
+> La référence de l’ordre de service correspondant ;
+> Le lieu exact du début et de la fin du chantier concerné par cet attachement avec si
+> besoin un croquis ou un plan ;
+> Les numéros des postes du bordereau, les désignations et les quantités
+> correspondantes.
+> Décomptes provisoires :
+> Conformément à l'article 62 du CCAG-T, l’agent chargé du suivi de l’exécution du marché dresse
+> chaque fois qu’il est nécessaire à partir des attachements, un décompte provisoire, qu’il soumet à
+> la signature du maître d’ouvrage indiquant la date d’acceptation des attachements et servant de
+> base de versement d’acomptes à l’entrepreneur.
+> Décompte général définitif :
+> Le décompte général définitif est établi par l’agent chargé du suivi de l’exécution du marché et signé
+> par le maître d’ouvrage selon les dispositions de l’article 68 du CCAG-T.
+> Modalités de paiement :
+> Les paiements seront effectués par application des prix du bordereau aux quantités réalisées
+> suivant les modalités suivantes :
+> 1.Une facture provisoire représentant 100 % du montant des travaux réalisés du prix du balayage
+> (prix n° 1), (diminué en fonction des performances réalisées (débits minimum atteints à
+> l’achèvement du balayage) par rapport aux débits objectifs fixés par la SRM-ORI dans le tableau
+> N°1: tableau récapitulatif relatif aux conditions de réalisation des travaux exigées par la SRM-ORI),
+> sera adressée après achèvement des travaux du balayage et des mesures de débit nocturne.
+> La facture comprendra également 100% des travaux de réparation de fuites et des réfections
+> réalisés par la Société durant la période du balayage.
+> 2.Une facture provisoire représentant 40 % du montant des travaux du maintien des résultats (prix
+> n° 2) sera adressée à la SRM-ORI, après achèvement de la moitié du délai de garantie sur le maintien
+> des gains du balayage, soit après quatre mois de l’achèvement du balayage des secteurs objet du
+> marché.
+> La facture comprendra également 100% des travaux de réparation de fuites et des réfections
+> réalisés par la Société durant les quatre premiers mois de la période de maintien des performances
+> de réseaux.
+> 3.Une facture dernière représentant 60% du montant des travaux de maintien des résultats (prix
+> n° 2) (diminué en fonction des débits maintenus (par rapport aux débits atteints par la Société après
+> achèvement du balayage) sera adressée à la SRM-ORI, après achèvement du délai de maintien, soit
+> après huit mois de l’achèvement du balayage des secteurs objet du marché. La facture comprendra
+> également 100% des travaux de réparation de fuites et des réfections réalisés par la Société durant
+> les quatre mois de la seconde période de maintien des performances de réseaux.
+> 4.Il est à noter que le montant de chaque décompte est réglé au titulaire après réception par le
+> maître d’ouvrage des prestations objet du marché en application des prix du bordereau des prix –
+> détail estimatif y accordés éventuellement du rabais ou de la majoration indiqués dans le marché,
+> aux prestations réellement exécutées.
+> 5.Les attachements correspondants au balayage, au maintien des résultats et aux travaux de
+> réparation et des réfections seront établis à partir des constatations contradictoires faites sur le
+> terrain des travaux et prestations exécutés.
+> 6.La Société soumettra à l’approbation de la SRM-ORI à l’achèvement du balayage, et à l’expiration
+> de la période du maintien des performances des secteurs hydrauliques et de réparation des fuites
+> détectées, la facture relative aux prestations réalisées, accompagnées de tous les attachements,
+> pièces justificatives nécessaires à la vérification. Ces factures seront fournies en 5 exemplaires et
+> les pièces justificatives en 3 exemplaires.
+> La SRM-ORI vérifie la facture et y apporte les rectifications qu’elle juge nécessaires. Dans ce dernier
+> cas, la facture rectifiée est soumise dans un délai maximal de quinze jours à la SRM-ORI pour
+> validation.
+> En cas de contestation par la Société sur la facture rectifiée, seul sera effectué le paiement du
+> montant arrêté par la SRM-ORI tant qu’un accord ne sera pas intervenu.
+> Il demeure entendu qu’en cas de désaccord, les travaux ne pourront pas être arrêtés par la Société.
+> Le paiement se fera dans un délai de 90 jours à partir de la date de dépôt de la facture de décompte
+> au bureau d’ordre de la SRM-ORI, accompagnée des attachements des travaux réalisés objet de la
+> facture, validés par le maître d’ouvrage.
+
+- **R-CPS-059** [CONTRACTUEL] Le règlement se fait sur la base de décomptes ; une copie de chaque décompte est communiquée à l'entrepreneur dans un délai n'excédant pas dix (10) jours à partir de sa signature par le maître d'ouvrage. [F056 p.11, art. I-32]
+- **R-CPS-060** [CONTRACTUEL] L'entrepreneur établit les factures correspondant aux décomptes en cinq (5) exemplaires. [F056 p.11, art. I-32]
+- **R-CPS-061** [CONTRACTUEL] Mentions obligatoires de la facture : référence du marché ; identité de l'entrepreneur ; numéro d'identification fiscale ; numéro d'article d'imposition à la taxe professionnelle ; identifiant commun de l'entreprise (ICE) ; date de la facture ; nom ou raison sociale et adresses ; prix, quantités et nature des travaux ; montant de la TVA de manière distincte ; références et mode de paiement ; autres mentions légales. [F056 p.11-12, art. I-32]
+- **R-CPS-062** [CONTRACTUEL] Chaque facture est réglée dans un délai maximum de quatre-vingt-dix (90) jours, compté à partir de la date de dépôt de la facture de décompte au bureau d'ordre de la SRM-ORI, accompagnée des attachements validés par le maître d'ouvrage. [F056 p.12-13, art. I-32]
+- **R-CPS-063** [CONTRACTUEL] Les attachements sont pris au fur et à mesure de l'exécution des travaux, établis et validés selon l'article 61 du CCAG-T. [F056 p.12, art. I-32]
+- **R-CPS-064** [CONTRACTUEL] Mentions obligatoires de l'attachement : (1) référence du marché ; (2) référence de l'ordre de service correspondant ; (3) lieu exact du début et de la fin du chantier concerné, avec si besoin un croquis ou un plan ; (4) numéros des postes du bordereau, désignations et quantités correspondantes. [F056 p.12, art. I-32]
+- **R-CPS-065** [CONTRACTUEL] Décomptes provisoires (article 62 du CCAG-T) : dressés par l'agent chargé du suivi « chaque fois qu'il est nécessaire » à partir des attachements, soumis à la signature du maître d'ouvrage ; ils indiquent la date d'acceptation des attachements et servent de base au versement d'acomptes. [F056 p.12, art. I-32]
+- **R-CPS-066** [CONTRACTUEL] Le décompte général définitif est établi par l'agent chargé du suivi et signé par le maître d'ouvrage (article 68 du CCAG-T). [F056 p.12, art. I-32]
+- **R-CPS-067** [CONTRACTUEL] Facture n° 1 (provisoire) : 100 % du montant du balayage (prix 1), diminué en fonction des performances (débits minimum atteints par rapport aux débits objectifs du tableau n° 1), adressée après achèvement du balayage et des mesures de débit nocturne ; elle comprend aussi 100 % des réparations et réfections réalisées pendant la période du balayage. [F056 p.12, art. I-32 §1]
+- **R-CPS-068** [CONTRACTUEL] Facture n° 2 (provisoire) : 40 % du montant du maintien (prix 2), adressée après quatre mois à compter de l'achèvement du balayage ; elle comprend 100 % des réparations et réfections des quatre premiers mois de maintien. [F056 p.12, art. I-32 §2]
+- **R-CPS-069** [CONTRACTUEL] Facture n° 3 (« facture dernière ») : 60 % du montant du maintien (prix 2), diminué en fonction des débits maintenus, adressée après huit mois à compter de l'achèvement du balayage ; elle comprend 100 % des réparations et réfections des quatre mois de la seconde période de maintien. [F056 p.13, art. I-32 §3]
+- **R-CPS-070** [CONTRACTUEL] Le montant de chaque décompte est réglé après réception par le maître d'ouvrage des prestations, par application des prix du bordereau affectés de la majoration, aux prestations réellement exécutées. [F056 p.13, art. I-32 §4]
+- **R-CPS-071** [CONTRACTUEL] Les attachements du balayage, du maintien, des réparations et des réfections sont établis à partir de constatations contradictoires faites sur le terrain. [F056 p.13, art. I-32 §5]
+- **R-CPS-072** [CONTRACTUEL] À l'achèvement du balayage et à l'expiration de la période de maintien, la société soumet à l'approbation de la SRM la facture accompagnée de tous les attachements et pièces justificatives : factures en 5 exemplaires, pièces justificatives en 3 exemplaires. [F056 p.13, art. I-32 §6]
+- **R-CPS-073** [CONTRACTUEL] La SRM vérifie la facture et la rectifie si nécessaire ; la facture rectifiée est soumise à la SRM pour validation dans un délai maximal de quinze jours ; en cas de contestation, seul le montant arrêté par la SRM est payé tant qu'un accord n'est pas intervenu ; le désaccord n'autorise pas l'arrêt des travaux. [F056 p.13, art. I-32 §6]
+- **R-CPS-074** [DÉDUIT] Le CPS organise donc **trois factures** (fin de balayage ; +4 mois ; +8 mois) et non une facturation mensuelle ; il prévoit pourtant des décomptes « chaque fois qu'il est nécessaire » : la tenue d'attachements mensuels (pratique STEPAG, [F001]) reste possible comme pièce de suivi `[À CONFIRMER : périodicité réelle des attachements et des acomptes acceptée par la SRM]`. [F056 p.12-13, art. I-32 ; F001]
+- **R-CPS-075** [CONTRACTUEL] Mentions de la facture propres à la SRM (numéro de commande, engagement, service destinataire, code fournisseur) : `[NON PRÉCISÉ]` ; seule « la référence du marché » est exigée. [F056 p.11, art. I-32]
+
+#### Art. I-33 et I-34 Variation de la masse et des quantités
+
+> ARTICLE N° 33. AUGMENTATION OU DIMINUTION DANS LA MASSE DES TRAVAUX
+> Elles sont appliquées conformément aux dispositions des articles 57 et 58 du CCAG-T.
+> ARTICLE N° 34. CHANGEMENT DANS LES QUANTITES DU DETAIL ESTIMATIF
+> Les dispositions de l’article 59 du CCAG-T sont applicables.
+
+- **R-CPS-076** [CONTRACTUEL] Augmentation ou diminution dans la masse des travaux : articles 57 et 58 du CCAG-T ; changement dans les quantités du détail estimatif : article 59. Les seuils ne sont pas reproduits dans le CPS `[À CONFIRMER : règle par défaut du CCAG-T, non vérifiée dans le dossier]`. [F056 p.13, art. I-33 et I-34]
+
+#### Art. I-35 Pénalités
+
+> ARTICLE N° 35. PENALITES POUR RETARD – PENALITES PARTICULIERES
+> A – Pénalités pour retard :
+> En cas de retard dans l’exécution des travaux, il est appliqué une pénalité par jour calendaire à
+> l’encontre de l’entrepreneur. Cette pénalité est égale à un pour mille (1/1000) du montant du
+> marché. Ce montant est celui du marché initial, éventuellement majoré par les montants
+> correspondants aux travaux supplémentaires et à l’augmentation dans la masse des travaux.
+> L’application de ces pénalités ne libère en rien l’entrepreneur de l’ensemble des autres obligations
+> et responsabilités qu’il a souscrites au titre du marché.
+> Le montant des pénalités est plafonné à huit pour cent (8%) du montant initial du marché
+> éventuellement majoré par les montants correspondants aux travaux supplémentaires et à
+> l’augmentation dans la masse des travaux.
+> Lorsque le plafond des pénalités est atteint, le Maître d’Ouvrage est en droit de résilier le marché.
+> B – Pénalités particulières
+> A défaut de respect des conditions de remise par l’entrepreneur des documents ou rapports ou à
+> défaut de réalisation de certaines de ses obligations, il est appliqué à l’encontre de l’entrepreneur
+> les pénalités particulières fixées comme suit :
+> - En cas de non-respect des signalisations du chantier conformément à la réglementation,
+> la SRM-ORI appliquera une pénalité de 1000 DH/Jour de retard.
+> - En cas de non-respect du port des équipements de protection individuels (EPI) par les
+> ouvriers de la société conformément à la réglementation, la SRM-ORI appliquera une
+> pénalité de 500,00 DH/jour de retard et par ouvrier.
+> L'ensemble des montants de ces pénalités est plafonné à deux pour cent (2%) du montant initial du
+> marché éventuellement complété par les montants correspondant aux travaux supplémentaires et
+> à l'augmentation dans la masse des travaux.
+> Elles sont prélevées dans les mêmes conditions que celles prévues au paragraphe A du présent
+> article.
+
+- **R-CPS-077** [CONTRACTUEL] Pénalité de retard : par jour calendaire de retard dans l'exécution des travaux, un pour mille (1/1000) du montant du marché (montant initial, éventuellement majoré des travaux supplémentaires et de l'augmentation dans la masse). [F056 p.13, art. I-35 A]
+- **R-CPS-078** [CONTRACTUEL] Les pénalités de retard sont plafonnées à huit pour cent (8 %) du montant initial du marché éventuellement majoré ; lorsque le plafond est atteint, le maître d'ouvrage est en droit de résilier le marché. [F056 p.13, art. I-35 A]
+- **R-CPS-079** [CONTRACTUEL] Pénalités particulières : non-respect de la signalisation du chantier : 1000 DH par jour de retard ; non-port des équipements de protection individuels : 500,00 DH par jour de retard et par ouvrier. Leur total est plafonné à deux pour cent (2 %) du montant initial éventuellement majoré ; elles sont prélevées comme les pénalités de retard. [F056 p.13-14, art. I-35 B]
+- **R-CPS-080** [CONTRACTUEL] Le chapeau du § B annonce des pénalités « à défaut de respect des conditions de remise […] des documents ou rapports », mais aucun montant n'est fixé pour la non-remise d'un rapport ou d'une fiche : `[NON PRÉCISÉ]`. [F056 p.13, art. I-35 B]
+
+#### Art. I-36 à I-39 (résumés)
+
+- **R-CPS-081** [CONTRACTUEL] Art. I-36 : retenue à la source de 10 % pour les titulaires étrangers non résidents (sans objet pour STEPAG). Art. I-37 : mesures coercitives, article 79 du CCAG-T. Art. I-38 : résiliation selon le règlement des marchés de la SRM et le CCAG-T, notamment l'article 69. Art. I-39 : différends réglés selon les articles 81 à 84 du CCAG-T ; tribunaux compétents d'Oujda. [F056 p.14, art. I-36 à I-39]
+
+### 3.3 Partie II : cahier des prescriptions spéciales
+
+La numérotation recommence à l'article 1 : les articles ci-dessous sont cités `art. II-n`.
+
+#### Art. II-1 à II-6 Lieux, installation, hygiène, gardiennage (résumés)
+
+- **R-CPS-082** [CONTRACTUEL] Art. II-1 : l'entrepreneur est réputé connaître les lieux et toutes les conditions d'exécution (accès, nature des terrains, géologie, pluies). [F056 p.15, art. II-1]
+- **R-CPS-083** [CONTRACTUEL] Art. II-2 : l'entrepreneur fait son affaire de l'occupation des terrains d'installation de chantier ; la SRM peut mettre des emprises à disposition, sur demande et accord préalables. [F056 p.15, art. II-2]
+- **R-CPS-084** [CONTRACTUEL] Art. II-3 : l'installation de chantier, à la charge de l'entreprise, comprend un bureau pour la SRM d'environ quinze (15) m2, équipé en eau, électricité, téléphone et mobilier de réunion (table, chaises, panneaux d'affichage). [F056 p.15, art. II-3]
+- **R-CPS-085** [CONTRACTUEL] Art. II-4 à II-6 : hygiène des cantonnements, service médical (dont bénéficie gratuitement le personnel de la SRM), gardiennage de jour et de nuit, propreté du chantier et respect des consignes de police de chantier sont à la charge de l'entrepreneur ; aucune indemnité pour vol. [F056 p.15-16, art. II-4 à II-6]
+
+#### Art. II-7 Signalisation de chantier
+
+> ARTICLE N° 7. SIGNALISATION DE CHANTIER
+> 1. La signalisation complète de jour ou de nuit de ses chantiers (travaux de pose des conduites, de
+> branchements, etc…), tant extérieure qu'intérieure incombe à l'Entrepreneur (Acquisition et
+> installation à sa charge) et ce conformément aux règles de l’art.
+> Ainsi, l’Entrepreneur doit procéder pour chaque chantier à la mise en place de :
+> - Panneaux de renseignements sur chantier en toile suivant indication de la SRM-ORI.
+> - Panneaux de signalisation des Travaux suivant indication de la SRM-ORI.
+> - Panneaux de limitation de vitesse.
+> - Des cônes de signalisation avec un espacement de 10 m.
+> - Des bandes fluorescentes de signalisation.
+> - Des gyrophares de signalisation de nuit.
+> 2. Lorsque les travaux intéressent la circulation routière ou ferroviaire, l'Entrepreneur doit
+> satisfaire à toutes les obligations et prescriptions de signalisation en vigueur. Il soumettra aux
+> autorités compétentes les plans de signalisation, les modalités d'interruption de circulation et
+> les panneaux, feux de signalisation qu'il compte utiliser et demandera, en temps utile, aux
+> Administrations les autorisations nécessaires pour le ralentissement, ou l'interruption
+> temporaire de la circulation. L'Entrepreneur devra se soumettre aux conditions que ces mêmes
+> Administrations jugeraient à propos de lui imposer en vue de la sécurité routière en général,
+> notamment la mise en place des palissades dans les endroits sensibles de la ville.
+
+- **R-CPS-086** [CONTRACTUEL] Pour chaque chantier, l'entrepreneur met en place à ses frais : panneaux de renseignements en toile (suivant indication SRM) ; panneaux de signalisation des travaux ; panneaux de limitation de vitesse ; cônes espacés de 10 m ; bandes fluorescentes ; gyrophares de signalisation de nuit. [F056 p.16, art. II-7]
+- **R-CPS-087** [CONTRACTUEL] Quand les travaux touchent la circulation, l'entrepreneur soumet aux autorités les plans de signalisation et demande lui-même, en temps utile, les autorisations de ralentissement ou d'interruption de circulation ; palissades dans les endroits sensibles. [F056 p.16, art. II-7]
+
+#### Art. II-8 à II-13 (résumés)
+
+- **R-CPS-088** [CONTRACTUEL] Art. II-8 et II-9 : près des lieux habités, réduire la gêne (accès, bruit, fumées, poussières) aux frais de l'entrepreneur ; respect des règlements de police et de voirie ; l'entrepreneur est responsable des dégâts commis sur son chantier par son personnel ou des tiers. [F056 p.16, art. II-8 et II-9]
+
+> ARTICLE N° 10. PRESENCE DE L’ENTREPRENEUR
+> L’entrepreneur sera tenu d’assister personnellement à toute visite de chantier ou à toute réunion
+> demandée par le Maître de l’ouvrage.
+> Pendant la durée des travaux, l’entrepreneur sera représenté sur place par le Directeur de chantier
+> qualifié. Si cette qualification n’apparaît pas suffisante, le Maître de l’ouvrage peut demander le
+> remplacement ou l’assistance jugée nécessaire, le remplacement doit être effectué 48 heures après
+> la demande de la SRM-ORI.
+
+- **R-CPS-089** [CONTRACTUEL] Art. II-10 : l'entrepreneur assiste personnellement à toute visite de chantier ou réunion demandée ; il est représenté sur place par un directeur de chantier qualifié, dont la SRM peut demander le remplacement, à effectuer 48 heures après la demande. [F056 p.16, art. II-10]
+- **R-CPS-090** [CONTRACTUEL] Art. II-11 : en cas d'insuffisance professionnelle ou de non-respect du marché, avertissement écrit préalable à une résiliation. Art. II-12 : garantie contre les revendications de brevets. Art. II-13 : aucun arrêt des travaux sans accord de la SRM ; pas d'indemnité si une autorité ordonne l'arrêt. [F056 p.16-17, art. II-11 à II-13]
+
+#### Art. II-14 Réalisation des travaux (phasage)
+
+> ARTICLE N° 14. REALISATION DES TRAVAUX
+> Les travaux seront réalisés de la manière suivante :
+> Après établissement et réception de l’ordre de service de commencement des travaux par
+> l’entreprise, celle-ci entamera les travaux de balayage des secteurs objet du présent marché
+> conformément au tableau n° 1 , le délai de cette première opération est fixé à 4 mois qui seront
+> sanctionnes par la réalisation de mesure des performances atteintes conformément à l’article 52.8
+> Après expiration du délai du balayage, l’entreprise entamera les deux phases de maintien des
+> performances dont les délais sont fixés à 4 mois chacune soit 2x4= 8 mois
+> Si l’entreprise accuse un retard dans des phases précédemment décrite, ce retard entrainera une
+> pénalité calculée conformément au CPS
+
+- **R-CPS-091** [CONTRACTUEL] Phase 1 : après réception de l'ordre de service de commencement, l'entreprise entame le balayage des secteurs conformément au tableau n° 1 ; délai de cette opération : 4 mois, sanctionnés par la mesure des performances atteintes. [F056 p.17, art. II-14]
+- **R-CPS-092** [CONTRACTUEL] Phases 2 et 3 : après expiration du délai du balayage, deux phases de maintien des performances de 4 mois chacune, soit 2 × 4 = 8 mois. [F056 p.17, art. II-14]
+- **R-CPS-093** [CONTRACTUEL] Un retard dans l'une de ces phases entraîne une pénalité « calculée conformément au CPS » (renvoi implicite à l'art. I-35 A : 1/1000 par jour calendaire). [F056 p.17, art. II-14 ; F056 p.13, art. I-35]
+- **R-CPS-094** [CONTRACTUEL] Le renvoi « conformément à l'article 52.8 » ne correspond à aucun article du CPS `[À CONFIRMER : renvoi hérité d'un ancien cahier des charges ; la mesure des performances après balayage est décrite à l'art. II-22]`. [F056 p.17, art. II-14]
+
+#### Art. II-15 Conditions de réalisation des travaux
+
+> ARTICLE N° 15. LES CONDITIONS DE RÉALISATION DES TRAVAUX
+> Les prestations de la mission définies ci-après sont indicatives et nullement limitatives. En fait
+> l’Entrepreneur s’engage à exécuter les travaux dans les règles de l’art.
+> L’Entrepreneur doit donner tous les renseignements et documents nécessaires à la compréhension
+> et à la justification du travail effectué, il est aussi tenu d’apporter à son projet, et sans rémunération
+> supplémentaire, toutes les modifications qui seront jugées nécessaires pour son approbation.
+> L’Entrepreneur doit noter que pour les différentes prestations définies ci-après, l’élaboration des
+> documents devra tenir compte des différentes directives émises par la SRM-ORI et traiter tous les
+> aspects que la SRM-ORI souhaite voir analyser dans ce genre prestations. L’approbation finale des
+> prestations ne se fera que lorsque tous les intervenants dans cette opération auront donné leur
+> accord définitif.
+> Les prestations consistent en la réalisation des travaux de recherche à l’aide des équipements de
+> recherche des fuites sur les réseaux de distribution d'eau potable de certains secteurs de la
+> Préfecture Oujda-Angad conformément aux directives de la SRM-ORI ainsi que la réalisation des
+> travaux visant le maintien des résultats obtenus après l’achèvement du délai de balayage.
+> L’établissement de rapports journaliers et mensuels et le report des fuites sur plans, concernant les
+> secteurs objets des travaux fait également partie des prestations à réaliser par l’adjudicataire,
+> l’établissement de ces rapports sera à la charge de l’entreprise adjudicataire et à ses frais).
+> En cas de besoin particulier, la SRM-ORI peut demander la substitution des travaux de détection
+> d’un secteur prévu initialement dans le tableau récapitulatif relatif aux conditions de réalisation des
+> travaux exigés par la SRM-ORI par un autre de même caractéristiques hydrauliques et performances
+> pourvu que ce changement reçoît l’accord de l’entreprise, cet accord sera consigné sur un procès-
+> verbal.
+> N.B. :
+> - Les travaux de réparation des fuites seront réalisés par l’entreprise (fourniture, transport et
+> pose du matériel à la charge de la société).
+> -Tout le matériel de réparation de fuites utilisé sera soumis à l'approbation de la SRM-ORI avant
+> le démarrage des travaux (le matériel doit être conforme aux normes en vigueur)
+> Les conditions de réalisation des travaux sont arrêtées conformément au tableau récapitulatif N°1
+> ci-après :
+
+- **R-CPS-095** [CONTRACTUEL] Les prestations décrites sont « indicatives et nullement limitatives » ; l'entrepreneur apporte sans rémunération supplémentaire toutes les modifications jugées nécessaires à l'approbation de ses documents, qui tiennent compte des directives de la SRM. [F056 p.17, art. II-15]
+- **R-CPS-096** [CONTRACTUEL] L'établissement des rapports journaliers et mensuels et le report des fuites sur plans, pour les secteurs objet des travaux, font partie des prestations, à la charge et aux frais de l'entreprise. [F056 p.17, art. II-15]
+- **R-CPS-097** [CONTRACTUEL] La SRM peut demander la substitution d'un secteur du tableau n° 1 par un autre de mêmes caractéristiques hydrauliques et performances, avec l'accord de l'entreprise consigné sur procès-verbal. [F056 p.17, art. II-15]
+- **R-CPS-098** [CONTRACTUEL] Les travaux de réparation des fuites sont réalisés par l'entreprise : fourniture, transport et pose du matériel à sa charge. [F056 p.17, art. II-15 N.B.]
+- **R-CPS-099** [CONTRACTUEL] Tout le matériel de réparation utilisé est soumis à l'approbation de la SRM-ORI avant le démarrage des travaux et doit être conforme aux normes en vigueur. [F056 p.17, art. II-15 N.B.]
+
+**Tableau n° 1 : « TABLEAU RECAPITULATIF RELATIF AUX CONDITIONS DE REALISATION DES TRAVAUX EXIGEES PAR LA SRM-ORI »** (transcription contrôlée visuellement sur les pages 18 et 19 ; les quatre dernières colonnes sont des cellules fusionnées communes à toutes les zones).
+
+| N° | Zone d'intervention | Secteur d'intervention (texte exact) | Linéaire approximatif du réseau par zone | Unité | Nombre de balayages prévus sur la totalité des secteurs | Délai maximum d'exécution du balayage | Débit nocturne minimum à assurer à l'achèvement du balayage « Q exigé » | Unité | Périodicité maximale du contrôle du débit nocturne après achèvement du balayage | Délai de garantie sur maintien du gain après achèvement du balayage | Source |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Zone université 7000m3 et champ tir | Qods Haut, Andalous, Chu - Mouhoub -Iriss, Maafa Bekay Bas, Ballaoui Bas-Irfane- Unisit-Colline-Partie H Ain Serrak, Qods Bas, Château Sidi Aissa Azengot, Maksam-Kharoub | 358 | km | Une fois au minimum | 4 mois | 126 | m3/h | Hebdomadaire | 8 mois | [F056 p.18] |
+| 2 | Zone jbel hamra DN700 | Lazaret Bas, Tairet, Mbasso, Tennis2, Sidi Driss, Secteur Tazaghine, El Boustane, Ghar El Baroud-Zone Industrielle | 362 | km | Une fois au minimum | 4 mois | 130 | m3/h | Hebdomadaire | 8 mois | [F056 p.18] |
+| 3 | Zone Reservoir AIN SERRAK 5000M3 | Derfoufi et Zerkrtouni – Mohammadi Intérieur – Allal Ben Abdellah – Oued Makhazine, Mauritanie et Hassani – Mohammadi Extérieur - Benkhirane | 228 | km | Une fois au minimum | 4 mois | 118 | m3/h | Hebdomadaire | 8 mois | [F056 p.18] |
+| 4 | Zone Sidi Yahya 5000 M3 4000M3 | Sidi yahya, Pam ,Lazaret haut,Abdellah Guenoun | 399 | km | Une fois au minimum | 4 mois | 112 | m3/h | Hebdomadaire | 8 mois | [F056 p.18] |
+| 5 | Zone jbel hamra DN600 | Medina , Rte Algerie, Tennis 1 Aounia,Atlas,Lieutenant Belhoucine,Boudir | 119 | km | Une fois au minimum | 4 mois | 83 | m3/h | Hebdomadaire | 8 mois | [F056 p.19] |
+| TOTAL | — | — | 1466 | km | — | — | - | — | — | — | [F056 p.19] |
+
+Texte complet de la cellule « Périodicité » : « Hebdomadaire (moyennant le matériel de télégestion' télé relève' des compteurs de la SRM-ORI ou en cas d'indisponibilité le matériel de mesure de la SRM-ORI ou de l'entreprise.) ». [F056 p.18]
+
+| N° | Zone | Débit minimum le plus bas atteint lors des campagnes précédentes | Débit actuel mesuré | Q exigé | Unité | Baisse exigée par rapport au débit actuel (déduit) | Source |
+|---|---|---|---|---|---|---|---|
+| 1 | Zone université 7000m3 et champ tir | 133 | 158 | 126 | m3/h | 32 | [F056 p.18-19] |
+| 2 | Zone jbel hamra DN700 | 136 | 162 | 130 | m3/h | 32 | [F056 p.18-19] |
+| 3 | Zone Reservoir AIN SERRAK 5000 | 133 | 148 | 118 | m3/h | 30 | [F056 p.18-19] |
+| 4 | Zone Sidi Yahya 5000 M3 et 4000M3 | 99 | 140 | 112 | m3/h | 28 | [F056 p.18-19] |
+| 5 | Zone jbel hamra DN600 | 79 | 104 | 83 | m3/h | 21 | [F056 p.18-19] |
+
+> N.B/ Débits min les plus bas atteints lors des précédentes compagnes de recherche de fuites par la SRM ou dans le cadre de la sous-traitance :
+> Zone université 7000m3 et champ tir : 133 m3/h
+> Zone jbel hamra DN700 : 136 m3/h
+> Zone Reservoir AIN SERRAK 5000 :133 m3/h
+> Zone Sidi Yahya 5000 M3 et 4000M3 : 99 m3/h
+> Zone jbel hamra DN600 : 79 m3/h
+> Débits actuels mesurés aux secteurs
+> Zone université 7000m3 et champ tir : 158 m3/h
+> Zone jbel hamra DN700 : 162 m3/h
+> Zone Reservoir AIN SERRAK 5000 : 148 m3/h
+> Zone Sidi Yahya 5000 M3 et 4000M3 : 140 m3/h
+> Zone Jbel hamra DN600 : 104 m3/h
+> A noter que les débits indiqués concernent la somme des débits relevés sur les ouvrages du comptage de chaque secteur de la zone d’intervention, les débits à
+> assurer seront mesurés de cette manière.
+> Les différents secteurs hydrauliques mentionnés sont identifiés par des points de mesures
+> implantés sur le réseau de distribution qui serviront pour le contrôle et le suivi de l’évolution des
+> débits nocturnes minimums enregistrés au niveau des réseaux correspondants.
+> Les travaux de recherche de fuites réalisés par l’entrepreneur doivent réduire au maximum les
+> pertes d’eau existantes sur les réseaux des différents secteurs, et assurer le maintien des gains en
+> distribution obtenus à l’achèvement du balayage.
+> Au cours du balayage l’entrepreneur doit réduire les débits nocturnes minimums enregistrés
+> mesurés avant intervention suivant les débits minimums et conformément au tableau récapitulatif
+> N° 1 et ci-dessus.
+> Au cours du balayage, le linéaire d'une conduite inspectée ne sera rémunéré qu'une seule fois quel
+> que soit le nombre de passages qui y seront opérés.
+> L’entrepreneur peut faire recours à des techniques de pointes telle que la technique de pré
+> localisation des fuites par l’exploitation des capteurs enregistreurs de bruit permettant la
+> surveillance et le contrôle du fonctionnement des réseaux des différents secteurs au cours de la
+> période de garantie pour assurer le maintien des gains obtenus au cours du balayage.
+> Les gains en distribution assurés par l’entrepreneur au niveau de chaque secteur à partir de la date
+> d’achèvement du balayage ne doivent pas connaître une détérioration supérieure à 25%.
+> Néanmoins, au cours de la période de garantie, les débits minimums seront contrôlés avec une
+> fréquence maximale d’un contrôle chaque semaine, ces contrôles seront effectués, avec les moyens
+> de télégestion (télé relève) de la SRM-ORI ou en cas d’indisponibilité par les enregistreurs de débit
+> et pression de l’adjudicataire ou de la SRM-ORI, ayant reçu l’accord de celui-ci.
+> Les dates de contrôle qui seront pris en considération pour le calcul de l’amélioration ou de la
+> dégradation des résultats obtenus durant la période du maintien, seront fixées par la SRM-ORI, la
+> durée entre ces dates prises pour ce calcul, doit être la même, elle ne doit pas dépasser sept jours.
+> En cas de non-participation de l’entreprise à ces contrôles, les résultats qui en découlent ne peuvent
+> être remis en cause par celle-ci et seront pris en considération pour le calcul des variations des gains
+> obtenus après le balayage, ces mesures de contrôle serviront de base au calcul des pénalités.
+> Pour un secteur donné le résultat de la différence entre la moyenne des débits minimum
+> enregistrés lors des opérations de contrôle du maintien et le débit minimum enregistré à
+> l’achèvement du balayage est égal à la dégradation ou à l’amélioration des gains obtenus.
+> L’entrepreneur doit donner tous les renseignements et documents nécessaires à la compréhension
+> et à la justification du travail effectué et sera aussi tenu d’apporter à son projet, et sans
+> rémunération supplémentaire toutes les modifications qui seront jugées nécessaires pour son
+> approbation.
+> L’entrepreneur doit noter que pour les différentes prestations définies ci-après, l’élaboration des
+> documents devra tenir compte des différentes directives émises par la SRM-ORI et traiter tous les
+> aspects que celle-ci souhaite voir analyser dans ce genre de prestations.
+
+- **R-CPS-100** [CONTRACTUEL] Le tableau n° 1 fixe, pour chacune des 5 zones, les secteurs, le linéaire approximatif (358, 362, 228, 399, 119 km ; total 1466 km) et le débit nocturne minimum à atteindre à la fin du balayage (Q exigé : 126, 130, 118, 112, 83 m3/h). [F056 p.18-19, tableau n° 1]
+- **R-CPS-101** [CONTRACTUEL] Pour toutes les zones : au moins un balayage de la totalité des secteurs ; délai maximum du balayage 4 mois ; contrôle du débit nocturne au plus hebdomadaire après le balayage ; garantie de maintien du gain 8 mois après l'achèvement du balayage. [F056 p.18, tableau n° 1]
+- **R-CPS-102** [CONTRACTUEL] Débits de référence par zone (1 à 5) : plus bas historiques 133, 136, 133, 99, 79 m3/h ; débits actuels mesurés 158, 162, 148, 140, 104 m3/h. Pour la zone 4, le Q exigé (112) est supérieur au plus bas historique (99) ; pour les autres zones il est inférieur. [F056 p.19]
+- **R-CPS-103** [CONTRACTUEL] Le débit d'une zone est la somme des débits relevés sur les ouvrages de comptage de chaque secteur de la zone ; les débits à assurer sont mesurés de cette manière. [F056 p.19]
+- **R-CPS-104** [CONTRACTUEL] Les secteurs hydrauliques sont identifiés par des points de mesure implantés sur le réseau, qui servent au contrôle et au suivi des débits nocturnes minimums. [F056 p.21, art. II-15]
+- **R-CPS-105** [CONTRACTUEL] Au cours du balayage, le linéaire d'une conduite inspectée n'est rémunéré qu'une seule fois, quel que soit le nombre de passages. [F056 p.21, art. II-15]
+- **R-CPS-106** [CONTRACTUEL] L'entrepreneur peut utiliser des techniques de pointe, telle la pré-localisation par capteurs enregistreurs de bruit, pour surveiller les réseaux pendant la période de garantie. [F056 p.21, art. II-15]
+- **R-CPS-107** [CONTRACTUEL] Les gains en distribution obtenus à la fin du balayage ne doivent pas connaître, par secteur, une détérioration supérieure à 25 %. [F056 p.21, art. II-15]
+- **R-CPS-108** [CONTRACTUEL] Pendant la période de garantie, les débits minimums sont contrôlés au plus une fois par semaine, par la télégestion (télé-relève) de la SRM ou, à défaut, par les enregistreurs de débit et de pression de l'adjudicataire ou de la SRM ayant reçu l'accord de celle-ci. [F056 p.21, art. II-15]
+- **R-CPS-109** [CONTRACTUEL] Les dates de contrôle retenues pour le calcul sont fixées par la SRM ; l'intervalle entre deux dates est constant et ne dépasse pas sept jours. [F056 p.21, art. II-15]
+- **R-CPS-110** [CONTRACTUEL] Si l'entreprise ne participe pas aux contrôles, elle ne peut en contester les résultats ; ces mesures servent de base au calcul des pénalités. [F056 p.21, art. II-15]
+- **R-CPS-111** [CONTRACTUEL] Pour un secteur, dégradation ou amélioration des gains = moyenne des débits minimums enregistrés lors des contrôles du maintien − débit minimum enregistré à l'achèvement du balayage. [F056 p.21, art. II-15]
+
+#### Art. II-16 Vérification de la sectorisation
+
+> ARTICLE N° 16. VERIFICATION DE LA SECTORISATION DU RESEAU
+> L’entrepreneur est tenu d’adopter le même mode d’alimentation des secteurs au cours des travaux
+> de mesures des débits nocturnes minimums enregistrés avant et après intervention en tenant
+> compte de l’état des vannes de séparation.
+> L'entreprise, en collaboration avec les services de la SRM-ORI, prendra en charge la vérification de
+> la sectorisation par le diagnostic et le contrôle de l'étanchéité des vannes de séparation. La
+> manœuvre des vannes sera effectuée par les agents de la SRM-ORI.
+
+- **R-CPS-112** [CONTRACTUEL] L'entreprise adopte le même mode d'alimentation des secteurs pour les mesures de débit avant et après intervention, en tenant compte de l'état des vannes de séparation ; elle vérifie avec la SRM la sectorisation (diagnostic et étanchéité des vannes de séparation). [F056 p.22, art. II-16]
+- **R-CPS-113** [CONTRACTUEL] La manœuvre des vannes est effectuée par les agents de la SRM-ORI. [F056 p.22, art. II-16]
+
+#### Art. II-17 Mesure des débits de nuit avant recherche
+
+> ARTICLE N° 17. MESURE DES DEBITS DE NUIT, AVANT OPERATION DE RECHERCHE DES
+> FUITE
+> Les Mesures de nuit avant intervention seront effectuées sur l’ensemble des zones objets
+> du marché juste après l’établissement de l’ordre de service. Ces mesures seront effectuées chaque
+> 15 minute et chaque nuit de 0h à 6h du matin pendant trois jours. Le débit de nuit en m3/h retenu
+> pour chaque nuit sera le débit minimal enregistré lors des mesures effectuées pendant cette nuit.
+> Le débit de nuit (Qi) avant intervention qui sera pris en considération par la suite sera donc le
+> minimum des trois valeurs minimales trouvées pendant les trois nuits. (Le minimum des trois
+> minimums). (Voir tableau indicatif ci -après) :
+> Nuit : (i= 1,2 ou 3)
+> Heure de mesure Débit de nuit mesuré
+> (m3/h)
+> 0h 00 min Q1
+> 0h 15 min Q2
+> 0h 30min Q3
+> … …
+> 6h 00 min Q25
+> Débit de nuit (m3 / h) de la nuit i : Qi = Min (Q1, Q2, Q3, ….Q25)
+> Un procès-verbal des mesures sera établi et signé par l’entreprise et la SRM-ORI.
+> N.B : Pour les secteurs dotés de comptage, les mesures de débits de nuit seront réalisées
+> en se basant sur les données du système de télégestion (télé-relève). Cependant
+> l'entreprise pourra procéder à la vérification des Débit Mètre secteur par un
+> débitmètre portable à insertion ou à ultrasons. Dans le cas où les mesures de
+> débits de nuit (soit lors des balayages ou au cours des opérations de suivi du
+> maintien des performances des secteurs) seront réalisées directement sur les
+> conduites de la SRM-ORI, l'entreprise ne pourra prétendre dans ce cas à aucune
+> rémunération.
+
+- **R-CPS-114** [CONTRACTUEL] Les mesures de nuit avant intervention sont faites sur toutes les zones juste après l'ordre de service : toutes les 15 minutes, chaque nuit de 0 h à 6 h, pendant trois jours (25 mesures Q1 à Q25 par nuit). [F056 p.22, art. II-17]
+- **R-CPS-115** [CONTRACTUEL] Débit de la nuit i : `Qi = Min(Q1, Q2, …, Q25)` en m3/h ; le débit de nuit avant intervention retenu est le minimum des trois minimums. [F056 p.22, art. II-17]
+- **R-CPS-116** [CONTRACTUEL] Un procès-verbal des mesures est établi et signé par l'entreprise et la SRM-ORI. [F056 p.22, art. II-17]
+- **R-CPS-117** [CONTRACTUEL] Pour les secteurs dotés de comptage, les mesures s'appuient sur la télégestion (télé-relève) ; l'entreprise peut vérifier les débitmètres de secteur par débitmètre portable à insertion ou à ultrasons ; les mesures faites directement sur les conduites de la SRM ne donnent droit à aucune rémunération. [F056 p.22, art. II-17 N.B.]
+
+#### Art. II-18 Recherche des fuites
+
+> ARTICLE N° 18. RECHERCHE DES FUITES
+> Recherche et détection de fuites par l’entreprise
+> Cette phase consiste en :
+> Les opérations de détection des fuites par les différentes méthodes de détection de
+> fuites à savoir détection systématique de fuites par appareil acoustique, localisation
+> des fuites par corrélations et mise en place de capteurs enregistreurs de bruit
+> Le repérage des fuites détectées et leur implantation sur un plan à une échelle
+> appropriée, avec toutes les indications nécessaires ;
+> La confirmation de la fuite en présence des agents de la SRM-ORI et de l’entreprise
+> après exécution des travaux d’ouverture de tranchée
+> Dans tous les cas la cadence moyenne de l’inspection du réseau par l’entreprise
+> adjudicataire ne doit pas être inférieure à quatre kilomètres par jour par équipe (4
+> Kms/jour/équipe), pendant la période du balayage.
+> Le nombre minimum des équipes de détection de fuites exigées est de 4 équipes pendant la
+> période du balayage et du maintien.
+
+- **R-CPS-118** [CONTRACTUEL] La recherche comprend : la détection systématique par appareil acoustique, la localisation par corrélation et la mise en place de capteurs enregistreurs de bruit. [F056 p.22, art. II-18]
+- **R-CPS-119** [CONTRACTUEL] Les fuites détectées sont repérées et implantées sur un plan à une échelle appropriée, avec toutes les indications nécessaires. [F056 p.22, art. II-18]
+- **R-CPS-120** [CONTRACTUEL] La fuite est confirmée en présence des agents de la SRM-ORI et de l'entreprise, après exécution des travaux d'ouverture de tranchée. [F056 p.22, art. II-18]
+- **R-CPS-121** [CONTRACTUEL] La cadence moyenne d'inspection ne doit pas être inférieure à quatre kilomètres par jour et par équipe (4 km/jour/équipe) pendant la période du balayage. [F056 p.23, art. II-18]
+- **R-CPS-122** [CONTRACTUEL] Le nombre minimum d'équipes de détection exigé est de 4 équipes pendant le balayage et le maintien. [F056 p.23, art. II-18]
+- **R-CPS-123** [DÉDUIT] Contrôle de cohérence : 1466 km en 4 mois avec 4 équipes à 4 km/jour = 16 km/jour, soit environ 92 jours de travail ; la cadence minimale permet de tenir le délai si l'on travaille 6 jours par semaine (≈ 104 jours ouvrés en 4 mois). [F056 p.23 ; F056 p.19]
+
+#### Art. II-19 Réparation des fuites
+
+> ARTICLE N° 19. REPARATION DES FUITES
+> Toute fuite détectée et localisée par les moyens de recherche des fuites, doit être signalée au
+> représentant de la SRM-ORI
+> La tranchée au niveau de la fuite détectée sera ouverte, en présence du représentant de la SRM-
+> ORI et celui de l’entreprise.
+> Si la fuite est constatée, au niveau de la tranchée ouverte, la fiche qui la concerne devra être
+> renseignée et signée par L’entreprise, dont une copie sera transmise à la SRM-ORI.
+> Il faut signaler que :
+> Si une tranchée ouverte ne révèle aucune fuite (siège de la fuite ne se situe pas dans le tranché), le
+> soumissionnaire aura l’obligation de Recommencer la prospection sure :
+> Toute la zone d'influence du capteur enregistreur indiquant la présence de la fuite, en cas
+> d’inspection avec enregistreurs de bruit ;
+> Le tronçon concerné en cas d’inspection par corrélateur
+> Dans tous les cas, chaque mètre du secteur prospecté n’étant rémunéré qu’une seule fois ;
+> En vue d’avoir une bonne précision de la localisation des fuites et quelque soit la nature de
+> la conduite, leur inspection par le matériel de recherche de fuites sera faite sur des
+> distances inférieures à 100 mètres entre capteurs, dans le cas de conduite en PVC ou
+> polyéthylène cette distance est réduite à 50 mètres ;
+> Lors de la recherche des fuites, les opérations de mise en évidence des accès aux conduites
+> (au niveau des bouches à clés, vanne, robinets et autres) restent à la charge de l'entreprise
+> ; ces opérations comprennent la détection des bouches à clé, le curage, et toute autre
+> opération permettant la mise en place des équipements de détection ;
+> L’inspection du réseau concernera également les branchements sans que leurs linéaires ne
+> soient pris en compte dans la rémunération
+> NB : Les fuites détectées doivent être communiquées le jour même à la SRM-ORI pour validation.
+
+- **R-CPS-124** [CONTRACTUEL] Toute fuite détectée et localisée doit être signalée au représentant de la SRM-ORI. [F056 p.23, art. II-19]
+- **R-CPS-125** [CONTRACTUEL] La tranchée au niveau de la fuite détectée est ouverte en présence du représentant de la SRM-ORI et de celui de l'entreprise. [F056 p.23, art. II-19]
+- **R-CPS-126** [CONTRACTUEL] Si la fuite est constatée dans la tranchée ouverte, la fiche qui la concerne est renseignée et signée par l'entreprise, et une copie est transmise à la SRM-ORI. [F056 p.23, art. II-19]
+- **R-CPS-127** [CONTRACTUEL] Si la tranchée ne révèle aucune fuite (le siège de la fuite n'est pas dans la tranchée), l'entreprise doit recommencer la prospection sur toute la zone d'influence du capteur enregistreur (inspection par enregistreurs de bruit) ou sur le tronçon concerné (inspection par corrélateur), sans nouvelle rémunération du linéaire. Le paiement du terrassement de cette fouille est `[NON PRÉCISÉ]`. [F056 p.23, art. II-19]
+- **R-CPS-128** [CONTRACTUEL] Distance entre capteurs lors de l'inspection : inférieure à 100 mètres quelle que soit la conduite ; réduite à 50 mètres pour les conduites en PVC ou en polyéthylène (`distance < 100 m` ; `distance ≤ 50 m` pour PVC et PE `[À CONFIRMER : inclusivité]`). [F056 p.23, art. II-19]
+- **R-CPS-129** [CONTRACTUEL] La mise en évidence des accès aux conduites (détection des bouches à clé, vannes, robinets, curage et toute opération permettant de poser les équipements de détection) reste à la charge de l'entreprise. [F056 p.23, art. II-19]
+- **R-CPS-130** [CONTRACTUEL] L'inspection porte aussi sur les branchements, sans que leur linéaire soit pris en compte dans la rémunération. [F056 p.23, art. II-19]
+- **R-CPS-131** [CONTRACTUEL] « Les fuites détectées doivent être communiquées le jour même à la SRM-ORI pour validation. » Canal, heure limite et forme : `[NON PRÉCISÉ]`. [F056 p.23, art. II-19 NB]
+- **R-CPS-132** [CONTRACTUEL] Aucun délai de réparation à compter de la détection ou de la validation n'est fixé par le CPS : `[NON PRÉCISÉ]`. Le seuil de 48 h du cadrage de l'application est une règle interne STEPAG, non contractuelle. [F056 p.23, art. II-19]
+
+#### Art. II-20 Réfection de chaussées
+
+> ARTICLE N° 20. REFECTION DE CHAUSSEES
+> La réfection de la chaussée doit comprendre :
+> le remblaiement de la tranchée par tout venant GNA de 0,50 m de hauteur compacté arrosé
+> jusqu’au niveau de la chaussée.
+> Une couche d’imprégnation de cut back ou émulsion
+> Une couche d’enrobés à chaud conformément à l’épaisseur originale de la chaussée
+> conformément aux exigences de la Commune Urbaine (Epaisseur des enrobés de 7 cm).
+> Les réfections de chaussés doivent être exécutées dans un délai ne dépassant pas 1 mois à partir
+> de la date de réparation des fuites.
+> En cas de dépassement de ce délai, l’entreprise doit exécutées les réfections en utilisant une
+> enrobé-résine à froid à base de bitume et d'élastomère qui a les caractéristiques suivantes :
+> • Granulométrie : mm UNE EN 12697 – 2 0/4
+> • Densité Gr/cm3 UNE EN 12697 – 6 1,7 / 1,9
+> • Résistance à la perte de particules ONE EN 12697 - 17* 0,0 / 5,0
+> En cas d’utilisation d’enrobé-résine pour les réfections de chaussées, l'entreprise ne pourra
+> prétendre à aucune rémunération supplémentaire.
+
+- **R-CPS-133** [CONTRACTUEL] La réfection de chaussée comprend : remblaiement de la tranchée en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée ; couche d'imprégnation de cut back ou émulsion ; couche d'enrobés à chaud de 7 cm (exigence de la Commune Urbaine). [F056 p.23, art. II-20]
+- **R-CPS-134** [CONTRACTUEL] Les réfections de chaussée sont exécutées dans un délai ne dépassant pas 1 mois à partir de la date de réparation de la fuite. [F056 p.23, art. II-20]
+- **R-CPS-135** [CONTRACTUEL] Passé ce délai, l'entreprise doit réaliser la réfection en enrobé-résine à froid à base de bitume et d'élastomère (granulométrie 0/4 selon UNE EN 12697-2 ; densité 1,7 / 1,9 g/cm3 selon UNE EN 12697-6 ; résistance à la perte de particules 0,0 / 5,0 selon EN 12697-17), sans aucune rémunération supplémentaire. [F056 p.23-24, art. II-20]
+- **R-CPS-136** [CONTRACTUEL] Aucun délai n'est fixé pour la réfection des trottoirs : `[NON PRÉCISÉ]`. [F056 p.23, art. II-20]
+
+#### Art. II-21 Essais et documents de suivi
+
+> ARTICLE N° 21. ESSAIS PAR LE LABORATOIRE
+> Les essais à la charge de l’entreprise sont :
+> Contrôle de réfections de chaussée par carottage (corps de chaussée)
+> La fréquence des essais est détaillée comme suit :
+> 1 prélèvement chaque 50m2 réalisé
+> Si les résultats des essais ne sont pas satisfaisants, l’entreprise est invitée à reprendre les anomalies
+> constatées et effectuer d’autres essais avec la même fréquence à sa charge, une pénalité sera
+> appliquée à l’entreprise elle sera équivalente à deux fois le prix des travaux de réfection de la partie
+> dont la réalisation n’est pas conforme aux exigences de la SRM-ORI prévues dans le présent cahier
+> des charges.
+> L’opération de recherche de fuites donnera lieu à l’établissement des rapports, plans et fiches de
+> suivi ci-dessous détaillées :
+> Rapport journalier de suivi sous forme de tableau indiquant les informations
+> concernant la zone balayée, le linéaire des conduites inspectées et les fuites détectées
+> et leurs adresses, illustré par un extrait du plan du réseau (format A4) permettant de
+> localiser l’emplacement des conduites inspectées et des fuites détectées ;
+> Fiche de réparation de fuites, remplie pour chaque fuite détectée et réparée par
+> l’entreprise
+> Rapport d’avancement mensuel dressant le bilan des travaux effectués
+
+- **R-CPS-137** [CONTRACTUEL] Essais à la charge de l'entreprise : contrôle des réfections de chaussée par carottage du corps de chaussée, à raison d'un prélèvement par 50 m2 réalisés. [F056 p.24, art. II-21]
+- **R-CPS-138** [CONTRACTUEL] Si les résultats ne sont pas satisfaisants, l'entreprise reprend les anomalies et refait les essais à sa charge ; une pénalité égale à deux fois le prix des travaux de réfection de la partie non conforme est appliquée. [F056 p.24, art. II-21]
+- **R-CPS-139** [CONTRACTUEL] Rapport journalier de suivi : sous forme de tableau, il indique la zone balayée, le linéaire des conduites inspectées, les fuites détectées et leurs adresses ; il est illustré par un extrait du plan du réseau au format A4 localisant les conduites inspectées et les fuites détectées. [F056 p.24, art. II-21]
+- **R-CPS-140** [CONTRACTUEL] Fiche de réparation de fuites : remplie pour chaque fuite détectée et réparée par l'entreprise. Son modèle n'est pas annexé au CPS. [F056 p.24, art. II-21]
+- **R-CPS-141** [CONTRACTUEL] Rapport d'avancement mensuel : il dresse le bilan des travaux effectués. Contenu détaillé `[NON PRÉCISÉ]`. [F056 p.24, art. II-21]
+
+#### Art. II-22 Mesures de débit de nuit après recherche
+
+> ARTICLE N° 22. MESURES DE DEBIT DE NUIT APRES OPERATION DE RECHERCHE DES
+> FUITES
+> La mesure de débit de nuit après intervention sera réalisée aux mêmes points de mesure que la
+> phase 1, pendant trois jours successifs après l’achèvement des travaux de détection et de
+> réparation des fuites dans les secteurs objets du marché. Des relevés du débit nocturne doivent se
+> faire quotidiennement pendant ces trois jours selon la même méthodologie que les mesures de
+> débit effectuées lors de la phase 1, et ce pour l’évaluation des gains apportés par la compagne de
+> recherche de fuites.
+> Le débit de nuit après intervention (Qf) sera pris égal au minimum des trois mesures minimales
+> correspondant aux trois nuits qui suivent la compagne de recherche et réparation des fuites.
+> Un procès-verbal des mesures sera établi entre l’entreprise et la SRM-ORI
+> Le volume récupéré sera donc la différence entre Qi et Qf soit Q.
+> Q = Qi – Qf (en m3/h)
+> En vue de détecter le maximum de fuites et améliorer le gain Q, l’Entreprise pourra prospecter
+> plusieurs fois (par plusieurs procédés ; corrélation, écoute, pré localisation.) la longueur d’une
+> conduite ou d’un secteur. Les longueurs prospectées ne seront rémunérées qu’une seule fois.
+
+- **R-CPS-142** [CONTRACTUEL] Les mesures après intervention se font aux mêmes points et selon la même méthode que les mesures avant, pendant trois jours successifs après l'achèvement de la détection et de la réparation dans les secteurs. [F056 p.24, art. II-22]
+- **R-CPS-143** [CONTRACTUEL] Le débit de nuit après intervention Qf est le minimum des trois minimums des trois nuits ; un procès-verbal est établi entre l'entreprise et la SRM ; volume récupéré `ΔQ = Qi − Qf` en m3/h. [F056 p.24, art. II-22]
+- **R-CPS-144** [CONTRACTUEL] L'entreprise peut prospecter plusieurs fois un même linéaire (corrélation, écoute, pré-localisation) ; les longueurs prospectées ne sont rémunérées qu'une seule fois. [F056 p.24, art. II-22]
+
+#### Art. II-23 Pénalités sur les résultats du balayage et du maintien
+
+> ARTICLE N° 23. PENALITES SUR LES RESULTATS D’EXECUTION DES TRAVAUX DE
+> BALAYAGE ET DU MAINTIEN
+> En se référant au tableau récapitulatif N° 1 fixant les conditions de réalisation des travaux exigés
+> par la SRM-ORI, les modalités d’application des pénalités sur les résultats obtenus par
+> l’entrepreneur sont les suivantes :
+> PENALITES SUR RESULTATS DU BALAYAGE
+> Après l’achèvement des travaux du balayage, si les objectifs de débits min fixés au tableau
+> N°1 :tableau récapitulatif relatifs aux conditions de réalisation des travaux exigées par la SRM-ORI)
+> ne sont pas atteints, l’entreprise subira une pénalité en fonctions des performances atteintes selon
+> le tableau suivant :
+> Soit :
+> Q Réal = Débit nocturne minimum réalisé par l'entreprise à la fin du balayage (m3/h)
+> Q exigé = Débit nocturne minimum exigé par la SRM-ORI (cf. tableau n°1 ) (m3/h)
+> 1 (%) = 100 x (Q (exigé) – Q réal) / Q exigé
+> Calcul de la Pénalité période balayage
+> si 1< 0 % Pénalité de 1% du montant de balayage par point de pourcentage (1) non
+> atteint avec un plafond de = 25%
+> NB : Après la phase de balayage si 1< -25 % (inférieur strictement) pour une zone, La SRM-ORI
+> arrête les travaux de recherche détection et réparation de fuites à l’achèvement du premier
+> balayage de quatre mois prévus sur la zone en question. Les travaux de maintien des résultats y
+> compris la réparation de fuites détectées seront maintenus sur les autres zones.
+> PENALITES SUR RESULTATS DU MAINTIEN DES PERFORMANCES ATTEINTES
+> Après l’achèvement de la période du maintien (8 mois), si les performances de fin de balayage ne
+> sont pas maintenues, l’entreprise subira une pénalité en fonctions des performances atteintes
+> selon le tableau suivant :
+> Soit :
+> Q Réal maintien= Débit minimum moyen calculée à partir des débits minimums mesurés
+> hebdomadaires durant la période du maintien (m3/h).
+> Q exigé à maintenir = Débit nocturne minimum réalisé par l'entreprise à la fin du balayage (m3/h)
+> 2 (%) = 100 x (Q (exigé à maintenir) – Q (réal maintien)) / Q (exigé à maintenir)
+> Calcul de la Pénalité période maintien
+> si 2< 0 % Pénalité de 1% du montant de maintien par point de pourcentage (2) non
+> atteint avec un plafond de = 25%
+
+Le symbole imprimé devant « 1 » et « 2 » est la lettre grecque τ (contrôle visuel de la page 25) : le texte extrait l'a perdu.
+
+- **R-CPS-145** [CONTRACTUEL] Indicateur du balayage : `τ1 (%) = 100 × (Q exigé − Q réal) / Q exigé`, où Q réal est le débit nocturne minimum réalisé par l'entreprise à la fin du balayage et Q exigé celui du tableau n° 1 (m3/h). [F056 p.25, art. II-23]
+- **R-CPS-146** [CONTRACTUEL] Si τ1 < 0 % (objectif non atteint : Q réal > Q exigé) : pénalité de 1 % du montant de balayage par point de pourcentage de τ1 non atteint, avec un plafond de τ = 25 %. [F056 p.25, art. II-23]
+- **R-CPS-147** [CONTRACTUEL] Si, après le balayage, τ1 < −25 % (strictement) pour une zone, la SRM arrête les travaux de recherche, détection et réparation sur cette zone à l'achèvement du premier balayage de quatre mois ; le maintien et les réparations continuent sur les autres zones. [F056 p.25, art. II-23 NB]
+- **R-CPS-148** [CONTRACTUEL] Indicateur du maintien : `τ2 (%) = 100 × (Q exigé à maintenir − Q réal maintien) / Q exigé à maintenir`, où Q exigé à maintenir est le débit nocturne minimum réalisé à la fin du balayage et Q réal maintien la moyenne des débits minimums hebdomadaires mesurés pendant le maintien. [F056 p.25, art. II-23]
+- **R-CPS-149** [CONTRACTUEL] Si τ2 < 0 %, après la période de maintien de 8 mois : pénalité de 1 % du montant de maintien par point de pourcentage de τ2 non atteint, avec un plafond de τ = 25 %. [F056 p.25, art. II-23]
+- **R-CPS-150** [DÉDUIT] Points non écrits : assiette par zone ou sur le montant total du prix 1 ou 2 ; arrondi du nombre de points (proportionnel ou par point entier) ; articulation entre le seuil de 25 % de détérioration des « gains » (R-CPS-107) et τ2 calculé sur les débits. Hypothèse de travail : calcul par zone, sur le montant du prix de la zone (linéaire de la zone × PU), proportionnel sans arrondi `[À CONFIRMER]`. [F056 p.25, art. II-23]
+
+#### Art. II-24 et II-25 Préparation et localisation
+
+> ARTICLE N° 24. TRAVAUX DE PREPARATION
+> L’opération de détection des conduites et d’accessoires (Bouche à clé carrée, robinet de prise en
+> charge) nécessaires à la recherche des fuites est à la charge de l’entrepreneur. Naturellement celui-
+> ci disposera des plans disponibles dont-il reconnaît avoir apprécié la qualité de précision.
+> ARTICLE N° 25. LOCALISATION DES FUITES
+> L’entrepreneur devra localiser toutes les fuites, visibles (préciser la localisation) ou invisibles (par
+> détection), quelle que soit leurs importances.
+> Il indiquera dans le rapport de détection la nature et le diamètre de la conduite constaté sur place
+> après ouverture de la tranchée.
+> On entend par fuite
+> Fuite proprement dite ;
+> Découverte d’un élément inconnu pour la SRM-ORI (exemple : branchement clandestin…)
+
+- **R-CPS-151** [CONTRACTUEL] La détection des conduites et accessoires (bouche à clé carrée, robinet de prise en charge) nécessaire à la recherche est à la charge de l'entrepreneur, qui dispose des plans disponibles dont il reconnaît avoir apprécié la précision. [F056 p.25, art. II-24]
+- **R-CPS-152** [CONTRACTUEL] L'entrepreneur localise toutes les fuites, visibles (en précisant la localisation) ou invisibles (par détection), quelle que soit leur importance. [F056 p.25, art. II-25]
+- **R-CPS-153** [CONTRACTUEL] Le rapport de détection indique la nature et le diamètre de la conduite constatés sur place après ouverture de la tranchée. [F056 p.25, art. II-25]
+- **R-CPS-154** [CONTRACTUEL] « On entend par fuite » : la fuite proprement dite ; la découverte d'un élément inconnu de la SRM-ORI (exemple : branchement clandestin). [F056 p.25, art. II-25]
+- **R-CPS-155** [DÉDUIT] Les fuites visibles et invisibles sont traitées de la même façon : aucun prix de détection à la fuite, aucun circuit distinct pour les fuites signalées par la SRM ou les abonnés, aucune classe de débit ni méthode d'estimation du débit par fuite : `[NON PRÉCISÉ]`. [F056 p.25, art. II-25]
+
+#### Art. II-26 Moyens mis en œuvre
+
+> ARTICLE N° 26. MOYENS MIS EN OEUVRE
+> L’entreprise doit disposer de :
+> L’ensemble du matériel nécessaire à la réalisation de l’opération de recherche des fuites
+> dans de bonnes conditions et conformément aux exigences de la SRM-ORI.
+> L’entreprise doit disposer au minimum des moyens matériels suivants pour accomplir les travaux
+> objet du présent appel d’offres :
+> NOMBRE MINIMAL AFFECTE
+> DÉSIGNATION DU MATÉRIEL AU PROJET DU PRESENT APPEL
+> D’OFFRES
+> Corrélateurs acoustiques 2
+> Débitmètre portable 2
+> Enregistreurs de débit et pression 6
+> Pré-localisateurs de fuites 50
+> Détecteurs de fuites acoustiques 4
+> Véhicules légers pour la détection et pickup
+> pour réparation des fuites 2
+> Petit outillage (curage bouches à clé,..) Deux Ensembles
+> Ensemble matériel réparation de fuites Ensemble
+> N.B : Tout le matériel utilisé sera soumis à l'approbation de la SRM-ORI avant le démarrage des
+> travaux.
+> Le matériel de mesure de débit et de recherche des fuites devra être de technologie récente, fiable
+> et adapté aux conditions d'exploitation des secteurs hydrauliques objet des prestations.
+> À tout moment, la SRM-ORI se réservent le droit de procéder à des vérifications, du
+> fonctionnement, de la précision et de la fiabilité du matériel qui sera utilisé pour la mesure des
+> débits et la recherche des fuites.
+> En cas de défaillance du matériel appartenant à l’entreprise, celle-ci fera son affaire pour le
+> remplacement dans l’immédiat du matériel qui sera reconnu non fiable ou non fonctionnel.
+
+| Désignation du matériel (texte exact) | Nombre minimal affecté au projet | Source |
+|---|---|---|
+| Corrélateurs acoustiques | 2 | [F056 p.26] |
+| Débitmètre portable | 2 | [F056 p.26] |
+| Enregistreurs de débit et pression | 6 | [F056 p.26] |
+| Pré-localisateurs de fuites | 50 | [F056 p.26] |
+| Détecteurs de fuites acoustiques | 4 | [F056 p.26] |
+| Véhicules légers pour la détection et pickup pour réparation des fuites | 2 | [F056 p.26] |
+| Petit outillage (curage bouches à clé,..) | Deux Ensembles | [F056 p.26] |
+| Ensemble matériel réparation de fuites | Ensemble | [F056 p.26] |
+
+- **R-CPS-156** [CONTRACTUEL] L'entreprise dispose au minimum du matériel du tableau ci-dessus (2 corrélateurs, 2 débitmètres portables, 6 enregistreurs de débit et pression, 50 pré-localisateurs, 4 détecteurs acoustiques, 2 véhicules, deux ensembles de petit outillage, un ensemble de matériel de réparation). [F056 p.25-26, art. II-26]
+- **R-CPS-157** [CONTRACTUEL] Tout le matériel est soumis à l'approbation de la SRM avant le démarrage ; le matériel de mesure et de recherche est de technologie récente et fiable ; la SRM peut à tout moment en vérifier le fonctionnement, la précision et la fiabilité ; tout matériel défaillant est remplacé « dans l'immédiat ». Certificats d'étalonnage : `[NON PRÉCISÉ]`. [F056 p.26, art. II-26]
+
+#### Art. II-27 Sécurité des ouvriers et des tiers
+
+> ARTICLE N° 27. SECURITE DES OUVRIERS ET DES TIERS
+> L’entrepreneur prendra toutes les dispositions nécessaires pour protéger efficacement son
+> chantier. Il devra, à ses frais se conformer à l’instruction générale sur la signalisation routière en
+> vigueur au moment des travaux.
+> Ces dispositions devront être préalablement agréés par la SRM-ORI qui se réserve le droit d’imposer
+> toutes mesures propres à assurer la sécurité des ouvriers, de la circulation et des immeubles voisins.
+> Aucun agent ne pourra travailler sur les chantiers sans qu’il soit assuré nominativement par
+> l’entrepreneur contre tout accident.
+> Pour la protection de leur sécurité, le personnel devra porter des Equipements de Protection
+> Individuels (EPI) en particulier le gilet réfléchissant et les chaussures de sécurité et procéder à une
+> analyse locale des risques avant chaque intervention (circulation, chute, espace confiné, présence
+> d’amiante ….) afin de prendre les mesures de prévention adaptées (signalisation, masque,
+> détecteur de gaz…).
+> Durant la réalisation des prestations, l’entrepreneur ne doit procéder à aucune intervention en
+> matière de manœuvre des vannes, terrassement, sans demander l’avis préalable de la SRM-ORI.
+
+- **R-CPS-158** [CONTRACTUEL] L'entrepreneur protège son chantier et se conforme à ses frais à l'instruction générale sur la signalisation routière ; ses dispositions sont préalablement agréées par la SRM. [F056 p.26, art. II-27]
+- **R-CPS-159** [CONTRACTUEL] Aucun agent ne peut travailler sur les chantiers sans être assuré nominativement contre tout accident. [F056 p.26, art. II-27]
+- **R-CPS-160** [CONTRACTUEL] Le personnel porte des équipements de protection individuels (en particulier gilet réfléchissant et chaussures de sécurité) et procède à une analyse locale des risques avant chaque intervention (circulation, chute, espace confiné, présence d'amiante…). [F056 p.26, art. II-27]
+- **R-CPS-161** [CONTRACTUEL] L'entrepreneur ne procède à aucune manœuvre de vanne ni à aucun terrassement sans demander l'avis préalable de la SRM-ORI. [F056 p.26, art. II-27]
+
+#### Art. II-28 à II-30 Organismes, documents
+
+> ARTICLE N° 29. DOCUMENTS A FOURNIR PAR LA SRM-ORI
+> Pour la réalisation des prestations, objet du présent appel d'offres, la SRM-ORI mettra à la
+> disposition de l’Entrepreneur :
+> -Les plans de réseau disponibles sous format Papier/Autocad ;
+> -Liste des branchements avec adresses des abonnés.
+> Tous les documents fournis à l’Entrepreneur devront être restitués à la SRM-ORI après
+> l’achèvement des travaux, la réception définitive ne sera prononcée qu’après avoir restitué ces
+> documents.
+> ARTICLE N° 30. DOCUMENTS A FOURNIR PAR L’ENTREPRENEUR
+> A la fin des travaux, l’entrepreneur doit fournir à la SRM-ORI les documents suivants sur supports
+> papier et informatiques :
+> 1) Report sur plans de la répartition spatiale des fuites localisées sur les conduites du
+> réseau de distribution, (le tirage et la reproduction des copies relatives aux plans des
+> réseaux nécessaires sont à la charge totale de l’entreprise) ;
+> 2) Album photos relatif à quelques fuites localisées sur le réseau de distribution ;
+> 3) Un rapport final de synthèse dressant le bilan final de l’opération ainsi que les
+> propositions techniques d’amélioration du rendement des secteurs inspectés.
+> Après sa mission, et dans un délai de quinze jours, l’Entrepreneur remettra à la SRM-ORI, pour
+> chaque secteur inspecté, le rapport de synthèse correspondant en (02) deux exemplaires.
+
+- **R-CPS-162** [CONTRACTUEL] Art. II-28 : les correspondances avec les organismes tiers (administrations, établissements publics, collectivités) sont faites par la SRM ; l'entrepreneur prépare les projets de lettres avec les documents techniques. [F056 p.26, art. II-28]
+- **R-CPS-163** [CONTRACTUEL] La SRM met à disposition : les plans de réseau disponibles au format papier / Autocad ; la liste des branchements avec adresses des abonnés. Ces documents sont restitués après l'achèvement des travaux ; la réception définitive n'est prononcée qu'après leur restitution. [F056 p.27, art. II-29]
+- **R-CPS-164** [CONTRACTUEL] À la fin des travaux, l'entrepreneur fournit sur supports papier et informatique : (1) le report sur plans de la répartition spatiale des fuites localisées (tirages à sa charge) ; (2) un album photos relatif à quelques fuites localisées ; (3) un rapport final de synthèse dressant le bilan de l'opération et les propositions d'amélioration du rendement des secteurs. [F056 p.27, art. II-30]
+- **R-CPS-165** [CONTRACTUEL] Dans un délai de quinze jours après sa mission, l'entrepreneur remet, pour chaque secteur inspecté, le rapport de synthèse correspondant en deux (02) exemplaires. [F056 p.27, art. II-30]
+- **R-CPS-166** [CONTRACTUEL] Le CPS n'impose ni format de fichier (Excel, shapefile, KML, DWG), ni système de coordonnées (Lambert, WGS84), ni plateforme SRM (SIG, GMAO, SAP), ni base de données des fuites à remettre : `[NON PRÉCISÉ]` ; seule exigence : « supports papier et informatiques ». [F056 p.27, art. II-30]
+
+#### Page de signatures
+
+- **R-CPS-167** [CONTRACTUEL] La page de signatures prévoit une signature « pour la Société Régionale Multiservices l'Oriental S.A » (vide dans cet exemplaire) et une signature « pour le soumissionnaire », précédée des nom et prénom et de la mention manuscrite « Lu et Accepté » ; l'exemplaire porte la signature numérique de IMAD BOUSALAM (STEPAG) du 2026-08-12 17:38:57 +01:00. [F056 p.30]
 
 ## 4. Bordereau des prix
 
@@ -182,7 +1194,7 @@ Les désignations sont recopiées telles qu'écrites (fautes comprises : « poly
 - **R-BPU-009** [CONTRACTUEL] Le taux de majoration ne peut être nul et s'exprime avec deux décimales au plus. [F054 p.10, art. 14-G]
 - **R-BPU-010** [CONTRACTUEL] En cas de discordance dans l'acte d'engagement entre le montant en chiffres et le montant en lettres, le montant en lettres prévaut ; la commission rectifie les erreurs de calcul. [F054 p.10, art. 14-G-a ; F054 p.12, art. 20-I-3]
 - **R-BPU-011** [DÉDUIT] Le dossier ne contient ni sous-détail des prix ni détail estimatif distinct : le « bordereau des prix – détail estimatif » est un document unique. [F056 p.3, art. I-3]
-- **R-BPU-012** [DÉDUIT] Familles de prix (proposition de l'extracteur, non sourcée comme chapitres) : détection (1, 2) ; terrassement (3) ; réfection (4, 5) ; réparation sur polyéthylène et branchements (6, 7, 8, 9) ; bouche à clé (10) ; réparation sur conduites amiante-ciment et PVC (11, 12, 13). La formule de révision « a » vise les « terrassements et entretien réseau », la formule « b » les « ouvrages annexes et réfection de trottoirs ou de chaussées » (R-CPS-046, R-CPS-047). [F056 p.10, art. I-30]
+- **R-BPU-012** [DÉDUIT] Familles de prix (proposition de l'extracteur, non sourcée comme chapitres) : détection (1, 2) ; terrassement (3) ; réfection (4, 5) ; réparation sur polyéthylène et branchements (6, 7, 8, 9) ; bouche à clé (10) ; réparation sur conduites amiante-ciment et PVC (11, 12, 13). La formule de révision « a » vise les « terrassements et entretien réseau », la formule « b » les « ouvrages annexes et réfection de trottoirs ou de chaussées » (R-CPS-051, R-CPS-052). [F056 p.10, art. I-30]
 
 ### 4.3 Recalcul par script et contrôles
 
@@ -246,16 +1258,15 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Prix n° 1 : balayage
 
-> Pour la réalisation des prestations, objet du présent appel d'offres, la SRM-ORI mettra à la
-> disposition de l’Entrepreneur :
-> -Les plans de réseau disponibles sous format Papier/Autocad ;
-> -Liste des branchements avec adresses des abonnés.
-> Tous les documents fournis à l’Entrepreneur devront être restitués à la SRM-ORI après
-> l’achèvement des travaux, la réception définitive ne sera prononcée qu’après avoir restitué ces
-> documents.
+> Prix n° 1 : Recherche et détection de fuites sur conduites, tous diamètres et toutes natures
+> (Balayage)
+> Ce Prix rémunère le balayage de l’ensemble des réseaux des secteurs inspectés afin d’atteindre
+> les débits nocturnes fixés par la SRM-ORI dans le tableau N°1 ci-dessous (DH/ mètre balayé), ce
+> prix sera le même pour l’ensemble des secteurs objets des travaux de détection de fuites.
+> Ce prix est rémunéré au mètre linéaire.
 
 - **R-DEF-001** [CONTRACTUEL] Le prix 1 rémunère le balayage de l'ensemble des réseaux des secteurs inspectés, au mètre linéaire de conduite balayée (« DH/ mètre balayé ») ; le prix est le même pour tous les secteurs. [F056 p.28, prix 1]
-- **R-DEF-002** [CONTRACTUEL] Le prix 1 a pour finalité d'atteindre les débits nocturnes fixés par le tableau n° 1 ; son paiement est diminué par la pénalité de résultat τ1 (R-CPS-118). [F056 p.28 ; F056 p.12, art. I-32 §1 ; F056 p.25, art. II-23]
+- **R-DEF-002** [CONTRACTUEL] Le prix 1 a pour finalité d'atteindre les débits nocturnes fixés par le tableau n° 1 ; son paiement est diminué par la pénalité de résultat τ1 (R-CPS-146). [F056 p.28 ; F056 p.12, art. I-32 §1 ; F056 p.25, art. II-23]
 - **R-DEF-003** [CONTRACTUEL] Le linéaire d'une conduite inspectée n'est rémunéré qu'une seule fois, quel que soit le nombre de passages et de procédés (corrélation, écoute, pré-localisation). [F056 p.21, art. II-15 ; F056 p.23, art. II-19 ; F056 p.24, art. II-22]
 - **R-DEF-004** [CONTRACTUEL] Le linéaire des branchements inspectés n'est pas pris en compte dans la rémunération. [F056 p.23, art. II-19]
 - **R-DEF-005** [CONTRACTUEL] Les mesures de débit de nuit, la vérification de la sectorisation, la détection des conduites et accessoires, le curage des bouches à clé, les rapports et le report sur plans ne font l'objet d'aucun prix : ils sont compris dans les prix 1 et 2. [F056 p.22, art. II-17 ; F056 p.23, art. II-19 ; F056 p.25, art. II-24 ; F056 p.17, art. II-15]
@@ -263,46 +1274,53 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Prix n° 2 : maintien des résultats
 
-> ARTICLE N° 30. DOCUMENTS A FOURNIR PAR L’ENTREPRENEUR
-> A la fin des travaux, l’entrepreneur doit fournir à la SRM-ORI les documents suivants sur supports
-> papier et informatiques :
-> 1) Report sur plans de la répartition spatiale des fuites localisées sur les conduites du
-> réseau de distribution, (le tirage et la reproduction des copies relatives aux plans des
-> réseaux nécessaires sont à la charge totale de l’entreprise) ;
+> Prix n° 2 : Recherche et détection de fuites sur conduites, pour le maintien des résultats
+> Ce Prix rémunère le maintien des débits nocturnes atteints durant la période du balayage de
+> l’ensemble des réseaux des secteurs inspectés (DH/ mètre maintenu), ce prix sera le même pour
+> l’ensemble des secteurs objets des travaux de détection de fuites pour le maintien des résultats
+> atteints au premier balayage.
+> Ce prix est rémunéré au mètre linéaire.
 
 - **R-DEF-007** [CONTRACTUEL] Le prix 2 rémunère le maintien des débits nocturnes atteints à la fin du balayage, au mètre linéaire « maintenu », même prix pour tous les secteurs. [F056 p.28, prix 2]
 - **R-DEF-008** [CONTRACTUEL] Le prix 2 est facturé en deux fois : 40 % après les quatre premiers mois de maintien, 60 % à la fin des huit mois, cette dernière part étant diminuée par la pénalité τ2. [F056 p.12-13, art. I-32 §2 et §3]
-- **R-DEF-009** [DÉDUIT] Le « mètre maintenu » est le linéaire des secteurs sur lesquels le maintien est assuré ; une zone arrêtée après le balayage pour τ1 < −25 % (R-CPS-119) n'entre pas dans le prix 2 `[À CONFIRMER : aucune règle écrite sur le métré du linéaire maintenu]`. [F056 p.25, art. II-23]
+- **R-DEF-009** [DÉDUIT] Le « mètre maintenu » est le linéaire des secteurs sur lesquels le maintien est assuré ; une zone arrêtée après le balayage pour τ1 < −25 % (R-CPS-147) n'entre pas dans le prix 2 `[À CONFIRMER : aucune règle écrite sur le métré du linéaire maintenu]`. [F056 p.25, art. II-23]
 
 #### Prix n° 3 : terrassement
 
-> 2) Album photos relatif à quelques fuites localisées sur le réseau de distribution ;
-> 3) Un rapport final de synthèse dressant le bilan final de l’opération ainsi que les
-> propositions techniques d’amélioration du rendement des secteurs inspectés.
-> Après sa mission, et dans un délai de quinze jours, l’Entrepreneur remettra à la SRM-ORI, pour
-> chaque secteur inspecté, le rapport de synthèse correspondant en (02) deux exemplaires.
-> III- DEFINITION DES PRIX
+> Prix n° 3 : Terrassement (Confection de tranchée en terrain de toute nature y compris
+> remblaiement de la tranchée, compactage, transport des terres en excédent et toutes sujétions,
+> pour conduites et branchements y compris réglage du fond de fouille, étaiement, blindage et
+> épuisement en cas de terrassement pour réparation de fuite ou sondage)
+> Les terrassements seront conduits suivant les règles de l’art et conformément aux règlements
+> en vigueur.
+> Les fouilles pour tranchés sont exécutées en tout terrain.
+> Longueur de la tranchée :
+> La longueur de la tranchée doit être celle nécessaire pour assurer la réparation des fuites, sans
+> pour autant que cette longueur dépasse deux (2) mètres de longueur et sauf si cette réparation
+> nécessite le remplacement d’un élément à changer majorée de (1) mètre.
+> Ce prix est rémunéré au mètre cube.
 
 - **R-DEF-010** [CONTRACTUEL] Le prix 3 rémunère au mètre cube la confection de tranchée en terrain de toute nature, pour réparation de fuite ou sondage, sur conduites et branchements. [F056 p.28, prix 3 ; F032 p.1, prix 00003]
 - **R-DEF-011** [CONTRACTUEL] Le prix 3 comprend : remblaiement, compactage, transport des terres en excédent, réglage du fond de fouille, étaiement, blindage, épuisement et toutes sujétions. Aucune plus-value pour rocher, nappe ou profondeur. [F056 p.28, prix 3]
 - **R-DEF-012** [CONTRACTUEL] La longueur de tranchée prise en compte est celle nécessaire à la réparation, sans dépasser deux (2) mètres ; exception : si la réparation exige le remplacement d'un élément, la longueur est celle de l'élément à changer majorée de un (1) mètre. [F056 p.28, prix 3]
 - **R-DEF-013** [DÉDUIT] Volume = longueur × largeur × profondeur de la fouille, en mètres ; la largeur et la profondeur admises, la façon de mesurer la profondeur et l'arrondi sont `[NON PRÉCISÉ]`. Le gabarit STEPAG relève les trois dimensions par fuite avec une ou deux décimales (ex. 1.2 × 0.7 × 0.8). [F001 feuille "Fiche de réparation Zone " E14:G14]
 - **R-DEF-014** [2017] Dans le marché de 2017, la largeur prise en attachement était le « diamètre externe de la conduite majorée de 25 cm de chaque coté » ; cette règle n'est PAS reprise dans le CPS 2026. [F077 art. 16, prix 4]
-- **R-DEF-015** [CONTRACTUEL] Le terrassement d'un « sondage » est payable au prix 3 (désignation : « en cas de terrassement pour réparation de fuite ou sondage ») ; le CPS ne dit pas si une fouille ne révélant aucune fuite est payée `[À CONFIRMER : fouille négative]` (voir R-CPS-098). [F032 p.1, prix 00003 ; F056 p.23, art. II-19]
+- **R-DEF-015** [CONTRACTUEL] Le terrassement d'un « sondage » est payable au prix 3 (désignation : « en cas de terrassement pour réparation de fuite ou sondage ») ; le CPS ne dit pas si une fouille ne révélant aucune fuite est payée `[À CONFIRMER : fouille négative]` (voir R-CPS-127). [F032 p.1, prix 00003 ; F056 p.23, art. II-19]
 
 #### Prix n° 4 : réfection des trottoirs
 
->  DEFINITION DES PRIX
-> Les prestations seront rémunérées par famille de prix répartis comme suit :
-> Prix n° 1 : Recherche et détection de fuites sur conduites, tous diamètres et toutes natures
-> (Balayage)
-> Ce Prix rémunère le balayage de l’ensemble des réseaux des secteurs inspectés afin d’atteindre
-> les débits nocturnes fixés par la SRM-ORI dans le tableau N°1 ci-dessous (DH/ mètre balayé), ce
-> prix sera le même pour l’ensemble des secteurs objets des travaux de détection de fuites.
-> Ce prix est rémunéré au mètre linéaire.
-> Prix n° 2 : Recherche et détection de fuites sur conduites, pour le maintien des résultats
-> Ce Prix rémunère le maintien des débits nocturnes atteints durant la période du balayage de
-> l’ensemble des réseaux des secteurs inspectés (DH/ mètre maintenu), ce prix sera le même pour
+> Prix n° 4 : Réfection des trottoirs en béton, granito lavé, en carreaux ciment ou en mosaïque
+> (cf. au Bordereau des Prix - Détail Estimatif)
+> L’empierrement, le blocage et la forme identique en nature, qualité et épaisseur à son état initial
+> seront réalisés avec les matériaux de récupération et des matériaux neufs si nécessaires.
+> L’ensemble sera soigneusement compacté avant la mise en place du revêtement de surface qui
+> devra lui aussi être le plus possible identique en tous points au revêtement initial.
+> Ce prix comprend aussi la fourniture et mise en œuvre de tout venant GNA compactée et arrosée
+> aux différents endroits de réparations de fuites.
+> Au cas où les travaux de réfection réalisés soulèvent des observations des services de voirie
+> municipaux, l’entreprise sera tenue de reprendre les travaux et obtenir la réception conforme
+> de ses services.
+> Ces prix sont rémunérés au mètre carré.
 
 - **R-DEF-016** [CONTRACTUEL] Le prix 4 rémunère au mètre carré la réfection et le revêtement des trottoirs en béton, granito lavé, carreaux ciment ou mosaïque, conforme à l'original, épaisseur 0,10 m, y compris blocage en pierre d'au moins 15 cm et couche de tout venant GNA compactée. Un seul prix pour les quatre natures de revêtement. [F032 p.1, prix 00004 ; F056 p.28, prix 4]
 - **R-DEF-017** [CONTRACTUEL] L'empierrement, le blocage et la forme sont refaits identiques à l'état initial avec les matériaux de récupération, complétés de matériaux neufs si nécessaire ; le revêtement de surface est le plus possible identique au revêtement initial. [F056 p.28, prix 4]
@@ -313,33 +1331,31 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Prix n° 5 : réfection de chaussée en enrobé à chaud
 
-> l’ensemble des secteurs objets des travaux de détection de fuites pour le maintien des résultats
-> atteints au premier balayage.
-> Ce prix est rémunéré au mètre linéaire.
-> Prix n° 3 : Terrassement (Confection de tranchée en terrain de toute nature y compris
-> remblaiement de la tranchée, compactage, transport des terres en excédent et toutes sujétions,
-> pour conduites et branchements y compris réglage du fond de fouille, étaiement, blindage et
-> épuisement en cas de terrassement pour réparation de fuite ou sondage)
-> Les terrassements seront conduits suivant les règles de l’art et conformément aux règlements
+> Prix n° 5 : Réfection de chaussées en enrobé à chaud
+> La réfection de la chaussée doit comprendre :
+> le remblaiement de la tranchée par tout venant GNA de 0,50 m de hauteur compacté
+> arrosé jusqu’au niveau de la chaussée ;
+> Une couche d’imprégnation de Cut back ;
+> Une couche d’enrobés à chaud conformément à l’épaisseur originale de la chaussée 7
+> cm
+> Ce prix est rémunéré au mètre carré.
 
 - **R-DEF-022** [CONTRACTUEL] Le prix 5 rémunère au mètre carré la réfection de chaussée goudronnée : remblaiement en tout venant GNA de 0,50 m compacté et arrosé jusqu'au niveau de la chaussée, couche d'imprégnation de cut back, couche d'enrobés à chaud de 7 cm. [F056 p.28, prix 5 ; F032 p.1, prix 00005]
 - **R-DEF-023** [CONTRACTUEL] La réfection de chaussée doit être faite dans un délai d'un mois après la réparation ; au-delà, l'entreprise doit utiliser un enrobé-résine à froid, sans aucune rémunération supplémentaire (même prix 5). [F056 p.23-24, art. II-20]
-- **R-DEF-024** [CONTRACTUEL] Les réfections de chaussée sont contrôlées par carottage (1 prélèvement par 50 m2) à la charge de l'entreprise ; une réfection non conforme est reprise et pénalisée de deux fois son prix (R-CPS-114). [F056 p.24, art. II-21]
+- **R-DEF-024** [CONTRACTUEL] Les réfections de chaussée sont contrôlées par carottage (1 prélèvement par 50 m2) à la charge de l'entreprise ; une réfection non conforme est reprise et pénalisée de deux fois son prix (R-CPS-138). [F056 p.24, art. II-21]
 
 #### Prix n° 6 à 9 : réparations sur branchements et extensions en polyéthylène
 
-> Les fouilles pour tranchés sont exécutées en tout terrain.
->  Longueur de la tranchée :
-> La longueur de la tranchée doit être celle nécessaire pour assurer la réparation des fuites, sans
-> pour autant que cette longueur dépasse deux (2) mètres de longueur et sauf si cette réparation
-> nécessite le remplacement d’un élément à changer majorée de (1) mètre.
-> Ce prix est rémunéré au mètre cube.
-> Prix n° 4 : Réfection des trottoirs en béton, granito lavé, en carreaux ciment ou en mosaïque
-> (cf. au Bordereau des Prix - Détail Estimatif)
-> L’empierrement, le blocage et la forme identique en nature, qualité et épaisseur à son état initial
-> seront réalisés avec les matériaux de récupération et des matériaux neufs si nécessaires.
-> L’ensemble sera soigneusement compacté avant la mise en place du revêtement de surface qui
-> devra lui aussi être le plus possible identique en tous points au revêtement initial.
+> Prix n° 6 à 9: Fourniture, transport et pose pour réparation de fuites sur branchements et sur
+> extensions du réseau de distribution d’eau en polyéthylène (cf. au Bordereau des Prix - Détail
+> Estimatif)
+> Les réparations seront faites après terrassement et épuisement de fond de fouille et consistent
+> en le remplacement de l’accessoire défectueux ou d’une partie du polyéthylène.
+> On désigne par raccord toute pièce rentrant dans la réalisation d’un branchement ou extension
+> en polyéthylène depuis le raccord fixé sur le robinet de PEC ou le collier Astor fixé sur
+> polyéthylène et jusqu’à la niche du compteur non compris le robinet cache-entrée et raccords
+> standard du compteur.
+> Ces prix sont rémunérés à l’unité.
 
 - **R-DEF-025** [CONTRACTUEL] Les prix 6 à 9 rémunèrent à l'unité la fourniture, le transport et la pose pour réparation de fuites sur branchements et sur extensions du réseau en polyéthylène, après terrassement et épuisement du fond de fouille, par remplacement de l'accessoire défectueux ou d'une partie du polyéthylène. [F056 p.28-29, prix 6 à 9]
 - **R-DEF-026** [CONTRACTUEL] Prix 6 : réparation au niveau du tuyau polyéthylène de diamètre extérieur strictement inférieur à 40 mm (`DE < 40`), longueur de polyéthylène inférieure ou égale à 2 m ; comprend sable pour lit de pose de 0,10 m, grillage avertisseur bleu de 50 cm, cisaillement, montage par raccords, collier pour polyéthylène et/ou manchon ou bouchon. [F032 p.1, prix 00006]
@@ -353,11 +1369,11 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Prix n° 10 : mise à niveau de bouche à clé
 
-> Ce prix comprend aussi la fourniture et mise en œuvre de tout venant GNA compactée et arrosée
-> aux différents endroits de réparations de fuites.
-> Au cas où les travaux de réfection réalisés soulèvent des observations des services de voirie
-> municipaux, l’entreprise sera tenue de reprendre les travaux et obtenir la réception conforme
-> de ses services.
+> Prix n° 10 : Mise à niveau de bouche à clé carrée ou ronde
+> Mise à niveau de bouche à clé carrée ou ronde, y compris Fourniture, transport et pose de tube
+> PVC, tabernacle en polyester et socle de béton de longueur = largeur = 40 cm et profondeur = 20
+> c
+> Ce prix est rémunéré à l’unité.
 
 - **R-DEF-034** [CONTRACTUEL] Le prix 10 rémunère à l'unité la mise à niveau d'une bouche à clé carrée ou ronde, y compris fourniture, transport et pose du tube allonge en PVC, du tabernacle en polyester et d'un socle en béton de 0,40 m × 0,40 m × 0,20. [F056 p.29, prix 10 ; F032 p.1, prix 00010]
 - **R-DEF-035** [CONTRACTUEL] La mise en évidence des accès aux conduites pendant la recherche (détection des bouches à clé, curage) reste à la charge de l'entreprise et n'est pas payée par le prix 10. [F056 p.23, art. II-19]
@@ -365,15 +1381,16 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Prix n° 11 à 13 : réparation sur conduites
 
-> Prix n° 5 : Réfection de chaussées en enrobé à chaud
-> La réfection de la chaussée doit comprendre :
->  le remblaiement de la tranchée par tout venant GNA de 0,50 m de hauteur compacté
-> arrosé jusqu’au niveau de la chaussée ;
->  Une couche d’imprégnation de Cut back ;
->  Une couche d’enrobés à chaud conformément à l’épaisseur originale de la chaussée 7
-> cm
-> Ce prix est rémunéré au mètre carré.
-> Prix n° 6 à 9: Fourniture, transport et pose pour réparation de fuites sur branchements et sur
+> Prix n°11 à 13 : Réparation de fuites sur conduites diamètre inférieur ou égal A 315 MM
+> (cf. au Bordereau des Prix - Détail Estimatif)
+> Réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymétrique
+> ou autres matériels de jonction y compris fourniture, transport ,coupe et pose pour
+> remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du
+> sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose
+> grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation
+> des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et
+> toutes sujétions.
+> Ces prix sont rémunérés à l’unité.
 
 - **R-DEF-037** [CONTRACTUEL] Les prix 11 à 13 rémunèrent à l'unité la réparation de fuites sur conduites en amiante-ciment et en PVC, par joint gibault, joint dissymétrique ou autre matériel de jonction, y compris fourniture, transport, coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux. [F056 p.29, prix 11 à 13 ; F032 p.1]
 - **R-DEF-038** [CONTRACTUEL] Ils comprennent : sable pour lit de pose de 0,10 m, grillage avertisseur bleu de 50 cm de large, cisaillement de la conduite, préparation des bouts de montage, démontage de l'élément, épuisement du fond de fouille et toutes sujétions. [F032 p.1, prix 00011 à 00013]
@@ -384,9 +1401,12 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 
 #### Rémunération du balayage et du maintien
 
-> Estimatif)
-> Les réparations seront faites après terrassement et épuisement de fond de fouille et consistent
-> en le remplacement de l’accessoire défectueux ou d’une partie du polyéthylène.
+> Concernant le balayage de l’ensemble des secteurs inspectés :
+> La rémunération de l’entreprise sera faite sur la base des prix unitaires du bordereau des prix et
+> d'après les linéaires des réseaux ayant fait l’objet des balayages et des travaux de maintien des
+> performances des réseaux. Des attachements contradictoires seront établis. La recherche
+> détection des fuites sera effectuée avec la technique et le matériel de recherche des fuites
+> proposé par l’entreprise et accepté par la SRM-ORI.
 
 - **R-DEF-043** [CONTRACTUEL] La rémunération se fait sur la base des prix unitaires et d'après les linéaires de réseau ayant fait l'objet des balayages et du maintien ; des attachements contradictoires sont établis. [F056 p.29]
 - **R-DEF-044** [CONTRACTUEL] La technique et le matériel de recherche sont proposés par l'entreprise et acceptés par la SRM-ORI. [F056 p.29]
@@ -398,7 +1418,7 @@ numero;designation;unite;quantite;pu_ht;montant_ht;source
 - **R-DEF-047** [CONTRACTUEL] Signalisation de chantier, installation de chantier, bureau de 15 m2 pour la SRM, gardiennage, essais de laboratoire, rapports et tirages de plans sont à la charge de l'entreprise sans prix dédié. [F056 p.15-16, art. II-3 à II-7 ; F056 p.24, art. II-21 ; F056 p.27, art. II-30]
 - **R-DEF-048** [CONTRACTUEL] Plus-values de nuit, de vendredi ou jour férié, d'urgence, de profondeur, de distance ou de réseaux tiers ; travaux en régie ; forfait d'installation ou de repli : aucun n'existe au bordereau. `[NON PRÉCISÉ]` dans le CPS. [F032 p.1]
 - **R-DEF-049** [CONTRACTUEL] Procédure hors bordereau : le CPS renvoie aux articles 57, 58 et 59 du CCAG-T pour l'augmentation de la masse et le changement des quantités ; la procédure de prix nouveaux n'est pas reproduite `[À CONFIRMER : règle par défaut du CCAG-T, non vérifiée dans le dossier]`. [F056 p.13, art. I-33 et I-34]
-- **R-DEF-050** [CONTRACTUEL] Arrondi des quantités et des montants : `[NON PRÉCISÉ]`. Seul arrondi écrit : coefficients de révision des prix arrêtés à la quatrième décimale (R-CPS-049). [F056 p.11, art. I-30]
+- **R-DEF-050** [CONTRACTUEL] Arrondi des quantités et des montants : `[NON PRÉCISÉ]`. Seul arrondi écrit : coefficients de révision des prix arrêtés à la quatrième décimale (R-CPS-054). [F056 p.11, art. I-30]
 
 ### 5.3 Tableau « saisie terrain → prix »
 

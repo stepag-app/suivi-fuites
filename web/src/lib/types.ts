@@ -125,6 +125,7 @@ export interface PhotoLigne {
   type: string;
   chemin: string;
   prise_le: string;
+  stockage?: string;
 }
 
 export interface Quantite {

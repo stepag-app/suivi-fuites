@@ -9,6 +9,7 @@ import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, StyleSpeci
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche } from '@/lib/format';
+import { lienItineraire } from '@/lib/itineraire';
 import type { StatutFuite } from '@/lib/types';
 import {
   ALERTES, CENTRE_DEFAUT, COULEURS, STYLE_FOND, ZOOM_DEFAUT, aUneAlerte, geometrieValide,
@@ -303,12 +304,16 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTML
     ouvrir(`/fuites/${f.id}`);
   });
   // « Y aller » : itinéraire dans l'appli de cartes de l'appareil (Google Maps sur Android), vers la fuite.
-  const aller = el('a', 'bouton', 'Y aller') as HTMLAnchorElement;
-  aller.href = `https://www.google.com/maps/dir/?api=1&destination=${f.latitude},${f.longitude}`;
-  aller.target = '_blank';
-  aller.rel = 'noreferrer';
   const boutons = el('div', 'bulle-boutons');
-  boutons.append(lien, aller);
+  boutons.append(lien);
+  const itineraire = lienItineraire(f.latitude, f.longitude);
+  if (itineraire) {
+    const aller = el('a', 'bouton', 'Y aller') as HTMLAnchorElement;
+    aller.href = itineraire;
+    aller.target = '_blank';
+    aller.rel = 'noreferrer';
+    boutons.append(aller);
+  }
   racine.append(boutons);
   return racine;
 }

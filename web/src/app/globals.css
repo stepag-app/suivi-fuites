@@ -204,6 +204,7 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .fuite-tete .bouton-rapport { margin-left: auto; }
 .progression-rapports { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
 .progression-rapports progress { flex: 1 1 14rem; height: 1rem; accent-color: var(--principal); }
+a.bouton.petit { display: inline-flex; min-height: 30px; padding: 0.1rem 0.7rem; font-size: 0.85rem; border-radius: 8px; text-decoration: none; }
 
 /* Carte */
 .page-carte .barre { margin-bottom: 0.6rem; }

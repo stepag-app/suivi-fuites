@@ -29,7 +29,7 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         <nav>
           {lien('/fuites', 'Fuites')}
           {lien('/fuites/nouvelle', '+ Nouvelle fuite')}
-          {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer')) &&
+          {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
             lien('/parametres', 'Paramètres')}
           {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
         </nav>

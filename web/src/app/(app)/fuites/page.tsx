@@ -2,21 +2,23 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { OUVRAGES, STATUTS, dateHeure, messageErreur, telechargerCsv } from '@/lib/format';
+import { OUVRAGES, STATUTS, dateHeure, libellesMarche, messageErreur, telechargerCsv } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { Secteur, StatutFuite, VFuite } from '@/lib/types';
 
-const ALERTES: { cle: keyof VFuite; texte: string }[] = [
-  { cle: 'alerte_non_reparee', texte: 'Non réparée > 48 h' },
-  { cle: 'alerte_communication_srm', texte: 'Non communiquée SRM' },
-  { cle: 'refection_chaussee_hors_delai', texte: 'Réfection chaussée hors délai' },
-  { cle: 'alerte_refection_chaussee', texte: 'Réfection chaussée à faire' },
-  { cle: 'alerte_refection_trottoir', texte: 'Réfection trottoir à faire' },
+type Libelles = ReturnType<typeof libellesMarche>;
+const ALERTES: { cle: keyof VFuite; texte: (l: Libelles) => string }[] = [
+  { cle: 'alerte_non_reparee', texte: (l) => `Non réparée > ${l.delaiReparationH} h` },
+  { cle: 'alerte_communication_srm', texte: (l) => `Non communiquée ${l.sigle}` },
+  { cle: 'refection_chaussee_hors_delai', texte: () => 'Réfection chaussée hors délai' },
+  { cle: 'alerte_refection_chaussee', texte: () => 'Réfection chaussée à faire' },
+  { cle: 'alerte_refection_trottoir', texte: () => 'Réfection trottoir à faire' },
 ];
 
 export default function ListeFuites() {
   const { marche, peut } = useSession();
+  const libelles = libellesMarche(marche);
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [erreur, setErreur] = useState('');
@@ -70,7 +72,7 @@ export default function ListeFuites() {
 
   function exporter() {
     telechargerCsv(`fuites-${marche?.code ?? ''}-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ['N°', 'Référence SRM', 'Statut', 'Zone', 'Secteur', 'Adresse', 'Ouvrage', 'Date détection', 'Détectée par', 'Latitude', 'Longitude', 'Photos', 'Motif sans réparation'],
+      ['N°', libelles.reference, 'Statut', 'Zone', 'Secteur', 'Adresse', 'Ouvrage', 'Date détection', 'Détectée par', 'Latitude', 'Longitude', 'Photos', 'Motif sans réparation'],
       ...filtrees.map((f) => [
         f.numero, f.reference_srm, STATUTS[f.statut].libelle, f.zone, f.secteur, f.adresse,
         f.ouvrage ? OUVRAGES[f.ouvrage] : '', dateHeure(f.date_detection), f.detectee_par,
@@ -129,7 +131,7 @@ export default function ListeFuites() {
               <div>
                 {f.reference_srm ? <>Réf. {f.reference_srm} · </> : null}
                 {f.secteur ?? 'Secteur non renseigné'}
-                {f.origine === 'srm' && <span className="etiquette">SRM</span>}
+                {f.origine === 'srm' && <span className="etiquette">{libelles.sigle}</span>}
               </div>
               {f.adresse && <div className="discret">{f.adresse}</div>}
               <div className="discret">
@@ -138,7 +140,7 @@ export default function ListeFuites() {
               </div>
               <div className="alertes">
                 {ALERTES.filter((a) => f[a.cle] === true).map((a) => (
-                  <span key={a.cle} className="alerte">{a.texte}</span>
+                  <span key={a.cle} className="alerte">{a.texte(libelles)}</span>
                 ))}
                 {f.verrouillee_le && <span className="etiquette">Verrouillée</span>}
               </div>

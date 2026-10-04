@@ -9,7 +9,11 @@ export const STATUTS: Record<StatutFuite, string> = {
 };
 
 export interface Profil { id: string; identifiant: string; nom_complet: string; est_admin: boolean; actif: boolean }
-export interface Marche { id: string; code: string; intitule: string }
+export interface Marche {
+  id: string; code: string; intitule: string;
+  // Libellés propres au client (absents d'une liste gardée hors ligne avant leur création)
+  libelle_reference?: string; masque_reference?: string | null; delai_alerte_reparation_h?: number;
+}
 export interface Droit {
   marche_id: string; type_donnee: string; lire: boolean; creer: boolean;
   modifier: 'non' | 'siennes' | 'toutes'; supprimer: 'non' | 'siennes' | 'toutes'; valider: boolean;

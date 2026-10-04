@@ -17,7 +17,7 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
-| `/parametres` | droits « parametres » / « ouvriers » | ouvriers, équipes, motifs (FR / AR), articles hors bordereau ; prix du bordereau en lecture seule ; on désactive, on ne supprime pas |
+| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs ; on désactive, on ne supprime pas |
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/utilisateurs` | administrateur | créer un agent, rôles par marché, changer le mot de passe, révoquer / réactiver |
 
@@ -41,6 +41,9 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `https://osajiinsibwrsltntmsk.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | clé « anon / publishable » de *Project Settings > API Keys* |
+
+| `NEXT_PUBLIC_NOM_ORGANISATION` | facultative : nom affiché à la connexion (défaut STEPAG) |
+| `NEXT_PUBLIC_DOMAINE_AGENTS` | facultative : domaine technique des identifiants (défaut `agents.stepag.ma`, même valeur que `DOMAINE_AGENTS` de la fonction serveur) |
 
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.

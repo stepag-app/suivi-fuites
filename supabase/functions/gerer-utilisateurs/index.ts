@@ -10,7 +10,8 @@
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const DOMAINE_AGENTS = 'agents.stepag.ma';
+// Domaine technique des identifiants (même valeur que NEXT_PUBLIC_DOMAINE_AGENTS du panneau).
+const DOMAINE_AGENTS = Deno.env.get('DOMAINE_AGENTS') || 'agents.stepag.ma';
 const ROLES = ['detection', 'chef_reparation', 'responsable'];
 const CORS = {
   'Access-Control-Allow-Origin': '*',

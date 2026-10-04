@@ -13,9 +13,18 @@ import { Bouton, Carte, COULEURS, s } from './ui';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const dateHeure = (iso: string) => new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
-const formaterReference = (t: string) => {
-  const n = t.replace(/\D/g, '').slice(0, 9);
-  return [n.slice(0, 3), n.slice(3, 6), n.slice(6, 9)].filter(Boolean).join('-');
+// Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
+const formaterReference = (t: string, masque: string | null | undefined) => {
+  if (!masque) return t;
+  const chiffres = t.replace(/\D/g, '');
+  let i = 0;
+  let sortie = '';
+  for (const c of masque) {
+    if (i >= chiffres.length) break;
+    if (c === '9') sortie += chiffres[i++];
+    else sortie += c;
+  }
+  return sortie;
 };
 
 export function Connexion() {
@@ -106,7 +115,11 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
             <Text>{STATUTS[f.statut]}{f.secteur ? ` · ${f.secteur}` : ''}</Text>
             {!!f.adresse && <Text style={s.discret}>{f.adresse}</Text>}
             <Text style={s.discret}>{dateHeure(f.date_detection)} · {f.nb_photos} photo(s)</Text>
-            {f.alerte_non_reparee && <Text style={{ color: COULEURS.danger, fontWeight: '700' }}>Non réparée depuis plus de 48 h</Text>}
+            {f.alerte_non_reparee && (
+              <Text style={{ color: COULEURS.danger, fontWeight: '700' }}>
+                Non réparée depuis plus de {marche?.delai_alerte_reparation_h ?? 48} h
+              </Text>
+            )}
           </Carte>
         )}
       />
@@ -119,6 +132,8 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
 
 export function NouvelleFuite({ retour }: { retour: () => void }) {
   const { marche } = useSession();
+  const libelleReference = marche?.libelle_reference || 'Référence client';
+  const masque = marche?.masque_reference ?? null;
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [secteurId, setSecteurId] = useState('');
   const [choixSecteur, setChoixSecteur] = useState(false);
@@ -193,7 +208,7 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
     if (!marche) return;
     setErreur('');
     if (!position && !reference && !adresse.trim()) {
-      setErreur('Indiquez au moins la position GPS, la référence SRM ou l\'adresse.');
+      setErreur(`Indiquez au moins la position GPS, la ${libelleReference.toLowerCase()} ou l'adresse.`);
       return;
     }
     const pos = position ? `SRID=4326;POINT(${position.lon} ${position.lat})` : null;
@@ -229,8 +244,15 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
         <Bouton titre="Actualiser la position" onPress={localiser} />
       </Carte>
       <Carte>
-        <Text style={s.etiquette}>Référence SRM / tournée</Text>
-        <TextInput style={s.champ} value={reference} onChangeText={(t) => setReference(formaterReference(t))} keyboardType="number-pad" placeholder="000-000-000" maxLength={11} />
+        <Text style={s.etiquette}>{libelleReference}</Text>
+        <TextInput
+          style={s.champ}
+          value={reference}
+          onChangeText={(t) => setReference(formaterReference(t, masque))}
+          keyboardType={masque ? 'number-pad' : 'default'}
+          placeholder={masque ? masque.replace(/9/g, '0') : undefined}
+          maxLength={masque ? masque.length : undefined}
+        />
         <Text style={s.etiquette}>Secteur</Text>
         <Bouton titre={secteurs.find((x) => x.id === secteurId)?.libelle ?? '— Choisir —'} onPress={() => setChoixSecteur(true)} />
         <Text style={s.etiquette}>Adresse / repère</Text>

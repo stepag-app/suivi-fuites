@@ -1,37 +1,64 @@
 # Mission : extraire TOUTES les règles du marché n° 4500004453 dans un seul fichier Markdown
 
 > Fichier à utiliser avec Claude Code **en local sur le Mac** (modèle Fable, forfait Max).
-> Partie A : à exécuter par Issam dans le Terminal avant de lancer Claude Code.
-> Partie B : le prompt proprement dit. Dans Claude Code, lancé depuis `~/Desktop/Suivi-fuites`, tapez :
-> « Lis `docs/prompts/extraction-regles-marche-4500004453.md` et exécute la mission décrite dans la partie B. »
+> Partie A : commandes à exécuter par Issam dans le Terminal avant de lancer Claude Code.
+> Partie B : le prompt proprement dit.
+> Les commandes de la partie A ne contiennent volontairement **aucun commentaire `#`** : zsh ne les ignore pas dans le Terminal interactif, et une apostrophe dans un commentaire bloque le Terminal (`pipe quote>`). Elles n'écrivent aucun nom d'utilisateur en dur : `$HOME` et `~` désignent votre dossier personnel, quel que soit son nom.
 
 ---
 
 ## Partie A : pré-requis (Issam, dans le Terminal, AVANT de lancer Claude Code)
 
-```bash
-# 1. Outils (Homebrew requis : https://brew.sh)
-brew install poppler tesseract tesseract-lang pandoc ocrmypdf qpdf
+**A1. Outils** (Homebrew requis)
 
-# 2. Dossier de travail hors dépôt + environnement Python isolé (pip3 direct est refusé par Homebrew)
+```bash
+brew install poppler tesseract tesseract-lang pandoc ocrmypdf qpdf
+```
+
+**A2. Dossier de travail hors dépôt et environnement Python isolé** (pip3 direct est refusé par Homebrew)
+
+```bash
 mkdir -p ~/extraction-4500004453 && cd ~/extraction-4500004453
 python3 -m venv venv && source venv/bin/activate
 pip install pypdf pdfplumber openpyxl python-docx xlrd pillow numbers-parser ezdxf
+```
 
-# 3. Lien court vers le dossier source (le nom original contient N°, accents et espaces)
-ln -s "/Users/issamboussalam/Desktop/MARCHE N° 4500004453 DÉTECTION, RECHERCHE ET REPARATION DES FUITES" ~/extraction-4500004453/src
-ls ~/extraction-4500004453/src | head        # accepter l'accès au Bureau si macOS le demande
-tesseract --list-langs | grep -E "fra|ara"    # doit afficher fra et ara
+**A3. Lien court vers le dossier source** (le nom d'origine contient `N°`, des accents et des espaces ; le joker `*` évite de les taper)
 
-# 4. Git : le push doit fonctionner avant de commencer
-cd ~/Desktop/Suivi-fuites && git checkout main && git pull origin main
+```bash
+ln -sfn "$HOME"/Desktop/MARCHE*4500004453* ~/extraction-4500004453/src
+ls ~/extraction-4500004453/src | head
+tesseract --list-langs | grep -E "fra|ara"
+```
+
+`ls` doit afficher des fichiers (macOS peut demander l'accès au Bureau : accepter) et `tesseract` doit afficher `ara` et `fra`. Si `ls` répond « No such file », c'est que le lien est vide : vérifier avec `ls "$HOME"/Desktop | grep -i marche`.
+
+**A4. Dépôt Git** : le dépôt doit être à jour et le `push` doit fonctionner avant de commencer
+
+```bash
+cd ~/Desktop/Suivi-fuites
+git remote -v
+git checkout main
+git pull origin main
 git push --dry-run origin main
 mkdir -p references
 ```
 
-5. Créer `~/Desktop/Suivi-fuites/.claude/settings.local.json` (fichier personnel, non versionné) pour éviter des centaines de demandes d'autorisation :
+`git remote -v` doit afficher `stepag-app/suivi-fuites`. Si le dossier n'est pas un dépôt Git : `git clone https://github.com/stepag-app/suivi-fuites.git ~/Desktop/Suivi-fuites`. Si `git push --dry-run` demande une authentification ou échoue, la régler maintenant (par exemple `gh auth login`) : la mission se termine par un push.
 
-```json
+**A5. Récupérer ce fichier hors du dépôt** (il vit sur la branche de la pull request, pas sur `main` ; le copier ici évite de le commiter par erreur)
+
+```bash
+git fetch origin claude/awesome-ritchie-17zbms
+git show origin/claude/awesome-ritchie-17zbms:docs/prompts/extraction-regles-marche-4500004453.md > ~/extraction-4500004453/prompt.md
+wc -l ~/extraction-4500004453/prompt.md
+```
+
+**A6. Autorisations** : fichier personnel, non versionné, qui évite des centaines de demandes d'autorisation. Le bloc ci-dessous écrit votre vrai chemin personnel à la place de `$HOME`.
+
+```bash
+mkdir -p ~/Desktop/Suivi-fuites/.claude
+cat > ~/Desktop/Suivi-fuites/.claude/settings.local.json <<EOF
 {
   "permissions": {
     "allow": [
@@ -39,19 +66,29 @@ mkdir -p references
       "Bash(tesseract:*)", "Bash(ocrmypdf:*)", "Bash(pandoc:*)", "Bash(textutil:*)", "Bash(qpdf:*)",
       "Bash(sips:*)", "Bash(shasum:*)", "Bash(find:*)", "Bash(ls:*)", "Bash(wc:*)", "Bash(cat:*)",
       "Bash(mkdir:*)", "Bash(unzip:*)", "Bash(git status:*)", "Bash(git add:*)", "Bash(git commit:*)",
-      "Bash(/Users/issamboussalam/extraction-4500004453/venv/bin/python:*)",
+      "Bash($HOME/extraction-4500004453/venv/bin/python:*)",
       "Read(~/extraction-4500004453/**)", "Read(~/Desktop/MARCHE*/**)",
       "Write(~/extraction-4500004453/**)", "Edit(~/extraction-4500004453/**)"
     ]
   }
 }
+EOF
 ```
 
 À défaut, répondre « Oui, ne plus demander » à la première occurrence de chaque commande.
 
-6. Lancer Claude Code depuis `~/Desktop/Suivi-fuites`, choisir le modèle Fable (`/model claude-fable-5-1`), puis coller la phrase indiquée en tête de ce fichier.
+**A7. Lancer Claude Code** depuis le dépôt :
 
-Prévoir **3 à 5 sessions** : la mission est découpée en lots avec des points de sauvegarde, une nouvelle session reprend là où la précédente s'est arrêtée.
+```bash
+cd ~/Desktop/Suivi-fuites
+claude
+```
+
+Puis, dans Claude Code : `/model claude-fable-5-1`, et coller cette phrase :
+
+> Lis `~/extraction-4500004453/prompt.md` et exécute la mission décrite dans la partie B, en suivant ses règles à la lettre. Tu peux ignorer la partie A, elle est déjà faite.
+
+Prévoir **3 à 5 sessions** : la mission est découpée en lots avec des points de sauvegarde. Pour reprendre après une interruption, relancer `claude` dans le même dossier et coller : « Reprends la mission décrite dans `~/extraction-4500004453/prompt.md` à partir de `~/extraction-4500004453/etat.md`. »
 
 ---
 

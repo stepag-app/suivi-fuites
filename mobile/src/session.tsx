@@ -11,7 +11,7 @@ interface Etat {
   marche: Marche | null;
   marches: Marche[];
   choisirMarche: (id: string) => void;
-  peut: (type: string, action: 'lire' | 'creer') => boolean;
+  peut: (type: string, action: 'lire' | 'creer' | 'valider') => boolean;
   deconnecter: () => Promise<void>;
 }
 
@@ -102,7 +102,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const peut = useCallback(
-    (type: string, action: 'lire' | 'creer') => {
+    (type: string, action: 'lire' | 'creer' | 'valider') => {
       if (profil?.est_admin) return true;
       const d = droits.find((x) => x.marche_id === marche?.id && x.type_donnee === type);
       return !!d && d[action];

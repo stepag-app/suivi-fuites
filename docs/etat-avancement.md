@@ -31,6 +31,7 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | Droits des agents de terrain vérifiés : détection et chef de réparation ne voient que les fuites et les réparations (ni attachements, ni prix, ni paramètres, ni exports) ; 30 tests pgTAP de plus (194 au total) | `supabase/tests/database/05_marche_demo.test.sql` | verts |
 | Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
 | Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
+| **Lot A, tablette** : fiche d'une fuite (infos, statut, photos, réparations, réfections, sans prix), saisie d'une réparation (pièces du catalogue, ouvriers, photos avant / pendant / après) et d'une réfection, hors ligne (file d'attente ordonnée par fuite, reprise après coupure, erreurs claires dont fuite verrouillée), contrôle des doublons à la création (même fuite / nouvelle fuite liée), boutons de saisie selon les droits (détection en lecture) | `mobile/src/` (`fiche.tsx`, `saisie.tsx`, `file-attente.ts`), `mobile/essais/` | branche `claude/lot-a-tablette` ; types et bundle Android vérifiés, **24 vérifications** contre une pile Supabase locale (chef, détection, DEMO) ; **à essayer sur la tablette** |
 
 ## 2. En attente d'Issam
 
@@ -130,9 +131,9 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 1. Retours du premier test terrain (parcours connexion → fuite → réparation → réfection).
 2. À ajouter dans le panneau selon les retours : paramètres (ouvriers, équipes, prix hors bordereau,
    motifs), carte des fuites, anomalies, journal, interface en arabe / mixte, exports PDF et Word.
-3. Application Expo : socle fait. À ajouter : réparations / réfections sur la tablette, suivi GPS en
-   arrière-plan (tracé par agent et par jour, M4), notifications push, mise à jour de l'APK, détection
-   des doublons. Mode hors ligne web : consultation et modification d'une fuite
+3. Application Expo : socle, fiche, réparations / réfections et doublons faits (lot A). À ajouter : suivi GPS en
+   arrière-plan (tracé par agent et par jour, M4), notifications push, mise à jour de l'APK, modification d'une
+   réparation envoyée, photos seules depuis la fiche. Mode hors ligne web : consultation et modification d'une fuite
    existante sans réseau non gérées.
 4. Migration 2 dès réception du DXF : le balayage (prix 1 et 2) pourra alors s'attacher par tronçon ;
    en attendant, une **ligne libre** du lot d'attachement porte le linéaire balayé par secteur.

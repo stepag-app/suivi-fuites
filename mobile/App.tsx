@@ -1,15 +1,38 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, Text, View } from 'react-native';
 import { Connexion, EnAttente, Liste, NouvelleFuite } from './src/ecrans';
+import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
+import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { configurationManquante } from './src/supabase';
 import { s } from './src/ui';
 
+type Vue =
+  | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'fiche'; id: string }
+  | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
+const LISTE: Vue = { nom: 'liste' };
+
 function Racine() {
   const { chargement, session, marche } = useSession();
-  const [ecran, setEcran] = useState<'liste' | 'nouvelle' | 'attente'>('liste');
+  const [vue, setVue] = useState<Vue>(LISTE);
+  const retourListe = () => setVue(LISTE);
+  // Une saisie revient à sa fiche, le reste à la liste.
+  const precedente = (v: Vue): Vue => (v.nom === 'reparation' || v.nom === 'refection' ? { nom: 'fiche', id: v.contexte.fuiteId } : LISTE);
+
+  // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
+  useEffect(() => {
+    const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (vue.nom === 'liste') return false;
+      setVue(precedente(vue));
+      return true;
+    });
+    return () => abonnement.remove();
+  }, [vue]);
+
+  // Changement de marché : on repart de la liste.
+  useEffect(() => setVue(LISTE), [marche?.id]);
 
   // Envoi automatique : à l'ouverture, au retour sur l'application et toutes les 30 s.
   useEffect(() => {
@@ -30,9 +53,21 @@ function Racine() {
   if (chargement) return <View style={[s.ecran, { justifyContent: 'center' }]}><ActivityIndicator size="large" /></View>;
   if (!session) return <Connexion />;
   if (!marche) return <View style={[s.ecran, s.contenu, { paddingTop: 80 }]}><Text style={s.erreur}>Aucun marché n&apos;est affecté à votre compte. Contactez l&apos;administrateur.</Text></View>;
-  if (ecran === 'nouvelle') return <NouvelleFuite retour={() => setEcran('liste')} />;
-  if (ecran === 'attente') return <EnAttente retour={() => setEcran('liste')} />;
-  return <Liste nouvelle={() => setEcran('nouvelle')} attente={() => setEcran('attente')} />;
+  const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
+  switch (vue.nom) {
+    case 'nouvelle':
+      return <NouvelleFuite retour={retourListe} ouvrirFiche={ouvrir} />;
+    case 'attente':
+      return <EnAttente retour={retourListe} />;
+    case 'fiche':
+      return <Fiche key={vue.id} id={vue.id} retour={retourListe} saisir={(nom, contexte) => setVue({ nom, contexte })} />;
+    case 'reparation':
+      return <SaisieReparation contexte={vue.contexte} retour={() => setVue(precedente(vue))} />;
+    case 'refection':
+      return <SaisieRefection contexte={vue.contexte} retour={() => setVue(precedente(vue))} />;
+    default:
+      return <Liste nouvelle={() => setVue({ nom: 'nouvelle' })} attente={() => setVue({ nom: 'attente' })} ouvrir={ouvrir} />;
+  }
 }
 
 export default function App() {

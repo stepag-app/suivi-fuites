@@ -1,18 +1,18 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import * as FileSystem from 'expo-file-system/legacy';
-import * as ImageManipulator from 'expo-image-manipulator';
-import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
-import { abandonner, garderPhoto, lireAttente, mettreEnAttente, synchroniser, type FuiteAttente, type PhotoAttente } from './file-attente';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Alert, FlatList, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { dateHeure } from './fiche';
+import {
+  abandonner, dependants, effacerPhotos, estFuite, lireAttente, mettreEnAttente, surChangement, synchroniser,
+  type Envoi, type EnvoiFuite, type PhotoAttente,
+} from './file-attente';
+import { prendrePhoto as photoCamera } from './photo';
 import { useSession } from './session';
 import { emailDepuisIdentifiant, supabase } from './supabase';
-import { STATUTS, type Secteur, type VFuite } from './types';
+import { STATUTS, type Proche, type Secteur, type VFuite } from './types';
 import { Bouton, Carte, COULEURS, s } from './ui';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const dateHeure = (iso: string) => new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 // Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
 const formaterReference = (t: string, masque: string | null | undefined) => {
   if (!masque) return t;
@@ -59,17 +59,17 @@ export function Connexion() {
   );
 }
 
-export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: () => void }) {
+export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; attente: () => void; ouvrir: (id: string) => void }) {
   const { marche, marches, choisirMarche, peut, profil, deconnecter } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
-  const [nbAttente, setNbAttente] = useState(0);
+  const [envois, setEnvois] = useState<Envoi[]>([]);
   const [message, setMessage] = useState('');
   const [rafraichit, setRafraichit] = useState(false);
 
   const charger = useCallback(async () => {
     if (!marche) return;
     setRafraichit(true);
-    setNbAttente((await lireAttente()).length);
+    setEnvois(await lireAttente());
     const cle = `suivi-fuites:liste:${marche.id}`;
     const { data, error } = await supabase
       .from('v_fuites')
@@ -92,6 +92,12 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
   useEffect(() => {
     charger();
   }, [charger]);
+  // Après chaque synchro : compteur à jour, et la liste suit les statuts recalculés par le serveur.
+  useEffect(() => surChangement(() => void charger()), [charger]);
+
+  // Fuites saisies sur la tablette et pas encore arrivées au serveur : en tête, ouvrables.
+  const locales = envois.filter((e): e is EnvoiFuite => estFuite(e) && e.marche_id === marche?.id && !fuites.some((f) => f.id === e.id));
+  const nbAttente = envois.length;
 
   return (
     <View style={s.ecran}>
@@ -114,7 +120,7 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
           </View>
         )}
         {peut('fuites', 'creer') && <Bouton titre="+ Nouvelle fuite" primaire onPress={nouvelle} />}
-        {nbAttente > 0 && <Bouton titre={`${nbAttente} fuite(s) à envoyer`} onPress={attente} />}
+        {nbAttente > 0 && <Bouton titre={`${nbAttente} envoi(s) en attente`} onPress={attente} />}
         {!!message && <Text style={s.discret}>{message}</Text>}
       </View>
       <FlatList
@@ -123,8 +129,22 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
         refreshing={rafraichit}
         onRefresh={charger}
         contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 24 }}
-        ListEmptyComponent={<Text style={s.discret}>Aucune fuite.</Text>}
+        ListEmptyComponent={locales.length ? null : <Text style={s.discret}>Aucune fuite.</Text>}
+        ListHeaderComponent={locales.length ? (
+          <View style={{ gap: 10 }}>
+            {locales.map((e) => (
+              <Pressable key={e.id} onPress={() => ouvrir(e.id)} accessibilityRole="button">
+                <Carte>
+                  <Text style={s.sousTitre}>À envoyer{e.ligne.reference_srm ? ` · ${String(e.ligne.reference_srm)}` : ''}</Text>
+                  {!!e.ligne.adresse && <Text style={s.discret}>{String(e.ligne.adresse)}</Text>}
+                  <Text style={s.discret}>{dateHeure(e.creee_le)} · gardée sur la tablette</Text>
+                </Carte>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
         renderItem={({ item: f }) => (
+          <Pressable onPress={() => ouvrir(f.id)} accessibilityRole="button">
           <Carte>
             <Text style={s.sousTitre}>N° {f.numero}{f.reference_srm ? ` · ${f.reference_srm}` : ''}</Text>
             <Text>{STATUTS[f.statut]}{f.secteur ? ` · ${f.secteur}` : ''}</Text>
@@ -136,6 +156,7 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
               </Text>
             )}
           </Carte>
+          </Pressable>
         )}
       />
       <View style={[s.contenu, { paddingTop: 0 }]}>
@@ -145,7 +166,7 @@ export function Liste({ nouvelle, attente }: { nouvelle: () => void; attente: ()
   );
 }
 
-export function NouvelleFuite({ retour }: { retour: () => void }) {
+export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouvrirFiche: (id: string) => void }) {
   const { marche } = useSession();
   const libelleReference = marche?.libelle_reference || 'Référence client';
   const masque = marche?.masque_reference ?? null;
@@ -160,6 +181,17 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
   const [photos, setPhotos] = useState<PhotoAttente[]>([]);
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState('');
+  // Contrôle des doublons : fuites proches (rayon du marché) ou de même référence.
+  const [proches, setProches] = useState<Proche[]>([]);
+  const [controle, setControle] = useState<'' | 'en_cours' | 'fait' | 'hors_ligne'>('');
+  const [lierA, setLierA] = useState('');
+  // Photos prises puis saisie abandonnée : effacées du dossier privé de l'appli.
+  const gardees = useRef(false);
+  const photosCourantes = useRef<PhotoAttente[]>([]);
+  photosCourantes.current = photos;
+  useEffect(() => () => {
+    if (!gardees.current) void effacerPhotos(photosCourantes.current);
+  }, []);
 
   useEffect(() => {
     if (!marche) return;
@@ -196,27 +228,62 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
     localiser();
   }, [localiser]);
 
-  async function prendrePhoto() {
-    const droit = await ImagePicker.requestCameraPermissionsAsync();
-    if (!droit.granted) {
-      setErreur('Appareil photo refusé : autorisez-le dans les réglages de la tablette.');
+  useEffect(() => {
+    if (!marche || (!position && !reference.trim())) {
+      setProches([]);
+      setControle('');
       return;
     }
-    // exif et galerie : la photo n'est jamais enregistrée dans la galerie (CLAUDE.md § 7).
-    const r = await ImagePicker.launchCameraAsync({ quality: 1, exif: false });
-    if (r.canceled || !r.assets[0]) return;
-    const a = r.assets[0];
-    const echelle = Math.min(1, 1600 / Math.max(a.width, a.height));
-    const reduite = await ImageManipulator.manipulateAsync(
-      a.uri,
-      echelle < 1 ? [{ resize: { width: Math.round(a.width * echelle), height: Math.round(a.height * echelle) } }] : [],
-      { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG },
-    );
-    const id = Crypto.randomUUID();
-    const fichier = await garderPhoto(reduite.uri, id);
-    const info = await FileSystem.getInfoAsync(fichier);
-    const taille = info.exists ? info.size : 0;
-    setPhotos((p) => [...p, { id, fichier, largeur: reduite.width, hauteur: reduite.height, taille, prise_le: new Date().toISOString() }]);
+    let annule = false;
+    const delai = setTimeout(async () => {
+      setControle('en_cours');
+      try {
+        const { data, error } = await supabase.rpc('rechercher_fuites_proches', {
+          p_marche: marche.id,
+          p_latitude: position?.lat ?? null,
+          p_longitude: position?.lon ?? null,
+          p_reference: reference.trim() || null,
+        });
+        if (annule) return;
+        if (error) throw error;
+        const liste = (data as Proche[] | null) ?? [];
+        setProches(liste);
+        setLierA((l) => (liste.some((p) => p.id === l) ? l : ''));
+        setControle('fait');
+      } catch {
+        if (annule) return;
+        setProches([]);
+        setControle('hors_ligne');
+      }
+    }, 600);
+    return () => {
+      annule = true;
+      clearTimeout(delai);
+    };
+  }, [marche, position, reference]);
+
+  async function prendrePhoto() {
+    setErreur('');
+    try {
+      const r = await photoCamera('detection');
+      if (typeof r === 'string') setErreur(r);
+      else if (r) setPhotos((p) => [...p, r]);
+    } catch (e) {
+      setErreur(`Photo impossible : ${String((e as Error).message ?? e)}`);
+    }
+  }
+
+  function memeFuite(id: string) {
+    const ouvrirLaFiche = () => {
+      void effacerPhotos(photos);
+      gardees.current = true;
+      ouvrirFiche(id);
+    };
+    if (!photos.length) return ouvrirLaFiche();
+    Alert.alert('Même fuite', 'La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?', [
+      { text: 'Non', style: 'cancel' },
+      { text: 'Oui, ouvrir la fiche', onPress: ouvrirLaFiche },
+    ]);
   }
 
   async function enregistrer() {
@@ -237,8 +304,10 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
           reference_srm: reference || null, secteur_id: secteur?.id ?? null, zone_id: secteur?.zone_id ?? null,
           adresse: adresse.trim() || null, observation: observation.trim() || null, position: pos,
           precision_gps_m: position ? Math.round(position.precision) : null, source_saisie: 'tablette',
+          fuite_liee_id: lierA || null,
         },
       });
+      gardees.current = true;
       setEnvoi('Envoi…');
       await synchroniser();
       retour();
@@ -258,6 +327,40 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
         ) : <Text style={s.discret}>{gps}</Text>}
         <Bouton titre="Actualiser la position" onPress={localiser} />
       </Carte>
+      {controle === 'hors_ligne' && (
+        <Text style={s.attention}>Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu&apos;elle n&apos;est pas déjà signalée.</Text>
+      )}
+      {proches.length > 0 && (
+        <Carte>
+          <Text style={s.sousTitre}>Fuite déjà signalée ici ?</Text>
+          {proches.map((p) => (
+            <View key={p.id} style={{ gap: 6, borderTopWidth: 1, borderColor: COULEURS.bord, paddingTop: 8 }}>
+              <Text style={{ fontSize: 16 }}>
+                N° {p.numero} · {STATUTS[p.statut]} · {dateHeure(p.date_detection)}
+                {p.meme_reference ? ' · même référence' : ''}
+                {p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ''}
+              </Text>
+              <View style={s.ligne}>
+                <View style={{ flexGrow: 1, flexBasis: 200 }}>
+                  <Bouton titre="C'est la même fuite" onPress={() => memeFuite(p.id)} />
+                </View>
+                <View style={{ flexGrow: 1, flexBasis: 200 }}>
+                  <Bouton
+                    titre={lierA === p.id ? '✓ Nouvelle fuite liée' : 'Nouvelle fuite liée'}
+                    primaire={lierA === p.id}
+                    onPress={() => setLierA(lierA === p.id ? '' : p.id)}
+                  />
+                </View>
+              </View>
+            </View>
+          ))}
+          <Text style={s.discret}>
+            {lierA
+              ? `Elle sera enregistrée comme nouvelle fuite liée au N° ${proches.find((p) => p.id === lierA)?.numero ?? ''}.`
+              : 'Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.'}
+          </Text>
+        </Carte>
+      )}
       <Carte>
         <Text style={s.etiquette}>{libelleReference}</Text>
         <TextInput
@@ -280,7 +383,7 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
         <Bouton titre="Prendre une photo" onPress={prendrePhoto} />
         <View style={s.ligne}>
           {photos.map((p) => (
-            <Pressable key={p.id} onPress={() => setPhotos(photos.filter((x) => x.id !== p.id))}>
+            <Pressable key={p.id} onPress={() => { void effacerPhotos([p]); setPhotos(photos.filter((x) => x.id !== p.id)); }}>
               <Image source={{ uri: p.fichier }} style={{ width: 96, height: 96, borderRadius: 8 }} />
               <Text style={s.discret}>Retirer</Text>
             </Pressable>
@@ -316,34 +419,55 @@ export function NouvelleFuite({ retour }: { retour: () => void }) {
 }
 
 export function EnAttente({ retour }: { retour: () => void }) {
-  const [liste, setListe] = useState<FuiteAttente[]>([]);
+  const [liste, setListe] = useState<Envoi[]>([]);
   const [message, setMessage] = useState('');
   const [occupe, setOccupe] = useState(false);
   const charger = useCallback(async () => setListe(await lireAttente()), []);
   useEffect(() => {
     charger();
+    return surChangement(() => void charger());
   }, [charger]);
 
   async function envoyer() {
     setOccupe(true);
-    const restantes = await synchroniser();
-    setMessage(restantes === 0 ? 'Tout est envoyé.' : `${restantes} envoi(s) restent à traiter.`);
+    const restantes = await synchroniser().catch(() => -1);
+    setMessage(restantes === 0 ? 'Tout est envoyé.' : restantes < 0 ? 'Envoi impossible pour le moment.' : `${restantes} envoi(s) restent à traiter.`);
     setOccupe(false);
     charger();
   }
 
+  async function supprimer(e: Envoi) {
+    const suite = await dependants(e.id);
+    Alert.alert(
+      'Supprimer de la tablette ?',
+      `Cette saisie${suite.length ? ` et ${suite.length} saisie(s) liée(s) (réparation, réfection)` : ''} et ses photos seront définitivement perdues.`,
+      [
+        { text: 'Garder', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: async () => { await abandonner(e.id); charger(); } },
+      ],
+    );
+  }
+
+  const titre = (e: Envoi) => {
+    if (estFuite(e)) return `Nouvelle fuite · ${(e.ligne.reference_srm as string) || (e.ligne.adresse as string) || 'sans référence'}`;
+    return `${e.type === 'reparation' ? 'Réparation' : 'Réfection'} · ${e.fuite_libelle}`;
+  };
+
   return (
     <ScrollView style={s.ecran} contentContainerStyle={[s.contenu, { paddingTop: 48 }]}>
       <Text style={s.titre}>Envois en attente</Text>
-      <Text style={s.discret}>Ces fuites sont gardées sur la tablette. Elles partent dès que le réseau revient ; ne désinstallez pas l&apos;application avant.</Text>
+      <Text style={s.discret}>
+        Ces saisies sont gardées sur la tablette. Elles partent dans l&apos;ordre dès que le réseau revient ;
+        ne désinstallez pas l&apos;application avant.
+      </Text>
       <Bouton titre="Envoyer maintenant" primaire onPress={envoyer} occupe={occupe} desactive={liste.length === 0} />
       {!!message && <Text style={s.info}>{message}</Text>}
-      {liste.map((f) => (
-        <Carte key={f.id}>
-          <Text style={s.sousTitre}>{(f.ligne.reference_srm as string) || (f.ligne.adresse as string) || 'Fuite sans référence'}</Text>
-          <Text style={s.discret}>{dateHeure(f.creee_le)} · {f.photos.length} photo(s) en attente</Text>
-          {!!f.erreur && <Text style={s.erreur}>Refusée par le serveur : {f.erreur}</Text>}
-          <Bouton titre="Supprimer de la tablette" onPress={async () => { await abandonner(f.id); charger(); }} />
+      {liste.map((e) => (
+        <Carte key={e.id}>
+          <Text style={s.sousTitre}>{titre(e)}</Text>
+          <Text style={s.discret}>Saisie le {dateHeure(e.creee_le)} · {e.photos.length} photo(s) en attente</Text>
+          {!!e.erreur && <Text style={s.erreur}>{e.erreur}</Text>}
+          <Bouton titre="Supprimer de la tablette" onPress={() => supprimer(e)} />
         </Carte>
       ))}
       <Bouton titre="Retour" onPress={retour} />

@@ -1755,3 +1755,319 @@ numero;mesures_a_relever;unite_saisie;formule_quantite;conditions;source
 | 11 | joint gibault, dissymétrique ou autre ; remplacement total ou partiel d'un élément ; sable ; grillage ; cisaillement ; démontage ; épuisement | [NON PRÉCISÉ] | u | AC ou PVC ; 225 ≤ DN ≤ 315 | prix 3 ; 12 ; 13 | [F032 p.1] |
 | 12 | comme le prix 11 | [NON PRÉCISÉ] | u | AC ou PVC ; 110 ≤ DN ≤ 200 | prix 3 ; 11 ; 13 | [F032 p.1] |
 | 13 | comme le prix 11 | [NON PRÉCISÉ] | u | AC ou PVC ; DN < 110 | prix 3 ; 11 ; 12 | [F032 p.1] |
+
+## 7. Attachement modèle 2017 et pièces de paiement
+
+**Résumé.** Tout ce qui suit est `[2017]` : il s'agit du marché n° 59/E/2016 de la RADEEO (régie d'Oujda, devenue SRM), titulaire AFFAIR OF THE WATER (AFW), STEPAG sous-traitant. Même logique que le marché 2026 (balayage, maintien, réparations à l'unité) mais **autres prix, autres unités, autres zones, autres plafonds**. Ces classeurs donnent la forme de l'attachement, du décompte, de l'état de suivi et de la facture, et la chaîne de calcul « fiche de réparation → attachement détaillé → récapitulatif → décompte ». Le classeur que STEPAG prépare pour 2026 ([F001], section 8) en est la reprise simplifiée.
+
+**Principaux `[NON PRÉCISÉ]`.** Règle officielle d'affectation des pièces posées aux numéros de prix (faite à la main en 2017) ; date de rattachement d'une fuite au mois ; arrondi par ligne ou sur le total ; décompte en quantités du mois ou en cumul (les versions de 2017 divergent) ; sens des suffixes « R », « bis » et « RP ».
+
+**Avertissement.** Aucun prix, délai, plafond ou numéro de cette section ne s'applique au marché 4500004453. Les numéros de prix 2017 (1 à 17, avec 9.a, 13.a…) ne correspondent pas aux numéros 2026 (1 à 13) : passer uniquement par la table de passage 7.9.
+
+### 7.1 Fichiers du modèle 2017
+
+| ID | Fichier | Rôle | Feuilles | Source des notes |
+|---|---|---|---|---|
+| F077 | 1 marché59.doc | marché valant CPS n° 59/E/2016 (art. 1 à 51) | — | notes F077 |
+| F079 | 3. derniére page.doc | dernière page du marché : montant et cinq cadres de visa | — | notes F079 |
+| F066 ; F078 | BP 59 E 2016 RAADEEO.xls ; 2-BP.xls | bordereau des prix 2017 (24 prix), identiques | Bdrx de prix | notes F066 |
+| F065 | Attachement réparation de fuites + Mouvements matériel.xlsx | classeur de travail du décompte n° 01 (brouillon) | Détail BS ; Fiche de réparation ; Fiche réfection ; Linéaire prospecté ; attachement detaillé ; decompte ; attach recap ; etat de suivi | notes F065 |
+| F084 | Fiche de réparation de fuites + Mouvements matériel + attachement.xlsx | version du 2017-03-27 (453 fuites) ; feuille « detectees et non reparees » en plus | 8 | notes F084 |
+| F085 | Fiche de réparation de fuites + Mouvements matériel.xlsx | version antérieure | 7 | notes F085 |
+| F068 ; F069 ; F076 | Attachement + Décompte N°1.xlsx et variantes | attachement n° 1 et décompte provisoire n° 1 par zone (SY4000, RJ5000, JH600) | 15 ; 15 ; 9 | notes F068 |
+| F072 ; F075 | facture RADEEO.xls (contenu identique) | facture 18/2017/AT 1 du 2017-04-11 | FACTURE N° 26 | notes F072 |
+| F071 | Etat de suivi Recap 59-E-16 (1).xls | état de suivi récapitulatif des décomptes (document de la régie) | 01 | notes F071 |
+| F073 | FICHE SUIVI DELAI 59-E-16.xls | fiche de suivi du délai d'exécution (document de la régie) | 01 | notes F073 |
+| F080 | Détail quantitatif Réparation + réfection.xls | prototype de janvier 2017 ; modèle papier de fiche de fuite | réparation ; Réfection ; Fiche de fuite | notes F080 |
+| F087 à F095 | Rapports journaliers (modèle vierge + 7 secteurs, 41 journées) | rapports journaliers de détection | une feuille par journée | notes F087 |
+| F088 | Rapports hebdomadaires détéction de fuites.xlsx | rapports hebdomadaires (5 semaines) | Semaine 1 à 5 | notes F088 |
+| F067 ; F074 ; F083 ; F081 | contrat STEPAG AFW ; facture STEPAG à AFW ; facture d'avance ; en-tête | sous-traitance AFW / STEPAG | — | notes F067 |
+| F070 | Bordereau MARCHE RADEEO (1).doc | bordereau d'envoi de facture du 2017-12-15 | — | notes F070 |
+| F082 ; F086 | essai AFW.xlsx ; Mesure/Riadi.xlsx | PV de carottage d'enrobé à froid ; mesure nocturne de débit du secteur Riadi (2017-02-26) | — | notes F082 ; F086 |
+
+### 7.2 Bordereau des prix 2017 (verbatim, marché 59/E/2016)
+
+Total 2017 : 1 719 636,50 DH HT ; TVA 20 % 343 927,30 ; TTC 2 063 563,80. Les lignes 9, 10, 13 et 16 sont des lignes chapeau sans prix.
+
+| N° prix 2017 | Désignation | Unité telle qu'écrite | Quantité marché | PU HT | Montant HT | Source |
+|---|---|---|---|---|---|---|
+| 1 | Recherche et detection de fuites sur conduites, tous diamètres et toutes natures dans les divers secteurs de la ville ( Balayage) | Km | 580 | 994 | 576520 | [F066 feuille "Bdrx de prix"] |
+| 2 | Recherche et detection de fuites sur conduites, dans les divers secteurs de la ville pour le maintien des résultats | Km | 580 | 875 | 507500 | [F066 feuille "Bdrx de prix"] |
+| 3 | Mesure des débits de nuits, par installation d'un ou des débitmètres enregistreurs portables(conformément à l'article 17 Chap II) | U | 6 | 2500 | 15000 | [F066 feuille "Bdrx de prix"] |
+| 4 | Confection de tranchée en terrain de toute nature y compris remblaiement de la tranchée, compactage, transport des terres en excédent et toutes sujétions, pour conduites et branchements y compris réglage du fond de fouille, étaiement, blindage et épuisement en cas de terrassement pour réparation de fuite ou sondage | m3 | 1200 | 29.5 | 35400 | [F066 feuille "Bdrx de prix"] |
+| 5 | Réfection et revêtement de trottoir en béton conforme à l'original épaisseur 0,10 m y compris blocage en pierre d'une épaisseur minimale de 15 cm et toutes sujétions | m² | 200 | 43 | 8600 | [F066 feuille "Bdrx de prix"] |
+| 6 | Réfection et revêtement de trottoir en mosaïque conforme à l'original y compris béton d'accrochage, blocage en pierre d'une épaisseur minimale de 15 cm et toutes sujétions | m² | 200 | 57.2 | 11440 | [F066 feuille "Bdrx de prix"] |
+| 7 | Réfection et revêtement de trottoir en granito lavé conforme à l'original y compris béton d'accrochage, blocage en pierre d'une épaisseur minimale de 15 cm et toutes sujétions | m² | 200 | 57.2 | 11440 | [F066 feuille "Bdrx de prix"] |
+| 8 | Réfection et revêtement de trottoir en carreaux ciment conforme à à l'original y compris béton d'accrochage, blocage en pierre d'une épaisseur minimale de 15 cm et toutes sujétions | m² | 220 | 68.2 | 15004 | [F066 feuille "Bdrx de prix"] |
+| 9 | Réfection et revêtement de chaussée goudronnée en enrobé d'épaisseur de 10 cm, y compris couche en tout venant GNA de 0,50 m | — | — | — | — | [F066 feuille "Bdrx de prix"] |
+| 9.a | Réfection et revêtement de chaussée goudronnée en enrobé d'épaisseur de 10 cm, y compris couche en tout venant GNA de 0,50 m — - à chaud | m² | 50 | 200 | 10000 | [F066 feuille "Bdrx de prix"] |
+| 9.b | Réfection et revêtement de chaussée goudronnée en enrobé d'épaisseur de 10 cm, y compris couche en tout venant GNA de 0,50 m — - à froid | m2 | 400 | 105.2 | 42080 | [F066 feuille "Bdrx de prix"] |
+| 10 | Fourniture, transport et pose de buses d'égout en béton classe 60B ou en PVC série 1 vibré pour réfection branchements d'assainissement y compris confection de joint en mortier ordinaire dosé à 250 kg/m3, evacuation des eaux et toutes sujétions | — | — | — | — | [F066 feuille "Bdrx de prix"] |
+| 10.a | Fourniture, transport et pose de buses d'égout en béton classe 60B ou en PVC série 1 vibré pour réfection branchements d'assainissement y compris confection de joint en mortier ordinaire dosé à 250 kg/m3, evacuation des eaux et toutes sujétions — - Diam 200 mm à 500 mm 60 B en béton vibré | ml | 10 | 700 | 7000 | [F066 feuille "Bdrx de prix"] |
+| 10.b | Fourniture, transport et pose de buses d'égout en béton classe 60B ou en PVC série 1 vibré pour réfection branchements d'assainissement y compris confection de joint en mortier ordinaire dosé à 250 kg/m3, evacuation des eaux et toutes sujétions — - Diam 200 mm 400 en PVC Série 1 | ml | 5 | 900 | 4500 | [F066 feuille "Bdrx de prix"] |
+| 11 | Transport et pose de bouche à clé carrée ou ronde y compris tube en PVC, tabernacle en polyester et socle de béton de : Dimension = Longueur = Largeur =20 cm Profondeur = 10 cm | U | 25 | 50 | 1250 | [F066 feuille "Bdrx de prix"] |
+| 12 | Fourniture et mise en œuvre de tout venant aux différents endroits de réparation de fuites | m3 | 10 | 60 | 600 | [F066 feuille "Bdrx de prix"] |
+| 13 | Transport et pose pour réparation de fuites sur la partie enterrée de branchement de diamètre extérieur allant de 25 ou 32 mm(longueur max 2ml) | — | — | — | — | [F066 feuille "Bdrx de prix"] |
+| 13.a | Transport et pose pour réparation de fuites sur la partie enterrée de branchement de diamètre extérieur allant de 25 ou 32 mm(longueur max 2ml) — T.P pour changement du polyéthylène de branchement défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose de grillage avertisseur de couleur bleue de largeur (50 cm), pose de raccords et ou manchon | U | 800 | 215.45 | 172360 | [F066 feuille "Bdrx de prix"] |
+| 13.b | Transport et pose pour réparation de fuites sur la partie enterrée de branchement de diamètre extérieur allant de 25 ou 32 mm(longueur max 2ml) — T.P pour changement de collier pour polyéthylène et ou raccord défectueux de différents diamètres | U | 400 | 216.45 | 86580 | [F066 feuille "Bdrx de prix"] |
+| 13.c | Transport et pose pour réparation de fuites sur la partie enterrée de branchement de diamètre extérieur allant de 25 ou 32 mm(longueur max 2ml) — T.P pour changement de Robinet PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise) | U | 250 | 255 | 63750 | [F066 feuille "Bdrx de prix"] |
+| 13.d | Transport et pose pour réparation de fuites sur la partie enterrée de branchement de diamètre extérieur allant de 25 ou 32 mm(longueur max 2ml) — T.P pour changement de collier PEC de différents diamètres pour branchement ou conduites en polyéthylène y compris pose du tabernacle et du tube en PVC et confection d'un socle en béton (0,40x0,40x0,20) pour la bouche à clé (béton fourni par l'entreprise) | U | 150 | 255 | 38250 | [F066 feuille "Bdrx de prix"] |
+| 14 | Transport et pose pour réparation de fuites au niveau du tuyau polyéthylène de diamètre extérieur supérieur ou égal à 40 mm (longueur polyéthylène inférieur ou égale à 2m) y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue de largeur (50 cm), cisaillement, montage par mise en place de raccords et ou manchon ou bouchon | U | 120 | 255 | 30600 | [F066 feuille "Bdrx de prix"] |
+| 15 | Mise à niveau de bouche à clé carrée ou ronde y compris pose de tube allonge en PVC, tabernacle et socle en béton de 0,40 m x 0,40 m x 0,20 | U | 25 | 110.5 | 2762.5 | [F066 feuille "Bdrx de prix"] |
+| 16 | Réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : | — | — | — | — | [F066 feuille "Bdrx de prix"] |
+| 16.a | Réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : — Diam compris entre 315 mm et 225 mm | U | 4 | 3000 | 12000 | [F066 feuille "Bdrx de prix"] |
+| 16.b | Réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : — Diam compris entre 200 mm et 110 mm | U | 20 | 1500 | 30000 | [F066 feuille "Bdrx de prix"] |
+| 16.c | Réparation de fuites sur conduites (amiante ciment et PVC) par joint gibault, joint dissymetrique ou autres matériels de jonction y compris transport ,coupe et pose pour remplacement total ou partiel d'un élément de conduite défectueux y compris la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement de conduite, préparation des bouts de montage ainsi que le démontage de l'élément épuisement du fond de fouille et toutes sujestions : — Diam inférieur à 110 mm | U | 40 | 800 | 32000 | [F066 feuille "Bdrx de prix"] |
+| 17 | Réparation de fuites sur Pièces spéciales (coude- té- cone de réduction-obturateur...) par remplacement de la pièce déféctueuse, y compris transport ,coupe et pose,la fourniture du sable et sa mise en œuvre pour lit de pose d'une épaisseur de 0,10 m, la fourniture et la pose grillage avertisseur de couleur bleue et de largeur (50 cm), cisaillement épuisement du fond de fouille et toutes sujestions : | U | 5 | 1000 | 5000 | [F066 feuille "Bdrx de prix"] |
+
+- **R-ATT-001** [2017] Le bordereau 2017 comptait 24 prix chiffrés : détection au kilomètre (prix 1 à 994 DH/km, prix 2 à 875 DH/km, 580 km chacun), mesure de débit de nuit à l'unité (prix 3), terrassement (4), réfections par nature de revêtement (5 à 9.b), buses, bouche à clé, tout venant (10 à 12), réparations de branchements (13.a à 13.d, 14), bouche à clé (15), conduites (16.a à 16.c), pièces spéciales (17). [F066 feuille "Bdrx de prix"]
+- **R-ATT-002** [2017] En 2017 les prix 13 à 17 étaient des prix de « transport et pose » : les pièces étaient fournies par la régie sur bons de sortie magasin ; en 2026 la fourniture est à la charge de l'entreprise (R-CPS-205). [F077 art. 45 N.B. ; F065 feuille "Détail BS"]
+
+### 7.3 Chaîne de calcul 2017 (fiche → attachement détaillé → récapitulatif → décompte)
+
+| Étape | Feuille | Nature | Règle | Source |
+|---|---|---|---|---|
+| 1 | Fiche de réparation | saisie pure | une fuite = une ligne d'identité (secteur, n° de fuite, tournée, date de réparation, terrassement, nature de dégradation) + une ligne par pièce posée (pièce, quantité) ; observations = motif de non-réparation | [F065 feuille "Fiche de réparation"] |
+| 2 | attachement detaillé | recopie par formules + une colonne par prix | terrassement `=E8*F8*G8` (m3) ; réfection `=IF($J8="M",E8*F8,"-")` selon un symbole saisi à la main ; prix de réparation : un « 1 » saisi à la main par fuite dans la colonne du prix ; ligne « Total » `=SUM(...)` par colonne | [F065 feuille "attachement detaillé" H8:AO2427] |
+| 3 | Fiche réfection | une ligne par fuite | surface `=IF($G16="B",D16*E16,"-")` : longueur × largeur placée dans la colonne du code matériau (B, M, L, C, AC, AF) ; total par revêtement | [F065 feuille "Fiche réfection" H16:M444] |
+| 4 | attach recap (attachement récapitulatif) | une ligne par prix | « Cumulé » = total de la colonne du prix ; « Quantité du mois » `=H16-F16` (cumulé − quantités précédentes) ; prix 1 et 3 saisis à la main | [F065 feuille "attach recap" F:H] |
+| 5 | decompte | une ligne par prix | quantité (du mois dans F065, cumulée dans F068 et F084) × PU, sans arrondi ; total HT ; TVA ; TTC ; retenue ; net | [F065 feuille "decompte" ; F068 feuille "decompte"] |
+| 6 | etat de suivi | une ligne par prix | antérieur, partiel, cumul, disponible, taux de réalisation, alertes de quantité | [F065 feuille "etat de suivi"] |
+
+- **R-ATT-003** [2017] La fiche de réparation est la seule saisie ; tout le reste en découle par formules, sauf deux gestes manuels : le symbole de revêtement et le « 1 » par prix de réparation. [F065 feuille "attachement detaillé" J, Y:AO]
+- **R-ATT-004** [2017] Volume de terrassement d'une fuite = Long × Larg × Prof, sans arrondi (`=E8*F8*G8`) ; total = somme. [F065 feuille "attachement detaillé" H8]
+- **R-ATT-005** [2017] Surface de réfection = Long × Larg de la fouille, sans débord ni arrondi, affectée au prix du revêtement ; la profondeur n'intervient pas. [F065 feuille "Fiche réfection" H16]
+- **R-ATT-006** [2017] Une réfection n'est comptée que lorsque le code du revêtement (B, M, L, C, AC, AF) remplace le nom en toutes lettres, c'est-à-dire une fois la réfection faite ; tant qu'elle n'est pas faite, la ligne reste colorée et la surface n'est pas payée. [F065 feuille "Fiche réfection" G, N4:N8]
+- **R-ATT-007** [2017] Le statut d'une fuite était porté par la couleur de la ligne : « Réparée par les agents de la RADEEO » ; « Réfection Béton » ; « Réparée non encore réfectionnée » ; « Non réparée, non réfectionnée » ; « Fuite réparée et entièrement réfectionnée » (sans couleur). À transformer en champ de statut. [F065 feuille "Fiche réfection" N4:N8]
+- **R-ATT-008** [2017] Règle observée (non écrite) d'affectation des pièces aux prix 2017 : PEHD de diamètre ≤ 32 → 13.a ; robinet PEC → 13.c ; collier PEC → 13.d ; collier Astor, raccord ou bouchon seul → 13.b ; PEHD de diamètre ≥ 40 → 14 ; tabernacle + tube PVC + bouche à clé sans robinet PEC → 15 (ou 11 selon la version) ; joint Gibault ou dissymétrique, tuyau PVC → 16.c. Conformité mesurée : 85 % des fuites de F084. Plusieurs prix peuvent se cumuler sur une fuite, jamais plus de 1 par prix. [F065 ; F084 feuille "attachement detaillé (2)"]
+- **R-ATT-009** [2017] L'attachement récapitulatif porte des cumuls depuis le début du marché ; la quantité du mois s'obtient par différence avec la colonne « Quantités précédentes », à reporter d'un attachement au suivant. [F065 feuille "attach recap" G16]
+- **R-ATT-010** [2017] L'attachement ne montre pas les prix : la colonne « Prix Unitaire H.T » est masquée à l'impression et il n'y a pas de ligne de total (quantités seulement). [F065 feuille "attach recap" E ; F068 feuille "attachement recap"]
+- **R-ATT-011** [2017] En 2017 l'attachement existait en version « partielle » par zone (SY4000, RJ5000, JH600), chacune rattachée à un ordre de service partiel, plus un récapitulatif global ; le récapitulatif lisait les feuilles globales, non la somme des partiels. [F068 feuilles "attachement partiel SY4000", "attachement recap" ; F069]
+
+### 7.4 Attachement récapitulatif 2017 : structure et données
+
+En-tête : « R.A.D.E.E.O » ; « DIVISION EXPLOITATION » ; « SERVICE AMELIORATION RENDEMENT » ; « Travaux exécutés au : » ; « Marché N° 59/E/2016 » ; « Lieu des travaux : Secteur ……. » ; « N° de travail : » ; « Nature des travaux : » ; « O.S N° : » ; « Projet N° : » ; « Entreprise : » ; titre « ATTACHEMENT RECAPTITULATIF ». Signatures : « Pour la RADEEO » ; « Pour l'Entreprise ». [F065 feuille "attach recap" ; F068 feuille "attachement recap" A140:F141]
+
+| N° | Colonne (libellé exact) | Type | Unité | Règle | Source |
+|---|---|---|---|---|---|
+| 1 | « N° Des Prix » | texte | — | numéro du bordereau | [F065 feuille "attach recap" A13] |
+| 2 | « Designation des prestations » | texte | — | sur 2 à 8 lignes ; la dernière porte « L'Unité = … » | [F065 feuille "attach recap" B13] |
+| 3 | « Unité » | texte | — | — | [F065 feuille "attach recap" C13] |
+| 4 | « Quantié Marché » | décimal | selon prix | saisie (masquée dans les partiels) | [F065 feuille "attach recap" D13] |
+| 5 | « Prix Unitaire H.T » | décimal | DH | saisie ; colonne masquée | [F065 feuille "attach recap" E13] |
+| 6 | « Quantités précédentes » | décimal | selon prix | cumul de l'attachement précédent | [F065 feuille "attach recap" F13] |
+| 7 | « Quantité du mois » | décimal | selon prix | `=H16-F16` | [F065 feuille "attach recap" G13] |
+| 8 | « Cumulé » | décimal | selon prix | total de la colonne du prix | [F065 feuille "attach recap" H13] |
+| 9 | « % » | décimal | % | cumulé ÷ quantité marché (F068, colonne masquée) | [F068 feuille "attachement recap" I] |
+
+Lignes de l'attachement récapitulatif du décompte n° 01 (extrait complet, version brouillon F065) :
+
+| N° prix 2017 | Unité | Quantité marché | Quantité antérieure | Quantité du mois | Quantité cumulée | PU HT | Montant HT (non arrondi) |
+|---|---|---|---|---|---|---|---|
+| 1 | Km | 580 | 0 | 580 | 580 | 994 | 576520 |
+| 2 | Km | 580 | 0 | 0 | 0 | 875 | 0 |
+| 3 | U | 6 | 0 | 3 | 3 | 2500 | 7500 |
+| 4 | m3 | 1200 | 0 | 267.4928 | 267.4928 | 29.5 | 7891.0376 |
+| 5 | m² | 200 | 0 | 24.82 | 24.82 | 43 | 1067.26 |
+| 6 | m² | 200 | 0 | 88.66 | 88.66 | 57.2 | 5071.352 |
+| 7 | m² | 200 | 0 | 45.07 | 45.07 | 57.2 | 2578.004 |
+| 8 | m² | 220 | 0 | 61.17 | 61.17 | 68.2 | 4171.794 |
+| 9.a | m² | 50 | 0 | 0 | 0 | 200 | 0 |
+| 9.b | m2 | 400 | 0 | 87.66 | 87.66 | 105.2 | 9221.832 |
+| 10.a | ml | 10 | 0 | 0 | 0 | 700 | 0 |
+| 10.b | ml | 5 | 0 | 0 | 0 | 900 | 0 |
+| 11 | U | 25 | 0 | 0 | 0 | 50 | 0 |
+| 12 | m3 | 10 | 0 | 0 | 0 | 60 | 0 |
+| 13.a | U | 800 | 0 | 290 | 290 | 215.45 | 62480.5 |
+| 13.b | U | 400 | 0 | 77 | 77 | 216.45 | 16666.65 |
+| 13.c | U | 250 | 0 | 132 | 132 | 255 | 33660 |
+| 13.d | U | 150 | 0 | 4 | 4 | 255 | 1020 |
+| 14 | U | 120 | 0 | 29 | 29 | 255 | 7395 |
+| 15 | U | 25 | 0 | 6 | 6 | 110.5 | 663 |
+| 16.a | U | 4 | 0 | 0 | 0 | 3000 | 0 |
+| 16.b | U | 20 | 0 | 0 | 0 | 1500 | 0 |
+| 16.c | U | 40 | 0 | 5 | 5 | 800 | 4000 |
+| 17 | U | 5 | 0 | 0 | 0 | 1000 | 0 |
+| TOTAL H.T. |  | — | 0 | 0 | 0 |  | 739906.4296 |
+| T.V.A. 20 % |  | — | 0 | 0 | 0 |  | 147981.29 |
+| TOTAL T.T.C |  | — | 0 | 0 | 0 |  | 887887.72 |
+
+### 7.5 Décompte provisoire 2017 : structure et formules
+
+En-tête : « ROYAUME DU MAROC » ; « MINISTERE DE L'INTERIEUR » ; « R.A.D.E.E.O - OUJDA » ; date ; « Données Entreprise » (RC, CNSS, compte bancaire, patente, IF : `[valeurs non recopiées]`) ; « MARCHE N° 59/E/2016 » ; objet ; société ; « Décompte provisoire n°1 » ; « Des travaux éxécutés et des dépenses éffectuées à la date du 27/03/2017 ». [F068 feuille "decompte"]
+
+| N° | Colonne ou ligne (libellé exact) | Formule (verbatim) | Explication | Source |
+|---|---|---|---|---|
+| 1 | « N° DES PRIX » ; désignation ; « UNITE » | — | reprise du bordereau | [F068 feuille "decompte" A16:C18] |
+| 2 | « QUANTITE » | `=+'attachement recap'!H15` (F068, F084) ; `='attach recap'!G16` (F065) | quantité cumulée (F068, F084) ou quantité du mois (F065) | [F068 feuille "decompte" D21] ; [F065 feuille "decompte" D20] |
+| 3 | « P. UNITAIRE DHS/H.T. » | saisie | prix du bordereau | [F068 feuille "decompte" E] |
+| 4 | « PRIX TOTAL DHS/H.T. » | `=D21*E21` | montant de ligne, sans arrondi | [F068 feuille "decompte" F21] |
+| 5 | « TOTAL H.T. » | `=SUM(F19:F144)` | somme non arrondie | [F068 feuille "decompte" F145] |
+| 6 | « T.V.A. 20 % » | `=ROUND(+F145*0.2,2)` | TVA arrondie à 2 décimales | [F068 feuille "decompte" F146] |
+| 7 | « TOTAL T.T.C » | `=ROUND(+F145+F146,2)` | TTC arrondi à 2 décimales | [F068 feuille "decompte" F147] |
+| 8 | RECAPITULATION « TRAVAUX NON TERMINES » : « Dépenses faites » | `=F147` | TTC des travaux | [F068 feuille "decompte" C153] |
+| 9 | « Retenue de garantie » | `=+C153*0.1` | 10 % du TTC, non arrondie, sans plafond dans le classeur | [F068 feuille "decompte" E153] |
+| 10 | « Total » | `=C153-E153` | TTC − retenue | [F068 feuille "decompte" F153] |
+| 11 | « APPROVISIONNEMENTS » ; « REVISION DE PRIX » | saisie | lignes prévues, vides ; la formule du total les soustrait `[À CONFIRMER]` | [F068 feuille "decompte" F154:F155] |
+| 12 | « TOTAL » | `=F153-F154-F155` | — | [F068 feuille "decompte" F156] |
+| 13 | « A déduire le Montant des dépenses imputés sur les exercices antérieures » | saisie | — | [F068 feuille "decompte" F157] |
+| 14 | « Reste à payer sur l'exercice en cours » | `=F156-F157` | — | [F068 feuille "decompte" F158] |
+| 15 | « A déduire le Montant des acomptes imputés sur l'exercice en cours » | saisie | acomptes des décomptes précédents | [F068 feuille "decompte" F159] |
+| 16 | « A déduire montant Pénalité de retard » | saisie | — | [F068 feuille "decompte" F160] |
+| 17 | « A déduire montant Pénalité sur balayage » | saisie | pénalité de résultat | [F068 feuille "decompte" F161] |
+| 18 | « A déduire montant réfactions » | saisie | — | [F068 feuille "decompte" F162] |
+| 19 | « Montant de l'acompte à payer » | `=F156-F157-F159-F160-F162-F161` | net à payer | [F068 feuille "decompte" F163] |
+| 20 | « Arrêté par nous ordonnateur à la somme de : … Dirhams … Centimes TTC » | saisie | montant en lettres | [F068 feuille "decompte" A166] |
+
+Visas du décompte 2017 (tous côté régie, aucun pour l'entreprise) : « Dréssé par : Bureau Détection de fuite et sectorisation » ; « Vérifié par : Chef de Service Amélioration du Rendement » ; « Chef Division Exploitation » ; « Le Directeur Général ». [F068 feuille "decompte" A168:C173]
+
+- **R-ATT-012** [2017] Ordre des opérations du décompte 2017 : Σ (quantité × PU) non arrondie → total HT ; TVA = arrondi à 2 décimales de HT × 0,2 ; TTC = arrondi à 2 décimales de HT + TVA ; retenue de garantie = 10 % du TTC, non arrondie ; total = TTC − retenue ; déductions (exercices antérieurs, acomptes, pénalité de retard, pénalité sur balayage, réfactions) ; acompte à payer. [F068 feuille "decompte" F145:F163]
+- **R-ATT-013** [2017] Les montants de ligne ne sont pas arrondis ; l'état de suivi de la régie, lui, arrondit chaque ligne à 2 décimales, d'où un écart d'un centime (HT 746 317,93 contre 746 317,8966 arrondi à 746 317,90). [F071 ; F068 feuille "ETAT DE SUIVI" L139]
+- **R-ATT-014** [2017] Les versions divergent sur la quantité portée au décompte : quantité du mois (F065) ou cumul (F068, F084) ; un décompte provisoire en cumul, dont on déduit les acomptes antérieurs, est la forme retenue par la version datée. [F065 feuille "decompte" D20 ; F068 feuille "decompte" D21]
+- **R-ATT-015** [2017] Pénalité de résultat appliquée en 2017 (calcul annexe au décompte) : zone Route Jerada, débit après intervention 86,4 m3/h pour un objectif de 80 → (86,4 − 80) ÷ 80 = 8 % × 250 km × 994 DH = 19 880 DH HT (23 856 TTC). La pénalité est donc calculée **par zone**, proportionnellement (sans arrondi au point), sur le montant de balayage de la zone ; les zones ayant atteint l'objectif portent « Pas de pénalité ». [F068 feuille "decompte" H20:L24]
+- **R-ATT-016** [2017] Montant en lettres : contrôle indispensable (F068 affiche un montant en lettres de 595 742,74 pour 806 023,33 calculés ; F084 garde le texte d'un autre modèle). [F068 feuille "decompte" A166 ; F084]
+
+### 7.6 État de suivi, fiche de suivi du délai, facture (2017)
+
+**État de suivi du marché** (joint au décompte ; visas « Bureau Détection de fuite et sectorisation », « Chef de Service Amélioration du Rendement », « Chef Division Exploitation ») :
+
+| N° | Colonne (libellé exact) | Formule (verbatim) | Explication | Source |
+|---|---|---|---|---|
+| 1 | « N° DES PRIX » ; « DESIGNATION DES PRESTATIONS » ; « UNITE » | — | — | [F065 feuille "etat de suivi" A11:C11] |
+| 2 | « QUANTITE » ; « P. UNITAIRE DHS/H.T. » ; « PRIX TOTAL DHS/H.T. » | `=D14*E14` | données du marché | [F065 feuille "etat de suivi" D14:F14] |
+| 3 | « ANTERIEURE » : « QTTE » ; « P.PART DH/HT » | `='attach recap'!F16` ; `=E14*G14` | cumul antérieur | [F065 feuille "etat de suivi" G14:H14] |
+| 4 | « REALISATION PARTIELLE » : « QTTE » ; « P.PART DH/HT » | `=K14-G14` ; `=I14*E14` | période | [F065 feuille "etat de suivi" I14:J14] |
+| 5 | « CUMUL (2) » : « QTTE » ; « P.PART DH/HT » | `='attach recap'!H16` ; `=K14*E14` | cumul à ce jour | [F065 feuille "etat de suivi" K14:L14] |
+| 6 | « DISPONIBLE » : « QTTE » ; « P.PART DH/HT » | `=D14-K14` ; `=M14*E14` | reste par rapport au marché | [F065 feuille "etat de suivi" M14:N14] |
+| 7 | « TAUX REAL. EN % » | `=L14/F14*100` | taux de réalisation | [F065 feuille "etat de suivi" O14] |
+| 8 | « DIFFERENCE DE QTTE/ARTICLE » « <25% (*) » | `=IF(+((D14-K14)/D14)*100>25,+((D14-K14)/D14),0)` | signale une sous-consommation de plus de 25 % de la quantité du marché | [F065 feuille "etat de suivi" P14] |
+| 9 | « DIFFERENCE DE QTTE/ARTICLE » « >30% (**) » | `=IF(+((K14-D14)/D14)*100>30,+((K14-D14)/D14),0)` | signale un dépassement de plus de 30 % de la quantité du marché | [F065 feuille "etat de suivi" Q14] |
+| 10 | « OBS » | saisie | — | [F065 feuille "etat de suivi" R11] |
+| 11 | totaux H.T., T.V.A. 20 %, T.T.C | `=SUM(F14:F137)` ; `=ROUND(+F138*0.2,2)` ; `=ROUND(+F138+F139,2)` | par bloc (marché, antérieur, partiel, cumul, disponible) | [F065 feuille "etat de suivi" 138:140] |
+
+- **R-ATT-017** [2017] Seuils d'alerte de l'état de suivi : écart de quantité par article inférieur de plus de 25 % ou supérieur de plus de 30 % à la quantité du marché ; ils correspondent vraisemblablement aux limites de variation des quantités de l'ancien CCAG-T `[À CONFIRMER : valeurs applicables en 2026, CCAG-T de 2016 art. 59]`. [F065 feuille "etat de suivi" P14:Q14]
+
+**Fiche de suivi du délai d'exécution** (une ligne par facture) : « N° FACTURE » ; « N° ORDRE DE SERVICE » ; « DATE ORDRE DE SERVICE » ; « DATE DEBUT DES TRAVAUX » ; « DATE DEBUT DES TRAVAUX BALAYAGE » ; « N° ORDRE D'ARRET » ; « DATE ORDRE D'ARRET » ; « N° ORDRE DE REPRISE » ; « DATE ORDRE DE REPRISE » ; « DELAI D'EXECUTION BALAYAGE » ; « DATE D'ACHEVEMENT BALAYAGE » ; « DELAI DE REALISATION CONSTATE » ; « RETARD CONSTATE (en jours) » ; « PENALITE DE RETARD (en DH/TTC) » ; « OBS ». Exemple : `18/2017/AT 1 ; 285/2016 ; 28/11/2016 ; 28/11/2016 ; 28/11/2016 ; — ; — ; — ; — ; 4 mois ; 27/03/2017 ; 4 mois ; — ; —`. [F073 feuille "01"]
+
+- **R-ATT-018** [2017] Décompte des mois en 2017 : un balayage commencé le 2016-11-28 et achevé le 2017-03-27 est compté « 4 mois » sans retard : l'échéance est la veille du jour anniversaire. Transposé au marché 2026 `[DÉDUIT]` : balayage du 2026-10-02 au 2027-02-01 ; fin du délai global le 2027-10-01 `[À CONFIRMER]`. [F073 feuille "01" ligne 20]
+- **R-ATT-019** [2017] Le délai est suspendu par un ordre d'arrêt et reprend par un ordre de reprise (numéro et date de chacun) ; le retard constaté s'exprime en jours et la pénalité en DH TTC. [F073 feuille "01"]
+
+**Facture 2017** (« 18/2017/AT 1 du 11/04/2017 ») : en-tête « FACTURE » ; numéro et date ; « Nom » (client) ; « Marché n° » ; « N° O.S » ; « Projet » ; « Travaux réalisés au » ; colonnes « N° » ; « DÉSIGNATION » ; « Unité » ; « QTE » ; « P.U-HT » ; « P.P-HT » ; pied « TOTAL H.T » ; « T.V.A 20% » ; « TOTAL T.T.C » ; « Retenue de garantie » ; « Net à payer » ; « Arrêté à la somme de: … /TTC ». Valeurs : HT 746 317,932 ; TVA 149 263,5864 ; TTC 895 581,5184 ; retenue 89 558,15184 ; net 806 023,36656, arrêté à 806 023,37. [F072 feuille "FACTURE N° 26"]
+
+- **R-ATT-020** [2017] La facture 2017 reprend toutes les lignes du bordereau (y compris à quantité nulle) avec les quantités cumulées, déduit la retenue de garantie de 10 % du TTC et arrête le net à payer en lettres ; elle cite le marché, l'ordre de service et la date d'arrêt des travaux. [F072]
+- **R-ATT-021** [2017] Format du numéro de facture d'AFW : `NN/AAAA/AT N` (18/2017/AT 1) ; numéro d'ordre de service : `NNN/AAAA` (285/2016 global ; 286, 287, 288/2016 partiels par zone). [F072 ; F069]
+
+### 7.7 Feuilles de saisie 2017 utiles au modèle de données
+
+**Fiche de réparation** (une fuite = un bloc de lignes) : « Zone d'intervention » (déduite du secteur par formule) ; « Secteur » ; « N° de fuite » ; « Tournée » ; « Date de réparation » ; « Terrassement » : « Long », « Larg », « Prof » ; « Nature de degradation » ; « Détails de reparation des fuites (pièces) » ; « Qté » ; « Observations ». [F068 feuille "Fiche de réparation" A6:L7]
+
+- **R-ATT-022** [2017] Table secteur → zone de 2017 : Sidi Yahya 4000 = Lazaret Haut, Sidi Yahya, A. Guennoun ; Route Jerada 5000 = Jawhara, Riad, Mchiwer, Taza, Mir Ali, Si Lakhder ; Jbel Hemra DN600 = Medina, Alaounia, Mauritanie, Tennis 1, Rte Algerie. Ne vaut pas pour 2026 (voir liste `secteur` en 6 bis). [F068 feuille "Fiche de réparation" A8]
+- **R-ATT-023** [2017] Une fuite peut porter deux lignes de terrassement (deux revêtements différents) ; les quantités de PEHD sont en mètres (0,5 ; 0,6 ; 0,8 ; 1,2…), les autres pièces à l'unité. [F068 ; F065 feuille "Fiche de réparation" J]
+- **R-ATT-024** [2017] Observations tenant lieu de statut : « Réparée par l'équipe de la RADEEO » ; « Sondage négatif (l'eau provient du voisinage) » ; « Sondage négatif (conduite d'assainissement) » ; « Sondage négatif » ; « Refus de l'abonné » ; « Trottoir en marbre - refus de l'abonné » ; « Trottoir en faience - refus de l'abonné » ; « A tracer par l'équipe de la détection ». [F065 feuille "Fiche de réparation" K]
+- **R-ATT-025** [2017] Sondage négatif : exemple de la fuite 106 (terrassement 0,8 × 1 × 0,8 saisi, aucune pièce) : le terrassement entre dans le total du prix de terrassement, donc était payé ; aucune réparation comptée. [F065 feuille "Fiche de réparation" ; notes F065 § 6]
+- **R-ATT-026** [2017] Fiche des fuites détectées et à réparer : « Secteur » ; « Numéro de fuite » ; « Tournée » ; « CHERCHEUR DE FUITE » ; « Date de detection de fuite » ; « Date de reparation ». C'est le seul document 2017 portant le nom du détecteur et la date de détection. [F084 feuille " detectees et non reparees" A6:F7]
+- **R-ATT-027** [2017] Détail BS (mouvements de matériel) : par pièce, « Ecarts » `=D4-C4`, « Total des pièces posées » `=SUMIF('Fiche de réparation'!$I$8:$I$3442,"<pièce>",'Fiche de réparation'!$J$8:$J$3442)`, « Total des entrées » `=SUM(E4:AA4)`, puis une colonne par « N° de BS » ; mise en forme conditionnelle : écart négatif mis en évidence. Sans objet contractuel en 2026 (fourniture par l'entreprise) mais utile comme suivi de stock interne. [F065 feuille "Détail BS"]
+- **R-ATT-028** [2017] Linéaire prospecté (journal du balayage) : « Semaine » ; « Journée » ; « Date » ; « Secteur » ; « Linéaire prospecté par jour en (Km linéaire) » ; « Fuites localisées » (« Visibles », « Invisibles ») × (« Conduite », « Brt ») ; « Total global du linéaire prospecté (Km linéaire) » `=SUM(E12:E2535)`. Les jours de second passage portent le mot « Repasse » à la place du linéaire (non payé). [F065 feuille "Linéaire prospecté"]
+- **R-ATT-029** [2017] Le prix de balayage facturé (580 km = quantité du marché) était saisi à la main et ne correspondait pas au journal (735,75 km puis 853,75 km) : le linéaire payé était plafonné au linéaire du marché. [F065 feuille "attach recap" H16 ; F084]
+- **R-ATT-030** [2017] Modèle papier de fiche par fuite : « Fiche de réparation de fuite détection dans le cadre du marché 59/E/2016 » ; « Tournée de la fuite : » ; « Terrassement » : « Longueur (m) », « Largeur (m) », « profondeur (m) », « Nature de dégradation » ; « Détail de réparation de la fuite : » ; « Emmargement Entreprise » ; « Emmargement agent RADEEO » (double signature par fuite). [F080 feuille "Fiche de fuite"]
+
+**Rapport journalier 2017** (« RAPPORT JOURNALIER DE RECHERCHE DE FUITES », une feuille par journée) : en-tête « Marché N° 59 /E/2016 » ; « Société : » ; « journée du : » ; « Equipe : » ; « Equipements utilisés : » ; « Secteur d'intervention : » ; « Linéaire : … km » ; colonnes « Secteur » ; « Planche N° » ; « Adresse » ; « Canalisation prospectée » : « Calibre », « Nature » ; « Fuite » : « N° », « Nature », « Nbre de Branchement prospecté », « Visibles », « Invisibles » ; « Observation » ; ligne « TOTAL » `=SUM(K16:K29)` et `=SUM(L16:L29)` ; « COMMENTAIRE » ; signatures « Pour AFW » et « Pour RADEEO ». [F087 feuille "Rapport journalier"]
+
+- **R-ATT-031** [2017] Dans les 41 journées de 2017 : la colonne « Adresse » contient la référence `999-999-999` (ou « R.A.S » s'il n'y a pas de fuite) ; « Planche N° », « Nature » de fuite, « Nbre de Branchement prospecté » et « Equipe » ne sont jamais remplis ; les numéros de fuite se suivent sur tout le chantier (1 à 129). [F087 ; F089 à F095]
+- **R-ATT-032** [2017] Rendement constaté en 2017 : 334,05 km en 36 jours renseignés (9,28 km par jour) ; 129 fuites dont 8 visibles et 121 invisibles (0,34 fuite par km hors repasse). [F087 à F095, calcul par script]
+
+**Rapport hebdomadaire 2017** (« RAPPORT HEBDOMADAIRE DE RECHERCHE DE FUITES ») : « Zone : » ; « Semaine du : … Au : … » ; « Société : » ; « Equipements Utilisés : » ; lignes Lundi à Dimanche (deux lignes par jour : « Visibles », « Invisibles ») ; colonnes « Journée » ; « Date » ; « Linéaire prospecté ml » (valeurs en km) ; « Fuites localisées » : « Conduite » ; « Brt » ; « Piéce spéciale » ; « Vanne » ; « Br. Clandestin » ; « B.I. » ; « Autre » ; totaux `=SUM(C19:C32)`, `=SUM(E19,E21,E23,E25,E27,E29,E31)` (visibles), `=SUM(E20,E22,E24,E26,E28,E30,E32)` (invisibles) ; « COMMENTAIRE » ; « Pour AFW » ; « Pour RADEEO ». Semaine du lundi au dimanche. [F088 feuille "Semaine 1"]
+
+### 7.8 Règles de calcul à retenir pour l'attachement mensuel
+
+| Question | Réponse du modèle 2017 | Réponse du CPS 2026 | Hypothèse proposée pour 2026 |
+|---|---|---|---|
+| Date qui rattache une fuite au mois | date de réparation (seule date saisie) ; la réfection n'entre que lorsqu'elle est faite | `[NON PRÉCISÉ]` | réparation : mois de la date de réparation ; réfection : mois de la date de réfection `[À CONFIRMER]` |
+| Fuite réparée en M, réfection en M+1 | réparation en M, surface de réfection en M+1 (ligne colorée tant que non faite) | `[NON PRÉCISÉ]` | même règle |
+| Fuites contestées ou non visées | `[NON PRÉCISÉ]` ; attachements visés « qu'après achèvement des réfections » (art. 45) | attachement contradictoire validé par la SRM | n'entrent à l'attachement que les lignes validées |
+| Fouilles négatives | terrassement compté, pas de prix de réparation | `[NON PRÉCISÉ]` | terrassement au prix 3 (« sondage ») `[À CONFIRMER]` |
+| Reprises sous garantie | `[NON PRÉCISÉ]` (reprise à la charge du titulaire, art. 28) | gratuites | ligne sans quantité payante |
+| Date de clôture du mois ; délai de remise | « Travaux exécutés au : » (date libre) | `[NON PRÉCISÉ]` | dernier jour du mois calendaire `[À CONFIRMER]` |
+| Cumuls | attachement : précédent, mois, cumulé ; décompte : cumul (version datée) | décomptes « chaque fois qu'il est nécessaire » | attachement en cumul + quantité du mois ; décompte en cumul moins acomptes antérieurs |
+| Arrondi | aucun par ligne ; TVA et TTC à 2 décimales ; retenue non arrondie | coefficient de révision à 4 décimales ; reste `[NON PRÉCISÉ]` | quantités à 2 décimales (m, m2) ou 3 (m3), montants à 2 décimales `[À CONFIRMER]` |
+| Régularisation d'un mois antérieur | par le cumul (toute correction se retrouve dans la quantité du mois) | `[NON PRÉCISÉ]` | même règle |
+| Dépassement des quantités prévisionnelles | colonnes « <25% » et « >30% » de l'état de suivi | art. 57 à 59 du CCAG-T | alerte par prix sur le cumul rapporté à la quantité du bordereau |
+
+- **R-ATT-033** [DÉDUIT] Chaîne de calcul proposée pour 2026, ligne par ligne : quantité du mois (saisies validées du mois) → cumul antérieur (cumul de l'attachement précédent) → cumul à ce jour = antérieur + mois → montant HT de ligne = cumul × PU → total HT → majoration 15 % → révision des prix éventuelle → TVA 20 % → TTC → retenue de garantie (10 % de l'acompte, plafond 7 %) → remboursement d'avance éventuel → pénalités → déduction des acomptes antérieurs → net à payer. Ordre et assiettes `[À CONFIRMER]` (R-CPS-200). [F068 feuille "decompte" ; F056 p.9-14]
+- **R-ATT-034** [DÉDUIT] Ce qui doit changer pour 2026 par rapport au modèle 2017 : 13 prix au lieu de 24 ; prix 1 et 2 en mètres et non en kilomètres ; un seul prix de réfection de trottoir (prix 4) ; pas de prix de mesure de débit ; ligne de majoration de 15 % ; retenue de garantie plafonnée à 7 % ; cinq zones au lieu de trois ; fourniture des pièces par l'entreprise (plus de bons de sortie) ; en-tête SRM-ORI (« Exploitation eau potable », « Département Mesures et Amelioration du rendement ») ; numéro de marché 4500004453 et OS n° 02/4500004453 du 2026-10-02 ; affectation automatique des pièces aux prix (section 5.3) au lieu du « 1 » saisi à la main ; statut en champ et non en couleur ; dates de détection et nom du détecteur dans la fiche. [F001 ; F065 ; F056]
+
+### 7.9 Table de passage 2017 → 2026
+
+| Prix 2017 (n° ; désignation abrégée ; unité) | Prix 2026 équivalent (n°) | Identique / modifié / sans équivalent | Commentaire |
+|---|---|---|---|
+| 1 ; balayage ; Km | 1 | modifié | unité km → m ; 994 DH/km (0,994 DH/m) → 0,30 DH/m ; 580 km → 1466 km |
+| 2 ; maintien des résultats ; Km | 2 | modifié | unité km → m ; 875 DH/km → 0,45 DH/m |
+| 3 ; mesure des débits de nuit par débitmètre portable ; U | — | sans équivalent | en 2026 les mesures ne sont pas rémunérées (R-CPS-117) |
+| 4 ; confection de tranchée ; m3 | 3 | identique (désignation) | PU 29,50 → 50,00 ; la règle de largeur « diamètre + 25 cm de chaque côté » disparaît |
+| 5 ; réfection trottoir béton ; m² | 4 | modifié | quatre prix 2017 fusionnés en un seul prix 2026 à 100,00 |
+| 6 ; réfection trottoir mosaïque ; m² | 4 | modifié | idem |
+| 7 ; réfection trottoir granito lavé ; m² | 4 | modifié | idem |
+| 8 ; réfection trottoir carreaux ciment ; m² | 4 | modifié | idem |
+| 9.a ; chaussée enrobé à chaud 10 cm ; m² | 5 | modifié | épaisseur 10 cm → 7 cm ; PU 200,00 → 150,00 |
+| 9.b ; chaussée enrobé à froid ; m2 | 5 (sans supplément) | sans équivalent | en 2026 l'enrobé à froid n'est qu'un procédé de substitution après 1 mois, payé au prix 5 |
+| 10.a ; 10.b ; buses d'égout ; ml | — | sans équivalent | assainissement hors bordereau 2026 |
+| 11 ; transport et pose de bouche à clé (socle 20 × 20 × 10) ; U | — (voir 10) | sans équivalent | — |
+| 12 ; tout venant ; m3 | — | sans équivalent | compris dans les prix 4 et 5 |
+| 13.a ; changement du polyéthylène de branchement Ø 25 ou 32 ; U | 6 | modifié | 2026 : diamètre extérieur < 40 mm, fourniture comprise ; PU 215,45 → 400,00 |
+| 13.b ; changement de collier pour polyéthylène et/ou raccord ; U | 6 `[À CONFIRMER]` | modifié | le prix 6 de 2026 inclut « raccords, collier pour polyéthylène et ou manchon ou bouchon » |
+| 13.c ; changement de robinet PEC ; U | 7 | modifié | fourniture comprise ; PU 255,00 → 460,00 |
+| 13.d ; changement de collier PEC ; U | 8 | modifié | fourniture comprise ; PU 255,00 → 460,00 |
+| 14 ; réparation PE diamètre extérieur ≥ 40 mm ; U | 9 | modifié | fourniture comprise ; PU 255,00 → 400,00 |
+| 15 ; mise à niveau de bouche à clé (socle 0,40 × 0,40 × 0,20) ; U | 10 | modifié | fourniture comprise ; PU 110,50 → 140,00 |
+| 16.a ; conduite AC ou PVC 315 à 225 mm ; U | 11 | modifié | fourniture comprise ; PU 3000,00 → 4600,00 |
+| 16.b ; conduite AC ou PVC 200 à 110 mm ; U | 12 | modifié | PU 1500,00 → 2900,00 |
+| 16.c ; conduite AC ou PVC < 110 mm ; U | 13 | modifié | PU 800,00 → 2300,00 |
+| 17 ; pièces spéciales (coude, té, cône, obturateur) ; U | — | sans équivalent | hors bordereau 2026 |
+
+### 7.10 Exemple chiffré complet (test unitaire)
+
+**Exemple A `[2017]`** : trois lignes du bordereau 2017, décompte n° 2 en cumul, selon les formules du modèle (aucun arrondi de ligne ; TVA et TTC à 2 décimales ; retenue 10 % du TTC non arrondie ; acompte antérieur déduit). Quantités antérieures = attachement n° 1 de F065 ; quantités cumulées = F084. Valeurs calculées par script.
+
+| N° prix 2017 | Unité | PU HT | Quantité antérieure | Quantité du mois | Quantité cumulée | Montant HT antérieur | Montant HT cumulé |
+|---|---|---|---|---|---|---|---|
+| 4 | m3 | 29.50 | 267.4928 | 35.7360 | 303.2288 | 7891.0376 | 8945.2496 |
+| 6 | m² | 57.20 | 85.6500 | 5.1300 | 90.7800 | 4899.1800 | 5192.6160 |
+| 13.a | U | 215.45 | 290.0000 | 48.0000 | 338.0000 | 62480.5000 | 72822.1000 |
+
+| Étape | Formule | Décompte n° 1 (antérieur) | Décompte n° 2 (cumul) |
+|---|---|---|---|
+| Total HT | somme des montants de ligne, non arrondie | 75270.7176 | 86959.9656 |
+| TVA 20 % | ROUND(HT × 0.2 ; 2) | 15054.14 | 17391.99 |
+| Total TTC | ROUND(HT + TVA ; 2) | 90324.86 | 104351.96 |
+| Retenue de garantie | TTC × 0.1 (non arrondie) | 9032.4860 | 10435.1960 |
+| Total après retenue | TTC − retenue | 81292.3740 | 93916.7640 |
+| À déduire : acomptes antérieurs | net du décompte n° 1 | 0.0000 | 81292.3740 |
+| À déduire : pénalités, réfactions | saisie | 0.0000 | 0.0000 |
+| **Montant de l'acompte à payer** | total − acomptes − pénalités | **81292.3740** | **12624.3900** |
+
+Attendu pour un test : acompte n° 2 = 12624.3900, soit 12624.39 DH TTC une fois arrondi au centime.
+
+**Exemple B `[DÉDUIT]`** : même chaîne transposée aux prix 2026, avec majoration de 15 % et retenue de garantie de 10 % de l'acompte. L'ordre des opérations et les arrondis sont une proposition de l'extracteur (R-CPS-200, R-ATT-033), à valider avec la SRM ; arrondi au centime à chaque étape.
+
+| N° prix 2026 | Unité | PU HT | Cumul antérieur | Quantité du mois | Cumul à ce jour | Montant HT cumulé |
+|---|---|---|---|---|---|---|
+| 3 | m3 | 50.00 | 14.56 | 16.688 | 31.248 | 1562.40 |
+| 4 | m2 | 100.00 | 5.51 | 13.39 | 18.9 | 1890.00 |
+| 6 | u | 400.00 | 12 | 19 | 31 | 12400.00 |
+
+| Étape | Formule | Cumul antérieur | Cumul à ce jour |
+|---|---|---|---|
+| Total HT aux prix du bordereau | Σ cumul × PU | 6079.00 | 15852.40 |
+| Majoration 15 % | HT × 0.15 | 911.85 | 2377.86 |
+| Total HT majoré | HT + majoration | 6990.85 | 18230.26 |
+| TVA 20 % | HT majoré × 0.2 | 1398.17 | 3646.05 |
+| Total TTC | HT majoré + TVA | 8389.02 | 21876.31 |
+
+| Étape | Formule | Valeur |
+|---|---|---|
+| Acompte brut du mois (TTC) | TTC cumulé − TTC antérieur | 13487.29 |
+| Retenue de garantie | 10 % de l'acompte (tant que le cumul des retenues < 363438.18) | 1348.73 |
+| Pénalités | aucune dans l'exemple | 0.00 |
+| **Net à payer** | acompte − retenue − pénalités | **12138.56** |
+
+Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.

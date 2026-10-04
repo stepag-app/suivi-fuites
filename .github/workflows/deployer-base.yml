@@ -13,6 +13,8 @@ on:
     branches: [main]
     paths:
       - 'supabase/migrations/**'
+      - 'supabase/functions/**'
+      - 'supabase/config.toml'
   workflow_dispatch:
 
 concurrency:
@@ -73,3 +75,18 @@ jobs:
         run: supabase db push
       - name: État des migrations sur le projet
         run: supabase migration list
+
+  fonctions:
+    name: Déployer les fonctions serveur
+    needs: deployer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Déployer gerer-utilisateurs
+        run: supabase functions deploy gerer-utilisateurs --project-ref "$SUPABASE_PROJECT_ID"

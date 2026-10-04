@@ -4,3 +4,6 @@ project_id = "suivi-fuites"
 
 [db]
 major_version = 17
+
+[functions.gerer-utilisateurs]
+verify_jwt = true

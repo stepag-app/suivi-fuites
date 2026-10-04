@@ -18,10 +18,12 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004130000_acces_service_role.sql` | droits explicites du rôle `service_role` (fonctions serveur) |
 | `migrations/20261004180000_type_donnee_evenements.sql` | type de donnée `evenements` (fichier séparé : une valeur d'énumération n'est utilisable qu'après validation) |
 | `migrations/20261004180100_parametres_marche_standard.sql` | étape A : fiche du marché (titulaire, maître d'ouvrage, délai, montant), OS typés, arrêts et reprises, avenants, versions des articles du bordereau, journal des événements et pièces jointes (compartiment `evenements`), règles d'attachement, libellés propres au client, valeurs par défaut de tout nouveau marché |
+| `migrations/20261004200000_lots_attachement.sql` | étape B : lots d'attachement (`attachements`, `attachement_lignes`), solde par fuite × article (`v_a_attacher`), détail et récapitulatif (`v_attachement_lignes`, `v_attachement_recap`), `arreter_attachement`, `rouvrir_attachement` |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
 | `tests/database/02_parametres_marche.test.sql` | 49 tests de l'étape A (fiche, versions de prix, avenants, arrêts et délai, événements, libellés du client) |
+| `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -127,6 +129,22 @@ avant de s'y fier.
   `evenements` ajouté au modèle « responsable » (et aux responsables existants).
 - **Nouveau marché** : catégories d'événements et règles d'attachement créées automatiquement.
 
+## Métrés et attachements (étape B) : pas de facture
+
+- **Unité d'œuvre** = une fuite × un article. Solde = exécuté (`lignes_quantites`) − attaché (lots
+  arrêtés, lignes « solde » et « anticipation »). Une quantité attachée ne l'est jamais deux fois ; une
+  correction faite après l'arrêt réapparaît en **régularisation** (+ ou −) dans le lot suivant.
+- **Lot** : brouillon (le responsable coche des unités ; quantités suivies en direct, exports marqués
+  « projet ») → `arreter_attachement` (droit « attachements / valider ») : mentions du CPS contrôlées
+  selon les règles du marché, quantités et articles figés, numéro attribué, fuites verrouillées.
+  Ensuite seuls l'acceptation, la référence de facture et l'observation se modifient (suivi, aucun calcul).
+- **Natures de ligne** : `solde` ; `anticipation` (réfection attachée avant exécution, accord du maître
+  d'ouvrage, si la règle du marché l'autorise ; la vraie réfection fait la différence) ; `libre` (sans
+  fuite : balayage, maintien en attendant le plan du réseau) ; `forcage` (administrateur, hors solde,
+  motif obligatoire).
+- **Réouverture** : administrateur, dernier lot arrêté seulement, motif obligatoire.
+- **Récapitulatif** : quantité du marché, antérieur (lots arrêtés précédents), ce lot, cumul, %.
+
 ## Essai local complet (Docker)
 
 Pour tester le panneau sur une vraie pile Supabase (sans toucher à la production) :
@@ -146,6 +164,7 @@ affichée par la commande (jamais celle du projet).
 
 - **M2** : tronçons du réseau (DXF à fournir), balayage coché sur la carte, journées de
   balayage, mesures de débit nocturne, τ1 / τ2 et pénalités de performance.
-- **M3** : attachements (mensuels et contractuels), 3 factures, majoration au total,
-  retenue de garantie, pénalités, exports.
+- **M3** : attachements faits (étape B). Factures, majoration, retenue de garantie, pénalités et
+  révision des prix **ne seront pas calculées** (décision d'Issam du 2026-10-04 : facture à la main
+  sur Excel à partir des attachements).
 - **M4** : traces GPS (un tracé par agent et par jour), notifications push, révision des prix.

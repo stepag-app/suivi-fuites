@@ -12,12 +12,15 @@ interface Etat {
   marches: Marche[];
   marche: Marche | null;
   choisirMarche: (id: string) => void;
+  recharger: () => void;
   peut: (type: TypeDonnee, action: Action) => boolean;
   deconnecter: () => Promise<void>;
 }
 
 const Contexte = createContext<Etat | null>(null);
 const CLE_MARCHE = 'suivi-fuites:marche';
+const COLONNES_MARCHE = 'id, code, intitule, client, ville, taux_majoration, taux_tva, rayon_redetection_m';
+const COLONNES_MARCHE_CLIENT = 'client_sigle, libelle_reference, masque_reference, jalons_client, delai_alerte_reparation_h, devise';
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [chargement, setChargement] = useState(true);
@@ -26,6 +29,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [marches, setMarches] = useState<Marche[]>([]);
   const [droits, setDroits] = useState<Droit[]>([]);
   const [marcheId, setMarcheId] = useState<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   useEffect(() => {
     if (configurationManquante()) {
@@ -55,11 +59,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let annule = false;
     (async () => {
       const sb = getSupabase();
-      const [p, m, d] = await Promise.all([
+      const [p, mComplet, d] = await Promise.all([
         sb.from('profils').select('*').eq('id', utilisateurId).maybeSingle(),
-        sb.from('marches').select('id, code, intitule, client, ville, taux_majoration, taux_tva, rayon_redetection_m').order('code'),
+        sb.from('marches').select(`${COLONNES_MARCHE}, ${COLONNES_MARCHE_CLIENT}`).order('code'),
         sb.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', utilisateurId),
       ]);
+      // Base pas encore à jour (colonne inconnue) : colonnes d'origine, libellés par défaut.
+      const m = mComplet.error?.code === '42703'
+        ? await sb.from('marches').select(COLONNES_MARCHE).order('code')
+        : mComplet;
       if (annule) return;
       // Sans réseau : dernier contexte connu de cet utilisateur (profil, marchés, droits).
       const cleCache = `suivi-fuites:contexte:${utilisateurId}`;
@@ -99,7 +107,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return () => {
       annule = true;
     };
-  }, [utilisateurId]);
+  }, [utilisateurId, version]);
+
+  // Relit profil, marchés et droits (après une modification de la fiche du marché).
+  const recharger = useCallback(() => setVersion((v) => v + 1), []);
 
   const choisirMarche = useCallback((id: string) => {
     setMarcheId(id);
@@ -136,8 +147,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const valeur = useMemo(
-    () => ({ chargement, session, profil, marches, marche, choisirMarche, peut, deconnecter }),
-    [chargement, session, profil, marches, marche, choisirMarche, peut, deconnecter],
+    () => ({ chargement, session, profil, marches, marche, choisirMarche, recharger, peut, deconnecter }),
+    [chargement, session, profil, marches, marche, choisirMarche, recharger, peut, deconnecter],
   );
 
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;

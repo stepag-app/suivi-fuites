@@ -1,12 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { messageErreur, montant } from '@/lib/format';
+import { messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { TypeDonnee } from '@/lib/types';
+import { OngletAttachement } from './OngletAttachement';
+import { OngletBordereau } from './OngletBordereau';
+import { OngletEvenements } from './OngletEvenements';
+import { OngletMarche } from './OngletMarche';
 
-type Onglet = 'ouvriers' | 'equipes' | 'motifs' | 'prix';
+type Onglet = 'marche' | 'bordereau' | 'attachement' | 'evenements' | 'ouvriers' | 'equipes' | 'motifs';
 
 interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
@@ -14,29 +18,24 @@ interface MotifLigne {
   id: string; categorie: 'sans_reparation' | 'sans_refection'; code: string;
   libelle_fr: string; libelle_ar: string | null; terrassement_paye: boolean; actif: boolean;
 }
-interface PrixLigne {
-  id: string; numero: string; designation: string; unite: string; pu_ht: number | null;
-  hors_bordereau: boolean; actif: boolean;
-}
 
 const TYPES_EQUIPE = { detection: 'Détection', reparation: 'Réparation', mixte: 'Mixte' } as const;
 const CATEGORIES = { sans_reparation: 'Fuite non réparée', sans_refection: 'Clôture sans réfection' } as const;
-const UNITES = ['ml', 'm2', 'm3', 'u', 'forfait'];
 
 const codeDepuis = (texte: string) =>
   texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
 
 export default function Parametres() {
   const { marche, peut } = useSession();
-  const [onglet, setOnglet] = useState<Onglet>('ouvriers');
-  const droitDe = (o: Onglet): TypeDonnee => (o === 'ouvriers' ? 'ouvriers' : 'parametres');
+  const accesParametres = peut('parametres', 'creer') || peut('parametres', 'modifier');
+  const [onglet, setOnglet] = useState<Onglet>(() => (accesParametres ? 'marche' : peut('evenements', 'lire') ? 'evenements' : 'ouvriers'));
+  const droitDe = (o: Onglet): TypeDonnee => (o === 'ouvriers' ? 'ouvriers' : o === 'evenements' ? 'evenements' : 'parametres');
   const peutCreer = peut(droitDe(onglet), 'creer');
   const peutModifier = peut(droitDe(onglet), 'modifier');
 
   const [ouvriers, setOuvriers] = useState<Ouvrier[]>([]);
   const [equipes, setEquipes] = useState<Equipe[]>([]);
   const [motifs, setMotifs] = useState<MotifLigne[]>([]);
-  const [prix, setPrix] = useState<PrixLigne[]>([]);
   const [erreur, setErreur] = useState('');
   const [ajout, setAjout] = useState(false);
 
@@ -45,18 +44,16 @@ export default function Parametres() {
   const charger = useCallback(async () => {
     if (!marcheId) return;
     const sb = getSupabase();
-    const [o, e, m, p] = await Promise.all([
+    const [o, e, m] = await Promise.all([
       sb.from('ouvriers').select('id, nom_complet, telephone, actif').eq('marche_id', marcheId).order('nom_complet'),
       sb.from('equipes').select('id, type, numero, libelle, actif').eq('marche_id', marcheId).order('type').order('numero'),
       sb.from('motifs').select('id, categorie, code, libelle_fr, libelle_ar, terrassement_paye, actif').eq('marche_id', marcheId).order('categorie').order('ordre'),
-      sb.from('prix').select('id, numero, designation, unite, pu_ht, hors_bordereau, actif').eq('marche_id', marcheId).order('ordre').order('numero'),
     ]);
     const premiere = o.error || e.error || m.error;
     setErreur(premiere ? messageErreur(premiere) : '');
     setOuvriers((o.data as Ouvrier[] | null) ?? []);
     setEquipes((e.data as Equipe[] | null) ?? []);
     setMotifs((m.data as MotifLigne[] | null) ?? []);
-    setPrix((p.data as PrixLigne[] | null) ?? []);
   }, [marcheId]);
 
   useEffect(() => {
@@ -85,11 +82,19 @@ export default function Parametres() {
   const basculer = (table: string, id: string, actif: boolean) => ecrire(table, id, { actif: !actif });
 
   if (!marche) return null;
-  if (!peut('parametres', 'creer') && !peut('parametres', 'modifier') && !peut('ouvriers', 'creer') && !peut('ouvriers', 'modifier')) {
+  if (!accesParametres && !peut('ouvriers', 'creer') && !peut('ouvriers', 'modifier') && !peut('evenements', 'lire')) {
     return <p className="carte">Votre compte n&apos;a pas accès aux paramètres.</p>;
   }
 
-  const onglets: [Onglet, string][] = [['ouvriers', 'Ouvriers'], ['equipes', 'Équipes'], ['motifs', 'Motifs'], ['prix', 'Prix hors bordereau']];
+  const onglets = ([
+    ['marche', 'Marché', accesParametres],
+    ['bordereau', 'Bordereau', accesParametres || peut('quantites', 'lire')],
+    ['attachement', 'Attachement', accesParametres],
+    ['evenements', 'Événements', peut('evenements', 'lire')],
+    ['ouvriers', 'Ouvriers', peut('ouvriers', 'creer') || peut('ouvriers', 'modifier')],
+    ['equipes', 'Équipes', accesParametres],
+    ['motifs', 'Motifs', accesParametres],
+  ] as [Onglet, string, boolean][]).filter(([, , visible]) => visible);
 
   return (
     <>
@@ -101,7 +106,14 @@ export default function Parametres() {
           </button>
         ))}
       </div>
-      {erreur && <p className="erreur">{erreur}</p>}
+      {erreur && ['ouvriers', 'equipes', 'motifs'].includes(onglet) && <p className="erreur">{erreur}</p>}
+
+      {onglet === 'marche' && <OngletMarche marcheId={marche.id} modifiable={peut('parametres', 'modifier')} />}
+      {onglet === 'bordereau' && (
+        <OngletBordereau marcheId={marche.id} peutCreer={peut('parametres', 'creer')} peutModifier={peut('parametres', 'modifier')} />
+      )}
+      {onglet === 'attachement' && <OngletAttachement marcheId={marche.id} modifiable={peut('parametres', 'modifier')} />}
+      {onglet === 'evenements' && <OngletEvenements marcheId={marche.id} />}
 
       {onglet === 'ouvriers' && (
         <section className="carte">
@@ -172,29 +184,6 @@ export default function Parametres() {
         </section>
       )}
 
-      {onglet === 'prix' && (
-        <section className="carte">
-          <p className="discret">
-            Les prix du bordereau du marché sont en lecture seule (ils ne changent que par un avenant, via la base).
-            Les articles hors bordereau se créent ici et se modifient tant qu&apos;ils ne sont pas facturés.
-          </p>
-          {prix.length === 0 && <p className="discret">Aucun prix visible (droit « quantités » requis).</p>}
-          {prix.map((p) => (
-            <LignePrix key={p.id} p={p} editable={peutModifier && p.hors_bordereau} ecrire={ecrire} basculer={basculer} />
-          ))}
-          {peutCreer &&
-            (ajout ? (
-              <FormPrix
-                onSubmit={async (v) =>
-                  (await ecrire('prix', null, { ...v, hors_bordereau: true, famille: 'autre', ordre: 900 + prix.length })) && setAjout(false)
-                }
-                annuler={() => setAjout(false)}
-              />
-            ) : (
-              <button onClick={() => setAjout(true)}>+ Ajouter un article hors bordereau</button>
-            ))}
-        </section>
-      )}
     </>
   );
 }
@@ -289,64 +278,6 @@ function FormMotif({ onSubmit, annuler }: { onSubmit: (v: Record<string, unknown
       <label>Libellé en arabe (facultatif)<input value={ar} onChange={(e) => setAr(e.target.value)} dir="rtl" lang="ar" /></label>
       <label className="ligne"><input type="checkbox" checked={paye} onChange={(e) => setPaye(e.target.checked)} />Terrassement payé malgré l&apos;absence de réparation</label>
       <div className="actions"><button className="primaire" disabled={!codeDepuis(fr)}>Enregistrer</button><button type="button" onClick={annuler}>Annuler</button></div>
-    </form>
-  );
-}
-
-function LignePrix({ p, editable, ecrire, basculer }: { p: PrixLigne; editable: boolean; ecrire: Ecrire; basculer: Basculer }) {
-  const [edition, setEdition] = useState(false);
-  if (edition) {
-    return (
-      <FormPrix
-        initial={p}
-        onSubmit={async (v) => (await ecrire('prix', p.id, v)) && setEdition(false)}
-        annuler={() => setEdition(false)}
-      />
-    );
-  }
-  return (
-    <div className="bloc ligne-param">
-      <span className={p.actif ? '' : 'discret'}>
-        <strong>{p.numero}</strong> · {p.designation} · {p.unite} · {montant(p.pu_ht)}
-        {p.hors_bordereau ? ' · hors bordereau' : ''}
-        {p.actif ? '' : ' (désactivé)'}
-      </span>
-      {editable && (
-        <span className="actions">
-          <button onClick={() => setEdition(true)}>Modifier</button>
-          <button onClick={() => basculer('prix', p.id, p.actif)}>{p.actif ? 'Désactiver' : 'Réactiver'}</button>
-        </span>
-      )}
-    </div>
-  );
-}
-
-function FormPrix({ initial, onSubmit, annuler }: { initial?: PrixLigne; onSubmit: (v: Record<string, unknown>) => void; annuler: () => void }) {
-  const [numero, setNumero] = useState(initial?.numero ?? 'HB-');
-  const [designation, setDesignation] = useState(initial?.designation ?? '');
-  const [unite, setUnite] = useState(initial?.unite ?? 'u');
-  const [pu, setPu] = useState(initial?.pu_ht != null ? String(initial.pu_ht) : '');
-  const envoyer = (e: FormEvent) => {
-    e.preventDefault();
-    const valeurs: Record<string, unknown> = { designation: designation.trim(), unite, pu_ht: Number(pu.replace(',', '.')) };
-    if (!initial) valeurs.numero = numero.trim();
-    onSubmit(valeurs);
-  };
-  const puValide = pu !== '' && Number(pu.replace(',', '.')) >= 0;
-  return (
-    <form onSubmit={envoyer} className="sous-formulaire">
-      {!initial && <label>Numéro<input value={numero} onChange={(e) => setNumero(e.target.value)} required /></label>}
-      <label>Désignation<input value={designation} onChange={(e) => setDesignation(e.target.value)} required /></label>
-      <div className="deux">
-        <label>
-          Unité
-          <select value={unite} onChange={(e) => setUnite(e.target.value)}>
-            {UNITES.map((u) => <option key={u} value={u}>{u}</option>)}
-          </select>
-        </label>
-        <label>Prix unitaire HT (DH)<input value={pu} onChange={(e) => setPu(e.target.value)} inputMode="decimal" required /></label>
-      </div>
-      <div className="actions"><button className="primaire" disabled={!designation.trim() || !numero.trim() || !puValide}>Enregistrer</button><button type="button" onClick={annuler}>Annuler</button></div>
     </form>
   );
 }

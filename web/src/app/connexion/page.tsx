@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
 import { messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { configurationManquante, emailDepuisIdentifiant, getSupabase } from '@/lib/supabase';
+import { NOM_ORGANISATION, configurationManquante, emailDepuisIdentifiant, getSupabase } from '@/lib/supabase';
 
 export default function Connexion() {
   const { session, chargement } = useSession();
@@ -50,7 +50,7 @@ export default function Connexion() {
   return (
     <main className="carte connexion">
       <h1>Suivi des fuites</h1>
-      <p className="discret">STEPAG</p>
+      <p className="discret">{NOM_ORGANISATION}</p>
       <form onSubmit={soumettre}>
         <label>
           Identifiant

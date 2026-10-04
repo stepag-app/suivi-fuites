@@ -2,21 +2,25 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { OUVRAGES, STATUTS, dateHeure, messageErreur, telechargerCsv } from '@/lib/format';
+import { STATUTS, dateHeure, libellesMarche, messageErreur } from '@/lib/format';
+import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from '@/lib/export/jeux';
+import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, lireTout } from '@/lib/supabase';
 import type { Secteur, StatutFuite, VFuite } from '@/lib/types';
 
-const ALERTES: { cle: keyof VFuite; texte: string }[] = [
-  { cle: 'alerte_non_reparee', texte: 'Non réparée > 48 h' },
-  { cle: 'alerte_communication_srm', texte: 'Non communiquée SRM' },
-  { cle: 'refection_chaussee_hors_delai', texte: 'Réfection chaussée hors délai' },
-  { cle: 'alerte_refection_chaussee', texte: 'Réfection chaussée à faire' },
-  { cle: 'alerte_refection_trottoir', texte: 'Réfection trottoir à faire' },
+type Libelles = ReturnType<typeof libellesMarche>;
+const ALERTES: { cle: keyof VFuite; texte: (l: Libelles) => string }[] = [
+  { cle: 'alerte_non_reparee', texte: (l) => `Non réparée > ${l.delaiReparationH} h` },
+  { cle: 'alerte_communication_srm', texte: (l) => `Non communiquée ${l.sigle}` },
+  { cle: 'refection_chaussee_hors_delai', texte: () => 'Réfection chaussée hors délai' },
+  { cle: 'alerte_refection_chaussee', texte: () => 'Réfection chaussée à faire' },
+  { cle: 'alerte_refection_trottoir', texte: () => 'Réfection trottoir à faire' },
 ];
 
 export default function ListeFuites() {
   const { marche, peut } = useSession();
+  const libelles = libellesMarche(marche);
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [erreur, setErreur] = useState('');
@@ -32,12 +36,15 @@ export default function ListeFuites() {
     setChargement(true);
     setErreur('');
     const sb = getSupabase();
+    // L'API renvoie au plus 1 000 lignes par requête : la liste est lue par pages.
     const [f, s] = await Promise.all([
-      sb.from('v_fuites').select('*').eq('marche_id', marcheId).order('numero', { ascending: false }).limit(2000),
+      lireTout<VFuite>((de, a) => sb.from('v_fuites').select('*').eq('marche_id', marcheId)
+        .order('numero', { ascending: false }).range(de, a), 1000, 10000)
+        .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
       sb.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId).order('libelle'),
     ]);
     if (f.error) setErreur(messageErreur(f.error));
-    setFuites((f.data as VFuite[] | null) ?? []);
+    setFuites(f.data ?? []);
     setSecteurs((s.data as Secteur[] | null) ?? []);
     setChargement(false);
   }, [marcheId]);
@@ -46,38 +53,36 @@ export default function ListeFuites() {
     charger();
   }, [charger]);
 
-  const filtrees = useMemo(() => {
-    const t = texte.trim().toLowerCase();
-    const chiffres = t.replace(/\D/g, '');
-    return fuites.filter(
-      (f) =>
-        (!statut || f.statut === statut) &&
+  // Filtres de la liste, réutilisés par le panneau d'export (« limiter à la liste affichée »).
+  const correspond = useCallback(
+    (f: Pick<VFuite, 'statut' | 'secteur_id' | 'numero' | 'reference_srm' | 'adresse'> & Partial<VFuite>) => {
+      const t = texte.trim().toLowerCase();
+      const chiffres = t.replace(/\D/g, '');
+      return (!statut || f.statut === statut) &&
         (!secteur || f.secteur_id === secteur) &&
         (!alertesSeules || ALERTES.some((a) => f[a.cle] === true)) &&
         (!t ||
           String(f.numero) === t ||
           (f.reference_srm ?? '').toLowerCase().includes(t) ||
           (chiffres.length >= 3 && (f.reference_srm ?? '').replace(/\D/g, '').includes(chiffres)) ||
-          (f.adresse ?? '').toLowerCase().includes(t)),
-    );
-  }, [fuites, statut, secteur, texte, alertesSeules]);
+          (f.adresse ?? '').toLowerCase().includes(t));
+    },
+    [statut, secteur, texte, alertesSeules],
+  );
+  const filtrees = useMemo(() => fuites.filter(correspond), [fuites, correspond]);
+  const [exportOuvert, setExportOuvert] = useState(false);
+  const descriptionListe = [
+    statut && STATUTS[statut].libelle,
+    secteur && secteurs.find((s) => s.id === secteur)?.libelle,
+    texte.trim() && `recherche « ${texte.trim()} »`,
+    alertesSeules && 'alertes seulement',
+  ].filter(Boolean).join(', ');
 
   const compteurs = useMemo(() => {
     const c: Record<string, number> = {};
     fuites.forEach((f) => (c[f.statut] = (c[f.statut] ?? 0) + 1));
     return c;
   }, [fuites]);
-
-  function exporter() {
-    telechargerCsv(`fuites-${marche?.code ?? ''}-${new Date().toISOString().slice(0, 10)}.csv`, [
-      ['N°', 'Référence SRM', 'Statut', 'Zone', 'Secteur', 'Adresse', 'Ouvrage', 'Date détection', 'Détectée par', 'Latitude', 'Longitude', 'Photos', 'Motif sans réparation'],
-      ...filtrees.map((f) => [
-        f.numero, f.reference_srm, STATUTS[f.statut].libelle, f.zone, f.secteur, f.adresse,
-        f.ouvrage ? OUVRAGES[f.ouvrage] : '', dateHeure(f.date_detection), f.detectee_par,
-        f.latitude, f.longitude, f.nb_photos, f.motif_sans_reparation,
-      ]),
-    ]);
-  }
 
   return (
     <>
@@ -111,12 +116,20 @@ export default function ListeFuites() {
           Alertes seulement
         </label>
         <button onClick={charger}>Actualiser</button>
-        {peut('exports', 'lire') && <button onClick={exporter}>Exporter (Excel)</button>}
+        {peut('exports', 'lire') && <button onClick={() => setExportOuvert(true)}>Exporter</button>}
       </div>
 
       {erreur && <p className="erreur">{erreur}</p>}
       {chargement && <p className="discret">Chargement…</p>}
       {!chargement && filtrees.length === 0 && <p className="carte">Aucune fuite à afficher.</p>}
+
+      <PanneauExport
+        ouvert={exportOuvert}
+        fermer={() => setExportOuvert(false)}
+        jeux={[JEU_FUITES, ...(peut('quantites', 'lire') ? [JEU_QUANTITES] : []), JEU_PIECES]}
+        filtreListe={(l) => correspond(l as unknown as VFuite)}
+        descriptionListe={descriptionListe ? `Filtres de la liste : ${descriptionListe}` : undefined}
+      />
 
       <ul className="liste">
         {filtrees.map((f) => (
@@ -129,7 +142,7 @@ export default function ListeFuites() {
               <div>
                 {f.reference_srm ? <>Réf. {f.reference_srm} · </> : null}
                 {f.secteur ?? 'Secteur non renseigné'}
-                {f.origine === 'srm' && <span className="etiquette">SRM</span>}
+                {f.origine === 'srm' && <span className="etiquette">{libelles.sigle}</span>}
               </div>
               {f.adresse && <div className="discret">{f.adresse}</div>}
               <div className="discret">
@@ -138,7 +151,7 @@ export default function ListeFuites() {
               </div>
               <div className="alertes">
                 {ALERTES.filter((a) => f[a.cle] === true).map((a) => (
-                  <span key={a.cle} className="alerte">{a.texte}</span>
+                  <span key={a.cle} className="alerte">{a.texte(libelles)}</span>
                 ))}
                 {f.verrouillee_le && <span className="etiquette">Verrouillée</span>}
               </div>

@@ -15,9 +15,17 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004090500_vues_fonctions.sql` | vues `v_fuites` (alertes), `v_pieces_posees`, `v_quantites`, `v_anomalies` ; fonction `rechercher_fuites_proches` |
 | `migrations/20261004090600_stockage_photos.sql` | compartiment privé `photos` et ses règles |
 | `migrations/20261004090700_donnees_marche_4500004453.sql` | marché SRM Oriental : 13 prix, 5 zones, 34 secteurs, phases, OS, natures, motifs FR/AR, 261 pièces ; contrôle des totaux |
+| `migrations/20261004130000_acces_service_role.sql` | droits explicites du rôle `service_role` (fonctions serveur) |
+| `migrations/20261004180000_type_donnee_evenements.sql` | type de donnée `evenements` (fichier séparé : une valeur d'énumération n'est utilisable qu'après validation) |
+| `migrations/20261004180100_parametres_marche_standard.sql` | étape A : fiche du marché (titulaire, maître d'ouvrage, délai, montant), OS typés, arrêts et reprises, avenants, versions des articles du bordereau, journal des événements et pièces jointes (compartiment `evenements`), règles d'attachement, libellés propres au client, valeurs par défaut de tout nouveau marché |
+| `migrations/20261004200000_lots_attachement.sql` | étape B : lots d'attachement (`attachements`, `attachement_lignes`), solde par fuite × article (`v_a_attacher`), détail et récapitulatif (`v_attachement_lignes`, `v_attachement_recap`), `arreter_attachement`, `rouvrir_attachement` |
+| `migrations/20261004210000_exports.sql` | étape C : modèles d'export par marché (`modeles_export`, trois par défaut), vue `v_fuites_export` (fuite + dernière réparation, réfection, pièces, quantités) |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
+| `tests/database/02_parametres_marche.test.sql` | 49 tests de l'étape A (fiche, versions de prix, avenants, arrêts et délai, événements, libellés du client) |
+| `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) |
+| `tests/database/04_exports.test.sql` | 10 tests de l'étape C (modèles par défaut, droits, vue enrichie) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -105,6 +113,47 @@ psql "$URL_BASE_NEUVE" -f donnees_public.sql
 sera disponible) ; 30 jours de rétention ; test de restauration à faire une fois sur un projet vierge
 avant de s'y fier.
 
+## Application « standard » (étape A)
+
+- **Rien de figé pour un client** : libellé et format de la référence client (`masque_reference`,
+  « 9 » = un chiffre), jalons du client (communication le jour même, avis avant terrassement,
+  validation : `jalons_client`), sigle utilisé dans les écrans, seuils d'alerte, devise.
+  Le marché 4500004453 garde ses valeurs (SRM, `999-999-999`, jalons suivis).
+- **Fiche du marché** modifiable par le droit « paramètres / modifier » ; code et activation réservés
+  à l'administrateur (déclencheur `proteger_marche`).
+- **Délai** (`v_delai_marche`) : fin = veille du jour anniversaire (ou date saisie), prolongée des jours
+  d'arrêt (arrêt en cours compté jusqu'à aujourd'hui) et des prolongations d'avenant.
+- **Bordereau** : un article du bordereau ne se modifie que par une nouvelle ligne de `prix_versions`
+  (avenant et / ou motif obligatoire) ; un article hors bordereau se modifie directement, chaque
+  modification crée aussi une version. Version 1 = état initial.
+- **Événements** : catégories par marché (5 par défaut), suppression logique, pièces jointes dans le
+  compartiment privé `evenements` (`<marche_id>/<evenement_id>/<piece_id>.<ext>`, 10 Mo). Droit
+  `evenements` ajouté au modèle « responsable » (et aux responsables existants).
+- **Nouveau marché** : catégories d'événements et règles d'attachement créées automatiquement.
+
+## Métrés et attachements (étape B) : pas de facture
+
+- **Unité d'œuvre** = une fuite × un article. Solde = exécuté (`lignes_quantites`) − attaché (lots
+  arrêtés, lignes « solde » et « anticipation »). Une quantité attachée ne l'est jamais deux fois ; une
+  correction faite après l'arrêt réapparaît en **régularisation** (+ ou −) dans le lot suivant.
+- **Lot** : brouillon (le responsable coche des unités ; quantités suivies en direct, exports marqués
+  « projet ») → `arreter_attachement` (droit « attachements / valider ») : mentions du CPS contrôlées
+  selon les règles du marché, quantités et articles figés, numéro attribué, fuites verrouillées.
+  Ensuite seuls l'acceptation, la référence de facture et l'observation se modifient (suivi, aucun calcul).
+- **Natures de ligne** : `solde` ; `anticipation` (réfection attachée avant exécution, accord du maître
+  d'ouvrage, si la règle du marché l'autorise ; la vraie réfection fait la différence) ; `libre` (sans
+  fuite : balayage, maintien en attendant le plan du réseau) ; `forcage` (administrateur, hors solde,
+  motif obligatoire).
+- **Réouverture** : administrateur, dernier lot arrêté seulement, motif obligatoire.
+- **Récapitulatif** : quantité du marché, antérieur (lots arrêtés précédents), ce lot, cumul, %.
+
+## Essai local complet (Docker)
+
+Pour tester le panneau sur une vraie pile Supabase (sans toucher à la production) :
+`SUPABASE_INTERNAL_IMAGE_REGISTRY=docker.io npx supabase start -x studio,imgproxy,logflare,vector,realtime,edge-runtime,mailpit,supavisor,postgres-meta`
+applique toutes les migrations ; les comptes d'essai se créent avec la clé `service_role` **locale**
+affichée par la commande (jamais celle du projet).
+
 ## Règles pour les migrations suivantes
 
 - `alter table … enable row level security` juste après chaque `create table`.
@@ -117,6 +166,7 @@ avant de s'y fier.
 
 - **M2** : tronçons du réseau (DXF à fournir), balayage coché sur la carte, journées de
   balayage, mesures de débit nocturne, τ1 / τ2 et pénalités de performance.
-- **M3** : attachements (mensuels et contractuels), 3 factures, majoration au total,
-  retenue de garantie, pénalités, exports.
+- **M3** : attachements faits (étape B). Factures, majoration, retenue de garantie, pénalités et
+  révision des prix **ne seront pas calculées** (décision d'Issam du 2026-10-04 : facture à la main
+  sur Excel à partir des attachements).
 - **M4** : traces GPS (un tracé par agent et par jour), notifications push, révision des prix.

@@ -1,4 +1,4 @@
-import type { StatutFuite } from './types';
+import type { Marche, StatutFuite } from './types';
 
 export const STATUTS: Record<StatutFuite, { libelle: string; classe: string }> = {
   detectee: { libelle: 'Détectée, non réparée', classe: 'st-detectee' },
@@ -46,11 +46,36 @@ export const TYPES_PHOTO: Record<string, string> = {
   autre: 'Autre',
 };
 
-// Référence SRM / tournée : l'agent ne tape que les chiffres, les tirets se placent seuls.
-// « 302684001 » devient « 302-684-001 » ; au-delà de 9 chiffres, le reste est ignoré.
-export function formaterReferenceSrm(saisie: string): string {
-  const c = saisie.replace(/\D/g, '').slice(0, 9);
-  return [c.slice(0, 3), c.slice(3, 6), c.slice(6, 9)].filter(Boolean).join('-');
+// Référence du client (tournée, n° d'abonné…) : le masque du marché place les séparateurs.
+// « 9 » = un chiffre ; avec « 999-999-999 », « 302684001 » devient « 302-684-001 ».
+// Sans masque, la saisie est libre.
+export function formaterReference(saisie: string, masque: string | null | undefined): string {
+  if (!masque) return saisie;
+  const chiffres = saisie.replace(/\D/g, '');
+  let i = 0;
+  let sortie = '';
+  for (const c of masque) {
+    if (i >= chiffres.length) break;
+    if (c === '9') sortie += chiffres[i++];
+    else sortie += c;
+  }
+  return sortie;
+}
+
+// Motif HTML (attribut pattern) équivalent au masque.
+export const motifMasque = (masque: string) =>
+  masque.split('').map((c) => (c === '9' ? '[0-9]' : c.replace(/[\^$\\.*+?()[\]{}|/]/g, '\\$&'))).join('');
+
+// Libellés du marché, avec des valeurs neutres si le marché ne les précise pas.
+export function libellesMarche(m: Marche | null | undefined) {
+  return {
+    sigle: m?.client_sigle?.trim() || m?.client?.trim() || 'client',
+    reference: m?.libelle_reference?.trim() || 'Référence client',
+    masque: m?.masque_reference || null,
+    jalons: m?.jalons_client ?? false,
+    delaiReparationH: m?.delai_alerte_reparation_h ?? 48,
+    devise: m?.devise?.trim() || 'DH',
+  };
 }
 
 const FUSEAU = 'Africa/Casablanca';

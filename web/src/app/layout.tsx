@@ -5,7 +5,7 @@ import './globals.css';
 
 export const metadata: Metadata = {
   title: 'Suivi des fuites',
-  description: 'Détection et réparation de fuites : STEPAG',
+  description: 'Détection et réparation de fuites',
   manifest: '/manifest.webmanifest',
   icons: { icon: '/icone.svg' },
 };

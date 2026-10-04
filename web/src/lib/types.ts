@@ -1,6 +1,6 @@
 export type TypeDonnee =
   | 'fuites' | 'interventions' | 'photos' | 'quantites' | 'parametres'
-  | 'ouvriers' | 'journal' | 'exports' | 'balayage' | 'mesures_debit' | 'attachements';
+  | 'ouvriers' | 'journal' | 'exports' | 'balayage' | 'mesures_debit' | 'attachements' | 'evenements';
 
 export type Action = 'lire' | 'creer' | 'modifier' | 'supprimer' | 'valider';
 
@@ -25,6 +25,13 @@ export interface Marche {
   taux_majoration: number;
   taux_tva: number;
   rayon_redetection_m: number;
+  // Libellés et règles propres au client (absents d'un contexte gardé hors ligne avant l'étape A)
+  client_sigle?: string | null;
+  libelle_reference?: string;
+  masque_reference?: string | null;
+  jalons_client?: boolean;
+  delai_alerte_reparation_h?: number;
+  devise?: string;
 }
 
 export interface Droit {

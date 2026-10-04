@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO,
-  dateHeure, localVersIso, messageErreur, montant, nombre,
+  dateHeure, libellesMarche, localVersIso, messageErreur, montant, nombre,
 } from '@/lib/format';
 import { preparerPhoto } from '@/lib/photo';
 import { useSession } from '@/lib/session';
@@ -20,6 +20,7 @@ export default function DetailFuite() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { marche, peut } = useSession();
+  const libelles = libellesMarche(marche);
   const [fuite, setFuite] = useState<VFuite | null>(null);
   const [photos, setPhotos] = useState<(PhotoLigne & { url?: string })[]>([]);
   const [reparations, setReparations] = useState<Reparation[]>([]);
@@ -111,13 +112,13 @@ export default function DetailFuite() {
         </div>
         {verrouillee && <p className="etiquette">Verrouillée le {dateHeure(fuite.verrouillee_le)}</p>}
         <dl className="infos">
-          <dt>Référence SRM</dt><dd>{fuite.reference_srm ?? '—'}</dd>
+          <dt>{libelles.reference}</dt><dd>{fuite.reference_srm ?? '—'}</dd>
           <dt>Secteur</dt><dd>{fuite.secteur ?? '—'}{fuite.zone ? ` (${fuite.zone})` : ''}</dd>
           <dt>Adresse</dt><dd>{fuite.adresse ?? '—'}</dd>
           <dt>Ouvrage / visibilité</dt>
           <dd>{fuite.ouvrage ? OUVRAGES[fuite.ouvrage] : '—'} / {fuite.visibilite ?? '—'}</dd>
           <dt>Détectée</dt><dd>{dateHeure(fuite.date_detection)}{fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''}</dd>
-          <dt>Origine</dt><dd>{fuite.origine === 'srm' ? 'Détectée par la SRM' : 'STEPAG'} · saisie {fuite.source_saisie}</dd>
+          <dt>Origine</dt><dd>{fuite.origine === 'srm' ? `Signalée par ${libelles.sigle}` : 'Détection de l\'entreprise'} · saisie {fuite.source_saisie}</dd>
           {fuite.latitude != null && fuite.longitude != null && (
             <>
               <dt>Position</dt>
@@ -133,8 +134,8 @@ export default function DetailFuite() {
           {fuite.observation && (<><dt>Observation</dt><dd>{fuite.observation}</dd></>)}
         </dl>
         <div className="alertes">
-          {fuite.alerte_non_reparee && <span className="alerte">Non réparée depuis plus de 48 h</span>}
-          {fuite.alerte_communication_srm && <span className="alerte">Non communiquée à la SRM</span>}
+          {fuite.alerte_non_reparee && <span className="alerte">Non réparée depuis plus de {libelles.delaiReparationH} h</span>}
+          {fuite.alerte_communication_srm && <span className="alerte">Non communiquée à {libelles.sigle}</span>}
           {fuite.refection_chaussee_hors_delai && <span className="alerte">Réfection chaussée hors délai</span>}
           {fuite.alerte_refection_chaussee && !fuite.refection_chaussee_hors_delai && <span className="alerte">Réfection chaussée à faire</span>}
           {fuite.alerte_refection_trottoir && <span className="alerte">Réfection trottoir à faire</span>}
@@ -149,12 +150,13 @@ export default function DetailFuite() {
         onChange={charger} onErreur={setErreur}
       />
 
-      {(peut('fuites', 'modifier') || peutValider) && (
+      {(peut('fuites', 'modifier') || peutValider)
+        && (libelles.jalons || fuite.date_communication_srm || fuite.avis_terrassement_srm_le || fuite.validation_srm_le) && (
         <section className="carte">
-          <h2>Suivi SRM</h2>
+          <h2>Suivi {libelles.sigle}</h2>
           <ul className="simple">
             <li>
-              Communiquée à la SRM : <strong>{dateHeure(fuite.date_communication_srm)}</strong>{' '}
+              Communiquée à {libelles.sigle} : <strong>{dateHeure(fuite.date_communication_srm)}</strong>{' '}
               {!fuite.date_communication_srm && (
                 <button disabled={occupe} onClick={() => modifierFuite({ date_communication_srm: maintenant() })}>Marquer communiquée</button>
               )}
@@ -166,12 +168,12 @@ export default function DetailFuite() {
               )}
             </li>
             <li>
-              Validation SRM : <strong>{fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : '—'}</strong>{' '}
+              Validation {libelles.sigle} : <strong>{fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : '—'}</strong>{' '}
               {!fuite.validation_srm_le && (
                 <button
                   disabled={occupe}
                   onClick={() => {
-                    const nom = window.prompt('Nom du représentant de la SRM présent :');
+                    const nom = window.prompt(`Nom du représentant ${libelles.sigle} présent :`);
                     if (nom !== null) modifierFuite({ validation_srm_le: maintenant(), validation_srm_par: nom.trim() || null });
                   }}
                 >
@@ -267,7 +269,12 @@ export default function DetailFuite() {
                 ))}
               </tbody>
               <tfoot>
-                <tr><td colSpan={4}>Total HT (avant majoration de {marche?.taux_majoration ?? 0} % sur la facture)</td><td>{montant(totalHt)}</td></tr>
+                <tr>
+                  <td colSpan={4}>
+                    Total HT aux prix du bordereau{marche?.taux_majoration ? ` (hors majoration de ${marche.taux_majoration} %)` : ''}
+                  </td>
+                  <td>{montant(totalHt)}</td>
+                </tr>
               </tfoot>
             </table>
           </div>
@@ -423,6 +430,7 @@ function FormReparation({
   marcheId: string; fuiteId: string; natures: Nature[]; motifs: Motif[]; pieces: Piece[]; profils: Profil[];
   avance: boolean; onFini: () => void; onAnnuler: () => void;
 }) {
+  const libelles = libellesMarche(useSession().marche);
   const [resultat, setResultat] = useState<'reparee' | 'en_cours' | 'non_reparee'>('reparee');
   const [motifId, setMotifId] = useState('');
   const [ouvrage, setOuvrage] = useState('');
@@ -634,7 +642,7 @@ function FormReparation({
       </fieldset>
 
       <label>
-        Représentant de la SRM présent
+        Représentant {libelles.sigle} présent
         <input value={representant} onChange={(e) => setRepresentant(e.target.value)} />
       </label>
       <label>

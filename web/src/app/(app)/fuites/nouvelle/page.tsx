@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { OUVRAGES, STATUTS, dateHeure, formaterReferenceSrm, messageErreur } from '@/lib/format';
+import { OUVRAGES, STATUTS, dateHeure, formaterReference, libellesMarche, messageErreur, motifMasque } from '@/lib/format';
 import { preparerPhoto } from '@/lib/photo';
 import { useSession } from '@/lib/session';
 import { lireCache, mettreEnCache, mettreFuiteEnAttente, synchroniser, type PhotoEnAttente } from '@/lib/hors-ligne';
@@ -18,6 +18,7 @@ interface Proche {
 
 export default function NouvelleFuite() {
   const { marche, peut } = useSession();
+  const libelles = libellesMarche(marche);
   const router = useRouter();
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [secteurId, setSecteurId] = useState('');
@@ -113,7 +114,7 @@ export default function NouvelleFuite() {
     if (!marcheId) return;
     setErreur('');
     if (!position && !reference.trim() && !adresse.trim()) {
-      setErreur('Indiquez au moins la position GPS, la référence SRM ou l\'adresse.');
+      setErreur(`Indiquez au moins la position GPS, la ${libelles.reference.toLowerCase()} ou l'adresse.`);
       return;
     }
     if (photos.length === 0 && !window.confirm('Aucune photo n\'est jointe. Enregistrer quand même ?')) return;
@@ -210,16 +211,20 @@ export default function NouvelleFuite() {
 
       <section className="carte">
         <label>
-          Référence SRM / tournée
-          <input
-            value={reference}
-            onChange={(e) => setReference(formaterReferenceSrm(e.target.value))}
-            placeholder="000-000-000"
-            inputMode="numeric"
-            maxLength={11}
-            pattern="[0-9]{3}-[0-9]{3}-[0-9]{3}"
-            title="9 chiffres, par exemple 302684001 (les tirets se placent seuls)"
-          />
+          {libelles.reference}
+          {libelles.masque ? (
+            <input
+              value={reference}
+              onChange={(e) => setReference(formaterReference(e.target.value, libelles.masque))}
+              placeholder={libelles.masque.replace(/9/g, '0')}
+              inputMode="numeric"
+              maxLength={libelles.masque.length}
+              pattern={motifMasque(libelles.masque)}
+              title={`Format ${libelles.masque.replace(/9/g, '0')} : tapez les chiffres, les séparateurs se placent seuls`}
+            />
+          ) : (
+            <input value={reference} onChange={(e) => setReference(e.target.value)} />
+          )}
         </label>
         <label>
           Secteur

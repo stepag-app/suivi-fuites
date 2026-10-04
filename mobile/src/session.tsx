@@ -51,7 +51,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     (async () => {
       const [p, m, d] = await Promise.all([
         supabase.from('profils').select('id, identifiant, nom_complet, est_admin, actif').eq('id', uid).maybeSingle(),
-        supabase.from('marches').select('id, code, intitule').order('code'),
+        supabase.from('marches').select('*').order('code'),
         supabase.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', uid),
       ]);
       if (annule) return;

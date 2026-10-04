@@ -47,7 +47,8 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         </div>
       </header>
       <StatutReseau />
-      <main className="contenu">
+      {/* Écrans de bureau (attachements) : plus larges, pour les listes compactes */}
+      <main className={chemin.startsWith('/attachements') ? 'contenu large' : 'contenu'}>
         {marche ? (
           children
         ) : (

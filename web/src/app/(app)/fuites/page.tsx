@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche, messageErreur } from '@/lib/format';
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from '@/lib/export/jeux';
 import { PanneauExport } from '@/lib/export/PanneauExport';
@@ -31,8 +31,11 @@ export default function ListeFuites() {
   const [alertesSeules, setAlertesSeules] = useState(false);
 
   const marcheId = marche?.id;
+  // Une réponse arrivée après un changement de marché (ou une actualisation plus récente) est ignorée.
+  const derniereDemande = useRef(0);
   const charger = useCallback(async () => {
     if (!marcheId) return;
+    const demande = ++derniereDemande.current;
     setChargement(true);
     setErreur('');
     const sb = getSupabase();
@@ -43,6 +46,7 @@ export default function ListeFuites() {
         .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
       sb.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId).order('libelle'),
     ]);
+    if (demande !== derniereDemande.current) return;
     if (f.error) setErreur(messageErreur(f.error));
     setFuites(f.data ?? []);
     setSecteurs((s.data as Secteur[] | null) ?? []);

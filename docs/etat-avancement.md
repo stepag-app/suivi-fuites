@@ -26,10 +26,11 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | **Étape B** : lots d'attachement figés (solde fuite × article, brouillon puis arrêt, régularisations, réfection anticipée, ligne libre, refacturation forcée et réouverture par l'admin) | migration `20261004200000` ; pages `/attachements` | même PR #10, déployée |
 | **Étape C** : panneau d'export (Excel, PDF, Word, CSV), modèles par marché, en-têtes du marché, arabe dans les fichiers | migration `20261004210000` ; `web/src/lib/export/` | même PR #10, déployée |
 | 164 tests pgTAP (64 + 49 A + 41 B + 10 C) ; migrations rejouées sur une vraie pile Supabase locale (Docker) ; parcours Playwright des trois étapes ; fichiers d'export rendus et contrôlés (PDF, Word et Excel via LibreOffice) | `supabase/tests/database/` | verts en local et en CI |
-| **Marché DEMO** (données fictives) : copie des paramètres SRM, 25 fuites août-octobre (tous les cas), lot N° 01 d'août arrêté, régularisation et réfection tardive à attacher en septembre, arrêt de travaux, 4 événements | migration `20261004230000` ; `supabase/README.md` § Marché de démonstration | PR de la branche `claude/happy-albattani-ba187x` (après #10) |
+| **Marché DEMO** (données fictives) : copie des paramètres SRM, 25 fuites août-octobre (tous les cas), lot N° 01 d'août arrêté, régularisation et réfection tardive à attacher en septembre, arrêt de travaux, 4 événements | migration `20261004230000` ; `supabase/README.md` § Marché de démonstration | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11), **déployée** le 2026-10-04 à 19 h 48 UTC |
 | Deux fausses anomalies corrigées (terrassement sans fouille, re-détection vue comme doublon) | migration `20261004220000` | même PR |
 | Droits des agents de terrain vérifiés : détection et chef de réparation ne voient que les fuites et les réparations (ni attachements, ni prix, ni paramètres, ni exports) ; 30 tests pgTAP de plus (194 au total) | `supabase/tests/database/05_marche_demo.test.sql` | verts |
-| Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | même PR |
+| Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
+| Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
 
 ## 2. En attente d'Issam
 
@@ -42,7 +43,10 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
 4. **Secret GitHub `SAUVEGARDE_PASSPHRASE`** (phrase secrète, gestionnaire de mots de passe), puis lancer « Sauvegarde de la base » à la main et vérifier l'artefact.
-5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que pour Vercel) pour que l'APK puisse se connecter ; puis télécharger l'artefact `suivi-fuites-apk` du workflow « Application Android (APK) » et l'installer sur la tablette de test.
+5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans Vercel) :
+   **toujours absent au 2026-10-04 20 h** (le journal de compilation montre la clé factice), l'APK compile mais ne peut
+   pas se connecter. Ensuite : Actions > « Application Android (APK) » > Run workflow (main), télécharger l'artefact
+   `suivi-fuites-apk`, installer sur la tablette (sources inconnues autorisées), batterie « Non restreinte ».
 6. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
 7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 

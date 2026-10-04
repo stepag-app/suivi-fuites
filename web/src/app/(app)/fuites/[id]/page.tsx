@@ -34,6 +34,8 @@ export default function DetailFuite() {
   const [erreur, setErreur] = useState('');
   const [occupe, setOccupe] = useState(false);
   const [formulaire, setFormulaire] = useState<'' | 'reparation' | 'refection'>('');
+  const [rapport, setRapport] = useState('');
+  const [rapportEnCours, setRapportEnCours] = useState(false);
 
   const marcheId = marche?.id;
 
@@ -88,6 +90,25 @@ export default function DetailFuite() {
     }
   }
 
+  // Rapport PDF de la fuite (module chargé seulement au clic)
+  async function rapportPdf() {
+    if (!marcheId) return;
+    setErreur('');
+    setRapport('Préparation…');
+    setRapportEnCours(true);
+    try {
+      const { telechargerRapports } = await import('@/lib/export/rapport-fuite');
+      const r = await telechargerRapports([id], marcheId, peut('quantites', 'lire'), (fait, total, etape) =>
+        setRapport(`${etape} (${Math.round((fait / Math.max(1, total)) * 100)} %)`));
+      setRapport(`Rapport téléchargé (${(r.octets / 1024).toFixed(0)} Ko, ${r.secondes.toFixed(1)} s)`);
+    } catch (e) {
+      setRapport('');
+      setErreur(messageErreur(e));
+    } finally {
+      setRapportEnCours(false);
+    }
+  }
+
   const modifierFuite = (champs: Record<string, unknown>) =>
     executer(() => getSupabase().from('fuites').update(champs).eq('id', id));
 
@@ -109,7 +130,13 @@ export default function DetailFuite() {
         <div className="fuite-tete">
           <h1>Fuite N° {fuite.numero}</h1>
           <span className={`badge ${STATUTS[fuite.statut].classe}`}>{STATUTS[fuite.statut].libelle}</span>
+          {peut('exports', 'lire') && (
+            <button className="bouton-rapport" disabled={rapportEnCours} onClick={rapportPdf}>
+              Rapport PDF
+            </button>
+          )}
         </div>
+        {rapport && <p className="discret" role="status">{rapport}</p>}
         {verrouillee && <p className="etiquette">Verrouillée le {dateHeure(fuite.verrouillee_le)}</p>}
         <dl className="infos">
           <dt>{libelles.reference}</dt><dd>{fuite.reference_srm ?? '—'}</dd>

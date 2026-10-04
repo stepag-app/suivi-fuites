@@ -2645,3 +2645,367 @@ Attendu pour un test : acompte n° 2 = 12624.3900, soit 12624.39 DH TTC une fois
 | **Net à payer** | acompte − retenue − pénalités | **12138.56** |
 
 Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
+
+## 8. Fiches et modèles Canva
+
+**Résumé.** Le dossier ne contient **aucun modèle Canva** (ni export PNG ou PDF, ni lien `canva.com`, ni fichier `.webloc`) : les « fiches en préparation » sont des classeurs Excel de STEPAG, datés d'avril à octobre 2026, dérivés des modèles de 2017. Cinq gabarits sont décrits : rapport journalier, fiche individuelle de réparation, rapport mensuel, classeur d'attachement (fiche de réparation, réfection, détail, récapitulatif, facture, bordereau d'envoi) et bordereau d'envoi Word. Tous sont `[INTERNE]` pour leur forme ; trois répondent à une exigence `[CONTRACTUEL]` du CPS (rapport journalier, fiche de réparation, rapport mensuel).
+
+**Principaux `[NON PRÉCISÉ]`.** Numérotation des fiches et des rapports ; nombre d'exemplaires ; qui signe côté SRM (fonction exacte) ; heure limite de remise ; version arabe (aucun libellé arabe dans les fiches, hors raison sociale de STEPAG) ; modèles imposés par la SRM (aucun dans le dossier).
+
+**Convention.** « Obligatoire » : `oui` si le CPS impose l'information, `interne` si seul le gabarit la prévoit. Aucun classeur ne contient de commentaire de cellule, de modification suivie ni de liste de validation ; il n'y a donc pas de mention `[brouillon]`.
+
+### 8.1 Rapport journalier de recherche de fuites (en usage, octobre 2026)
+
+| Élément | Valeur |
+|---|---|
+| Nom | « RAPPORT JOURNALIER DE RECHERCHE DE FUITES » |
+| Fichiers | [F119] (secteur Abdellah Guenoun) ; [F120] (secteur Lazaret Haut) ; feuille nommée par la date (« 02-10-2026 ») ; variante [F121] |
+| Usage | rendre compte chaque jour du secteur balayé, du linéaire et des fuites détectées (exigence R-CPS-139) |
+| Support actuel | Excel, un classeur par secteur, une feuille par journée ; 2 logos |
+| Numérotation | aucune (identifié par secteur + date) |
+| Exemplaires | `[NON PRÉCISÉ]` |
+| Qui la remplit ; quand | STEPAG (équipes de détection) ; chaque jour de balayage |
+| Qui signe | zone de signature en bas à droite (H54) ; variante F121 : « STEPAG » et « S.R.M » |
+| Statut normatif | contenu `[CONTRACTUEL]` (zone balayée, linéaire, fuites, adresses, extrait de plan A4) ; forme `[INTERNE]` |
+| Maturité | brouillon en usage : total faux (`=SUM(H16:H46)` sur 31 lignes pré-remplies), numéros de fuite non incrémentés dans F120, linéaire et calibre vides, extrait de plan absent |
+| Où les champs réapparaissent | référence et numéro de fuite → fiche de réparation et attachement ; linéaire → attachement (prix 1) et rapport mensuel ; nombre de fuites → rapport mensuel |
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « Marché N° 4500004453 » | — | en-tête, B2 | texte fixe | — | — | interne | marche_numero | [F119 B2] |
+| 2 | « TRAVAUX DE DÉTECTION, RECHERCHE ET RÉPARATION DE FUITES SUR LE RÉSEAU DE DISTRIBUTION D'EAU POTABLE DE LA VILLE D'OUJDA » | — | en-tête, B3 | texte fixe | — | — | interne | marche_objet | [F119 B3] |
+| 3 | « RAPPORT JOURNALIER DE RECHERCHE DE FUITES » | — | titre, A5 | texte fixe | — | — | interne | — | [F119 A5] |
+| 4 | « SOCIETE : STEPAG » | — | A7 | texte fixe | — | — | interne | entreprise_nom | [F119 A7] |
+| 5 | « Journée du : » | — | F7 | date | — | — | oui | rapport_date | [F119 F7] |
+| 6 | « EQUIPE N° : 1-2-3-4 » | — | A8 | texte | — | 1 ; 2 ; 3 ; 4 | interne | equipe_numero | [F119 A8] |
+| 7 | « Zone d'intervention : Zone 4 Sidi yahya 5000 M3 et 4000 M3 » | — | F8 | choix | — | `zone_intervention` | oui | zone_id | [F119 F8] |
+| 8 | « Secteur d'intervention : Abdellah Guenoun » | — | F9 | choix | — | `secteur` | oui | secteur_id | [F119 F9] |
+| 9 | « Linéaire : » | — | F10 | nombre | km (variante F121 : « Linéaire en Km : 16 Km ») | — | oui | lineaire_inspecte_m | [F119 F10] ; [F121 D10] |
+| 10 | « N° Fuite » | — | tableau, col. A | nombre | — | — | interne | fuite_numero | [F119 A14] |
+| 11 | « Adresse ou Référence » (variante : « Réf » + « Adresse ») | — | tableau, col. B-D | texte | — | format `NNN-NNN-NNN` | oui (adresse) | reference_srm ; fuite_adresse | [F119 B14] ; [F121 A14:B14] |
+| 12 | « Canalisation prospectée » › « Calibre » | — | tableau, col. E | nombre | mm | `diametre_nominal` | oui (diamètre) | conduite_dn_mm | [F119 E14:E15] |
+| 13 | « Fuite » › « Nature » | — | tableau, col. F | choix | — | `ouvrage_touche` (CDT, BRT) | interne | ouvrage_touche | [F119 F15] ; [F121 E16] |
+| 14 | « Fuite » › « Visibles » | — | tableau, col. G | case (1 ou X) | — | `visibilite_fuite` | oui | fuite_visibilite | [F119 G15] |
+| 15 | « Fuite » › « Invisibles » | — | tableau, col. H | case (1 ou X) | — | `visibilite_fuite` | oui | fuite_visibilite | [F119 H15] |
+| 16 | « Nature Dégradation » | — | tableau, col. I | choix | — | `nature_revetement` | interne | nature_revetement | [F119 I14] |
+| 17 | « TOTAL » | — | ligne 48 | nombre calculé | fuites | — | interne | nb_fuites_jour | [F119 A48:H48] |
+| 18 | « COMMENTAIRE » | — | A50 | texte | — | — | interne | commentaire | [F119 A50] |
+| 19 | (cadre vide en bas à droite) | — | H54:J54 | signature | — | — | interne | visa_stepag ; visa_srm | [F119 H54] |
+| 20 | « Total des fuites : 3 FUITES » (variante F121) | — | A21 | texte | — | — | interne | nb_fuites_jour | [F121 A21] |
+| 21 | « STEPAG » ; « S.R.M » (variante F121) | — | pied, A23 ; G23 | signature | — | `fonction_signataire` | interne | visa_stepag ; visa_srm | [F121 A23 ; G23] |
+
+- **R-FICHE-001** [INTERNE] Formule du total : `=SUM(H16:H46)` (somme de la colonne « Invisibles » seulement) ; la colonne « Visibles » n'est pas totalisée et la plage s'arrête une ligne trop tôt dans F120. [F119 H48 ; F120 H48]
+- **R-FICHE-002** [INTERNE] Une mise en forme conditionnelle « valeurs en double » porte sur la colonne des références : une même référence ne doit pas figurer deux fois dans un rapport. [F121 A16:A20]
+- **R-FICHE-003** [INTERNE] Le gabarit traite les quatre équipes ensemble (« EQUIPE N° : 1-2-3-4 ») : il ne permet pas de vérifier la cadence contractuelle de 4 km par jour et par équipe (R-CPS-121) `[À CONFIRMER : un rapport par équipe ou une colonne équipe]`. [F119 A8]
+- **R-FICHE-004** [DÉDUIT] Manquent au gabarit par rapport au CPS : le linéaire renseigné, l'extrait de plan A4, la nature (matériau) de la canalisation ; par rapport au modèle 2017 : « Planche N° », « Equipements utilisés », « Nbre de Branchement prospecté », « Observation ». [F056 p.24 ; F087]
+- **R-FICHE-005** [INTERNE] Données réelles du 2026-10-02 : secteur Abdellah Guenoun, 15 références (402-673-001 ; 040-152-010 ; 400-474-001…) ; secteur Lazaret Haut, 32 références (302-560-030 ; 037-287-009 ; 058-149-001…) ; toutes « Invisibles ». [F119 ; F120]
+
+### 8.2 Fiche individuelle de réparation des fuites
+
+| Élément | Valeur |
+|---|---|
+| Nom | « FICHE INDIVIDUELLE DE REPARATION DES FUITES » |
+| Fichier | [F123], feuille « LABSARA » (nom de secteur), exemple daté du 20/05/2026 |
+| Usage | une fiche par fuite réparée (exigence R-CPS-126 et R-CPS-140) |
+| Support actuel | Excel, une feuille ; 1 logo |
+| Numérotation | « Numéro de la fuite » (séquentiel) ; pas de numéro de fiche |
+| Exemplaires | `[NON PRÉCISÉ]` ; le CPS exige une copie pour la SRM |
+| Qui la remplit ; quand | STEPAG (équipe de réparation) ; après constat de la fuite et réparation |
+| Qui signe | « STEPAG » et « S.R.M » (cases de visa) ; le CPS n'exige que la signature de l'entreprise |
+| Statut normatif | existence `[CONTRACTUEL]` ; contenu et forme `[INTERNE]` |
+| Maturité | brouillon (gabarit recopié : nom de feuille ≠ secteur saisi ; DN et nature vides) |
+| Où les champs réapparaissent | tous → « Fiche de réparation Zone » du classeur d'attachement, puis REFECTION, détail d'attachement, récapitulatif, facture |
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « Date du: 20/05/2026 » | — | en-tête, E2 | date | — | — | interne | date_reparation | [F123 E2] |
+| 2 | objet du marché | — | C4 | texte fixe | — | — | interne | marche_objet | [F123 C4] |
+| 3 | « MARCHE 4500004453 » | — | C5 | texte fixe | — | — | interne | marche_numero | [F123 C5] |
+| 4 | « FICHE INDIVIDUELLE DE REPARATION DES FUITES » | — | titre, F5 | texte fixe | — | — | interne | — | [F123 F5] |
+| 5 | « Secteur de la fuite : » | — | B6 ; valeur D6 | choix | — | `secteur` | interne | secteur_id | [F123 B6] |
+| 6 | « Numéro de la fuite : » | — | B7 ; valeur D7 | nombre | — | — | interne | fuite_numero | [F123 B7] |
+| 7 | « Tournée : » | — | B8 ; valeur D8 | texte | — | format `NNN-NNN-NNN` | interne | reference_srm | [F123 B8] |
+| 8 | « Fuite » › « Nature "Bt/Cdt" » | — | B10 | choix | — | `ouvrage_touche` | oui (rapport de détection) | ouvrage_touche | [F123 B10] |
+| 9 | « Fuite » › « DN "conduite" » | — | C10 | nombre | mm | `diametre_nominal` | oui (R-CPS-153) | conduite_dn_mm | [F123 C10] |
+| 10 | « TERRASSEMENT » › « Longueur (m) » | — | D10 | nombre | m | — | interne | fouille_longueur_m | [F123 D10] |
+| 11 | « TERRASSEMENT » › « Largeur » | — | E10 | nombre | m | — | interne | fouille_largeur_m | [F123 E10] |
+| 12 | « TERRASSEMENT » › « Profondeur » | — | F10 | nombre | m | — | interne | fouille_profondeur_m | [F123 F10] |
+| 13 | « Nature de dégradation » | — | G10 | choix | — | `nature_revetement` | interne | nature_revetement | [F123 G10] |
+| 14 | « DETAIL DE LA REPARATION DE FUITE » | — | B12 ; texte libre B13 | texte | — | pièces du catalogue (section 6.2) | interne | piece_designation ; piece_quantite | [F123 B12:B13] |
+| 15 | « Nombre de piéces » | — | G12 ; valeur G13 | nombre | u | — | interne | nb_pieces | [F123 G12] |
+| 16 | « STEPAG » | — | pied, C15 | signature | — | `fonction_signataire` | oui (signature de l'entreprise) | visa_stepag | [F123 C15] |
+| 17 | « S.R.M » | — | pied, G15 | signature | — | `fonction_signataire` | interne | visa_srm | [F123 G15] |
+
+- **R-FICHE-006** [INTERNE] Exemple du gabarit : secteur LAZARET BAS ; fuite n° 1 ; tournée 461-229-057 ; terrassement 0.9 × 0.6 × 0.7 ; « Carrelage » ; détail « Manchon 32 + 0.7 PVC 75 + 1 Bouche à clé » ; 3 pièces. [F123 D6:G13]
+- **R-FICHE-007** [DÉDUIT] Manquent à la fiche pour alimenter l'attachement : date de détection, date de réfection, matériau de la conduite, visible ou invisible, pièces saisies une par une (le détail est un texte libre), longueur de polyéthylène remplacée, photos, position GPS. [F123 ; F001]
+- **R-FICHE-008** [2017] Le modèle papier de 2017 prévoyait un « Emmargement Entreprise » et un « Emmargement agent RADEEO » par fuite. [F080 feuille "Fiche de fuite"]
+
+### 8.3 Rapport mensuel de recherche de fuites
+
+| Élément | Valeur |
+|---|---|
+| Nom | « RAPPORT MENSUEL DE RECHERCHE DE FUITES » |
+| Fichier | [F122], feuille « Table 2 » ; exemple « JANVIER » |
+| Usage | bilan mensuel (exigence R-CPS-141) |
+| Support actuel | Excel, une page ; 1 logo |
+| Numérotation ; exemplaires | aucune ; `[NON PRÉCISÉ]` |
+| Qui la remplit ; quand | STEPAG ; chaque mois |
+| Qui signe | « STEPAG » et « SRM ORIENTAL » |
+| Statut normatif | existence `[CONTRACTUEL]` ; contenu et forme `[INTERNE]` |
+| Maturité | brouillon (valeurs d'exemple ; total et ratios incomplets) |
+| Où les champs réapparaissent | linéaire balayé → attachement (prix 1) ; nombres de fuites → rapports journaliers (somme) |
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « MARCHE 45000004453 » | — | E6 | texte fixe | — | — | interne | marche_numero | [F122 E6] |
+| 2 | objet du marché | — | A8 | texte fixe | — | — | interne | marche_objet | [F122 A8] |
+| 3 | « SOCIETE : STEPAG » | — | A10 | texte fixe | — | — | interne | entreprise_nom | [F122 A10] |
+| 4 | « RAPPORT MENSUEL DE RECHERCHE DE FUITES » | — | titre, G10 | texte fixe | — | — | interne | — | [F122 G10] |
+| 5 | « Mois » | — | H11 ; valeur I11 | choix | — | JANVIER à DÉCEMBRE | oui | mois_rapport | [F122 H11] |
+| 6 | « Equipements Utilisés : Aquaphone A 50 , Aquaphone Mikron Junior 3 , Eureka » | — | A12 | texte | — | `equipement_detection` | interne | equipements_utilises | [F122 A12] |
+| 7 | « Nbr Jours » | — | A13 ; valeur A14 | nombre | j | — | interne | nb_jours_travailles | [F122 A13] |
+| 8 | « Linéaire Balayé » | — | B13 ; valeur B14 | nombre | km | — | oui | lineaire_inspecte_m (somme du mois) | [F122 B13] |
+| 9 | « Nombre de fuites localisées » › « Fuites localisée » | — | D13:D14 | en-tête | — | — | oui | — | [F122 D13] |
+| 10 | « Visibles » (ligne) | — | D15 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (visibles) | [F122 D15] |
+| 11 | « Invisibles » (ligne) | — | D16 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (invisibles) | [F122 D16] |
+| 12 | « Conduites » (colonne) | — | F14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 F14] |
+| 13 | « Branchement » (colonne) | — | G14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 G14] |
+| 14 | « Piece Spéciale » (colonne) | — | H14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 H14] |
+| 15 | « B.I » (colonne) | — | I14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 I14] |
+| 16 | « TOTAL » (colonne) | — | J14 | nombre calculé | fuites | — | interne | nb_fuites_total | [F122 J14] |
+| 17 | « RATIO » › « Linéaire prospecté (Km.j) » | — | A18 ; valeur A19 | nombre calculé | km/j | — | interne | ratio_km_par_jour | [F122 A18] |
+| 18 | « Fuite sur Branchement par Km » | — | D18 ; valeur D19 | nombre calculé | fuites/km | — | interne | ratio_fuites_branchement_km | [F122 D18] |
+| 19 | (libellé vide : fuites sur conduite par km) | — | G18 ; valeur G19 | nombre calculé | fuites/km | — | interne | ratio_fuites_conduite_km | [F122 G19] |
+| 20 | « Total des fuites par Km » | — | I18 ; valeur I19 | nombre calculé | fuites/km | — | interne | ratio_fuites_km | [F122 I18] |
+| 21 | « STEPAG » | — | pied, A20 | signature | — | `fonction_signataire` | interne | visa_stepag | [F122 A20] |
+| 22 | « SRM ORIENTAL » | — | pied, G20 | signature | — | `fonction_signataire` | interne | visa_srm | [F122 G20] |
+
+- **R-FICHE-009** [INTERNE] Formules : total des fuites `=F16+G16` (conduites + branchements de la ligne « Invisibles » seulement) ; linéaire par jour `=B14/A14` ; fuites sur branchement par km `=G16/B14` ; fuites sur conduite par km `=F16/B14` ; total des fuites par km `=J16/B14`. Exemple : 20 jours ; 240 km ; 11 + 43 = 54 fuites ; 12 km/j ; 0.1792 ; 0.0458 ; 0.225. [F122 J16 ; A19 ; D19 ; G19 ; I19]
+- **R-FICHE-010** [DÉDUIT] Champs calculés à corriger dans l'application : le total doit additionner visibles et invisibles et les quatre ouvrages ; les ratios doivent porter sur le total. Le rapport mensuel du CPS doit « dresser le bilan des travaux effectués » : y ajouter les réparations et réfections du mois, les débits mesurés et, en 2017, le programme prévisionnel du mois suivant `[2017 : F077 art. 45]`. [F122 ; F056 p.24]
+
+### 8.4 Classeur d'attachement « Attachement N°1 mois 10 »
+
+| Élément | Valeur |
+|---|---|
+| Nom | « ATTACHEMENT N°01 des travaux exécutés au … » (classeur de 9 feuilles) |
+| Fichier | [F001] |
+| Usage | établir l'attachement, le calcul des réfections et la facture à partir de la fiche de réparation |
+| Support actuel | Excel ; reprise du modèle 2017 (en-tête d'impression encore « Marché N° 59/E/2016 ») |
+| Numérotation | attachement « N°01 » ; facture « FA 2610-0002 » |
+| Exemplaires | facture 5 ; attachement 3 (feuille B.ENVOI ; conforme à R-CPS-072) |
+| Qui la remplit ; quand | bureau STEPAG ; au fil des réparations, arrêté en fin de mois (« Travaux executés au 31/10/2026 ») |
+| Qui signe | « SRM.ORI » et « Sté STEPAG » (attachement récapitulatif) ; « Signature: » (facture) |
+| Statut normatif | attachement et facture `[CONTRACTUEL]` dans leur principe et leurs mentions (R-CPS-061, R-CPS-064) ; forme `[INTERNE]` |
+| Maturité | brouillon en cours : 22 fuites saisies (détectées le 2026-10-02, réparées le 2026-10-03) ; détail d'attachement et récapitulatif encore vides ; restes de gabarit (titre « au 30/01/2026 », bordereau d'envoi d'un autre marché, numéro de marché à 11 chiffres) |
+| Où les champs réapparaissent | Parametre → en-têtes de toutes les feuilles ; fiche de réparation → REFECTION → détail → récapitulatif → facture |
+
+**Feuille « Parametre »** (source unique des en-têtes ; les autres feuilles y pointent par formule `=Parametre!A3` etc.) :
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « SRM-Oriental » | — | A3 | texte | — | — | interne | client_nom | [F001 feuille "Parametre" A3] |
+| 2 | « Exploitation eau potable » | — | A4 | texte | — | — | interne | client_direction | [F001 feuille "Parametre" A4] |
+| 3 | « Département Mesures et Amelioration du rendement » | — | A5 | texte | — | — | interne | client_service | [F001 feuille "Parametre" A5] |
+| 4 | « Marché N° 45000004453 » | — | F5 | texte | — | — | oui (référence du marché) | marche_numero | [F001 feuille "Parametre" F5] |
+| 5 | objet du marché | — | D7 | texte | — | — | interne | marche_objet | [F001 feuille "Parametre" D7] |
+| 6 | « O.S.N°: 02/45000004453 Du 02/10/2026 » | — | A9 | texte | — | — | oui (référence de l'OS) | os_numero ; os_date | [F001 feuille "Parametre" A9] |
+| 7 | « Entreprise STEPAG » | — | A11 | texte | — | — | interne | entreprise_nom | [F001 feuille "Parametre" A11] |
+| 8 | « Travaux executés au 31/10/2026 » | — | A13 | date | — | — | interne | date_arrete_travaux | [F001 feuille "Parametre" A13] |
+| 9 | « Zone » | — | A15 | choix | — | `zone_intervention` | oui (lieu du chantier) | zone_id | [F001 feuille "Parametre" A15] |
+
+**Feuille « Fiche de réparation Zone »** (saisie ; une fuite = une ligne principale + une ligne par pièce supplémentaire) :
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « N° de fuite » | — | col. A | nombre | — | — | interne | fuite_numero | [F001 feuille "Fiche de réparation Zone " A12] |
+| 2 | « Tournée » | — | col. B | texte | — | format `NNN-NNN-NNN` ; doublons signalés | interne | reference_srm | [F001 feuille "Fiche de réparation Zone " B12] |
+| 3 | « DATE DE DETECTION » | — | col. C | date | — | — | interne | date_detection | [F001 feuille "Fiche de réparation Zone " C12] |
+| 4 | « DATE DE REPARATION » | — | col. D | date | — | — | interne | date_reparation | [F001 feuille "Fiche de réparation Zone " D12] |
+| 5 | « Terrassement » › « Longueur » | — | col. E | nombre | m | — | interne | fouille_longueur_m | [F001 feuille "Fiche de réparation Zone " E13] |
+| 6 | « Terrassement » › « Largeur » | — | col. F | nombre | m | — | interne | fouille_largeur_m | [F001 feuille "Fiche de réparation Zone " F13] |
+| 7 | « Terrassement » › « Profondeur » | — | col. G | nombre | m | — | interne | fouille_profondeur_m | [F001 feuille "Fiche de réparation Zone " G13] |
+| 8 | « Nature de degradation » | — | col. H | choix | — | `nature_revetement` | interne | nature_revetement | [F001 feuille "Fiche de réparation Zone " H12] |
+| 9 | « Détail des pieces de reparation des fuites » | — | col. I | choix | — | catalogue (section 6.2) ; `motif_sans_reparation` | interne | piece_designation | [F001 feuille "Fiche de réparation Zone " I12] |
+| 10 | « Qté posée » | — | col. J | nombre | u, ou m pour le PEHD | — | interne | piece_quantite | [F001 feuille "Fiche de réparation Zone " J12] |
+| 11 | « Observations » | — | col. K | texte | — | — | interne | observation | [F001 feuille "Fiche de réparation Zone " K12] |
+
+Lignes réelles (extrait) :
+
+| N° de fuite | Tournée | Date de détection | Date de réparation | Longueur | Largeur | Profondeur | Nature de dégradation | Pièce | Qté posée |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 302-684-001 | 2026-10-02 | 2026-10-03 | 1.2 | 0.7 | 0.8 | carrelage | Robinet equerre 32 1/2 | 1 |
+| — | — | — | — | — | — | — | — | Manchon droit 32/32 | 1 |
+| — | — | — | — | — | — | — | — | PEHD 26/32 | 1 |
+| 2 | 302-683-020 | 2026-10-02 | 2026-10-03 | 1.2 | 0.6 | 0.9 | carrelage | Manchon droit 32/32 | 2 |
+| — | — | — | — | — | — | — | — | PEHD 33/40 | 1 |
+| 4 | 302-650-030 | 2026-10-02 | 2026-10-03 | 1.2 | 0.7 | 0.9 | mosaique | Assainissement | — |
+| 21 | 029-122-001 | ? | ? | 1 | 0.6 | 0.7 | carrelage | Manchon droit 25/25 | 2 |
+| — | — | — | — | — | — | — | — | PEHD 19/25 | 0.5 |
+
+**Feuille « REFECTION »** (calcul) :
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « N° de fuite » | — | col. A | lien | — | — | interne | fuite_numero | [F001 feuille "REFECTION" A14] |
+| 2 | « Référence » | — | col. B | lien | — | — | interne | reference_srm | [F001 feuille "REFECTION" B14] |
+| 3 | « Date de réparation » | — | col. C | lien | — | — | interne | date_reparation | [F001 feuille "REFECTION" C14] |
+| 4 | « Long » ; « Larg » ; « prof » | — | col. D ; E ; F | lien | m | — | interne | fouille_longueur_m ; fouille_largeur_m ; fouille_profondeur_m | [F001 feuille "REFECTION" D14:F14] |
+| 5 | « Nature de degradation » | — | col. G | lien | — | `nature_revetement` | interne | nature_revetement | [F001 feuille "REFECTION" G14] |
+| 6 | « Symbole » | — | col. H | choix (saisie) | — | B ; M ; L ; C ; AC ; TN | interne | symbole_refection | [F001 feuille "REFECTION" H14] |
+| 7 | « Béton » (B) ; « Mosaique » (M) ; « Lavé » (L) ; « Carreaux » (C) | — | col. I ; J ; K ; L ; n° de prix 4 en I16 | nombre calculé | m2 | — | interne | surface_refection_m2 (prix 4) | [F001 feuille "REFECTION" I14:L16] |
+| 8 | « Asphalt à chaud » (AC) | — | col. M ; n° de prix 5 en M16 | nombre calculé | m2 | — | interne | surface_refection_m2 (prix 5) | [F001 feuille "REFECTION" M14:M16] |
+| 9 | « Terrain naturel » (TN) | — | col. N | nombre calculé (toujours 0) | m2 | — | interne | — | [F001 feuille "REFECTION" N14] |
+| 10 | « Ovservation » | — | col. O | texte | — | — | interne | observation | [F001 feuille "REFECTION" O14] |
+| 11 | « Total » | — | ligne 445 | somme | m2 | — | interne | — | [F001 feuille "REFECTION" A445] |
+
+- **R-FICHE-011** [INTERNE] Formules de la feuille REFECTION : `A17 ='Fiche de réparation Zone '!A14` (recopie ligne à ligne) ; `I17 =IF($H17="B",D17*E17,"-")` ; `J17 =IF($H17="M",D17*E17,"-")` ; `K17 =IF($H17="L",D17*E17,"-")` ; `L17 =IF($H17="C",D17*E17,"-")` ; `M17 =IF($H17="AC",D17*E17,"-")` ; `N17 =IF($H17="TN",E17*F17*0,"-")` ; totaux `=SUM(I17:I444)`. Surface = longueur × largeur de la fouille, placée dans la colonne du symbole saisi. [F001 feuille "REFECTION" A17:N445]
+- **R-FICHE-012** [INTERNE] Le symbole de réfection est saisi à la main et seulement une fois la réfection faite (5 symboles saisis pour 22 fuites : 4 « c », 1 « m » ; totaux 4.67 m2 de carreaux et 0.84 m2 de mosaïque) : la saisie du symbole tient lieu de constat « réfection faite ». [F001 feuille "REFECTION" H ; L445 ; J445]
+
+**Feuille « DETAIL ATTACHEMENT Zone »** (matrice fuite × prix, vide de données) : colonnes « DATE » ; « Tournée » ; « Terrassement » (« Longueur », « Largeur », « Profondeur », « Nature de degradation ») ; « Détail des de reparation des fuites » ; « Qté Posée » ; puis une colonne par prix du bordereau, libellé complet en ligne 14 et numéro 1 à 13 en ligne 15 ; lignes de pied « Total » `=SUM(K16:K929)`, « Total mois -1 » (saisie), « total partiel » `=K930-K932`. [F001 feuille "DETAIL ATTACHEMENT Zone" A14:U933]
+
+- **R-FICHE-013** [INTERNE] Le détail d'attachement porte des cumuls ; la quantité de la période (« total partiel ») = total cumulé − total du mois précédent, pour chacun des 13 prix. [F001 feuille "DETAIL ATTACHEMENT Zone" 930:933]
+
+**Feuille « attachement recap »** :
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | en-tête repris de Parametre (client, marché, objet, OS, entreprise, date d'arrêt) | — | A1:A11 | lien | — | — | oui (marché, OS) | marche_numero ; os_numero ; date_arrete_travaux | [F001 feuille "attachement recap" A1:A11] |
+| 2 | « ATTACHEMENT N°01 des travaux exécutés au 30/01/2026 » | — | A7 | texte | — | — | interne | attachement_numero ; date_arrete_travaux | [F001 feuille "attachement recap" A7] |
+| 3 | « Des prix » | — | col. A | nombre | — | 1 à 13 | oui (numéros des postes) | prix_numero | [F001 feuille "attachement recap" A13] |
+| 4 | « Désignation des prestations » | — | col. B | texte | — | — | oui | prix_designation | [F001 feuille "attachement recap" B13] |
+| 5 | « Unité » | — | col. C | texte | — | `unite` | interne | prix_unite | [F001 feuille "attachement recap" C13] |
+| 6 | « Quantité mois -1 » | — | col. D (masquée) | nombre | selon prix | — | interne | quantite_anterieure | [F001 feuille "attachement recap" D13] |
+| 7 | « Quantité partielle » | — | col. E | nombre | selon prix | — | oui (quantités) | quantite_mois | [F001 feuille "attachement recap" E13] |
+| 8 | « SRM.ORI » | — | pied, A28 | signature | — | `fonction_signataire` | oui (contradictoire) | visa_srm | [F001 feuille "attachement recap" A28] |
+| 9 | « Sté STEPAG » | — | pied, C28 | signature | — | `fonction_signataire` | oui | visa_stepag | [F001 feuille "attachement recap" C28] |
+
+- **R-FICHE-014** [DÉDUIT] Mentions exigées par le CPS et absentes du gabarit d'attachement : « lieu exact du début et de la fin du chantier concerné avec si besoin un croquis ou un plan » ; le gabarit ne porte que « Zone ». Pas de colonne « cumulé » imprimée (présente dans le modèle 2017). [F056 p.12, art. I-32 ; F001 feuille "attachement recap"]
+
+**Feuille « facture »** :
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « STEPAG » ; « Société des Travaux d'Eau Potable, Assainissement liquide et Génie civil. » | ستيݒاݣ (ش,م,م) ; شركة أشغال الماء الصالح للشرب ، التطهير السائل والهندسة المدنية [STEPAG (SARL) ; Société des travaux d'eau potable, d'assainissement liquide et de génie civil] | en-tête, A1:C2 | texte fixe | — | — | oui (identité) | entreprise_nom | [F001 feuille "facture" A1:C2] |
+| 2 | « Facture Partielle N° : FA 2610-0002 » | — | A4 | texte | — | format `FA AAMM-NNNN` | oui | facture_numero | [F001 feuille "facture" A4] |
+| 3 | « Client : SRM-ORI » | — | A4 | texte | — | — | oui | client_nom | [F001 feuille "facture" A4] |
+| 4 | « Oujda le 16/07/2026 » | — | A4 | date | — | — | oui (date de la facture) | facture_date | [F001 feuille "facture" A4] |
+| 5 | « ice:003507258000090 » (ICE du client) | — | A5 | texte | — | — | interne | client_ice | [F001 feuille "facture" A5] |
+| 6 | marché ; objet ; OS ; « Travaux executés au » ; « Entreprise: » | — | A6:B10 | lien | — | — | oui (référence du marché) | marche_numero ; os_numero ; date_arrete_travaux | [F001 feuille "facture" A6:B10] |
+| 7 | « N° de prix » ; « Désignation des prestations » ; « Unité de mesure » | — | col. A ; B ; C | texte | — | — | oui | prix_numero ; prix_designation ; prix_unite | [F001 feuille "facture" A12:C12] |
+| 8 | « Quantité » | — | col. D | lien | selon prix | — | oui | quantite_mois | [F001 feuille "facture" D12] |
+| 9 | « Prix unitaire en DH HT » | — | col. E | nombre | DH | — | oui | prix_pu_ht | [F001 feuille "facture" E12] |
+| 10 | « Prix total en DH HT » | — | col. F | nombre calculé | DH | — | oui | montant_ht | [F001 feuille "facture" F12] |
+| 11 | « TOTAL ANNUEL HORS TVA » | — | F26 | nombre calculé | DH | — | oui | total_ht | [F001 feuille "facture" A26] |
+| 12 | « TVA » | — | F27 | nombre calculé | DH | — | oui (TVA distincte) | tva | [F001 feuille "facture" A27] |
+| 13 | « TOTAL ANNUEL TTC » | — | F28 | nombre calculé | DH | — | oui | total_ttc | [F001 feuille "facture" A28] |
+| 14 | « POURCENTAGE MAJORATION (%) » | — | F29 | nombre | % | 15 | oui | taux_majoration | [F001 feuille "facture" A29] |
+| 15 | « MONANT TOTAL APRES MAJORATION » | — | F30 | nombre calculé | DH | — | oui | montant_apres_majoration | [F001 feuille "facture" A30] |
+| 16 | « Arrêtée la presente facture à la somme de : » | — | A32 | texte | — | — | interne | montant_en_lettres | [F001 feuille "facture" A32] |
+| 17 | « Signature: » | — | D37 | signature | — | — | interne | visa_stepag | [F001 feuille "facture" D37] |
+| 18 | pied : capital ; T.P ; R.C ; I.F ; CNSS ; ICE ; adresse ; e-mail générique `[comptes bancaires et téléphone non recopiés]` | — | A52:A56 | texte fixe | — | — | oui (IF, taxe professionnelle, ICE, mode de paiement) | entreprise_identifiants | [F001 feuille "facture" A52:A56] |
+
+- **R-FICHE-015** [INTERNE] Formules de la facture : `D13 ='attachement recap'!E14` (quantité = quantité partielle de l'attachement) ; `F13 =D13*E13` ; `F26 =SUM(F13:F25)` ; `F27 =F26*0.2` ; `F28 =F26+F27` ; `F30 =F28*1.15`. La majoration est appliquée sur le total TTC. [F001 feuille "facture" D13:F30]
+- **R-FICHE-016** [DÉDUIT] La facture du gabarit ne comporte ni retenue de garantie, ni pénalité, ni révision, ni arrondi, ni règle des 100 % / 40 % / 60 % des prix 1 et 2 : ces éléments relèvent du décompte dressé par la SRM (R-CPS-065) ou restent à ajouter. Les libellés « TOTAL ANNUEL » viennent du bordereau et sont impropres pour une facture partielle. [F001 feuille "facture" ; F056 p.12-13]
+- **R-FICHE-017** [INTERNE] Format du numéro de facture STEPAG : `FA AAMM-NNNN` (« FA 2610-0002 » = octobre 2026, n° 0002 ; « FA2607-0002 »). [F001 feuille "facture" A4 ; feuille "B.ENVOI" B20]
+
+**Feuille « B.ENVOI »** : bordereau d'envoi à « MONSIEUR LE DIRECTEUR GENERAL SRM -ORI » ; colonnes « DESIGNATION » ; « NBRE » ; « OBSERVATION » ; lignes « OBJET : MARCHE N°… » ; « FACTURE N° … » (5) ; « ATTACHEMENT N°… » (3). [F001 feuille "B.ENVOI" A7:D21]
+
+### 8.5 Bordereau d'envoi (Word)
+
+| Élément | Valeur |
+|---|---|
+| Nom | « BORDEREAU D'ENVOI » |
+| Fichiers | [F050], [F051], [F052] ; lettre [F053] (demande de caution) |
+| Usage | transmettre une pièce à un département de la SRM |
+| Support ; numérotation | Word ; aucune |
+| Qui signe | STEPAG |
+| Statut normatif ; maturité | `[INTERNE]` ; validé (envoyé en septembre 2026), mais deux objets visent un autre marché (4500004350) `[À CONFIRMER]` |
+
+| N° | Libellé exact FR | Libellé AR | Emplacement (page, zone) | Type | Unité | Valeurs possibles (liste 6 bis) | Obligatoire | Nom canonique (11 bis) | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | « Oujda le 16/09/2026 » | — | haut | date | — | — | interne | envoi_date | [F051] |
+| 2 | « A Monsieur le Directeur Général de la SRM-ORI » | — | adresse | texte fixe | — | — | interne | — | [F051] |
+| 3 | « Destinataire : Département Financement et trésorerie » | — | adresse | choix | — | Département Financement et trésorerie ; Département achats et marchés ; Chef de département Etudes et Planification | interne | envoi_destinataire | [F051] ; [F052] ; [F050] |
+| 4 | « Objet : MARCHÉ N° 4500004453 - … » | — | objet | texte | — | — | interne | marche_numero ; marche_objet | [F051] |
+| 5 | « DESIGNATION » | — | tableau | texte | — | — | interne | envoi_piece | [F051] |
+| 6 | « NOMBRE » | — | tableau | nombre | exemplaires | — | interne | envoi_nombre | [F051] |
+| 7 | « OBSERVATION » | — | tableau | texte | — | RAS | interne | observation | [F051] |
+| 8 | « Signature : » | — | bas | signature | — | — | interne | visa_stepag | [F051] |
+
+### 8.6 Modèles absents du dossier
+
+- **R-FICHE-018** [DÉDUIT] Aucun modèle Canva, aucune fiche en arabe, aucun modèle fourni par la SRM (état journalier, hebdomadaire, fiche de fuite, attachement, décompte) ne figure dans le dossier ; si des modèles Canva existent, en demander l'export PDF (Canva : Partager → Télécharger → PDF standard) (section 12). Le connecteur Canva disponible dans la session n'a pas été utilisé, faute de référence à un design dans le dossier.
+- **R-FICHE-019** [DÉDUIT] Aucune fiche de détection distincte de la fiche de réparation n'existe en 2026 ; en 2017 le CPS exigeait une « fiche de détection de fuites » par fuite, transmise pour réparation `[2017 : F077 art. 45]`. [F056 p.24]
+
+## 9. Plans
+
+**Résumé.** Le dossier contient 21 planches PDF au format A3, une par secteur, imprimées les 24, 28 et 30 septembre 2026 depuis le dessin AutoCAD « Reseau aep oujda.dwg » (162,8 Mo). Elles sont vectorielles mais sans cartouche, sans échelle, sans légende et sans coordonnées : elles ne peuvent pas être géoréférencées telles quelles. Le DWG est la source utile ; il n'a pas pu être lu (format non convertible localement). Les planches couvrent les zones 1, 2 et 4 du tableau n° 1 ; les zones 3 et 5 n'ont aucune planche.
+
+**Principaux `[NON PRÉCISÉ]`.** Système de coordonnées du DWG (Lambert Nord Maroc / Merchich probable, à confirmer) ; échelle ; légende des couleurs ; diamètres et matériaux portés sur le dessin ; linéaire par secteur ; découpage en tournées.
+
+### 9.1 Caractéristiques communes
+
+| Caractéristique | Valeur | Source |
+|---|---|---|
+| Format | A3 (842 × 1191 points), orientation paysage | pdfinfo |
+| Producteur | PScript5.dll Version 5.2.2 puis GPL Ghostscript 9.25 (impression PDF depuis AutoCAD) | pdfinfo |
+| Nature | vectoriel ; 2 à 3 polices ; texte extractible ; images incrustées seulement sur F098, F100, F106, F111, F112 | pdffonts ; pdfimages |
+| Cartouche, titre | aucun cartouche ; titre du secteur en bas à gauche (sauf F106) | aperçu 40 dpi |
+| Échelle | `[NON PRÉCISÉ]` ; impressions à l'échelle libre (journal de traçage : 1:2.80181 ; 1:3.67785 ; 1:3.81616 ; 1:3.9207 unités de dessin) | [F118] |
+| Système de coordonnées, grille | aucune coordonnée, aucune grille, aucune flèche nord (recherche de « X = », « Y = » dans le texte : rien) | pdftotext |
+| Légende | aucune | aperçu 40 dpi |
+| Contenu visible | parcellaire et bâti ; conduites en traits bleus, rouges et verts ; limites de secteur en pointillé magenta ; nom du secteur en grands caractères violets, parfois suivi d'un nombre (cote probable en mètres : 538 à 619 `[À CONFIRMER]`) ; références foncières « TF … » ; noms de lieux | aperçu 40 dpi ; pdftotext |
+| Réseau dessiné | oui | aperçu 40 dpi |
+| Exploitable pour géoréférencement | vectoriel sans coordonnées : non exploitable directement ; passer par le DWG ou caler chaque planche par 3 à 4 points de contrôle | — |
+
+### 9.2 Planches
+
+| ID | Fichier | Taille (octets) | Secteur (titre de la planche) | Secteurs voisins visibles | Zone du tableau n° 1 | Échelle | Format | Coordonnées ou grille | Légende | Réseau dessiné | Date d'impression | Vectoriel ou image | Géoréférencement |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| F096 | abdellah guennoun bas.pdf | 376937 | Abdellah Guennoun Bas | — | 4 Sidi Yahya | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F097 | abdellah guennoun haut.pdf | 396303 | Abdellah Guennoun Haut (580) | — | 4 Sidi Yahya | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F098 | Andalous.pdf | 534924 | Andalous | Sidi Maafa Bas | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F099 | Azengot.pdf | 212961 | Azengot (575) | Château Sidi Aissa ; Maksam-Kharoub | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F100 | Ballaoui Bas-Irfane et autre part 1.pdf | 478498 | Unisit-Colline-Partie H Ain Serrak ; Bellaoui Haut | Qods Haut, Chu-Mouhoub-Irriss (619) | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F101 | Château Sidi Aissa.pdf | 228277 | Château Sidi Aissa | Lieutenant Belhoucine | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F102 | Ghar el baroud-zone indust.pdf | 588322 | Ghar El Baroud-Zone Industrielle ; El Boustane (540) | — | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F103 | lazaret bas.pdf | 297944 | Lazaret Bas (563,5) | — | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F104 | Lazaret haut part 1.pdf | 663464 | Lazaret Haut (580) | Lazaret Bas | 4 Sidi Yahya | ? | A3 | non | non | oui | 2026-09-30 | vectoriel | vectoriel sans coordonnées |
+| F105 | Lazaret Haut part 2.pdf | 719283 | Lazaret Haut (suite) | Abdellah Gunoun Bas | 4 Sidi Yahya | ? | A3 | non | non | oui | 2026-09-30 | vectoriel | vectoriel sans coordonnées |
+| F106 | Maafa Bekkay Bas.pdf | 1819543 | Sidi Maafa Bas (sans titre en pied) | Pam | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F107 | Maksam-Kharoub.pdf | 302689 | Maksam-Kharoub | Azengot (575) ; Abdellah… | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F108 | Mbasso.pdf | 427089 | Mbasso (556) | Aounia (552) | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F109 | pam.pdf | 287297 | Pam | — | 4 Sidi Yahya | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F111 | Qods Bas.pdf | 303140 | Qods Bas (599) | Qods Haut, Chu-Mouhoub-Irriss (619) | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F112 | Qods Haut,Chu,Mouhoub-Irriss.pdf | 580184 | Qods Haut, Chu-Mouhoub-Irriss | Qods Bas (599) ; Hay Saada | 1 Université | ? | A3 | non | non | oui | 2026-09-28 | vectoriel | vectoriel sans coordonnées |
+| F113 | Sidi driss.pdf | 351501 | Sidi Driss | Mbasso (556) ; Aounia (552) | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F114 | tairet bas.pdf | 451777 | Tairet Bas (574) | Mbasso (556) ; Tairet Haut ; Belhoucine | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F115 | tairet haut.pdf | 400689 | Tairet Haut | Lieutenant Belhoucine ; Maksam-Kharoub | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F116 | Tazaghine.pdf | 1043706 | Tazaghine | Tennis 2 (541,5) ; Lazaret Bas (563,5) ; Lazaret Haut (580) ; Abdellah Gunoun Bas | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+| F117 | Tennis 2.pdf | 233989 | Tennis 2 (541,5) | Tennis 1 (538) | 2 Jbel Hamra DN700 | ? | A3 | non | non | oui | 2026-09-24 | vectoriel | vectoriel sans coordonnées |
+
+### 9.3 Autres fichiers de plans
+
+| ID | Fichier | Taille (octets) | Nature | Exploitation |
+|---|---|---|---|---|
+| F125 | Reseau aep oujda.dwg | 162838568 | dessin AutoCAD du réseau AEP d'Oujda, source des planches | non lu : DWG non lisible sans conversion ; demander un export DXF (ou GeoJSON) avec le système de coordonnées (section 12) |
+| F124 | Reseau aep oujda.bak | 162845162 | sauvegarde AutoCAD du même dessin | non lu |
+| F126 ; F127 | Reseau aep oujda.dwl ; .dwl2 | 55 ; 205 | verrous AutoCAD (poste DELL, 2026-10-02 15:34:21) | sans contenu métier |
+| F118 | plot.log | 831 | journal de 4 impressions A3 du DWG le 2026-10-02 (15:05 à 15:36) | donne les échelles d'impression |
+| F110 | plans.rar | 10533325 | archive contenant les mêmes 21 PDF (mêmes noms et tailles) | doublon, non relu |
+
+### 9.4 Synthèse de la couverture
+
+| Zone du tableau n° 1 | Secteurs avec planche | Secteurs sans planche |
+|---|---|---|
+| 1 Université 7000 m3 et champ de tir | Qods Haut, Chu-Mouhoub-Irriss (F112) ; Andalous (F098) ; Maafa Bekay Bas (F106) ; Ballaoui Bas-Irfane, Unisit-Colline-Partie H Ain Serrak (F100, « part 1 ») ; Qods Bas (F111) ; Château Sidi Aissa (F101) ; Azengot (F099) ; Maksam-Kharoub (F107) | suite de Ballaoui Bas-Irfane (« part 2 » absente) |
+| 2 Jbel Hamra DN700 | Lazaret Bas (F103) ; Tairet Bas (F114) ; Tairet Haut (F115) ; Mbasso (F108) ; Tennis 2 (F117) ; Sidi Driss (F113) ; Tazaghine (F116) ; Ghar El Baroud-Zone Industrielle et El Boustane (F102) | — |
+| 3 Réservoir Ain Serrak 5000 m3 | — | tous : Derfoufi et Zerktouni ; Mohammadi Intérieur ; Allal Ben Abdellah ; Oued Makhazine ; Mauritanie et Hassani ; Mohammadi Extérieur ; Benkhirane |
+| 4 Sidi Yahya 5000 m3 et 4000 m3 | Pam (F109) ; Lazaret Haut (F104, F105) ; Abdellah Guenoun Bas (F096) et Haut (F097) | Sidi Yahya |
+| 5 Jbel Hamra DN600 | — | tous : Medina ; Rte Algérie ; Tennis 1 ; Aounia ; Atlas ; Lieutenant Belhoucine ; Boudir |
+
+- **R-PLAN-001** [CONTRACTUEL] La SRM fournit les plans de réseau disponibles « sous format Papier/Autocad » ; ils sont à restituer avant la réception définitive. [F056 p.27, art. II-29]
+- **R-PLAN-002** [CONTRACTUEL] Les fuites détectées sont implantées sur un plan « à une échelle appropriée » ; chaque rapport journalier comporte un extrait de plan au format A4 ; le report final des fuites sur plans est remis sur papier et sur support informatique. [F056 p.22, art. II-18 ; p.24, art. II-21 ; p.27, art. II-30]
+- **R-PLAN-003** [DÉDUIT] Les planches découpent le réseau par secteur hydraulique (limites en pointillé magenta) ; ce découpage est celui du tableau n° 1, avec des subdivisions « Bas » / « Haut » et « part 1 » / « part 2 » propres aux tirages. Il n'existe dans le dossier aucun découpage en tournées ; la « tournée » des fiches est une référence d'abonné (section 10 bis). [F096 à F117]
+- **R-PLAN-004** [DÉDUIT] Orthographes concurrentes d'un même secteur à normaliser : Guenoun / Guennoun / Gunoun ; Maafa Bekay / Maafa Bekkay / Sidi Maafa ; Ballaoui / Bellaoui ; Iriss / Irriss ; Tairet (CPS) / Tairet Bas et Tairet Haut (planches). [F056 p.18 ; F096 à F117]
+- **R-PLAN-005** [DÉDUIT] Pour la carte de l'application : privilégier l'export du DWG en DXF puis GeoJSON (conduites, limites de secteur, noms) avec conversion du système de coordonnées vers WGS84 ; à défaut, utiliser les planches comme simple fond de référence calé par points de contrôle. Le linéaire par secteur, nécessaire au suivi du prix 1, devra être calculé à partir de ce dessin `[À CONFIRMER avec la SRM]`. [F125 ; F056 p.18-19]

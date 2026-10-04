@@ -147,3 +147,50 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# ----------------------------------------------------------------------------
+# Projet suivi-fuites (CLAUDE.md §13)
+# ----------------------------------------------------------------------------
+
+# Secrets et clés
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+recovery-codes*
+*recovery*codes*
+
+# Signature Android (ne jamais perdre ni publier)
+*.jks
+*.keystore
+keystore.properties
+
+# Binaires et builds
+*.apk
+*.aab
+android/app/build/
+.expo/
+
+# Exports de base de données et sauvegardes
+*.sql
+*.dump
+backups/
+# ... sauf les fichiers SQL du projet Supabase (migrations, données, tests)
+!supabase/migrations/*.sql
+!supabase/donnees/*.sql
+!supabase/tests/**/*.sql
+!supabase/ci/*.sql
+!supabase/seed.sql
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Données volumineuses ou sensibles (planches, plans, photos)
+data-private/
+planches/
+
+# macOS
+.DS_Store

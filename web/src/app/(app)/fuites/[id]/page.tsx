@@ -7,7 +7,8 @@ import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO,
   dateHeure, libellesMarche, localVersIso, messageErreur, montant, nombre,
 } from '@/lib/format';
-import { preparerPhoto } from '@/lib/photo';
+import { lienItineraire } from '@/lib/itineraire';
+import { preparerPhoto, urlsPhotos } from '@/lib/photo';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type {
@@ -44,7 +45,7 @@ export default function DetailFuite() {
     const sb = getSupabase();
     const [f, ph, rp, rf, q, n, m, pc, pr] = await Promise.all([
       sb.from('v_fuites').select('*').eq('id', id).maybeSingle(),
-      sb.from('photos').select('id, type, chemin, prise_le').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
+      sb.from('photos').select('id, type, chemin, prise_le, stockage').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
       sb.from('reparations').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
       sb.from('refections').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
       sb.from('v_quantites').select('id, prix_numero, prix_ordre, prix_designation, unite, quantite, pu_ht, montant_ht_bordereau, origine_ligne').eq('fuite_id', id).order('prix_ordre'),
@@ -57,8 +58,8 @@ export default function DetailFuite() {
     setFuite((f.data as VFuite | null) ?? null);
     const lignesPhotos = (ph.data as PhotoLigne[] | null) ?? [];
     if (lignesPhotos.length) {
-      const urls = await sb.storage.from('photos').createSignedUrls(lignesPhotos.map((p) => p.chemin), 3600);
-      setPhotos(lignesPhotos.map((p) => ({ ...p, url: urls.data?.find((u) => u.path === p.chemin)?.signedUrl ?? undefined })));
+      const urls = await urlsPhotos(lignesPhotos);
+      setPhotos(lignesPhotos.map((p) => ({ ...p, url: urls.get(p.id) })));
     } else {
       setPhotos([]);
     }
@@ -153,6 +154,9 @@ export default function DetailFuite() {
                 {fuite.latitude.toFixed(6)}, {fuite.longitude.toFixed(6)} ·{' '}
                 <a href={`https://www.google.com/maps?q=${fuite.latitude},${fuite.longitude}`} target="_blank" rel="noreferrer">
                   Ouvrir dans Cartes
+                </a>{' '}
+                <a className="bouton petit" href={lienItineraire(fuite.latitude, fuite.longitude)!} target="_blank" rel="noreferrer">
+                  Y aller
                 </a>
               </dd>
             </>

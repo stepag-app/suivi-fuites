@@ -62,7 +62,11 @@ quantités et prix du bordereau **seulement** avec le droit « quantités / lire
 (détection, avant, pendant, après, réfection), 3 par ligne, réduites dans le navigateur (800 px, JPEG 60 %),
 avec type, date et coordonnées ; visas des règles d'attachement du marché ; pied « édité le », page n / N.
 Mesures (pile locale, Chromium) : fuite avec 6 photos de 1 600 px → **2 pages, 393 Ko, 0,4 à 0,6 s** ;
-25 fuites du marché DEMO → 43 pages, 0,56 Mo, ≈ 1 s. Ces PDF gardent les images : ils serviront d'archive
+25 fuites du marché DEMO → 43 pages, 0,56 Mo, ≈ 1 s.
+Lien « Itinéraire vers la fuite » dans le rapport et bouton **Y aller** sur la fiche (`src/lib/itineraire.ts` :
+Google Maps en mode itinéraire, application sur la tablette Android, site sur ordinateur ; pas de carte Google
+intégrée). Lecture des photos (fiche et rapports) par une seule fonction, `urlsPhotos` dans `src/lib/photo.ts`,
+qui choisit selon `photos.stockage` (aujourd'hui `supabase` seulement) : le lot R2 ne changera qu'elle. Ces PDF gardent les images : ils serviront d'archive
 avant toute purge des anciennes photos (CLAUDE.md § 7).
 
 ## Mode hors ligne léger

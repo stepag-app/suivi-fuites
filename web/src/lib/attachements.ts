@@ -149,3 +149,6 @@ export function finDuMois(): string {
 
 export const moisAnnee = () =>
   new Date().toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'Africa/Casablanca' });
+
+// « de mars 2026 », « d'août 2026 », « d'octobre 2026 »
+export const duMois = (mois = moisAnnee()) => (/^[aeiouyéh]/i.test(mois) ? `d'${mois}` : `de ${mois}`);

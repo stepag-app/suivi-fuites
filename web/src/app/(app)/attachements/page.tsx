@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { finDuMois, moisAnnee, titreLot, type Lot, type ReglesAttachement } from '@/lib/attachements';
+import { duMois, finDuMois, titreLot, type Lot, type ReglesAttachement } from '@/lib/attachements';
 import { dateSeule, messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
@@ -48,7 +48,7 @@ export default function Attachements() {
     const mensuel = !regles || regles.periodicite === 'mensuelle';
     const { error } = await getSupabase().from('attachements').insert({
       id, marche_id: marcheId,
-      intitule: mensuel ? `Attachement de ${moisAnnee()}` : 'Nouvel attachement',
+      intitule: mensuel ? `Attachement ${duMois()}` : 'Nouvel attachement',
       date_arret: mensuel ? finDuMois() : null,
     });
     if (error) {

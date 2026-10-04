@@ -61,12 +61,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const sb = getSupabase();
       const [p, mComplet, d] = await Promise.all([
         sb.from('profils').select('*').eq('id', utilisateurId).maybeSingle(),
-        sb.from('marches').select(`${COLONNES_MARCHE}, ${COLONNES_MARCHE_CLIENT}`).order('code'),
+        sb.from('marches').select(`${COLONNES_MARCHE}, ${COLONNES_MARCHE_CLIENT}`).order('date_commencement', { ascending: false, nullsFirst: false }).order('code'),
         sb.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', utilisateurId),
       ]);
       // Base pas encore à jour (colonne inconnue) : colonnes d'origine, libellés par défaut.
       const m = mComplet.error?.code === '42703'
-        ? await sb.from('marches').select(COLONNES_MARCHE).order('code')
+        ? await sb.from('marches').select(COLONNES_MARCHE).order('date_commencement', { ascending: false, nullsFirst: false }).order('code')
         : mComplet;
       if (annule) return;
       // Sans réseau : dernier contexte connu de cet utilisateur (profil, marchés, droits).

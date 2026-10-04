@@ -69,6 +69,9 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 
 ## 5. Prochaines étapes proposées
 
+**À prévoir : choix des colonnes à l'export** (demande d'Issam, 2026-10-04). Recommandation d'ergonomie : un **panneau latéral** (ou fenêtre modale) ouvert par « Exporter », qui garde la liste filtrée visible derrière, avec cases à cocher groupées (identification, localisation, réparation, réfection, quantités et montants, SRM), un bouton « Tout / Rien », des **modèles enregistrés** (ex. « État journalier SRM », « Pièces posées par secteur ») et le choix du format (Excel, CSV, PDF, Word). Une page dédiée seulement quand viendront les attachements et les rapports PDF avec aperçu.
+
+
 1. Retours du premier test terrain (parcours connexion → fuite → réparation → réfection).
 2. À ajouter dans le panneau selon les retours : paramètres (ouvriers, équipes, prix hors bordereau,
    motifs), carte des fuites, anomalies, journal, interface en arabe / mixte, exports PDF et Word.

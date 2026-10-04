@@ -48,6 +48,7 @@ export default function ListeFuites() {
 
   const filtrees = useMemo(() => {
     const t = texte.trim().toLowerCase();
+    const chiffres = t.replace(/\D/g, '');
     return fuites.filter(
       (f) =>
         (!statut || f.statut === statut) &&
@@ -56,6 +57,7 @@ export default function ListeFuites() {
         (!t ||
           String(f.numero) === t ||
           (f.reference_srm ?? '').toLowerCase().includes(t) ||
+          (chiffres.length >= 3 && (f.reference_srm ?? '').replace(/\D/g, '').includes(chiffres)) ||
           (f.adresse ?? '').toLowerCase().includes(t)),
     );
   }, [fuites, statut, secteur, texte, alertesSeules]);

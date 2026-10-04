@@ -13,6 +13,9 @@
 
 * { box-sizing: border-box; }
 
+/* Le style des champs ne doit pas réafficher un élément caché (champ de fichier). */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {

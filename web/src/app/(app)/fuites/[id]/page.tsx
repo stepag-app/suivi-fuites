@@ -328,11 +328,12 @@ function Photos({
 
   async function ajouter(fichiers: FileList | null) {
     if (!fichiers?.length) return;
+    const liste = Array.from(fichiers);
     setEnvoi(true);
     onErreur('');
     try {
       const sb = getSupabase();
-      for (const fichier of Array.from(fichiers)) {
+      for (const fichier of liste) {
         const prete = await preparerPhoto(fichier);
         const photoId = crypto.randomUUID();
         const chemin = `${marcheId}/${fuiteId}/${photoId}.jpg`;

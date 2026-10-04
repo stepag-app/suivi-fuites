@@ -1,3 +1,213 @@
+# Règles du marché n° 4500004453 : détection, recherche et réparation de fuites (SRM Oriental / STEPAG, Oujda)
+
+## 0. En-tête, table des matières, guide de lecture
+
+**Résumé.** Ce fichier rassemble toutes les règles tirées du dossier du marché n° 4500004453 (appel d'offres n° 10008883/1R) : pièces contractuelles, bordereau, modèles de 2017 et gabarits STEPAG. Il est destiné à une session de développement qui n'a pas accès aux documents d'origine. Chaque règle porte un identifiant (`R-…`), un statut normatif et sa source (`[F056 p.23]`).
+
+**À retenir avant de lire.** Le marché n'est pas un simple marché de réparation à la demande : c'est un marché de performance en trois phases (balayage de 1466 km en 4 mois, puis deux phases de maintien de 4 mois), payé au mètre balayé et maintenu sous condition de débits nocturnes par zone, plus des réparations à l'unité. Le CPS ne fixe **aucun délai de réparation par fuite** ; il ne définit ni modèle de fiche, ni exigence de photos, ni format de données.
+
+| Élément | Valeur |
+|---|---|
+| Date d'extraction | 2026-10-04 |
+| Dossier source | dossier du marché sur le poste de STEPAG (lecture seule, jamais versionné) : 127 fichiers retenus, 15 exclus, 376 Mo |
+| Livrable | ce fichier unique ; environ 3693 lignes |
+| Outils utilisés | pdftotext, pdfinfo, pdftoppm, pdfimages, pdffonts (poppler) ; tesseract et ocrmypdf (fra+ara) ; pandoc ; textutil ; openpyxl, xlrd, python-docx, Pillow (Python) ; lecture visuelle des pages scannées, des tableaux et des plans ; sous-agents pour les documents longs et les secondes lectures |
+| Limites rencontrées | dessin AutoCAD (DWG, 162,8 Mo) et sa sauvegarde non lisibles ; fichiers .xls lus en valeurs seules (formules non accessibles) ; ocrmypdf refusé sur les PDF signés (repli : pdftoppm + tesseract) ; aucun modèle Canva dans le dossier (connecteur Canva non utilisé) ; exemplaire du marché signé par la SRM absent |
+| Pré-requis | tous les outils présents ; push à blanc réussi au démarrage |
+
+### Statuts normatifs et marqueurs
+
+| Marque | Sens |
+|---|---|
+| `[CONTRACTUEL]` | CPS, bordereau, définition des prix, acte d'engagement, ordres de service, règlement de consultation du marché 4500004453 |
+| `[2017]` | hérité de l'ancien marché n° 59/E/2016 : utile pour la forme, jamais pour les prix, délais ou références |
+| `[INTERNE]` | gabarit ou pratique STEPAG, non imposé par le client |
+| `[DÉDUIT]` | interprétation ou calcul de l'extracteur |
+| `[À CONFIRMER : raison]` | source ambiguë ou illisible |
+| `[NON PRÉCISÉ]` | les documents ne disent rien |
+| `[CONTRADICTION : A vs B]` | deux sources divergent |
+
+Préfixes des règles : `R-ID` (section 2), `R-CPS` (3), `R-BPU` (4), `R-DEF` (5), `R-MAT` (6), `R-ATT` (7), `R-FICHE` (8), `R-PLAN` (9), `R-IDF` (10 bis), `R-DER` (11). Questions `Q-01` à `Q-41` et contradictions `C-01` à `C-10` en section 12. Les articles du CPS sont cités `art. I-n` (clauses administratives) et `art. II-n` (prescriptions spéciales) car la numérotation recommence.
+
+### Table des matières
+
+| Section | Titre | Lignes | Contenu |
+|---|---|---|---|
+| 0 | En-tête, table des matières, guide de lecture | 60 | ce préambule |
+| 1 | Inventaire des fichiers | 146 | les 127 fichiers du dossier : identifiant, nature, statut normatif, section qui les couvre |
+| 2 | Fiche d'identité du marché | 124 | numéros, parties, dates, nature et montants du marché, intervenants |
+| 3 | CPS : règles contractuelles | 1295 | CPS article par article (citations et règles R-CPS), renvois externes, délais, pénalités, états et rapports, paiement, moyens |
+| 4 | Bordereau des prix | 113 | bordereau des 13 prix, totaux, recalcul, bloc CSV |
+| 5 | Définition des prix | 225 | définition de chaque prix, règles de métré, tableau « saisie terrain → prix » et CSV |
+| 6 | Matériaux et articles | 313 | matériaux contractuels et catalogue interne de 266 pièces |
+| 6 bis | Énumérations (listes de valeurs fermées) | 261 | toutes les listes de valeurs (zones, secteurs, revêtements, ouvrages, statuts…) |
+| 7 | Attachement modèle 2017 et pièces de paiement | 316 | modèle 2017 : bordereau, chaîne de calcul, attachement, décompte, état de suivi, facture, table de passage, exemple chiffré |
+| 8 | Fiches et modèles Canva | 291 | gabarits STEPAG actuels champ par champ : rapport journalier, fiche de réparation, rapport mensuel, classeur d'attachement |
+| 9 | Plans | 73 | les 21 planches et le dessin AutoCAD |
+| 10 | Glossaire | 108 | termes, abréviations, équivalences d'unités |
+| 10 bis | Identifiants, références et numérotations | 39 | formats des numéros et références |
+| 11 | Règles dérivées pour l'application | 119 | cycle de vie, saisies par étape, calculs, contrôles, alertes, exports, suivi financier |
+| 11 bis | Dictionnaire de données consolidé | 126 | dictionnaire de données et cardinalités |
+| 12 | Points ambigus, contradictions et questions | 84 | 41 questions avec hypothèse par défaut, contradictions, pièces à demander |
+
+### Guide de lecture
+
+1. **Pour le schéma de base de données** : sections 11 bis (dictionnaire et cardinalités), 6 bis (énumérations), 10 bis (formats d'identifiants), 4 (prix) et 5 (règles de métré et tableau « saisie terrain → prix »).
+2. **Pour les écrans de la tablette** : sections 8 (champs des fiches actuelles) et 11 (cycle de vie, données par étape, contrôles de saisie).
+3. **Pour les exports et les attachements** : sections 3.14 (états et rapports exigés), 3.16 (paiement et décompte), 7 (modèle d'attachement, de décompte et de facture, exemple chiffré servant de test) et 8.4 (classeur d'attachement actuel).
+4. **Pour les alertes** : sections 3.9 (tableau unique des délais), 3.10 (pénalités), 11.5 (seuils d'alerte) et 2.3 (dates du marché).
+5. **Pour la carte** : sections 9 (planches et dessin AutoCAD), 6 bis (zones et secteurs) et 3.3 (tableau n° 1 : linéaires et débits par zone).
+6. **Avant toute décision de conception** : section 12 ; chaque question a une hypothèse par défaut qui permet d'avancer.
+7. Les blocs ```csv des sections 4 et 5 sont directement importables (séparateur point-virgule, point décimal).
+8. Les citations en retrait (`>`) reproduisent le texte du CPS tel quel, fautes comprises ; les règles qui suivent chaque citation en sont la traduction.
+9. Tout ce qui porte `[2017]` décrit un autre marché : s'en servir comme modèle de forme uniquement, via la table de passage 7.9.
+10. Fiabilité : section 13 (pages lues, secondes lectures, écarts recalculés).
+
+## 1. Inventaire des fichiers
+
+**Résumé.** 127 fichiers inventoriés (142 fichiers physiques, dont 15 exclus : `.DS_Store`, `Thumbs.db` et verrous Office `~$`), 376 Mo, dont 326 Mo pour le dessin AutoCAD et sa sauvegarde. Identifiants `F001` à `F127` attribués par ordre alphabétique du chemin relatif. Un doublon exact (F041 = F029) ; un fichier vide (F007) ; deux factures de contenu identique (F072, F075) ; une archive qui duplique les plans (F110).
+
+**Principaux `[NON PRÉCISÉ]`.** Fichiers non exploitables : F125 et F124 (DWG et sauvegarde, non lisibles sans conversion) ; F007 (vide). Aucun modèle Canva.
+
+Colonne « Pages ou feuilles » : nombre de pages (PDF) ou de feuilles (classeurs) lues, d'après le journal de lecture. SHA-256 : huit premiers caractères.
+
+| ID | Chemin relatif | Type | Taille (octets) | Pages ou feuilles | Nature | Texte ou scanné | Langues | SHA-256 (8) | Statut normatif | Couvert dans |
+|---|---|---|---|---|---|---|---|---|---|---|
+| F001 | Attachement N°1 mois 10.xlsx | xlsx | 261513 | 9 | attachement (classeur STEPAG 2026) | classeur | fr ; ar (en-tête) | e5673aa4 | interne STEPAG en préparation | 8.4 ; 6.2 ; 6 bis ; 10 bis ; 11 bis |
+| F002 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Cautions/caution_provisoire_1399641.pdf | pdf | 104808 | 2 | caution ou assurance | texte (p.1) ; scanné (p.2) | fr | 61dea06a | contractuel signé | 2.1 |
+| F003 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Déclaration sur l'honneur.docx | docx | 20522 | 1 | autre (déclaration sur l'honneur) | texte | fr | f8641ce7 | contractuel signé | 2 ; 13 |
+| F004 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Déclaration sur l'honneur.pdf | pdf | 249934 | 1 | autre (déclaration sur l'honneur) | texte | fr | 2ff9f5be | contractuel signé | 2 ; 13 |
+| F005 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Déclaration sur l'honneur.pdf - 20260812193523 - Signature 1.xml | xml | 7736 | 1 | autre (preuve de signature électronique XML) | texte | — | cf777fa0 | référence externe | 13 |
+| F006 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Statut + pv/changements de siège 2024 + documents annexes.pdf | pdf | 2225186 | 6 | autre (statuts et PV de la société) | scanné (OCR) | fr ; ar | 16d2f76a | référence externe | 13 |
+| F007 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Statut + pv/changements de siège 2024 + documents annexes.pdf - 20260812193515 - Signature 1.xml | xml | 0 | 1 | autre (preuve de signature électronique, vide) | vide, non exploitable | — | e3b0c442 | référence externe | 13 |
+| F008 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Statut + pv/STATUT MIS A JOUR 2023.pdf | pdf | 7510229 | 13 | autre (statuts et PV de la société) | scanné (OCR) | fr ; ar | 7f1839c6 | référence externe | 13 |
+| F009 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier administratif/Statut + pv/STATUT MIS A JOUR 2023.pdf - 20260812193507 - Signature 1.xml | xml | 7748 | 1 | autre (preuve de signature électronique XML) | texte | — | 8f87c994 | référence externe | 13 |
+| F010 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2023.pdf | pdf | 45557 | 1 | autre (attestation de chiffre d'affaires) | texte | fr ; ar | d1f2930c | référence externe | 13 |
+| F011 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2023.pdf - 20260812193548 - Signature 1.xml | xml | 7721 | 1 | autre (preuve de signature électronique XML) | texte | — | 564c56df | référence externe | 13 |
+| F012 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2024 1.pdf | pdf | 127631 | 1 | autre (attestation de chiffre d'affaires) | texte | fr ; ar | 74b4c31d | référence externe | 13 |
+| F013 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2024 1.pdf - 20260812193556 - Signature 1.xml | xml | 7725 | 1 | autre (preuve de signature électronique XML) | texte | — | 64ada013 | référence externe | 13 |
+| F014 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2025.pdf | pdf | 45600 | 1 | autre (attestation de chiffre d'affaires) | texte | fr ; ar | 33e40d92 | référence externe | 13 |
+| F015 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Attestation CA 2025.pdf - 20260812193604 - Signature 1.xml | xml | 7721 | 1 | autre (preuve de signature électronique XML) | texte | — | 89f14021 | référence externe | 13 |
+| F016 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/ATTESTATION DE REFERENCE 65-E-2022.pdf | pdf | 485983 | 1 | autre (attestation de référence) | scanné (lu visuellement) | fr ; ar (en-tête) | ec066dfb | référence externe | 13 ; 6 bis |
+| F017 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/ATTESTATION DE REFERENCE 65-E-2022.pdf - 20260812193531 - Signature 1.xml | xml | 7738 | 1 | autre (preuve de signature électronique XML) | texte | — | 6d6db55a | référence externe | 13 |
+| F018 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/ATTESTATION DE REFRENCE Amendis.pdf | pdf | 346077 | 1 | autre (attestation de référence) | scanné (lu visuellement) | fr ; ar (en-tête) | 50fcb671 | référence externe | 13 ; 6 bis |
+| F019 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/ATTESTATION DE REFRENCE Amendis.pdf - 20260812193540 - Signature 1.xml | xml | 7735 | 1 | autre (preuve de signature électronique XML) | texte | — | 555d4c04 | référence externe | 13 |
+| F020 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens humains.pdf | pdf | 191891 | 1 | offre technique ou mémoire (notes des moyens) | texte ; classeur | fr | 2b5df694 | contractuel signé | 3.19 |
+| F021 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens humains.pdf - 20260812193612 - Signature 1.xml | xml | 7727 | 1 | autre (preuve de signature électronique XML) | texte | — | 092e2f89 | référence externe | 13 |
+| F022 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens humains.xlsx | xlsx | 25774 | 1 | offre technique ou mémoire (notes des moyens) | texte ; classeur | fr | 3222ae5c | contractuel signé | 3.19 |
+| F023 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens matériels.pdf | pdf | 202235 | 1 | offre technique ou mémoire (notes des moyens) | texte ; classeur | fr | a58ffc10 | contractuel signé | 3.19 |
+| F024 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens matériels.pdf - 20260812193620 - Signature 1.xml | xml | 7734 | 1 | autre (preuve de signature électronique XML) | texte | — | 7ff85fcf | référence externe | 13 |
+| F025 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/Note des moyens matériels.xlsx | xlsx | 27272 | 1 | offre technique ou mémoire (notes des moyens) | texte ; classeur | fr | 2f570e3c | contractuel signé | 3.19 |
+| F026 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/plan de charge.docx | docx | 18589 | 1 | offre technique ou mémoire (plan de charge) | texte | fr | bb105f6a | contractuel signé | 2.1 ; 3.19 |
+| F027 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/plan de charge.pdf | pdf | 219932 | 1 | offre technique ou mémoire (plan de charge) | texte | fr | ae4486bf | contractuel signé | 2.1 ; 3.19 |
+| F028 | DAO 10008883-1R/01 - Dossier de l'enveloppe/dossier technique/plan de charge.pdf - 20260812193640 - Signature 1.xml | xml | 7716 | 1 | autre (preuve de signature électronique XML) | texte | — | 5c798e31 | référence externe | 13 |
+| F029 | DAO 10008883-1R/02 - Dossier d'offre financiére/Acte d'engagement.docx | docx | 21088 | 1 | acte d'engagement | texte | fr | c08866ae | contractuel signé | 2 |
+| F030 | DAO 10008883-1R/02 - Dossier d'offre financiére/Acte d'engagement.pdf | pdf | 187868 | 1 | acte d'engagement | texte | fr | 9f79503e | contractuel signé | 2 |
+| F031 | DAO 10008883-1R/02 - Dossier d'offre financiére/Acte d'engagement.pdf - 20260812193704 - Signature 1.xml | xml | 7706 | 1 | autre (preuve de signature électronique XML) | texte | — | 8761decc | référence externe | 13 |
+| F032 | DAO 10008883-1R/02 - Dossier d'offre financiére/P.3.2 BP majoration.pdf | pdf | 278375 | 1 | bordereau des prix (offre signée) | texte | fr | eb07d011 | contractuel signé | 4 |
+| F033 | DAO 10008883-1R/02 - Dossier d'offre financiére/P.3.2 BP majoration.pdf - 20260812193712 - Signature 1.xml | xml | 7710 | 1 | autre (preuve de signature électronique XML) | texte | — | bca31bd4 | référence externe | 13 |
+| F034 | DAO 10008883-1R/02 - Dossier d'offre financiére/P.3.2 BP majoration.xlsx | xlsx | 14553 | 1 | bordereau des prix (classeur) | classeur | fr | 099c73d9 | contractuel non signé | 4 |
+| F035 | DAO 10008883-1R/Arrivées/NOTIFICATION DE L'APPROBATION.pdf | pdf | 365042 | 1 | ordre de service | scanné (lu visuellement) | fr ; ar (en-tête) | eebe5dc4 | contractuel signé | 2 |
+| F036 | DAO 10008883-1R/Arrivées/OS DE COMMENCEMENT 02-10-2026.pdf | pdf | 342484 | 1 | ordre de service | scanné (lu visuellement) | fr ; ar (en-tête) | 26a16d4e | contractuel signé | 2 |
+| F037 | DAO 10008883-1R/Arrivées/STE STEPAG- AO 10008883-1R.pdf | pdf | 366319 | 1 | courrier ou notification | scanné avec couche OCR (vérifié visuellement) | fr ; ar (en-tête) | 8de7f40b | contractuel signé | 2 |
+| F038 | DAO 10008883-1R/Avis d'insertion/Avis d'insertion arabe.pdf | pdf | 1177117 | 1 | autre (avis d'appel d'offres, version arabe) | texte | ar | 230314d2 | référence externe | 2.3 ; 12.4 |
+| F039 | DAO 10008883-1R/Avis d'insertion/Avis d'insertion français.pdf | pdf | 433932 | 1 | autre (avis d'appel d'offres) | texte | fr | 472e334e | référence externe | 2.3 |
+| F040 | DAO 10008883-1R/complement dossier/Acte d'engagement- rectifié.pdf | pdf | 491141 | 1 | acte d'engagement | texte | fr | 815e1631 | contractuel signé | 2 |
+| F041 | DAO 10008883-1R/complement dossier/Acte d'engagement- rectié.docx | docx | 21088 | 1 | acte d'engagement (doublon exact de F029) | texte | fr | c08866ae | contractuel signé | 2 |
+| F042 | DAO 10008883-1R/complement dossier/Attestation de lASMP 2026-08-11.pdf | pdf | 94045 | 1 | autre (attestations CNSS, fiscale, registre de commerce) | texte | fr ; ar | dff85399 | référence externe | 13 |
+| F043 | DAO 10008883-1R/complement dossier/ATTESTATION STEPAG MARCHES PUBLICS 14-05-2026.pdf | pdf | 159089 | 1 | autre (attestations CNSS, fiscale, registre de commerce) | texte | fr ; ar | 3d1fab06 | référence externe | 13 |
+| F044 | DAO 10008883-1R/complement dossier/Déclaration sur l'honneur - rectifiée.docx | docx | 20665 | 1 | autre (déclaration sur l'honneur) | texte | fr | 833be3d4 | contractuel signé | 2 ; 13 |
+| F045 | DAO 10008883-1R/complement dossier/Déclaration sur l'honneur - rectifiée.pdf | pdf | 489453 | 1 | autre (déclaration sur l'honneur) | texte | fr | 263c2d4a | contractuel signé | 2 ; 13 |
+| F046 | DAO 10008883-1R/complement dossier/RC modèle 9 au 2026-08-13.pdf | pdf | 331304 | 1 | autre (attestations CNSS, fiscale, registre de commerce) | texte | fr ; ar | 64c39622 | référence externe | 13 |
+| F047 | DAO 10008883-1R/complement dossier/RIB STEPAG -  BQ SAHAM.pdf | pdf | 179282 | 1 | autre (RIB, non recopié) | scanné (OCR) | fr | 51a4ffb9 | référence externe | 13 |
+| F048 | DAO 10008883-1R/Dossier administratif/ATTESTATION D'enregistrement.PDF | pdf | 156896 | 1 | autre (enregistrement du marché) | texte | fr ; ar | 6b19b71b | contractuel signé | 2.1 ; 2.4 |
+| F049 | DAO 10008883-1R/Dossier administratif/ORDRE_RECETTE1789487043337.pdf | pdf | 184620 | 1 | autre (enregistrement du marché) | texte | fr ; ar | a45d43dd | contractuel signé | 2.1 ; 2.4 |
+| F050 | DAO 10008883-1R/Départ/Bordereau d'envoi - Attestation d'assurance AT+RC+auto.docx | docx | 33591 | 1 | courrier ou notification (départ STEPAG) | texte | fr ; ar (en-tête) | cc1ae0a7 | interne STEPAG en préparation | 8.5 ; 2.1 |
+| F051 | DAO 10008883-1R/Départ/Bordereau d'envoi - Caution définitive.docx | docx | 33542 | 1 | courrier ou notification (départ STEPAG) | texte | fr ; ar (en-tête) | cc247435 | interne STEPAG en préparation | 8.5 ; 2.1 |
+| F052 | DAO 10008883-1R/Départ/Bordereau d'envoi - Dépôt Droits d'enregitrement.docx | docx | 33450 | 1 | courrier ou notification (départ STEPAG) | texte | fr ; ar (en-tête) | 7e2e9e7e | interne STEPAG en préparation | 8.5 ; 2.1 |
+| F053 | DAO 10008883-1R/Départ/Demande de caution déf Marché.docx | docx | 37822 | 1 | courrier ou notification (départ STEPAG) | texte | fr ; ar (en-tête) | 60d5f0f4 | interne STEPAG en préparation | 8.5 ; 2.1 |
+| F054 | DAO 10008883-1R/P.1 RC.pdf | pdf | 816843 | 17 | règlement de consultation | texte | fr | feee2746 | contractuel signé | 3.19 ; 2 ; 4 |
+| F055 | DAO 10008883-1R/P.1 RC.pdf - 20260812194456 - Signature 1.xml | xml | 7650 | 1 | autre (preuve de signature électronique XML) | texte | — | 3c6f5977 | référence externe | 13 |
+| F056 | DAO 10008883-1R/P.2 CPS.pdf | pdf | 1324434 | 30 | CPS | texte (p.20 blanche) | fr | 6068ef2c | contractuel signé | 2 ; 3 ; 5 |
+| F057 | DAO 10008883-1R/P.2 CPS.pdf - 20260812194515 - Signature 1.xml | xml | 7651 | 1 | autre (preuve de signature électronique XML) | texte | — | 239ef438 | référence externe | 13 |
+| F058 | DAO 10008883-1R/P.3.1 BP rabais.pdf | pdf | 300105 | 4 | bordereau des prix (modèle) | texte | fr | 6fed1fb1 | contractuel non signé | 4 |
+| F059 | DAO 10008883-1R/P.3.2 BP 10008883-1R majoration.xlsx | xlsx | 15588 | 1 | bordereau des prix (classeur) | classeur | fr | 3a6b0692 | contractuel non signé | 4 |
+| F060 | DAO 10008883-1R/P.3.2 BP majoration.pdf | pdf | 300128 | 4 | bordereau des prix (modèle) | texte | fr | 64b44f30 | contractuel non signé | 4 |
+| F061 | DAO 10008883-1R/P.4 Modèle déclaration sur l'honneur.docx | docx | 24796 | 1 | autre (modèles du dossier d'appel d'offres) | texte | fr | 0558aba2 | contractuel non signé | 13 |
+| F062 | DAO 10008883-1R/P.5 Modèle acte d'engagement.docx | docx | 21763 | 1 | autre (modèles du dossier d'appel d'offres) | texte | fr | bfe3e004 | contractuel non signé | 13 |
+| F063 | DAO 10008883-1R/P.6 Modèle déclaration plan de charge.docx | docx | 20026 | 1 | autre (modèles du dossier d'appel d'offres) | texte | fr | 3226f9b3 | contractuel non signé | 13 |
+| F064 | LOGO-SRM.png | png | 51285 | 1 | image ou photo (logo) | image | — | bc584aeb | référence externe | 13 |
+| F065 | Marché Détécton et réparation de fuites année 2017/Attachement réparation de fuites + Mouvements matériel.xlsx | xlsx | 1033043 | 8 | attachement 2017 | classeur | fr | ba4e8fa8 | historique autre marché | 7 |
+| F066 | Marché Détécton et réparation de fuites année 2017/BP 59 E 2016 RAADEEO.xls | xls | 54272 | 1 | bordereau des prix (2017) | classeur (.xls) | fr | 113f13e9 | historique autre marché | 7.2 |
+| F067 | Marché Détécton et réparation de fuites année 2017/contrat STEPAG AFW.docx | docx | 60694 | 1 | autre (sous-traitance AFW 2017) | texte ; classeur | fr | 0952d4b4 | historique autre marché | 7.1 |
+| F068 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/Attachement + Décompte N°1.xlsx | xlsx | 1183158 | 15 | attachement 2017 et décompte | classeur | fr | 0d08a1c7 | historique autre marché | 7 |
+| F069 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/attachement radeeo/Attachement + Décompte N°1 (1).xlsx | xlsx | 1328396 | 15 | attachement 2017 et décompte | classeur | fr | 0fcde2ff | historique autre marché | 7 |
+| F070 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/attachement radeeo/Bordereau MARCHE  RADEEO (1).doc | doc | 44032 | 1 | courrier ou notification (2017) | texte | fr | 9afe3442 | historique autre marché | 7.1 |
+| F071 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/attachement radeeo/Etat de suivi Recap 59-E-16 (1).xls | xls | 54784 | 1 | état modèle SRM (2017 : état de suivi, suivi du délai) | classeur (.xls) | fr | db37c38a | historique autre marché | 7.6 |
+| F072 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/attachement radeeo/facture RADEEO (1).xls | xls | 67072 | 1 | décompte ou facture 2017 | classeur (.xls) | fr | 6083e3c6 | historique autre marché | 7.6 |
+| F073 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/attachement radeeo/FICHE SUIVI DELAI 59-E-16.xls | xls | 21504 | 1 | état modèle SRM (2017 : état de suivi, suivi du délai) | classeur (.xls) | fr | 4ac24d44 | historique autre marché | 7.6 |
+| F074 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/FACTURE  STEPAG.xls | xls | 70656 | 1 | décompte ou facture 2017 | classeur (.xls) | fr | 4d370d3f | historique autre marché | 7.6 |
+| F075 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/facture RADEEO.xls | xls | 67072 | 1 | décompte ou facture 2017 | classeur (.xls) | fr | 7fc807cc | historique autre marché | 7.6 |
+| F076 | Marché Détécton et réparation de fuites année 2017/Detection de fuite AFW/Fiche de réparation de fuites + Mouvements matériel + attachement (2).xlsx | xlsx | 1008935 | 9 | attachement 2017 et décompte | classeur | fr | cebb966e | historique autre marché | 7 |
+| F077 | Marché Détécton et réparation de fuites année 2017/Dossier AO MARCHE N°59-E-2016 travaux de detection de fuites/MARCHE N°59-E-2016 travaux de detection de fuites/1 marché59.doc | doc | 439296 | 1 | CPS (marché 2017) | texte | fr | cb23218d | historique autre marché | 7 ; 3 (mentions [2017]) |
+| F078 | Marché Détécton et réparation de fuites année 2017/Dossier AO MARCHE N°59-E-2016 travaux de detection de fuites/MARCHE N°59-E-2016 travaux de detection de fuites/2-BP.xls | xls | 40960 | 1 | bordereau des prix (2017) | classeur (.xls) | fr | 5161c74e | historique autre marché | 7.2 |
+| F079 | Marché Détécton et réparation de fuites année 2017/Dossier AO MARCHE N°59-E-2016 travaux de detection de fuites/MARCHE N°59-E-2016 travaux de detection de fuites/3. derniére page.doc | doc | 45056 | 1 | CPS (marché 2017) | texte | fr | 88b0ffd7 | historique autre marché | 7 ; 3 (mentions [2017]) |
+| F080 | Marché Détécton et réparation de fuites année 2017/Détail quantitatif Réparation + réfection.xls | xls | 203264 | 3 | attachement 2017 (prototype et fiche de fuite) | classeur (.xls) | fr | b3b373e5 | historique autre marché | 7.7 |
+| F081 | Marché Détécton et réparation de fuites année 2017/en tete afw .doc | doc | 39936 | 1 | autre (sous-traitance AFW 2017) | texte ; classeur | fr | 25bd9cd2 | historique autre marché | 7.1 |
+| F082 | Marché Détécton et réparation de fuites année 2017/essai AFW.xlsx | xlsx | 460437 | 3 | autre (essai de carottage ; mesure de débit 2017) | classeur | fr | 4ff0e9cc | historique autre marché | 7.1 |
+| F083 | Marché Détécton et réparation de fuites année 2017/facture n°1 à affair of the water.xlsx | xlsx | 41222 | 4 | autre (sous-traitance AFW 2017) | texte ; classeur | fr | c8cb4cdc | historique autre marché | 7.1 |
+| F084 | Marché Détécton et réparation de fuites année 2017/Fiche de réparation de fuites + Mouvements matériel + attachement.xlsx | xlsx | 699741 | 8 | attachement 2017 | classeur | fr | 4d817342 | historique autre marché | 7 |
+| F085 | Marché Détécton et réparation de fuites année 2017/Fiche de réparation de fuites + Mouvements matériel.xlsx | xlsx | 809363 | 7 | attachement 2017 | classeur | fr | c1dcd377 | historique autre marché | 7 |
+| F086 | Marché Détécton et réparation de fuites année 2017/Mesure/Riadi.xlsx | xlsx | 51502 | 3 | autre (essai de carottage ; mesure de débit 2017) | classeur | fr | 5d3b6168 | historique autre marché | 7.1 |
+| F087 | Marché Détécton et réparation de fuites année 2017/Rapport journalier vide.xlsx | xlsx | 53328 | 1 | fiche (rapport journalier 2017) | classeur | fr | 4bd8d6fc | historique autre marché | 7.7 |
+| F088 | Marché Détécton et réparation de fuites année 2017/Rapports hebdomadaires/Rapports hebdomadaires détéction de fuites.xlsx | xlsx | 83830 | 5 | fiche (rapport hebdomadaire 2017) | classeur | fr | 64a87581 | historique autre marché | 7.7 |
+| F089 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers A. Guennoun.xlsx | xlsx | 82836 | 7 | fiche (rapport journalier 2017) | classeur | fr | 15316586 | historique autre marché | 7.7 |
+| F090 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Jawhara.xlsx | xlsx | 64104 | 3 | fiche (rapport journalier 2017) | classeur | fr | 475dd117 | historique autre marché | 7.7 |
+| F091 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Lazaret Haut - repasse.xlsx | xlsx | 72813 | 5 | fiche (rapport journalier 2017) | classeur | fr | e4068fe7 | historique autre marché | 7.7 |
+| F092 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Lazaret Haut.xlsx | xlsx | 113018 | 13 | fiche (rapport journalier 2017) | classeur | fr | ff5bebd3 | historique autre marché | 7.7 |
+| F093 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Mchiwer.xlsx | xlsx | 53406 | 1 | fiche (rapport journalier 2017) | classeur | fr | 9161fdf7 | historique autre marché | 7.7 |
+| F094 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Si Lakhder.xlsx | xlsx | 71165 | 4 | fiche (rapport journalier 2017) | classeur | fr | aff98c70 | historique autre marché | 7.7 |
+| F095 | Marché Détécton et réparation de fuites année 2017/Rapports journaliers de détection/Rapports journaliers Sidi yahya.xlsx | xlsx | 94059 | 8 | fiche (rapport journalier 2017) | classeur | fr | bd7d1a03 | historique autre marché | 7.7 |
+| F096 | plans/abdellah guennoun bas.pdf | pdf | 376937 | 1 | plan | texte vectoriel (aperçu lu) | fr | f480e622 | référence externe | 9 |
+| F097 | plans/abdellah guennoun haut.pdf | pdf | 396303 | 1 | plan | texte vectoriel (aperçu lu) | fr | 996487e1 | référence externe | 9 |
+| F098 | plans/Andalous.pdf | pdf | 534924 | 1 | plan | texte vectoriel (aperçu lu) | fr | e50acd73 | référence externe | 9 |
+| F099 | plans/Azengot.pdf | pdf | 212961 | 1 | plan | texte vectoriel (aperçu lu) | fr | ea7172d4 | référence externe | 9 |
+| F100 | plans/Ballaoui Bas-Irfane et autre part 1.pdf | pdf | 478498 | 1 | plan | texte vectoriel (aperçu lu) | fr | 27de084b | référence externe | 9 |
+| F101 | plans/Château Sidi Aissa.pdf | pdf | 228277 | 1 | plan | texte vectoriel (aperçu lu) | fr | 03ad235c | référence externe | 9 |
+| F102 | plans/Ghar el baroud-zone indust.pdf | pdf | 588322 | 1 | plan | texte vectoriel (aperçu lu) | fr | 0ab3a799 | référence externe | 9 |
+| F103 | plans/lazaret bas.pdf | pdf | 297944 | 1 | plan | texte vectoriel (aperçu lu) | fr | e213d57b | référence externe | 9 |
+| F104 | plans/Lazaret haut part 1.pdf | pdf | 663464 | 1 | plan | texte vectoriel (aperçu lu) | fr | 870f5bd2 | référence externe | 9 |
+| F105 | plans/Lazaret Haut part 2.pdf | pdf | 719283 | 1 | plan | texte vectoriel (aperçu lu) | fr | 69902d0b | référence externe | 9 |
+| F106 | plans/Maafa Bekkay Bas.pdf | pdf | 1819543 | 1 | plan | texte vectoriel (aperçu lu) | fr | 0b28c66d | référence externe | 9 |
+| F107 | plans/Maksam-Kharoub.pdf | pdf | 302689 | 1 | plan | texte vectoriel (aperçu lu) | fr | 50f1b37f | référence externe | 9 |
+| F108 | plans/Mbasso.pdf | pdf | 427089 | 1 | plan | texte vectoriel (aperçu lu) | fr | 8b18cd51 | référence externe | 9 |
+| F109 | plans/pam.pdf | pdf | 287297 | 1 | plan | texte vectoriel (aperçu lu) | fr | 2401fb96 | référence externe | 9 |
+| F110 | plans/plans.rar | rar | 10533325 | 1 | plan (archive des mêmes PDF) | archive | — | 92b98734 | référence externe | 9.3 |
+| F111 | plans/Qods Bas.pdf | pdf | 303140 | 1 | plan | texte vectoriel (aperçu lu) | fr | 6648b87e | référence externe | 9 |
+| F112 | plans/Qods Haut,Chu,Mouhoub-Irriss.pdf | pdf | 580184 | 1 | plan | texte vectoriel (aperçu lu) | fr | 21f780c6 | référence externe | 9 |
+| F113 | plans/Sidi driss.pdf | pdf | 351501 | 1 | plan | texte vectoriel (aperçu lu) | fr | 5898dc5e | référence externe | 9 |
+| F114 | plans/tairet bas.pdf | pdf | 451777 | 1 | plan | texte vectoriel (aperçu lu) | fr | 8c00b315 | référence externe | 9 |
+| F115 | plans/tairet haut.pdf | pdf | 400689 | 1 | plan | texte vectoriel (aperçu lu) | fr | efa01045 | référence externe | 9 |
+| F116 | plans/Tazaghine.pdf | pdf | 1043706 | 1 | plan | texte vectoriel (aperçu lu) | fr | 88d8f081 | référence externe | 9 |
+| F117 | plans/Tennis 2.pdf | pdf | 233989 | 1 | plan | texte vectoriel (aperçu lu) | fr | 1aac4f48 | référence externe | 9 |
+| F118 | plot.log | log | 831 | 1 | autre (journal et verrous AutoCAD) | texte | fr | 5d766121 | référence externe | 9.3 |
+| F119 | Rapports journaliers Abdellah guenoun.xlsx | xlsx | 99296 | 1 | fiche (rapport journalier 2026) | classeur | fr | 43fce673 | interne STEPAG en préparation | 8.1 |
+| F120 | Rapports journaliers LAZARET HAUT.xlsx | xlsx | 99399 | 1 | fiche (rapport journalier 2026) | classeur | fr | b80a1810 | interne STEPAG en préparation | 8.1 |
+| F121 | Rapports/Rapport détection STEPAG.xlsx | xlsx | 41532 | 1 | fiche (rapport de détection) | classeur | fr | 10b9ad9b | interne STEPAG en préparation | 8.1 |
+| F122 | Rapports/RAPPORT MENSUEL STEPAG.xlsx | xlsx | 42801 | 1 | fiche (rapport mensuel) | classeur | fr | aeeb46f1 | interne STEPAG en préparation | 8.3 |
+| F123 | Rapports/Rapport réparation STEPAG.xlsx | xlsx | 41014 | 1 | fiche (fiche individuelle de réparation) | classeur | fr | 8659e712 | interne STEPAG en préparation | 8.2 |
+| F124 | Reseau aep oujda.bak | bak | 162845162 | 1 | plan (dessin AutoCAD, non lisible) | binaire | — | a5e8d7f2 | référence externe | 9.3 ; 12.4 |
+| F125 | Reseau aep oujda.dwg | dwg | 162838568 | 1 | plan (dessin AutoCAD, non lisible) | binaire | — | 0823a9d5 | référence externe | 9.3 ; 12.4 |
+| F126 | Reseau aep oujda.dwl | dwl | 55 | 1 | autre (journal et verrous AutoCAD) | texte | fr | 0b34cb0d | référence externe | 9.3 |
+| F127 | Reseau aep oujda.dwl2 | dwl2 | 205 | 1 | autre (journal et verrous AutoCAD) | texte | fr | 04259caa | référence externe | 9.3 |
+
+| Statut normatif | Nombre de fichiers |
+|---|---|
+| référence externe | 56 |
+| historique autre marché | 31 |
+| contractuel signé | 23 |
+| interne STEPAG en préparation | 10 |
+| contractuel non signé | 7 |
 
 ## 2. Fiche d'identité du marché
 
@@ -75,7 +285,7 @@
 
 - **R-ID-008** [CONTRACTUEL] Mode de passation : appel d'offres ouvert « au rabais ou à majoration », en application du § I de l'article 17 et de l'alinéa a du § 3 de l'article 18 du règlement des marchés de la SRM Oriental ; attribution à l'offre la moins-disante. [F056 p.1 ; F054 p.13, art. 20]
 - **R-ID-009** [CONTRACTUEL] L'OS n° 02 invite STEPAG « À commencer l'exécution des travaux le : 02/10/2026 pour une durée maximale de : 12 mois ». [F036 p.1]
-- **R-ID-010** [DÉDUIT] Dates d'échéance calculées de date à date (mois calendaires) à partir du 2026-10-02 ; le CPS ne dit pas si le dernier jour est le 2027-10-01 ou le 2027-10-02 `[À CONFIRMER : mode de décompte des mois, règle du CCAG-T non reproduite]`. [F056 p.8, art. I-19]
+- **R-ID-010** [DÉDUIT] Dates d'échéance calculées de date à date (mois calendaires) à partir du 2026-10-02 ; le CPS ne dit pas si le dernier jour est le 2027-10-01 ou le 2027-10-02 `[À CONFIRMER : mode de décompte des mois, règle du CCAG-T non reproduite]`. En 2017 la régie comptait un délai de 4 mois du 2016-11-28 au 2017-03-27 (veille du jour anniversaire, R-ATT-018) : les échéances seraient alors 2027-02-01, 2027-06-01 et 2027-10-01. [F056 p.8, art. I-19 ; F073]
 
 ### 2.4 Nature du marché et montants
 
@@ -1169,7 +1379,7 @@ Le CPS renvoie souvent au CCAG-Travaux (décret n° 2-14-394 du 13 mai 2016) et 
 | art. I-17 | loi n° 09-08 | données personnelles | oui (obligations) | — |
 
 - **R-CPS-168** [CONTRACTUEL] Le CPS ne contient aucun article « Dérogations au CCAG » : `[NON PRÉCISÉ]` ; les dérogations éventuelles résultent des clauses elles-mêmes (plafond de pénalités 8 %, délai de paiement 90 jours, facturation en trois temps). [F056 p.3, art. I-3]
-- **R-CPS-169** [DÉDUIT] Règles par défaut du CCAG-T non reprises dans le dossier et non vérifiées `[À CONFIRMER]` : intérêts moratoires ; prix nouveaux ; seuils de variation dans la masse ; signature et contestation des attachements ; réserves à la réception ; procédure d'ajournement. Une ligne « règle par défaut du CCAG, non vérifiée dans le dossier » vaut pour chacune.
+- **R-CPS-169** [DÉDUIT] Règles par défaut du CCAG-T non reprises dans le dossier et non vérifiées `[À CONFIRMER]` : intérêts moratoires ; prix nouveaux ; seuils de variation dans la masse ; signature et contestation des attachements ; réserves à la réception ; procédure d'ajournement. Une ligne « règle par défaut du CCAG, non vérifiée dans le dossier » vaut pour chacune. [F056 p.3, art. I-3]
 
 ### 3.5 Objet, consistance, périmètre et opérations annexes
 
@@ -2768,10 +2978,10 @@ Contrôle : TTC cumulé = HT × 1.15 × 1.20 = 15852.40 × 1.38 = 21876.31.
 | 9 | « Nombre de fuites localisées » › « Fuites localisée » | — | D13:D14 | en-tête | — | — | oui | — | [F122 D13] |
 | 10 | « Visibles » (ligne) | — | D15 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (visibles) | [F122 D15] |
 | 11 | « Invisibles » (ligne) | — | D16 | nombre | fuites | `visibilite_fuite` | oui | nb_fuites (invisibles) | [F122 D16] |
-| 12 | « Conduites » (colonne) | — | F14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 F14] |
-| 13 | « Branchement » (colonne) | — | G14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 G14] |
-| 14 | « Piece Spéciale » (colonne) | — | H14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 H14] |
-| 15 | « B.I » (colonne) | — | I14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites par ouvrage | [F122 I14] |
+| 12 | « Conduites » (colonne) | — | F14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 F14] |
+| 13 | « Branchement » (colonne) | — | G14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 G14] |
+| 14 | « Piece Spéciale » (colonne) | — | H14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 H14] |
+| 15 | « B.I » (colonne) | — | I14 | nombre | fuites | `ouvrage_touche` | interne | nb_fuites_par_ouvrage | [F122 I14] |
 | 16 | « TOTAL » (colonne) | — | J14 | nombre calculé | fuites | — | interne | nb_fuites_total | [F122 J14] |
 | 17 | « RATIO » › « Linéaire prospecté (Km.j) » | — | A18 ; valeur A19 | nombre calculé | km/j | — | interne | ratio_km_par_jour | [F122 A18] |
 | 18 | « Fuite sur Branchement par Km » | — | D18 ; valeur D19 | nombre calculé | fuites/km | — | interne | ratio_fuites_branchement_km | [F122 D18] |
@@ -2934,7 +3144,7 @@ Lignes réelles (extrait) :
 
 ### 8.6 Modèles absents du dossier
 
-- **R-FICHE-018** [DÉDUIT] Aucun modèle Canva, aucune fiche en arabe, aucun modèle fourni par la SRM (état journalier, hebdomadaire, fiche de fuite, attachement, décompte) ne figure dans le dossier ; si des modèles Canva existent, en demander l'export PDF (Canva : Partager → Télécharger → PDF standard) (section 12). Le connecteur Canva disponible dans la session n'a pas été utilisé, faute de référence à un design dans le dossier.
+- **R-FICHE-018** [DÉDUIT] Aucun modèle Canva, aucune fiche en arabe, aucun modèle fourni par la SRM (état journalier, hebdomadaire, fiche de fuite, attachement, décompte) ne figure dans le dossier ; si des modèles Canva existent, en demander l'export PDF (Canva : Partager → Télécharger → PDF standard) (section 12). Le connecteur Canva disponible dans la session n'a pas été utilisé, faute de référence à un design dans le dossier. [section 1]
 - **R-FICHE-019** [DÉDUIT] Aucune fiche de détection distincte de la fiche de réparation n'existe en 2026 ; en 2017 le CPS exigeait une « fiche de détection de fuites » par fuite, transmise pour réparation `[2017 : F077 art. 45]`. [F056 p.24]
 
 ## 9. Plans
@@ -3350,7 +3560,7 @@ Lignes réelles (extrait) :
 | visa_srm | S.R.M ; SRM ORIENTAL ; SRM.ORI | — | fiche ; rapport ; attachement | signature | — | oui (attachement contradictoire ; PV de mesures) | représentant de la SRM | F123 G15 ; F122 G20 ; F001 recap A28 | — | [F056 p.13] |
 | mois_rapport | Mois | — | rapport mensuel | énumération (mois) | — | oui | bureau | F122 H11 | — | [F122 H11] |
 | nb_jours_travailles | Nbr Jours | — | rapport mensuel | entier | j | interne | calculé | F122 A13 | — | [F122 A13] |
-| nb_fuites_jour ; nb_fuites_total | TOTAL ; Total des fuites ; Nombre de fuites localisées | — | rapport | entier | fuites | oui | calculé | F119 A48 ; F121 A21 ; F122 J14 | — | [F056 p.24] |
+| nb_fuites_jour ; nb_fuites_total ; nb_fuites ; nb_fuites_par_ouvrage | TOTAL ; Total des fuites ; Nombre de fuites localisées | — | rapport | entier | fuites | oui | calculé | F119 A48 ; F121 A21 ; F122 J14 | — | [F056 p.24] |
 | ratio_km_par_jour ; ratio_fuites_km ; ratio_fuites_branchement_km ; ratio_fuites_conduite_km | Linéaire prospecté (Km.j) ; Total des fuites par Km ; Fuite sur Branchement par Km | — | rapport mensuel | décimal(8,4) | km/j ; fuites/km | interne | calculé | F122 A18:I19 | — | [F122] |
 | prix_numero | N° de prix ; Des prix ; N° Des Prix | — | prix | entier 1 à 13 | — | oui | administrateur (bordereau) | F032 ; F001 BP ; recap ; facture | — | [F032 p.1] |
 | prix_designation | Désignation des prestations | — | prix | texte | — | oui | administrateur | F032 ; F001 | — | [F032 p.1] |
@@ -3401,3 +3611,88 @@ Lignes réelles (extrait) :
 | marché → factures | 3 factures prévues par le CPS (fin de balayage ; + 4 mois ; + 8 mois) | CONTRACTUEL | [F056 p.12-13] |
 | zone → mesures de débit | 3 nuits × 25 mesures avant ; 3 nuits après ; puis au plus 1 contrôle par semaine pendant 8 mois | CONTRACTUEL | [F056 p.22 ; p.24 ; p.21] |
 | agent → marchés ; agent → équipe | [NON PRÉCISÉ] dans les documents (cadrage de l'application) | — | — |
+
+## 12. Points ambigus, contradictions et questions
+
+**Résumé.** 41 questions, classées par destinataire (SRM, puis Issam / STEPAG). Chacune donne les règles et sources concernées, son impact et une hypothèse par défaut qui permet de développer sans attendre. Les contradictions relevées sont récapitulées en 12.3 et les exports à demander en 12.4.
+
+**Les cinq questions les plus structurantes.** Q-01 (délai de réparation : aucun au CPS), Q-03 (assiette et arrondi des pénalités τ), Q-05 (périodicité des attachements et des acomptes), Q-07 (règle d'affectation des pièces aux prix), Q-13 (linéaire par secteur et système de coordonnées du plan).
+
+### 12.1 Questions à poser à la SRM
+
+| N° | Question | Règles et sources | Impact | Hypothèse par défaut |
+|---|---|---|---|---|
+| Q-01 | Existe-t-il un délai de réparation d'une fuite après détection ou validation (le CPS n'en fixe aucun) ? | R-CPS-132 ; [F056 p.23] | alertes ; écran | seuil interne paramétrable de 48 h, sans effet contractuel |
+| Q-02 | Par quel canal et avant quelle heure les fuites du jour doivent-elles être communiquées, et à qui ? Qui valide ? | R-CPS-131 ; R-CPS-175 ; [F056 p.23] | écran ; export | rapport journalier PDF envoyé le soir même au Département Mesures et Amélioration du Rendement ; validation tracée dans l'application |
+| Q-03 | Pénalités τ1 et τ2 : calcul par zone ou global ? au prorata ou par point entier ? sur le montant HT bordereau ou majoré ? | R-CPS-146 ; R-CPS-149 ; R-CPS-150 ; R-ATT-015 ; [F056 p.25] | calcul | par zone, proportionnel sans arrondi, sur le montant HT majoré du prix de la zone (pratique 2017) |
+| Q-04 | Le « montant du marché » servant d'assiette aux pénalités de retard (1/1000), aux plafonds (8 %, 2 %) et à la retenue de garantie (7 %) est-il HT ou TTC ? | R-CPS-077 à R-CPS-079 ; R-CPS-041 ; R-CPS-043 | calcul | TTC après majoration (5191974.00) |
+| Q-05 | Quelle périodicité pour les attachements, décomptes et acomptes : mensuelle, ou seulement les trois factures prévues (fin de balayage, + 4 mois, + 8 mois) ? | R-CPS-065 ; R-CPS-067 à R-CPS-069 ; R-CPS-074 ; [F056 p.12-13] | export ; calcul | attachement mensuel de suivi ; factures aux trois échéances contractuelles |
+| Q-06 | La majoration de 15 % s'applique-t-elle ligne par ligne (prix unitaires majorés) ou sur le total ? Avant ou après TVA ? Avec quel arrondi ? | R-ID-012 ; R-ID-013 ; R-FICHE-015 | calcul ; export | sur le total HT, arrondi au centime, puis TVA |
+| Q-07 | Quelle est la règle d'affectation des réparations aux prix 6 à 13 (cumul de plusieurs prix sur une fuite, prix 10 avec les prix 7 et 8, collier Astor, raccord seul) ? | R-DEF-032 ; R-DEF-036 ; R-ATT-008 ; R-DER-007 | schéma ; calcul | règle automatique de R-DER-007, corrigible à la main, au plus une unité par prix et par fuite |
+| Q-08 | Une fouille négative (sondage sans fuite) est-elle payée au prix 3, avec sa réfection ? Quelle mention porter sur la fiche ? | R-DEF-015 ; R-CPS-127 ; R-CPS-186 ; R-ATT-025 | calcul ; écran | terrassement et réfection payés (pratique 2017), motif « sondage négatif » |
+| Q-09 | Largeur et profondeur de tranchée admises en attachement ; débord de réfection ; arrondi des quantités ; surface minimale. | R-DEF-013 ; R-DEF-014 ; R-DEF-019 ; R-DEF-050 | calcul | dimensions réelles mesurées contradictoirement, sans débord, quantités à 2 décimales |
+| Q-10 | Tranches de diamètre : les bornes 110, 200, 225 et 315 sont-elles incluses ? Que devient une conduite de DN > 315, en fonte, en acier, ou une pièce spéciale ? | R-DEF-039 à R-DEF-041 ; R-MAT-006 | schéma ; calcul | bornes incluses (prix 12 pour DN 110 et 200 ; prix 11 pour 225 et 315) ; au-delà : hors bordereau, prix nouveau à demander |
+| Q-11 | Réfection des pavés, du marbre, de la faïence, du terrain naturel : quel prix ? | R-DEF-021 ; liste `nature_revetement` | calcul | pavés, marbre, faïence au prix 4 ; terrain naturel non payé |
+| Q-12 | Réparation de polyéthylène de plus de 2 m ; remplacement complet d'un branchement ; compteur et robinet cache-entrée. | R-DEF-031 ; R-DEF-032 | calcul | hors bordereau, signalé à la SRM |
+| Q-13 | Quel est le linéaire de référence par secteur (le tableau n° 1 ne donne que le linéaire par zone) et d'où vient-il (SIG, AutoCAD) ? Le linéaire payé est-il plafonné au linéaire du tableau ? | R-DEF-006 ; R-ATT-029 ; R-PLAN-005 | schéma ; calcul | linéaire mesuré sur le plan AutoCAD, plafonné par zone au linéaire du tableau n° 1 |
+| Q-14 | Découpage exact des secteurs : zone 1 (« Château Sidi Aissa Azengot », « Ballaoui Bas-Irfane- Unisit-Colline-Partie H Ain Serrak »), zone 2 (Tairet Bas et Haut), zone 3, zone 4 (Abdellah Guenoun Bas et Haut) ; orthographe officielle. | R-ID-007 ; R-PLAN-004 ; liste `secteur` | schéma | les 34 secteurs de la liste `secteur`, renommables |
+| Q-15 | Que désigne la référence `NNN-NNN-NNN` (tournée de relève, rang, police d'abonné) ? Une liste des branchements avec adresses sera-t-elle fournie sous forme de fichier ? | R-IDF-001 ; R-IDF-002 ; R-CPS-163 | schéma | champ texte libre contrôlé par le motif ; import possible de la liste SRM |
+| Q-16 | Système de coordonnées exigé pour le report des fuites ; format des livrables « informatiques » (Excel, shapefile, KML, DWG, PDF) ; plateforme de destination. | R-CPS-166 ; R-CPS-204 | export | WGS84 en interne ; exports PDF et Excel ; KML ou GeoJSON sur demande |
+| Q-17 | Photos : sont-elles exigées par fuite (avant, pendant, après), avec quelles mentions ? | section 3.14 ; R-CPS-164 | écran ; stockage | 3 photos minimum par fuite (avant, pendant, après) avec date, heure et GPS, choix STEPAG |
+| Q-18 | Modèles imposés : la SRM a-t-elle ses propres modèles de rapport journalier, de fiche de réparation, de rapport mensuel, d'attachement et de décompte ? Qui signe (fonction) ? En combien d'exemplaires ? | R-CPS-139 à R-CPS-141 ; R-CPS-195 ; R-FICHE-018 | export | gabarits STEPAG de la section 8, visas « STEPAG » et « S.R.M » |
+| Q-19 | Date de rattachement d'une fuite au mois (réparation, réfection, constat, visa) ; date de clôture du mois ; délai de remise de l'attachement. | section 7.8 ; R-DER-012 | calcul ; export | date de réparation pour les réparations, date de réfection pour les réfections, clôture le dernier jour du mois |
+| Q-20 | Décompte des mois : le délai de 12 mois se termine-t-il le 2027-10-01 ou le 2027-10-02 ? Les phases sont-elles communes à toutes les zones ou propres à chaque zone (OS partiels) ? | R-ID-010 ; R-ATT-018 ; R-ATT-011 | alertes | échéance la veille du jour anniversaire ; phases communes aux 5 zones |
+| Q-21 | Obtenir le règlement des marchés de la SRM-ORI et confirmer les articles du CCAG-T applicables (57 à 59, 61, 62, 68, 73 à 76) : seuils de variation de la masse, prix nouveaux, intérêts moratoires, réserves à la réception. | section 3.4 ; R-CPS-169 ; R-CPS-076 | calcul ; alertes | seuils d'alerte provisoires de 2017 (−25 % ; +30 % par article) |
+| Q-22 | À quel article renvoie « l'article 52.8 » de l'art. II-14 ? | R-CPS-094 | aucun | lire art. II-22 |
+| Q-23 | Suspension des délais en cas d'attente d'une manœuvre de vanne, d'un avis avant terrassement ou d'une autorisation de voirie : formalisme ? | R-CPS-179 ; R-CPS-182 | alertes | horodater chaque demande et chaque réponse ; pas de suspension automatique |
+| Q-24 | Coupure d'eau, avis aux abonnés, purge, désinfection, remise en eau : qui les fait ? | section 3.5 | écran | SRM (comme la manœuvre des vannes) |
+| Q-25 | Révision des prix : quelle formule pour les prix 1 et 2 ? Quel mois d'exigibilité ? | R-CPS-053 ; R-CPS-055 | calcul | formule a pour 1, 2, 3, 6 à 13 ; formule b pour 4, 5, 10 ; champ « coefficient » saisi par décompte |
+| Q-26 | Pénalité pour non-remise d'un rapport ou d'une fiche (annoncée, non chiffrée) ; délai de réfection des trottoirs. | R-CPS-080 ; R-CPS-136 | alertes | aucune pénalité ; délai de trottoir aligné sur 1 mois |
+| Q-27 | Reprise sous garantie : critère du « même point » ; durée ; trace exigée. | R-CPS-048 ; R-CPS-190 | schéma | même référence SRM et distance < 2 m de la réparation d'origine ; intervention marquée « reprise sans paiement » |
+| Q-28 | Nom et fonction de l'agent chargé du suivi (OS attendu sous 15 jours après le 2026-09-25) ; un accès de consultation ou de validation dans l'application est-il souhaité ? | R-CPS-013 ; R-DER-020 | rôles | rôle « agent de suivi SRM » en lecture + validation |
+| Q-29 | Mesures de débit : les valeurs de télégestion seront-elles transmises (fichier, accès) ? Qui rédige les PV ? Dates des contrôles hebdomadaires. | R-CPS-108 à R-CPS-110 ; R-CPS-117 | schéma ; écran | saisie manuelle par le bureau STEPAG à partir des PV signés |
+| Q-30 | L'adresse de notification : Bureau N°02 Rés. Nasrr (OS n° 01) ou 19 rue Al Kaoutar II (OS n° 02) ? | R-ID-006 | aucun | Bureau N°02 (domicile élu de l'acte d'engagement) |
+| Q-31 | Base d'enregistrement 5 191 980,00 contre montant du marché 5 191 974,00 : confirmer le montant contractuel. | section 2.4 ; [F048 p.1] | calcul | 5191974.00 |
+
+### 12.2 Questions à trancher par Issam / STEPAG
+
+| N° | Question | Règles et sources | Impact | Hypothèse par défaut |
+|---|---|---|---|---|
+| Q-32 | Le marché a-t-il un exemplaire signé par la SRM (CPS, acte d'engagement) ? Le dossier ne contient que les versions signées par STEPAG. | R-BPU-003 ; R-CPS-167 | fiabilité | les versions signées par STEPAG font foi |
+| Q-33 | Le matériel de détection exigé (2 corrélateurs, 2 débitmètres portables, 6 enregistreurs, 50 pré-localisateurs, 4 détecteurs acoustiques) est-il disponible et approuvé par la SRM ? Il n'apparaît pas dans la note des moyens matériels. | R-CPS-156 ; R-CPS-213 | hors application | à présenter à l'approbation de la SRM |
+| Q-34 | Rapport journalier : un rapport par équipe ou un rapport commun aux 4 équipes ? (la cadence contractuelle est par équipe) | R-FICHE-003 ; R-CPS-121 | schéma ; écran | une journée de balayage par équipe et par secteur ; rapport consolidé par secteur |
+| Q-35 | Numérotation des fuites : par marché, par zone ou par secteur ? | R-IDF-003 ; liste 10 bis | schéma | séquence unique par marché |
+| Q-36 | Corriger le numéro de marché dans les gabarits (45000004453 → 4500004453), les titres et dates hérités (« au 30/01/2026 », « Marché N° 59/E/2016 »), les objets des bordereaux d'envoi (4500004350, 4500000169). | R-ID-003 ; section 8.4 ; section 8.5 | export | l'application génère ces documents avec le bon numéro |
+| Q-37 | Suivi de stock des pièces (les pièces sont maintenant fournies par STEPAG) : à gérer dans l'application ? | R-CPS-208 ; R-ATT-027 | périmètre | hors du premier noyau ; les pièces posées sont saisies par fuite |
+| Q-38 | Sens des suffixes hérités de 2017 : « RP » sur les pièces, « R » et « bis » sur les numéros de fuite. | R-ATT-024 ; section 10 | schéma | « R » = repasse ; « bis » = seconde fuite sur la même référence ; « RP » ignoré |
+| Q-39 | Les bordereaux d'envoi [F050] et [F052] (objet « MARCHÉ N° 4500004350 ») concernent-ils ce marché ? | section 8.5 | aucun | gabarit non corrigé ; pièces bien destinées au marché 4500004453 |
+| Q-40 | Sous-traitance éventuelle (détection) : dans la limite de 50 % et hors corps d'état principal, avec habilitation pour les données personnelles. | R-CPS-016 ; R-CPS-024 | rôles | aucun sous-traitant ; sinon comptes dédiés et accès restreints |
+| Q-41 | Fin de marché : destruction des données personnelles exigée par le CPS ; quelle durée de conservation pour les besoins de STEPAG (garantie de 12 mois, litiges) ? | R-CPS-026 ; R-DER-019 | stockage | conserver jusqu'à la réception définitive, puis anonymiser les références d'abonnés |
+
+### 12.3 Contradictions relevées
+
+| N° | Contradiction | Sources | Valeur retenue |
+|---|---|---|---|
+| C-01 | 4 zones dans l'objet du marché, 5 dans le tableau n° 1 | [F056 p.3] vs [F056 p.18-19] | 5 zones |
+| C-02 | numéro de marché à 11 chiffres dans les gabarits | [F001 feuille "Parametre" F5] ; [F121 A10] ; [F122 E6] vs [F035 p.1] | 4500004453 |
+| C-03 | base d'enregistrement 5 191 980,00 contre 5 191 974,00 | [F048 p.1] vs [F040 p.1] | 5191974.00 |
+| C-04 | adresse de notification différente sur les deux OS | [F035 p.1] vs [F036 p.1] | Bureau N°02, Rés. Nasrr |
+| C-05 | matériel de détection exigé absent de la note des moyens matériels de l'offre | [F023 p.1] vs [F056 p.25-26] | l'exigence du CPS prévaut |
+| C-06 | « quatre mois de la seconde période » et « huit mois » de maintien : garantie de maintien de 8 mois, payée 40 % à 4 mois et 60 % à 8 mois | [F056 p.12-13] | 2 phases de 4 mois |
+| C-07 | renvoi à un « article 52.8 » inexistant | [F056 p.17] | art. II-22 |
+| C-08 | acte d'engagement : « n°10008883 » puis « 10008883/1R » dans la version rectifiée | [F030 p.1] vs [F040 p.1] | 10008883/1R |
+| C-09 | attachement « N°01 des travaux exécutés au 30/01/2026 » contre « Travaux executés au 31/10/2026 » ; facture datée du 16/07/2026 | [F001 feuille "attachement recap" A7] vs [F001 feuille "Parametre" A13] | 2026-10-31 |
+| C-10 | Q exigé de la zone 4 (112) supérieur au plus bas historique (99), à l'inverse des autres zones | [F056 p.18-19] | valeurs du tableau n° 1 |
+
+### 12.4 Exports et pièces à demander
+
+| Pièce | Pourquoi | À qui |
+|---|---|---|
+| Export DXF (ou GeoJSON) du dessin « Reseau aep oujda.dwg », avec le système de coordonnées (Lambert Nord Maroc, Merchich ?) et la liste des calques | le DWG de 162,8 Mo n'est pas lisible sans conversion ; les planches PDF n'ont ni échelle ni coordonnées | Issam (poste AutoCAD) ; SRM pour le système de coordonnées |
+| Planches des zones 3 et 5 et du secteur Sidi Yahya ; « part 2 » de Ballaoui Bas-Irfane | absentes du dossier | Issam |
+| Modèles Canva éventuels (Partager → Télécharger → PDF standard) | aucun modèle Canva dans le dossier | Issam |
+| Exemplaire du marché signé par la SRM ; OS désignant l'agent de suivi | non présents | SRM |
+| Règlement des marchés de la SRM-ORI ; CCAG-T (décret n° 2-14-394) | renvois non résolus (section 3.4) | SRM ; texte public |
+| Liste des branchements avec adresses des abonnés ; linéaire par secteur ; emplacement des points de mesure | prévus par le CPS (art. II-29), nécessaires au paramétrage | SRM |
+| Procès-verbaux des mesures de débit de nuit avant intervention (Qi par zone) | point de départ du calcul des gains | SRM / STEPAG |
+| Version arabe de l'avis ([F038]) : non exploitée au-delà du constat d'équivalence avec la version française | sans effet sur les règles | — |

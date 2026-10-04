@@ -20,7 +20,7 @@
 | Lot | Contenu | État au 2026-10-04 23 h 30 UTC |
 |---|---|---|
 | A. Tablette | fiche d'une fuite, réparations et réfections hors ligne, doublons, « Y aller », envoi des photos regroupé dans une seule fonction | PR #13 ouverte |
-| B. Carte | page `/carte`, fond OSM minimal, couleurs par statut, filtres, lien « Y aller » dans la bulle | fait (PR lot B), fond réel à vérifier sur Vercel |
+| B. Carte | page `/carte`, fond OSM minimal, couleurs par statut, filtres, lien « Y aller » dans la bulle | PR #18, fond réel à vérifier sur Vercel |
 | C. Paramètres | page Marchés (copie, activation), secteurs, natures, catalogue, règles des prix | PR #14 ouverte |
 | D. Rapport PDF | rapport par fuite et par liste filtrée (fusionné, PR #15) ; suite : « Y aller », lecture des photos regroupée | suite en cours |
 

@@ -6,9 +6,10 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react
 import {
   NATURES_LIGNE, quantite, titreLot, type LigneLot, type Lot, type Recap, type ReglesAttachement,
 } from '@/lib/attachements';
-import { dateSeule, messageErreur, telechargerCsv } from '@/lib/format';
+import { dateSeule, messageErreur } from '@/lib/format';
+import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, lireTout } from '@/lib/supabase';
 import { AAttacher } from './AAttacher';
 import { FormAnticipation, FormForcage, FormLigneLibre, type ArticleChoix } from './FormsLignes';
 
@@ -34,14 +35,19 @@ export default function DetailLot() {
   const [formulaire, setFormulaire] = useState<'' | 'libre' | 'forcage'>('');
   const [anticipation, setAnticipation] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
+  const [exportOuvert, setExportOuvert] = useState(false);
   const marcheId = marche?.id;
 
   const charger = useCallback(async () => {
     if (!marcheId) return;
     const sb = getSupabase();
+    const lignesLot = lireTout<LigneLot>((de, a) =>
+      sb.from('v_attachement_lignes').select('*').eq('attachement_id', id)
+        .order('fuite_numero', { nullsFirst: false }).order('prix_ordre').order('id').range(de, a))
+      .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error }));
     const [l, li, rc, rg, o, z, p, n, dn] = await Promise.all([
       sb.from('attachements').select('*').eq('id', id).maybeSingle(),
-      sb.from('v_attachement_lignes').select('*').eq('attachement_id', id).order('fuite_numero', { nullsFirst: false }).order('prix_ordre'),
+      lignesLot,
       sb.from('v_attachement_recap').select('*').eq('attachement_id', id).order('prix_ordre').order('prix_numero'),
       sb.from('parametres_attachement').select('*').eq('marche_id', marcheId).maybeSingle(),
       sb.from('ordres_service').select('id, numero, date_os, nature').eq('marche_id', marcheId).order('date_os'),
@@ -138,25 +144,6 @@ export default function DetailLot() {
 
   const retirer = (ids: string[]) => executer(() => getSupabase().from('attachement_lignes').delete().in('id', ids));
 
-  function exporterCsv() {
-    const titre = titreLot(regles?.titre, lot!);
-    telechargerCsv(`attachement-${lot!.numero ?? 'brouillon'}-${marche?.code ?? ''}.csv`, [
-      [titre],
-      [],
-      ['N° prix', 'Désignation', 'Unité', 'Quantité du marché', 'Antérieur', 'Ce lot', 'Cumul', '% du marché'],
-      ...recapUtile.map((r) => [
-        r.prix_numero, r.prix_designation, r.unite, r.quantite_marche, r.quantite_anterieure, r.quantite_lot, r.quantite_cumulee, r.pourcentage_marche,
-      ]),
-      [],
-      ['N° fuite', 'Référence', 'Secteur', 'Réparée le', 'Réfection le', 'L', 'l', 'P', 'N° prix', 'Unité', 'Quantité', 'Nature', 'Désignation / motif'],
-      ...lignes.map((l) => [
-        l.fuite_numero, l.reference_srm, l.secteur, dateSeule(l.reparee_le), dateSeule(l.refectionnee_le),
-        l.fouille_longueur_m, l.fouille_largeur_m, l.fouille_profondeur_m, l.prix_numero, l.unite, l.quantite,
-        l.regularisation ? `Régularisation du lot ${l.lot_precedent}` : NATURES_LIGNE[l.nature], l.designation ?? l.motif,
-      ]),
-    ]);
-  }
-
   return (
     <>
       <p><Link href="/attachements">← Attachements</Link></p>
@@ -171,7 +158,7 @@ export default function DetailLot() {
         {erreur && <p className="erreur">{erreur}</p>}
         {info && <p className="info">{info}</p>}
         <div className="actions">
-          {peut('exports', 'lire') && <button onClick={exporterCsv}>Exporter (Excel){brouillon ? ' : projet' : ''}</button>}
+          {peut('exports', 'lire') && <button onClick={() => setExportOuvert(true)}>Exporter{brouillon ? ' (projet)' : ''}</button>}
           {brouillon && peut('attachements', 'valider') && (
             <button className="primaire" disabled={occupe || lignes.length === 0} onClick={arreter}>Arrêter le lot (définitif)</button>
           )}
@@ -183,6 +170,12 @@ export default function DetailLot() {
           )}
         </div>
       </section>
+
+      <PanneauExport
+        ouvert={exportOuvert}
+        fermer={() => setExportOuvert(false)}
+        attachement={{ lot, lignes, recap, zone: zones.find((z) => z.id === lot.zone_id)?.libelle ?? null }}
+      />
 
       {brouillon ? (
         <EnTeteBrouillon lot={lot} os={os} zones={zones} modifiable={modifiable} regles={regles} enregistrer={(v) => executer(() => getSupabase().from('attachements').update(v).eq('id', lot.id), 'En-tête enregistré.')} />

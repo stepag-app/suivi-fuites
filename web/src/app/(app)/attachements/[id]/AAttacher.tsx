@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { quantite, type ReglesAttachement, type Unite } from '@/lib/attachements';
 import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 
 const AFFICHAGE_MAX = 150;
@@ -32,10 +32,13 @@ export function AAttacher({
 
   const charger = useCallback(async () => {
     setChargement(true);
-    const { data, error } = await getSupabase().from('v_a_attacher').select('*')
-      .eq('marche_id', marcheId).neq('reste', 0).order('fuite_numero').order('prix_ordre');
-    if (error) onErreur(messageErreur(error));
-    setUnites((data as Unite[] | null) ?? []);
+    try {
+      setUnites(await lireTout<Unite>((de, a) => getSupabase().from('v_a_attacher').select('*')
+        .eq('marche_id', marcheId).neq('reste', 0).order('fuite_numero').order('prix_ordre').range(de, a)));
+    } catch (e) {
+      onErreur(messageErreur(e));
+      setUnites([]);
+    }
     setChoix(new Set());
     setChargement(false);
   }, [marcheId, onErreur]);

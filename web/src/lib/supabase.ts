@@ -29,3 +29,20 @@ export function getSupabase(): SupabaseClient {
   }
   return client;
 }
+
+// L'API de données renvoie au plus 1 000 lignes par requête : lecture page par page.
+// `requete(de, a)` fabrique une requête neuve, triée sur une clé stable, limitée à [de, a].
+export async function lireTout<T>(
+  requete: (de: number, a: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  taillePage = 1000,
+  maximum = 50000,
+): Promise<T[]> {
+  const tout: T[] = [];
+  for (let de = 0; de < maximum; de += taillePage) {
+    const { data, error } = await requete(de, de + taillePage - 1);
+    if (error) throw error;
+    tout.push(...(data ?? []));
+    if (!data || data.length < taillePage) break;
+  }
+  return tout;
+}

@@ -1,7 +1,9 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { dateSeule, messageErreur, telechargerCsv } from '@/lib/format';
+import { dateSeule, messageErreur } from '@/lib/format';
+import { JEU_EVENEMENTS } from '@/lib/export/jeux';
+import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { Secteur } from '@/lib/types';
@@ -18,10 +20,10 @@ const TYPES_ACCEPTES = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx';
 const aujourdHui = () => new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
 
 const codeDepuis = (texte: string) =>
-  texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
+  texte.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
 
 export function OngletEvenements({ marcheId }: { marcheId: string }) {
-  const { marche, peut } = useSession();
+  const { peut } = useSession();
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [evenements, setEvenements] = useState<Evenement[]>([]);
@@ -32,6 +34,7 @@ export function OngletEvenements({ marcheId }: { marcheId: string }) {
   const [au, setAu] = useState('');
   const [categorie, setCategorie] = useState('');
   const [texte, setTexte] = useState('');
+  const [exportOuvert, setExportOuvert] = useState(false);
 
   const charger = useCallback(async () => {
     const sb = getSupabase();
@@ -127,17 +130,6 @@ export function OngletEvenements({ marcheId }: { marcheId: string }) {
     window.open(data.signedUrl, '_blank', 'noopener');
   }
 
-  function exporter() {
-    telechargerCsv(`evenements-${marche?.code ?? ''}-${aujourdHui()}.csv`, [
-      ['Date', 'Heure', 'Catégorie', 'Titre', 'Description', 'Participants', 'Lieu', 'Secteur', 'Pièces jointes'],
-      ...filtres.map((e) => [
-        dateSeule(e.date_evenement), e.heure?.slice(0, 5) ?? '', categorieDe(e.categorie_id)?.libelle ?? '',
-        e.titre, e.description, e.participants, e.lieu, secteurDe(e.secteur_id),
-        pieces.filter((p) => p.evenement_id === e.id).map((p) => p.nom_fichier).join(', '),
-      ]),
-    ]);
-  }
-
   const peutCreer = peut('evenements', 'creer');
   const peutModifier = peut('evenements', 'modifier');
   const peutSupprimer = peut('evenements', 'supprimer');
@@ -168,7 +160,7 @@ export function OngletEvenements({ marcheId }: { marcheId: string }) {
             </select>
           </label>
           <label>Recherche<input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Titre, participants…" /></label>
-          {peut('exports', 'lire') && <button type="button" onClick={exporter}>Exporter (Excel)</button>}
+          {peut('exports', 'lire') && <button type="button" onClick={() => setExportOuvert(true)}>Exporter</button>}
         </div>
         {filtres.length === 0 && <p className="discret">Aucun événement.</p>}
         {filtres.map((e) =>
@@ -208,6 +200,8 @@ export function OngletEvenements({ marcheId }: { marcheId: string }) {
           ),
         )}
       </section>
+
+      <PanneauExport ouvert={exportOuvert} fermer={() => setExportOuvert(false)} jeux={[JEU_EVENEMENTS]} />
 
       {(peut('parametres', 'creer') || peut('parametres', 'modifier')) && (
         <Categories categories={categories} marcheId={marcheId} onChange={charger} onErreur={setErreur} />

@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { finDuMois, moisAnnee, titreLot, type Lot, type ReglesAttachement } from '@/lib/attachements';
 import { dateSeule, messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { getSupabase } from '@/lib/supabase';
+import { getSupabase, lireTout } from '@/lib/supabase';
 
 export default function Attachements() {
   const { marche, peut } = useSession();
@@ -25,7 +25,9 @@ export default function Attachements() {
       sb.from('attachements').select('*').eq('marche_id', marcheId).is('supprime_le', null)
         .order('numero', { ascending: false, nullsFirst: true }).order('cree_le', { ascending: false }),
       sb.from('parametres_attachement').select('*').eq('marche_id', marcheId).maybeSingle(),
-      sb.from('v_a_attacher').select('fuite_id').eq('marche_id', marcheId).neq('reste', 0),
+      lireTout<{ fuite_id: string }>((de, a) => sb.from('v_a_attacher').select('fuite_id, prix_id')
+        .eq('marche_id', marcheId).neq('reste', 0).order('fuite_id').order('prix_id').range(de, a))
+        .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
     ]);
     const premiere = l.error || r.error || u.error;
     setErreur(premiere ? messageErreur(premiere) : '');

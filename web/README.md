@@ -23,6 +23,30 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/utilisateurs` | administrateur | créer un agent, rôles par marché, changer le mot de passe, révoquer / réactiver |
 
+## Exports (panneau « Exporter »)
+
+Ouvert par **Exporter** (liste des fuites, fiche d'un lot d'attachement, journal des événements) : panneau
+à droite, la liste reste visible. Modèles enregistrés par marché (« État journalier SRM », « Pièces posées
+par secteur », « Attachement du mois » par défaut, d'autres s'enregistrent), colonnes cochées par thème
+avec Tout / Rien, filtres (période, zone, secteur, équipe ; « limiter à la liste affichée »), regroupement
+avec sous-totaux, synthèse des pièces, format, orientation, aperçu des premières lignes. En-tête tiré de la
+fiche du marché (titulaire, maître d'ouvrage, n° du marché, objet, OS) ; un lot en brouillon porte « PROJET ».
+
+Fichiers fabriqués **dans le navigateur** (aucun coût serveur), bibliothèques chargées seulement au moment
+de l'export (mesures minifiées + gzip) :
+
+| Format | Bibliothèque | Poids | Pourquoi |
+|---|---|---|---|
+| Excel | `write-excel-file` | 19 Ko | styles, fusions, largeurs, ligne figée ; exceljs 263 Ko ; SheetJS 92 Ko, sans styles en version libre |
+| PDF | `jspdf` + `jspdf-autotable` | 140 Ko | tableaux paginés ; pdf-lib 535 Ko et sans mise en page de tableaux |
+| Word | `docx` | 112 Ko | tableaux, en-tête répété, pied paginé, police embarquée |
+| CSV | aucune | — | séparateur « ; », virgule décimale |
+
+**Arabe** : police Amiri (SIL OFL, `public/polices/`), chargée seulement si le document contient de l'arabe.
+Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel : vrai texte. PDF : jsPDF lie mal
+certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
+avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
+
 ## Mode hors ligne léger
 
 - **Nouvelle fuite** : toujours enregistrée d'abord sur la tablette (IndexedDB : fiche + photos déjà

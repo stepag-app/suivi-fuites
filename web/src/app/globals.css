@@ -165,3 +165,20 @@ tfoot td { font-weight: 700; }
 label.unite { font-weight: 400; margin-bottom: 0.3rem; }
 .etiquette-alerte { background: #fdecea; color: var(--danger); }
 tr.discret td { color: var(--discret); }
+
+/* Panneau d'export : à droite, la liste reste visible à gauche */
+.panneau-export {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 20; width: min(480px, 94vw);
+  background: var(--carte); border-left: 1px solid var(--bord); box-shadow: -8px 0 24px rgba(20, 35, 46, 0.18);
+  overflow-y: auto; padding: 1rem 1rem 2rem;
+}
+.panneau-export h2 { margin: 0; }
+.choix-boutons { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.3rem 0 0.6rem; }
+.choix-boutons button.actif { background: var(--principal); color: #fff; }
+.groupe-colonnes { border-top: 1px solid var(--bord); padding-top: 0.4rem; margin-top: 0.4rem; }
+.groupe-colonnes .titre-groupe { font-weight: 700; }
+.groupe-colonnes .cases { display: grid; grid-template-columns: 1fr 1fr; gap: 0 0.6rem; margin-left: 1.6rem; }
+.groupe-colonnes .cases label { font-weight: 400; font-size: 0.92rem; margin-bottom: 0.35rem; }
+.apercu-export table { font-size: 0.8rem; }
+.apercu-export td, .apercu-export th { white-space: nowrap; max-width: 12rem; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 640px) { .groupe-colonnes .cases { grid-template-columns: 1fr; } }

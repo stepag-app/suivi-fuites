@@ -1,0 +1,68 @@
+name: Sauvegarde de la base
+
+# Le plan gratuit de Supabase n'a aucune sauvegarde : ce workflow exporte chaque nuit le schéma,
+# les données (schéma public) et les comptes (schéma auth), chiffre le tout et le garde 30 jours
+# en artefact GitHub (dépôt privé). À la demande : Actions > Sauvegarde de la base > Run workflow.
+# Secrets (Settings > Secrets and variables > Actions) :
+#  * SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD : déjà créés pour le déploiement
+#  * SAUVEGARDE_PASSPHRASE : phrase secrète de chiffrement. À ranger dans le gestionnaire de mots de
+#    passe : sans elle, les sauvegardes sont illisibles. Jamais dans le dépôt ni dans une conversation.
+# Limite : les photos (Storage) ne sont pas dans cette sauvegarde (voir supabase/README.md).
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SUPABASE_PROJECT_ID: osajiinsibwrsltntmsk
+
+jobs:
+  sauvegarde:
+    name: Exporter et chiffrer
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SAUVEGARDE_PASSPHRASE: ${{ secrets.SAUVEGARDE_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la présence des secrets
+        run: |
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
+          done
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Lier le projet
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Exporter
+        run: |
+          mkdir -p sauvegarde
+          supabase db dump --linked -f sauvegarde/schema.sql
+          supabase db dump --linked --data-only --use-copy -f sauvegarde/donnees_public.sql
+          supabase db dump --linked --data-only --use-copy -s auth -f sauvegarde/donnees_auth.sql
+      - name: Contrôler le contenu
+        run: |
+          grep -q 'CREATE TABLE IF NOT EXISTS "public"."fuites"' sauvegarde/schema.sql
+          grep -q 'COPY "public"."marches"' sauvegarde/donnees_public.sql
+          grep -q 'COPY "auth"."users"' sauvegarde/donnees_auth.sql
+          wc -c sauvegarde/*.sql
+      - name: Archiver et chiffrer (AES-256)
+        run: |
+          tar -czf - -C sauvegarde . \
+            | gpg --batch --yes --pinentry-mode loopback --symmetric --cipher-algo AES256 \
+                  --passphrase "$SAUVEGARDE_PASSPHRASE" -o "sauvegarde-$(date -u +%Y%m%d-%H%M).tar.gz.gpg"
+          rm -rf sauvegarde
+          ls -l sauvegarde-*.gpg
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sauvegarde-base
+          path: sauvegarde-*.tar.gz.gpg
+          retention-days: 30
+          if-no-files-found: error

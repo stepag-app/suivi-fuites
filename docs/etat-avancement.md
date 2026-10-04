@@ -19,6 +19,7 @@ Dernière mise à jour : 2026-10-04 (session 3 : paramètres + hors ligne web, p
 | Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://suivi-fuites-web.vercel.app (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
 | Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
+| Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | écrite ; **inactive tant que le secret `SAUVEGARDE_PASSPHRASE` n'existe pas** ; première exécution à valider à la main |
 | Correctif droits `service_role` (migration `20261004130000`) | `supabase/migrations/` | déployé ; simulateur de test rendu strict (aucun droit par défaut), 64 tests |
 
 ## 2. En attente d'Issam
@@ -26,13 +27,14 @@ Dernière mise à jour : 2026-10-04 (session 3 : paramètres + hors ligne web, p
 1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
-4. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que pour Vercel) pour que l'APK puisse se connecter ; puis télécharger l'artefact `suivi-fuites-apk` du workflow « Application Android (APK) » et l'installer sur la tablette de test.
-5. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
-6. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
+4. **Secret GitHub `SAUVEGARDE_PASSPHRASE`** (phrase secrète, gestionnaire de mots de passe), puis lancer « Sauvegarde de la base » à la main et vérifier l'artefact.
+5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que pour Vercel) pour que l'APK puisse se connecter ; puis télécharger l'artefact `suivi-fuites-apk` du workflow « Application Android (APK) » et l'installer sur la tablette de test.
+6. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
+7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 
 ## 3. Décisions prises (à respecter)
 
-- Supabase gratuit pour l'instant ; aucune sauvegarde automatique → backup maison à prévoir (M3/M4).
+- Supabase gratuit pour l'instant ; aucune sauvegarde automatique → backup maison (workflow `sauvegarde-base.yml`, photos non incluses).
 - Bordereau « à majoration » : quantités × prix du bordereau, majoration (15 %) appliquée au total
   de la facture, taux figé à l'émission.
 - Fuites signalées par la SRM : réparées et payées comme celles de STEPAG (`origine = 'srm'`).

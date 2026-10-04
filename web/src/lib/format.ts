@@ -46,6 +46,13 @@ export const TYPES_PHOTO: Record<string, string> = {
   autre: 'Autre',
 };
 
+// Référence SRM / tournée : l'agent ne tape que les chiffres, les tirets se placent seuls.
+// « 302684001 » devient « 302-684-001 » ; au-delà de 9 chiffres, le reste est ignoré.
+export function formaterReferenceSrm(saisie: string): string {
+  const c = saisie.replace(/\D/g, '').slice(0, 9);
+  return [c.slice(0, 3), c.slice(3, 6), c.slice(6, 9)].filter(Boolean).join('-');
+}
+
 const FUSEAU = 'Africa/Casablanca';
 
 export const dateHeure = (iso: string | null | undefined) =>

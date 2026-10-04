@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
-import { OUVRAGES, STATUTS, dateHeure, messageErreur } from '@/lib/format';
+import { OUVRAGES, STATUTS, dateHeure, formaterReferenceSrm, messageErreur } from '@/lib/format';
 import { preparerPhoto } from '@/lib/photo';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
@@ -91,7 +91,10 @@ export default function NouvelleFuite() {
   }, [marcheId, position, reference]);
 
   function ajouterPhotos(fichiers: FileList | null) {
-    if (fichiers) setPhotos((p) => [...p, ...Array.from(fichiers)]);
+    // Copie immédiate : la liste du navigateur est vidée par la remise à zéro ci-dessous,
+    // et React exécute la mise à jour de l'état plus tard.
+    const nouvelles = fichiers ? Array.from(fichiers) : [];
+    if (nouvelles.length) setPhotos((p) => [...p, ...nouvelles]);
     if (selecteurPhoto.current) selecteurPhoto.current.value = '';
   }
 
@@ -202,11 +205,12 @@ export default function NouvelleFuite() {
           Référence SRM / tournée
           <input
             value={reference}
-            onChange={(e) => setReference(e.target.value)}
+            onChange={(e) => setReference(formaterReferenceSrm(e.target.value))}
             placeholder="000-000-000"
             inputMode="numeric"
+            maxLength={11}
             pattern="[0-9]{3}-[0-9]{3}-[0-9]{3}"
-            title="Format 000-000-000"
+            title="9 chiffres, par exemple 302684001 (les tirets se placent seuls)"
           />
         </label>
         <label>

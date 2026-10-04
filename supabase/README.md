@@ -22,6 +22,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004210000_exports.sql` | étape C : modèles d'export par marché (`modeles_export`, trois par défaut), vue `v_fuites_export` (fuite + dernière réparation, réfection, pièces, quantités) |
 | `migrations/20261004220000_anomalies_corrigees.sql` | `v_anomalies` : plus de « terrassement sans avis » sans fouille, ni de « référence en double » sur la fuite d'origine d'une re-détection |
 | `migrations/20261004230000_marche_demo.sql` | marché de démonstration `DEMO` (données fictives, voir ci-dessous) |
+| `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes, natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
@@ -29,6 +30,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) |
 | `tests/database/04_exports.test.sql` | 10 tests de l'étape C (modèles par défaut, droits, vue enrichie) |
 | `tests/database/05_marche_demo.test.sql` | 30 tests : marché DEMO, droits des agents de terrain (ni attachements, ni prix, ni paramètres, ni exports), isolation, lot N° 02 de bout en bout |
+| `tests/database/06_copie_marche_parametres.test.sql` | 36 tests du lot C : copie réservée à l'admin, contenu copié, isolation, paramètres édités par le responsable, règles de proposition sans nouvelle version, refus des agents, journal |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma

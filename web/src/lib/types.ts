@@ -22,6 +22,7 @@ export interface Marche {
   intitule: string;
   client: string;
   ville: string | null;
+  actif?: boolean;
   taux_majoration: number;
   taux_tva: number;
   rayon_redetection_m: number;

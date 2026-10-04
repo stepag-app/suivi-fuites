@@ -1,0 +1,51 @@
+name: Application Android (APK)
+
+on:
+  push:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/apk.yml'
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk:
+    name: Types et compilation de l'APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_NO_TELEMETRY: '1'
+      # Adresse et clé « anon » : publiques par conception (jamais la clé service_role).
+      EXPO_PUBLIC_SUPABASE_URL: https://osajiinsibwrsltntmsk.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'cle-factice-pour-la-compilation' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npx expo prebuild --platform android --no-install
+      - name: Compilation (release, signature de test)
+        working-directory: mobile/android
+        run: ./gradlew assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: suivi-fuites-apk
+          path: mobile/android/app/build/outputs/apk/release/*.apk
+          retention-days: 14

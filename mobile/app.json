@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Suivi des fuites",
+    "slug": "suivi-fuites",
+    "scheme": "suivi-fuites",
+    "version": "0.1.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "ma.stepag.suivifuites",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#0b5d8a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION", "CAMERA"],
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      ["expo-location", { "locationWhenInUsePermission": "La position sert à localiser les fuites." }],
+      ["expo-image-picker", { "cameraPermission": "L'appareil photo sert à photographier les fuites.", "photosPermission": false }],
+      ["expo-build-properties", { "android": { "usesCleartextTraffic": false } }]
+    ]
+  }
+}

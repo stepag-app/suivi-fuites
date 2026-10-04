@@ -30,6 +30,7 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | Deux fausses anomalies corrigées (terrassement sans fouille, re-détection vue comme doublon) | migration `20261004220000` | même PR |
 | Droits des agents de terrain vérifiés : détection et chef de réparation ne voient que les fuites et les réparations (ni attachements, ni prix, ni paramètres, ni exports) ; 30 tests pgTAP de plus (194 au total) | `supabase/tests/database/05_marche_demo.test.sql` | verts |
 | Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
+| **Lot B : carte des fuites** (`/carte`) : fond OpenStreetMap minimal (OpenFreeMap, sans clé), couleur par statut, alertes, regroupement, bulle avec lien vers la fiche, filtres (statut, secteur, période, alertes), recentrer, contours des zones / secteurs si `geom` rempli ; lien « Carte » dans le menu. Parcours Playwright (admin à la souris, agent de détection au toucher) sur pile Supabase locale ; fond réel **non vérifié ici** (tuiles bloquées par le réseau de la session : fond de secours testé) | `web/src/app/(app)/carte/`, `web/scripts/copier-maplibre.mjs` ; `web/README.md` § Carte | PR lot B ; **à vérifier sur Vercel et la tablette** (fond de carte, toucher) |
 | Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
 
 ## 2. En attente d'Issam
@@ -136,7 +137,9 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
    existante sans réseau non gérées.
 4. Migration 2 dès réception du DXF : le balayage (prix 1 et 2) pourra alors s'attacher par tronçon ;
    en attendant, une **ligne libre** du lot d'attachement porte le linéaire balayé par secteur.
-5. Rapport PDF par fuite (photos, GPS), carte des fuites, état journalier au gabarit exact de la SRM.
+5. Rapport PDF par fuite (photos, GPS), état journalier au gabarit exact de la SRM. Carte des fuites
+   faite (lot B) ; à suivre : **impression PDF de la carte** (gabarit SRM, point ouvert 12), tracés GPS,
+   balayage sur la carte (après le DXF).
 
 ## 6. Prompt pour démarrer une nouvelle session
 

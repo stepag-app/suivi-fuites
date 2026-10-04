@@ -15,6 +15,7 @@ pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après va
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
+| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche ») ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli. Voir § Carte |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
 | `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs ; on désactive, on ne supprime pas |
@@ -46,6 +47,22 @@ de l'export (mesures minifiées + gzip) :
 Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel : vrai texte. PDF : jsPDF lie mal
 certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
 avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
+
+## Carte (`/carte`)
+
+- **MapLibre GL JS 6** (BSD, libre), fond **OpenFreeMap « positron »** (`tiles.openfreemap.org`, tuiles
+  OpenStreetMap, sans compte ni clé, attribution OSM affichée par le style). Pas d'image satellite.
+- Chargée **seulement à l'ouverture de la carte** : `scripts/copier-maplibre.mjs` (lancé par `predev` et
+  `prebuild`) copie les modules ES de MapLibre dans `public/maplibre/` (ignoré par git), que la page importe
+  en module natif. Webpack casse le chargement du « worker » de la v6 s'il l'intègre au bundle ; la v5 (un
+  seul fichier) a une faille XSS critique non corrigée (GHSA-jrc7-96c5-q579). Poids : 305 Ko gzip
+  (151 + 147 + 6), 10 Ko gzip de CSS ; les autres pages ne changent pas.
+- Fuites lues dans `v_fuites` (RLS appliquée), par pages de 1 000 au-delà de 1 000 lignes.
+- **Sans réseau** : le module est en cache (service worker) mais les fuites ne le sont pas : message
+  « Pas de réseau », bouton Actualiser. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
+  fond uni avec un bandeau (les nombres des groupes n'apparaissent alors pas).
+- Tablette : boutons de zoom de 44 px, rotation désactivée, un toucher à 14 px près sélectionne le point.
+- Hors périmètre pour l'instant : impression PDF de la carte, tracés GPS des agents, balayage.
 
 ## Mode hors ligne léger
 

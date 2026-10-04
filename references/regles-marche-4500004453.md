@@ -3009,3 +3009,150 @@ Lignes réelles (extrait) :
 - **R-PLAN-003** [DÉDUIT] Les planches découpent le réseau par secteur hydraulique (limites en pointillé magenta) ; ce découpage est celui du tableau n° 1, avec des subdivisions « Bas » / « Haut » et « part 1 » / « part 2 » propres aux tirages. Il n'existe dans le dossier aucun découpage en tournées ; la « tournée » des fiches est une référence d'abonné (section 10 bis). [F096 à F117]
 - **R-PLAN-004** [DÉDUIT] Orthographes concurrentes d'un même secteur à normaliser : Guenoun / Guennoun / Gunoun ; Maafa Bekay / Maafa Bekkay / Sidi Maafa ; Ballaoui / Bellaoui ; Iriss / Irriss ; Tairet (CPS) / Tairet Bas et Tairet Haut (planches). [F056 p.18 ; F096 à F117]
 - **R-PLAN-005** [DÉDUIT] Pour la carte de l'application : privilégier l'export du DWG en DXF puis GeoJSON (conduites, limites de secteur, noms) avec conversion du système de coordonnées vers WGS84 ; à défaut, utiliser les planches comme simple fond de référence calé par points de contrôle. Le linéaire par secteur, nécessaire au suivi du prix 1, devra être calculé à partir de ce dessin `[À CONFIRMER avec la SRM]`. [F125 ; F056 p.18-19]
+
+## 10. Glossaire
+
+**Résumé.** Termes et abréviations du marché, de la SRM et des gabarits STEPAG, avec leur définition telle qu'elle ressort des documents. Les documents sont rédigés en français ; les seuls textes arabes sont des en-têtes (raison sociale de la SRM et de STEPAG) et des pièces administratives bilingues.
+
+**Principaux `[NON PRÉCISÉ]`.** Signification officielle des trois blocs de la référence `NNN-NNN-NNN` ; sens de « 7000m3 », « 5000M3 », « DN700 » dans les noms de zone ; sens de « B.I ».
+
+### 10.1 Termes et abréviations
+
+| Terme ou abréviation | Libellé AR | Définition | Statut | Source |
+|---|---|---|---|---|
+| SRM-ORI ; SRM-Ori ; SRM Oriental ; S.R.M | الشركة الجهوية متعددة الخدمات الشرق ش.م [Société Régionale Multiservices de l'Oriental S.A] | Société Régionale Multiservices L'Oriental S.A, maître d'ouvrage | CONTRACTUEL | [F056 p.1] ; [F036 p.1] |
+| RADEEO ; R.A.D.E.E.O | الوكالة المستقلة الجماعية لتوزيع الماء والكهرباء بوجدة [Régie autonome intercommunale de distribution d'eau et d'électricité d'Oujda] | ancienne régie d'Oujda, maître d'ouvrage du marché de 2017 | 2017 | [F016 p.1] ; [F077] |
+| STEPAG | ستيݒاݣ (ش,م,م) [STEPAG (SARL)] | Société des Travaux d'Eau Potable, Assainissement liquide et Génie civil ; titulaire | CONTRACTUEL | [F040 p.1] ; [F001 feuille "facture" C1] |
+| AFW | — | AFFAIR OF THE WATER SARL, titulaire du marché de 2017 dont STEPAG était sous-traitant | 2017 | [F077] ; [F067] |
+| AO ; AOO | — | appel d'offres (ouvert) ; ici n° 10008883/1R | CONTRACTUEL | [F039 p.1] |
+| DAO | — | dossier d'appel d'offres | CONTRACTUEL | [F054] |
+| RC | — | règlement de consultation (aussi : registre de commerce) | CONTRACTUEL | [F054] |
+| CPS | — | cahier des prescriptions spéciales | CONTRACTUEL | [F056] |
+| CCAG-T ; CCAG-Travaux | — | cahier des clauses administratives générales applicables aux marchés de travaux (décret n° 2-14-394 du 13 mai 2016) | CONTRACTUEL | [F056 p.3] |
+| BP ; bordereau des prix – détail estimatif | — | tableau des 13 prix, quantités et prix unitaires | CONTRACTUEL | [F032] |
+| OS ; O.S | — | ordre de service ; écrit, daté, numéroté, inscrit au registre du marché | CONTRACTUEL | [F056 p.8] |
+| Maître d'ouvrage ; MO | — | la SRM-ORI | CONTRACTUEL | [F056 p.2] |
+| Entrepreneur ; entreprise ; titulaire ; société ; adjudicataire ; soumissionnaire | — | STEPAG (le CPS emploie ces termes indifféremment) | CONTRACTUEL | [F056 p.2] |
+| Agent chargé du suivi de l'exécution du marché | — | agent de la SRM désigné par OS, qui dresse les décomptes | CONTRACTUEL | [F056 p.4] |
+| Rabais ; majoration | — | pourcentage unique offert par le concurrent sur l'estimation de la SRM ; ici majoration de 15 % | CONTRACTUEL | [F054 p.10] ; [F040 p.1] |
+| Balayage | — | inspection systématique de l'ensemble des conduites des secteurs par les moyens de détection ; phase de 4 mois ; prix 1 | CONTRACTUEL | [F056 p.17 ; p.28] |
+| Maintien des résultats ; maintien des performances ; maintien des gains | — | période de 8 mois (2 × 4) après le balayage, pendant laquelle les débits nocturnes atteints doivent être conservés ; prix 2 | CONTRACTUEL | [F056 p.17 ; p.28] |
+| Zone d'intervention | — | regroupement de secteurs alimentés par un même réservoir ou une même conduite ; 5 zones | CONTRACTUEL | [F056 p.18-19] |
+| Secteur ; secteur hydraulique ; secteur d'intervention | — | partie du réseau identifiée par des points de mesure de débit ; unité de balayage et de contrôle | CONTRACTUEL | [F056 p.21] |
+| Sectorisation | — | découpage du réseau en secteurs isolés par des vannes de séparation, dont l'étanchéité est vérifiée | CONTRACTUEL | [F056 p.22] |
+| Débit nocturne minimum ; débit de nuit | — | plus petit débit mesuré entre 0 h et 6 h (pas de 15 minutes) à l'entrée d'un secteur ; indicateur de fuites | CONTRACTUEL | [F056 p.22] |
+| Qi | — | débit de nuit avant intervention : minimum des minimums de trois nuits | CONTRACTUEL | [F056 p.22] |
+| Qf | — | débit de nuit après intervention : minimum des minimums de trois nuits après le balayage | CONTRACTUEL | [F056 p.24] |
+| ΔQ | — | volume récupéré : Qi − Qf, en m3/h | CONTRACTUEL | [F056 p.24] |
+| Q exigé | — | débit nocturne minimum à assurer à l'achèvement du balayage, par zone (tableau n° 1) | CONTRACTUEL | [F056 p.18] |
+| Q réal | — | débit nocturne minimum réalisé par l'entreprise à la fin du balayage | CONTRACTUEL | [F056 p.25] |
+| Q exigé à maintenir | — | égal au Q réal de fin de balayage | CONTRACTUEL | [F056 p.25] |
+| Q réal maintien | — | moyenne des débits minimums hebdomadaires mesurés pendant le maintien | CONTRACTUEL | [F056 p.25] |
+| τ1 ; τ2 | — | écarts relatifs (en %) entre débit exigé et débit réalisé, pour le balayage et pour le maintien ; négatifs quand l'objectif n'est pas atteint | CONTRACTUEL | [F056 p.25] |
+| Gain | — | baisse du débit nocturne obtenue par la campagne | CONTRACTUEL | [F056 p.21] |
+| Télégestion ; télé-relève | — | système de la SRM qui relève à distance les compteurs de secteur ; source des mesures de débit | CONTRACTUEL | [F056 p.21-22] |
+| Corrélateur acoustique ; corrélation | — | appareil et méthode de localisation d'une fuite entre deux capteurs | CONTRACTUEL | [F056 p.22 ; p.26] |
+| Pré-localisateur ; capteur enregistreur de bruit | — | enregistreur posé sur le réseau qui signale une zone d'influence contenant une fuite | CONTRACTUEL | [F056 p.21 ; p.26] |
+| Détecteur de fuites acoustique | — | appareil d'écoute au sol (ex. Aquaphone) | CONTRACTUEL | [F056 p.26] ; [F122] |
+| Fuite | — | fuite proprement dite, ou découverte d'un élément inconnu de la SRM (ex. branchement clandestin) | CONTRACTUEL | [F056 p.25] |
+| Fuite visible ; fuite invisible | — | fuite apparente en surface ; fuite trouvée par détection | CONTRACTUEL | [F056 p.25] |
+| Sondage | — | fouille de vérification ; « sondage négatif » : fouille ne révélant pas de fuite | CONTRACTUEL (mot) ; INTERNE (motif) | [F032 p.1] ; [F001 feuille "LISTE"] |
+| Tranchée ; fouille | — | terrassement ouvert au droit de la fuite | CONTRACTUEL | [F056 p.23 ; p.28] |
+| Conduite ; CDT ; Cdt | — | canalisation du réseau de distribution | CONTRACTUEL ; abréviation INTERNE | [F056] ; [F121] |
+| Branchement ; BRT ; Brt ; Bt | — | liaison entre la conduite et le compteur de l'abonné | CONTRACTUEL ; abréviation INTERNE | [F056 p.29] ; [F121] ; [F123] |
+| Extension | — | prolongement du réseau en polyéthylène | CONTRACTUEL | [F056 p.28] |
+| PEC ; robinet de prise en charge ; collier de prise en charge | — | organe de piquage du branchement sur la conduite | CONTRACTUEL | [F032 p.1] ; [F056 p.29] |
+| Collier Astor | — | collier fixé sur tuyau polyéthylène | CONTRACTUEL | [F056 p.29] |
+| Raccord | — | toute pièce d'un branchement ou d'une extension en polyéthylène, du robinet de PEC ou du collier jusqu'à la niche du compteur, hors robinet cache-entrée et raccords standard du compteur | CONTRACTUEL | [F056 p.29] |
+| Robinet cache-entrée | — | robinet situé avant le compteur, exclu des prix 6 à 9 | CONTRACTUEL | [F056 p.29] |
+| Niche du compteur | — | logement du compteur de l'abonné ; limite aval des réparations de branchement | CONTRACTUEL | [F056 p.29] |
+| Bouche à clé ; tabernacle ; tube allonge | — | ensemble donnant accès depuis la surface au robinet enterré | CONTRACTUEL | [F032 p.1] |
+| Joint gibault ; joint dissymétrique | — | pièces de jonction pour réparer une conduite (diamètres égaux ; diamètres différents) | CONTRACTUEL | [F032 p.1] |
+| AC | — | amiante-ciment (matériau de conduite) ; aussi « Asphalt à chaud » (symbole de réfection) | CONTRACTUEL ; INTERNE | [F032 p.1] ; [F001 feuille "REFECTION"] |
+| PVC | — | polychlorure de vinyle (matériau de conduite) | CONTRACTUEL | [F032 p.1] |
+| PE ; PEHD | — | polyéthylène (haute densité) | CONTRACTUEL ; INTERNE | [F032 p.1] ; [F001] |
+| DN | — | diamètre nominal, en mm | CONTRACTUEL | [F056 p.18] |
+| Calibre | — | diamètre de la canalisation prospectée (rapport journalier) | INTERNE | [F119 E15] |
+| GNA | — | grave non traitée de type A (« tout venant GNA ») | CONTRACTUEL | [F056 p.23] |
+| Cut back | — | bitume fluidifié utilisé en couche d'imprégnation | CONTRACTUEL | [F056 p.23] |
+| Enrobé à chaud ; enrobé-résine à froid | — | revêtements de chaussée (7 cm à chaud ; à froid si la réfection dépasse un mois) | CONTRACTUEL | [F056 p.23-24] |
+| Granito lavé ; mosaïque ; carreaux ciment | — | revêtements de trottoir | CONTRACTUEL | [F032 p.1] |
+| Nature de dégradation | — | revêtement démoli par la fouille, à refaire | INTERNE | [F001] |
+| Symbole | — | code du revêtement refait : B, M, L, C, AC, TN | INTERNE | [F001 feuille "REFECTION" H14] |
+| Réfection | — | remise en état du trottoir ou de la chaussée après réparation | CONTRACTUEL | [F056 p.23] |
+| Tournée | — | dans les gabarits : référence SRM de l'abonné ou du point de livraison au format `NNN-NNN-NNN` (pas une tournée de travail) | INTERNE | [F001] ; [F123 B8] |
+| Référence ; Réf ; Adresse ou Référence | — | même donnée que « Tournée » | INTERNE | [F119 B14] ; [F121 A14] |
+| Attachement | — | relevé contradictoire des quantités exécutées, par numéro de prix | CONTRACTUEL | [F056 p.12] |
+| Décompte provisoire ; décompte général définitif (DGD) | — | état des sommes dues dressé par l'agent de suivi à partir des attachements ; décompte final | CONTRACTUEL | [F056 p.12] |
+| Acompte | — | paiement fait sur la base d'un décompte provisoire | CONTRACTUEL | [F056 p.9 ; p.12] |
+| Retenue de garantie | — | 10 % de chaque acompte, plafonnée à 7 % du marché | CONTRACTUEL | [F056 p.9] |
+| Cautionnement provisoire ; cautionnement définitif | — | garanties bancaires de l'offre (40 000 DH) et de l'exécution (3 %, 155 760 DH) | CONTRACTUEL | [F056 p.9] ; [F035 p.1] |
+| Réception provisoire ; réception définitive | — | constat d'achèvement ; constat de fin de garantie (12 mois après) | CONTRACTUEL | [F056 p.9-10] |
+| Révision des prix | — | ajustement des prix selon des index officiels (formules a et b) | CONTRACTUEL | [F056 p.10] |
+| Bureau d'ordre | — | service de la SRM où les factures sont déposées | CONTRACTUEL | [F056 p.13] |
+| EPI | — | équipements de protection individuels | CONTRACTUEL | [F056 p.14 ; p.26] |
+| ICE ; IF ; TP ; CNSS | — | identifiant commun de l'entreprise ; identifiant fiscal ; taxe professionnelle ; Caisse nationale de sécurité sociale | CONTRACTUEL | [F056 p.12] ; [F040 p.1] |
+| TF | — | titre foncier (mention portée sur les planches) | référence externe | [F098] |
+| B.I | — | bouche d'incendie `[À CONFIRMER]` | INTERNE | [F122 I14] |
+| BS ; bon de sortie | — | bon de sortie du magasin de la régie pour les pièces fournies | 2017 | [F065 feuille "Détail BS"] |
+| Repasse | — | second passage de détection sur un secteur déjà balayé (non rémunéré) | 2017 | [F065 feuille "Linéaire prospecté"] |
+| RP (suffixe de pièce) ; R, bis (suffixes de numéro de fuite) | — | `[À CONFIRMER : sens non écrit]` | 2017 | [F065] |
+| SY4000 ; RJ5000 ; JH600 | — | zones de 2017 : Sidi Yahya 4000+750 ; Route Jerada 5000 ; Jbel Hemra DN600 | 2017 | [F068] |
+| FINEA | — | organisme ayant délivré les cautions | référence externe | [F002 p.1] |
+
+### 10.2 Équivalences d'unités et d'écritures
+
+| Écriture rencontrée | Code normalisé | Sens | Source |
+|---|---|---|---|
+| M ; ml ; « mètre linéaire » ; « DH/ mètre balayé » | ml | mètre linéaire | [F032 p.1] ; [F056 p.28] |
+| Km ; KM ; km ; « Km linéaire » | km (= 1000 ml) | kilomètre de réseau (tableau n° 1, rapports) | [F056 p.18] ; [F121 D10] |
+| M2 ; m2 ; m² ; « mètre carré » | m2 | mètre carré | [F032 p.1] ; [F056 p.28] |
+| M3 ; m3 ; « mètre cube » ; « L'Unité = Le Mètre Cube » | m3 | mètre cube | [F032 p.1] |
+| U ; « l'unité » | u | unité | [F032 p.1] ; [F056 p.29] |
+| m3/h | m3_h | débit | [F056 p.18] |
+| mm ; « MM » | mm | diamètre | [F032 p.1] ; [F056 p.29] |
+| DH ; dhs ; Dhs ; DHS ; dirhams | MAD | dirham marocain | [F032 p.1] ; [F040 p.1] |
+| DH/Jour ; DH/jour | MAD_j | pénalité journalière | [F056 p.14] |
+| Km.j | km_j | kilomètres par jour (ratio du rapport mensuel) | [F122 A18] |
+| 1.466.000 ; 1466000 ; 1466 km | 1466000 ml | linéaire total du marché | [F032 p.1] ; [F056 p.19] |
+| 4 Kms/jour/équipe | 4000 ml par jour et par équipe | cadence minimale | [F056 p.23] |
+| 45000004453 | 4500004453 | numéro du marché (coquille des gabarits) | [F001] ; [F035 p.1] |
+
+## 10 bis. Identifiants, références et numérotations
+
+**Résumé.** Les seules références dont le format est établi par des exemples réels sont : le numéro de marché, le numéro d'appel d'offres, les numéros d'ordre de service, la référence SRM `NNN-NNN-NNN` (appelée « Tournée » ou « Référence ») et le numéro de facture STEPAG. Le numéro de fuite est un simple compteur. Aucune autre numérotation n'est imposée par le CPS.
+
+**Principaux `[NON PRÉCISÉ]`.** Signification et émetteur exact de la référence `NNN-NNN-NNN` ; numéros de bon de travail, d'avis SAP, de police, de compteur ; code de secteur ; numéro de marquage au sol ; numérotation officielle des attachements et des décomptes ; portée d'unicité du numéro de fuite (par zone, par marché).
+
+| Référence | Émetteur | Format exact ou motif | Exemples réels (3 au moins) | Portée d'unicité | Qui l'attribue et quand | Obligatoire sur quels documents | Source |
+|---|---|---|---|---|---|---|---|
+| Numéro du marché | SRM-ORI (SAP) | `^45\d{8}$` (10 chiffres) | 4500004453 ; 4500000150 ; 4500003179 | SRM | SRM, à l'approbation du marché | facture et attachement (« référence du marché ») ; ordres de service | [F035 p.1] ; [F027 p.1] ; [F056 p.11-12] |
+| Numéro de l'appel d'offres | SRM-ORI | `^\d{8}(/\dR)?$` | 10008883/1R ; 10009837 ; 10010170 | SRM | SRM, au lancement | CPS, RC, bordereau, acte d'engagement | [F039 p.1] ; [F056 p.1] |
+| Numéro d'ordre de service | SRM-ORI | `NN/<numéro du marché>` ; au registre : `NN/<numéro du marché>/AAAA` | 01/4500004453 ; 02/4500004453 ; 01/4500004453/2026 | marché | SRM, à chaque OS | attachement (« référence de l'ordre de service correspondant ») | [F035 p.1] ; [F036 p.1] ; [F056 p.12] |
+| Numéro d'ordre de service `[2017]` | RADEEO | `NNN/AAAA` | 285/2016 ; 286/2016 ; 287/2016 ; 288/2016 | régie | un OS global puis un OS partiel par zone | décompte, facture, fiche de suivi du délai | [F073] ; [F069] |
+| Référence SRM de la fuite (« Tournée » ; « Référence » ; « Réf » ; « Adresse ou Référence ») | SRM-ORI `[À CONFIRMER : référence d'abonné ou de point de livraison de la liste des branchements]` | `^\d{3}-\d{3}-\d{3}$` (zéros initiaux conservés, texte) | 302-684-001 ; 040-152-010 ; 461-229-057 ; 075-169-010 ; 513-157-010 ; 2017 : 037-409-020 | non unique par fuite (une même référence peut porter deux fuites) | relevée par l'agent de détection sur place (compteur ou liste des branchements) | rapport journalier (adresse), fiche de réparation, attachement détaillé | [F001] ; [F119] ; [F123] ; [F065] |
+| Numéro de fuite | STEPAG | entier séquentiel à partir de 1 ; `[2017]` suffixes « bis » et « R » | 1 ; 2 ; 22 ; 2017 : 109 bis ; 309 R | `[NON PRÉCISÉ]` ; en 2017 unique sur tout le chantier ; en 2026 le classeur est par zone | STEPAG, à la détection | fiche de réparation, rapport journalier, attachement | [F001] ; [F087] ; [F065] |
+| Numéro de zone | SRM-ORI | entier 1 à 5 | 1 ; 4 ; 5 | marché | tableau n° 1 du CPS | rapports, attachement (« Zone ») | [F056 p.18-19] |
+| Code de secteur | — | `[NON PRÉCISÉ]` : le secteur est désigné par son nom | Lazaret Haut ; Abdellah Guenoun ; Qods Bas | marché | tableau n° 1 du CPS | rapport journalier | [F056 p.18] ; [F119 F9] |
+| Zone de distribution ; étage de pression | — | `[NON PRÉCISÉ]` ; nombres portés sur les planches à côté du nom de secteur | 580 ; 563,5 ; 541,5 | — | — | — | [F103] ; [F104] ; [F117] |
+| Quartier | — | `[NON PRÉCISÉ]` | — | — | — | — | — |
+| Numéro d'équipe | STEPAG | entier 1 à 4 | 1 ; 2 ; 3 ; 4 | marché | STEPAG | rapport journalier (« EQUIPE N° ») | [F119 A8] ; [F056 p.23] |
+| Numéro de planche | STEPAG | `[NON PRÉCISÉ]` ; les planches sont nommées par secteur ; « Planche N° » prévu mais jamais rempli en 2017 | Lazaret Bas ; Tennis 2 ; Azengot | — | — | — | [F096 à F117] ; [F087] |
+| Numéro d'attachement | STEPAG | `N°NN` | ATTACHEMENT N°01 ; ATTACHEMENT N°12 (autre marché) ; 2017 : attachement n° 1 | marché | STEPAG, à chaque attachement | attachement ; bordereau d'envoi | [F001 feuille "attachement recap" A7] ; [F001 feuille "B.ENVOI" B21] |
+| Numéro de décompte | SRM-ORI | `[NON PRÉCISÉ]` ; 2017 : « Décompte provisoire n°1 » | 2017 : n° 01 ; n°1 | marché | agent chargé du suivi | décompte | [F068 feuille "decompte" A13] |
+| Numéro de facture STEPAG | STEPAG | `^FA ?\d{4}-\d{4}$` (FA + année sur 2 chiffres + mois + numéro d'ordre) | FA 2610-0002 ; FA2607-0002 | STEPAG | STEPAG, à l'émission | facture ; bordereau d'envoi | [F001 feuille "facture" A4] ; [F001 feuille "B.ENVOI" B20] |
+| Numéro de facture `[2017]` | AFW | `NN/AAAA/AT N` | 18/2017/AT 1 | AFW | AFW | facture, état de suivi, fiche de suivi du délai | [F072] ; [F073] |
+| Numéro de bon de sortie (BS) `[2017]` | RADEEO (magasin) | entier de 5 ou 6 chiffres | 553552 ; 67001 ; 569442 | régie | magasin de la régie | détail des mouvements de matériel | [F065 feuille "Détail BS"] |
+| Numéro de prix | SRM-ORI | `00001` à `00013` (bordereau) ; `1` à `13` (gabarits) | 00001 ; 00006 ; 00013 | marché | bordereau | attachement, décompte, facture | [F032 p.1] |
+| Référence de courrier SRM | SRM-ORI | `NNNN/AAAA` (manuscrit) | 1132/2026 | SRM | bureau d'ordre | courriers | [F037 p.1] |
+| Numéro de caution | FINEA | entier à 6 chiffres | 230197 ; 231882 | FINEA | organisme | cautions | [F002 p.1] ; [F051] |
+| Bon de commande ; bon ou ordre de travail ; avis SAP | — | `[NON PRÉCISÉ]` (en 2017 l'attachement prévoyait « N° de travail » et « Projet N° », vides) | — | — | — | — | [F065 feuille "attach recap" C6:C8] |
+| Numéro de police ou d'abonné ; numéro de compteur | — | `[NON PRÉCISÉ]` (voir référence SRM de la fuite) | — | — | — | — | — |
+| Numéro de fiche STEPAG ; numéro de fiche SRM | — | `[NON PRÉCISÉ]` : aucune fiche n'est numérotée | — | — | — | — | [F123] |
+| Numéro de marquage au sol | — | `[NON PRÉCISÉ]` | — | — | — | — | — |
+| Numéro d'engagement ; code fournisseur | — | `[NON PRÉCISÉ]` | — | — | — | — | — |
+
+- **R-IDF-001** [INTERNE] La référence `NNN-NNN-NNN` est la clé de rapprochement entre le rapport journalier (colonne « Adresse ou Référence »), la fiche de réparation (« Tournée ») et la feuille de réfection (« Référence ») ; les gabarits signalent les doublons par mise en forme conditionnelle mais ne les interdisent pas. [F001 feuille "Fiche de réparation Zone " B12:B13 ; F121 A16:A20]
+- **R-IDF-002** [DÉDUIT] Les préfixes observés semblent liés au secteur (302-… et 03x-… à Lazaret Haut ; 040-… et 40x-… à Abdellah Guenoun ; 461-… à Lazaret Bas) : le premier bloc serait un code de tournée de relève, le deuxième un rang, le troisième un indice `[À CONFIRMER auprès de la SRM]`. [F119 ; F120 ; F123]
+- **R-IDF-003** [DÉDUIT] Clé proposée d'une fuite dans l'application : identifiant interne unique + numéro de fuite séquentiel par marché (affiché) + référence SRM (non unique) ; le couple (référence SRM, date de détection) sert de contrôle de doublon. [F001 ; F065 § 8]
+- **R-IDF-004** [CONTRACTUEL] Mentions de référence obligatoires : sur l'attachement, la référence du marché et celle de l'ordre de service ; sur la facture, la référence du marché. [F056 p.11-12, art. I-32]

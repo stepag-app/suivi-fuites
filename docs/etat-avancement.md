@@ -44,10 +44,10 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
 4. **Secret GitHub `SAUVEGARDE_PASSPHRASE`** (phrase secrète, gestionnaire de mots de passe), puis lancer « Sauvegarde de la base » à la main et vérifier l'artefact.
-5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans Vercel) :
-   **toujours absent au 2026-10-04 20 h** (le journal de compilation montre la clé factice), l'APK compile mais ne peut
-   pas se connecter. Ensuite : Actions > « Application Android (APK) » > Run workflow (main), télécharger l'artefact
-   `suivi-fuites-apk`, installer sur la tablette (sources inconnues autorisées), batterie « Non restreinte ».
+5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** : **créé le 2026-10-04** ; la compilation APK n° 13 sur `main`
+   (run 37241834456) l'a bien prise, artefact `suivi-fuites-apk` disponible jusqu'au 18/10/2026 : APK connectable.
+   Reste : l'installer sur la tablette (sources inconnues autorisées, batterie « Non restreinte ») et le tester
+   (avec le lot A une fois fusionné : fiche, réparation, réfection, hors ligne), puis le keystore de production.
 6. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
 7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 

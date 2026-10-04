@@ -3,26 +3,27 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-04.
+Dernière mise à jour : 2026-10-04 (fin de journée).
 
 ## 1. Fait
 
 | Élément | Où | État |
 |---|---|---|
-| Règles du marché 4500004453 extraites des documents (CPS, bordereau, définition des prix, attachement 2017, fiches, plans) | `references/regles-marche-4500004453.md` | sur `main` |
-| Plan du schéma v4 validé par Issam | conversation du 2026-10-04 ; résumé dans `supabase/README.md` | validé |
-| Migration 1 : noyau, droits par marché, fuites, interventions, prix, photos, journal, RLS, vues, données du marché | `supabase/migrations/` | PR n° 1 ; CI verte |
-| 61 tests pgTAP + CI GitHub | `supabase/tests/`, `.github/workflows/base-de-donnees.yml` | verts |
-| Déploiement par GitHub Actions | `.github/workflows/deployer-base.yml` | prêt ; attend les secrets |
+| Règles du marché 4500004453 extraites des documents | `references/regles-marche-4500004453.md` | sur `main` |
+| Migration 1 : schéma, droits, RLS, vues, données du marché (13 prix, 5 zones, 34 secteurs, 261 pièces) | `supabase/migrations/` | **déployée** sur le projet `osajiinsibwrsltntmsk` |
+| 61 tests pgTAP + CI | `supabase/tests/`, `.github/workflows/base-de-donnees.yml` | verts |
+| Déploiement automatique des migrations et de la fonction à chaque fusion dans `main` | `.github/workflows/deployer-base.yml` | opérationnel (secrets créés) |
+| Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé ; `est_admin` à confirmer par `select identifiant, est_admin, actif from profils;` |
+| Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
+| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | écrit, compilé, requêtes validées contre PostgREST (28 contrôles) ; **à mettre en ligne sur Vercel** |
 
 ## 2. En attente d'Issam
 
-1. **Secrets GitHub** `SUPABASE_ACCESS_TOKEN` et `SUPABASE_DB_PASSWORD` (voir `supabase/README.md`,
-   « Appliquer au projet Supabase »), puis fusion de la PR n° 1 → déploiement automatique sur le
-   projet `osajiinsibwrsltntmsk` (STEPAG / suivi-fuites, West EU Paris, plan gratuit).
-2. **Premier compte administrateur** après le déploiement (étapes 3 et 4 du README Supabase).
-3. **Plan du réseau `Reseau aep oujda.dwg`** (162,8 Mo) : sera transmis plus tard. Voir § 4.
-4. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
+1. **Fournisseur e-mail Supabase** : *Authentication > Sign In / Providers > Email* : « Enable email provider » **activé**, « Confirm email » **désactivé**, Save.
+2. **Vercel** (équipe STEPAG) : importer le dépôt avec *Root Directory* `web` et les deux variables `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` (procédure dans `web/README.md`).
+3. **Premier test** : se connecter en `issam`, créer un agent dans « Utilisateurs », signaler une fuite avec photo sur la tablette.
+4. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
+5. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
 
 ## 3. Décisions prises (à respecter)
 
@@ -67,25 +68,23 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 
 ## 5. Prochaines étapes proposées
 
-1. Déploiement de la migration 1 et premier administrateur (Issam).
-2. Edge Function de création des comptes agents (identifiant + mot de passe, révocation),
-   `service_role` côté serveur uniquement.
-3. Panneau web (Vercel) : connexion, gestion des utilisateurs et des droits, liste des fuites,
-   alertes, quantités, anomalies.
-4. Application tablette (Expo) : connexion, signalement avec GPS et photo, liste, réparation,
-   réfection, mode hors ligne léger.
-5. Migration 2 dès réception du DXF ; migration 3 (attachements, factures, pénalités, exports).
+1. Retours du premier test terrain (parcours connexion → fuite → réparation → réfection).
+2. À ajouter dans le panneau selon les retours : paramètres (ouvriers, équipes, prix hors bordereau,
+   motifs), carte des fuites, anomalies, journal, interface en arabe / mixte, exports PDF et Word.
+3. Application tablette Expo (APK) avec mode hors ligne léger et suivi GPS, si le test navigateur
+   montre ses limites (réseau coupé, batterie, photos).
+4. Migration 2 dès réception du DXF ; migration 3 (attachements, factures, pénalités, exports).
 
 ## 6. Prompt pour démarrer une nouvelle session
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md et supabase/README.md.
-Contexte : la migration 1 (schéma Supabase, RLS, données du marché 4500004453) est écrite et testée
-(61 tests pgTAP, CI verte). Vérifie d'abord l'état réel : PR n° 1 fusionnée ou non, résultat du
-workflow « Déploiement de la base », secrets présents.
+Contexte : la migration 1 est déployée, le panneau web `web/` et la fonction `gerer-utilisateurs`
+sont écrits. Vérifie d'abord l'état réel : dernier déploiement (workflow « Déploiement de la base »),
+projet Vercel en ligne ou non, retours de test d'Issam.
 Le plan DWG du réseau n'est pas encore disponible : ne commence pas la migration 2.
-Objectif de cette session : [à préciser, par ex. « Edge Function de création des comptes et
-squelette du panneau web Next.js sur Vercel »].
+Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
+fonctionnalité].
 Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne touche pas au projet
 Supabase de production sans mon accord explicite ; aucun secret dans le dépôt ni dans le chat.
 Mets à jour docs/etat-avancement.md en fin de session.

@@ -1,0 +1,13 @@
+{
+  "name": "Suivi des fuites",
+  "short_name": "Fuites",
+  "description": "Détection et réparation de fuites : STEPAG",
+  "start_url": "/fuites",
+  "display": "standalone",
+  "background_color": "#f3f6f8",
+  "theme_color": "#0b5d8a",
+  "lang": "fr",
+  "icons": [
+    { "src": "/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

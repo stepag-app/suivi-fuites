@@ -4,7 +4,7 @@ import { titreLot, type LigneLot, type Lot, type Recap, type ReglesAttachement }
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/lib/format';
 import { getSupabase, lireTout, NOM_ORGANISATION } from '@/lib/supabase';
 import type { Marche } from '@/lib/types';
-import { construireSection, type Colonne, type DocumentExport, type EnteteDoc, type Ligne, type SectionDoc } from './modele';
+import { construireSection, type Colonne, type DocumentExport, type EnteteDoc, type Ligne, type LogoEntete, type SectionDoc } from './modele';
 
 export type JeuId = 'fuites' | 'quantites' | 'pieces' | 'attachement' | 'evenements';
 export type Periode = 'tout' | 'jour' | 'hier' | 'semaine' | 'semaine_derniere' | 'mois' | 'mois_dernier' | 'libre';
@@ -25,6 +25,7 @@ export interface Contexte {
   os: { id: string; numero: string; date_os: string }[];
   regles: ReglesAttachement | null;
   peutMontants: boolean;
+  logos?: { titulaire: LogoEntete | null; maitreOuvrage: LogoEntete | null };   // chargés par chargerLogosEntete
 }
 
 export interface Jeu {
@@ -375,6 +376,8 @@ export function construireEntete(ctx: Contexte, titre: string, infos: string[], 
     titulaireAr: t('titulaire_nom_ar') || null,
     client: [t('client'), t('client_direction'), t('client_service')].filter(Boolean),
     clientAr: t('client_nom_ar') || null,
+    logoTitulaire: ctx.logos?.titulaire ?? null,
+    logoMaitreOuvrage: ctx.logos?.maitreOuvrage ?? null,
     titre,
     infos: [
       `Marché n° ${t('numero')}${t('numero_appel_offres') ? ` (appel d'offres n° ${t('numero_appel_offres')})` : ''}`,

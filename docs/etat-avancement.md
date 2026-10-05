@@ -20,7 +20,7 @@ non fusionnées, CI verte ; fusion sur demande d'Issam après ses essais).
 | Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://suivi-fuites-web.vercel.app (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
 | Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
-| Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | écrite ; **inactive tant que le secret `SAUVEGARDE_PASSPHRASE` n'existe pas** ; première exécution à valider à la main |
+| Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | **active** (secret créé le 2026-10-05, premières exécutions réussies) ; essai de restauration à faire |
 | Correctif droits `service_role` (migration `20261004130000`) | `supabase/migrations/` | déployé ; simulateur de test rendu strict (aucun droit par défaut), 64 tests |
 | **Étape A** : application standard (fiche du marché : titulaire, maître d'ouvrage, délai, OS typés, arrêts et reprises, avenants, bordereau versionné, journal des événements avec pièces jointes, règles d'attachement, libellés et contrôles du client par marché) | migrations `20261004180000`, `20261004180100` ; Paramètres > Marché, Bordereau, Attachement, Événements | **PR [#10](https://github.com/stepag-app/suivi-fuites/pull/10) fusionnée** (accord d'Issam) ; migrations **déployées** le 2026-10-04 à 19 h 05 UTC |
 | **Étape B** : lots d'attachement figés (solde fuite × article, brouillon puis arrêt, régularisations, réfection anticipée, ligne libre, refacturation forcée et réouverture par l'admin) | migration `20261004200000` ; pages `/attachements` | même PR #10, déployée |
@@ -61,7 +61,10 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
-4. **À FAIRE EN PRIORITÉ : sauvegarde nocturne.** Elle **échoue chaque nuit** (constaté le 2026-10-05 à
+4. ~~Sauvegarde nocturne~~ **active depuis le 2026-10-05** : secret `SAUVEGARDE_PASSPHRASE` créé par Issam (phrase
+   dans son gestionnaire de mots de passe), deux exécutions manuelles réussies à 16 h 05 UTC (runs 37337525271 et
+   37337615644, archive chiffrée de 155 Ko, contenu contrôlé par le workflow : schéma, `marches`, comptes). **Reste** :
+   un essai de déchiffrement et de restauration sur une base vierge. Historique : elle **échouait chaque nuit** (constaté le 2026-10-05 à
    02 h 30 : « Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub »), donc **aucune sauvegarde n'existe**.
    Créer le secret GitHub `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le gestionnaire de mots de
    passe ; Settings > Secrets and variables > Actions), puis lancer « Sauvegarde de la base » à la main et

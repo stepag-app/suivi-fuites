@@ -1,7 +1,8 @@
 // Mode hors ligne léger : les fuites créées sans réseau sont gardées dans IndexedDB (avec leurs
 // photos déjà compressées) puis envoyées au retour du réseau. Les identifiants (uuid) sont
 // créés sur l'appareil : renvoyer deux fois la même fuite est sans effet (clé déjà présente).
-import { getSupabase } from './supabase';
+// Plus bas : copies des fiches déjà ouvertes, pour les consulter sans réseau (base séparée).
+import { configurationManquante, getSupabase } from './supabase';
 
 export interface FuiteEnAttente {
   id: string;
@@ -44,8 +45,9 @@ async function transaction<T>(
   stores: string[],
   mode: IDBTransactionMode,
   action: (t: IDBTransaction) => IDBRequest<T> | void,
+  base: () => Promise<IDBDatabase> = ouvrir,
 ): Promise<T | undefined> {
-  const db = await ouvrir();
+  const db = await base();
   return new Promise((ok, ko) => {
     const t = db.transaction(stores, mode);
     const requete = action(t);
@@ -151,7 +153,7 @@ export async function abandonnerFuite(id: string) {
 interface ErreurApi { code?: string; message?: string; statusCode?: string | number; status?: number }
 
 // Réseau absent ou coupé en cours de route : on s'arrête sans rien perdre.
-const estErreurReseau = (e: unknown) => {
+export const estErreurReseau = (e: unknown) => {
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return true;
   const m = String((e as ErreurApi)?.message ?? e).toLowerCase();
   return m.includes('failed to fetch') || m.includes('networkerror') || m.includes('load failed') ||
@@ -255,4 +257,189 @@ async function executerSynchro() {
     if (r === 'reseau') break;
   }
   return { envoyees, restantes: await compterAttente() };
+}
+
+// ---- Fiches consultées : copie des fiches ouvertes en ligne, lisible sans réseau -------------------
+// Base à part : la purger ou la vider ne touche jamais aux envois en attente. La fiche (données déjà
+// filtrées par la RLS pour ce compte) et ses photos réduites, clé = identifiant de la photo (jamais
+// l'URL signée, qui change et expire). Les règles (taille, purge, actions) sont dans
+// `app/(app)/fuites/[id]/fiche-hors-ligne.ts`.
+
+export interface EnteteFicheGardee {
+  id: string;
+  utilisateur_id: string;
+  consultee_le: string;
+  nb_photos: number;
+}
+
+interface PhotoGardee {
+  cle: string;
+  fuite_id: string;
+  blob: Blob;
+}
+
+const BASE_FICHES = 'suivi-fuites-fiches';
+
+function ouvrirFiches(): Promise<IDBDatabase> {
+  return new Promise((ok, ko) => {
+    const requete = indexedDB.open(BASE_FICHES, 1);
+    requete.onupgradeneeded = () => {
+      const db = requete.result;
+      db.createObjectStore('fiches', { keyPath: 'id' });
+      db.createObjectStore('photos', { keyPath: 'cle' }).createIndex('fuite_id', 'fuite_id');
+    };
+    requete.onsuccess = () => ok(requete.result);
+    requete.onerror = () => ko(requete.error);
+  });
+}
+
+const dansFiches = <T,>(stores: string[], mode: IDBTransactionMode, action: (t: IDBTransaction) => IDBRequest<T> | void) =>
+  transaction(stores, mode, action, ouvrirFiches);
+
+/** Tout effacer (déconnexion, ou copies d'un autre compte). */
+export async function effacerFichesGardees() {
+  try {
+    await dansFiches(['fiches', 'photos'], 'readwrite', (t) => {
+      t.objectStore('fiches').clear();
+      t.objectStore('photos').clear();
+    });
+  } catch {
+    /* base absente ou indisponible : rien à effacer */
+  }
+}
+
+/** Copie gardée de la fiche, seulement si elle appartient à ce compte. */
+export async function lireFicheGardee<T extends EnteteFicheGardee>(id: string, utilisateurId: string): Promise<T | null> {
+  try {
+    const fiche = (await dansFiches(['fiches'], 'readonly', (t) => t.objectStore('fiches').get(id))) as T | undefined;
+    if (!fiche) return null;
+    if (fiche.utilisateur_id !== utilisateurId) {
+      // Copies d'un autre compte (déconnexion faite sans réseau, par exemple) : jamais montrées.
+      await effacerFichesGardees();
+      return null;
+    }
+    return fiche;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Enregistre la copie puis, dans la même transaction, efface les copies choisies par `aPurger`
+ * (plus anciennes, autre compte) et les photos qui n'ont plus de fiche.
+ */
+export async function garderFiche<T extends EnteteFicheGardee>(fiche: T, aPurger: (entetes: EnteteFicheGardee[]) => string[]) {
+  await dansFiches(['fiches', 'photos'], 'readwrite', (t) => {
+    const fiches = t.objectStore('fiches');
+    const photos = t.objectStore('photos');
+    fiches.put(fiche);
+    const tout = fiches.getAll();
+    tout.onsuccess = () => {
+      const entetes = (tout.result as EnteteFicheGardee[]).map(({ id, utilisateur_id, consultee_le, nb_photos }) => ({
+        id, utilisateur_id, consultee_le, nb_photos,
+      }));
+      const effacees = new Set(aPurger(entetes));
+      effacees.forEach((id) => fiches.delete(id));
+      const gardees = new Set(entetes.map((e) => e.id).filter((id) => !effacees.has(id)));
+      photos.index('fuite_id').openKeyCursor().onsuccess = (e) => {
+        const curseur = (e.target as IDBRequest<IDBCursor | null>).result;
+        if (!curseur) return;
+        if (!gardees.has(String(curseur.key))) photos.delete(curseur.primaryKey);
+        curseur.continue();
+      };
+    };
+  });
+}
+
+/** Note l'ouverture d'une copie (ordre de purge : les moins récemment ouvertes partent d'abord). */
+export async function noterConsultation(id: string, quand: string) {
+  try {
+    await dansFiches(['fiches'], 'readwrite', (t) => {
+      const fiches = t.objectStore('fiches');
+      const r = fiches.get(id);
+      r.onsuccess = () => {
+        if (r.result) fiches.put({ ...r.result, consultee_le: quand });
+      };
+    });
+  } catch {
+    /* sans conséquence */
+  }
+}
+
+/** Fiche introuvable ou refusée en ligne : sa copie et ses photos sont effacées. */
+export async function oublierFiche(id: string) {
+  try {
+    await dansFiches(['fiches', 'photos'], 'readwrite', (t) => {
+      t.objectStore('fiches').delete(id);
+      const photos = t.objectStore('photos');
+      photos.index('fuite_id').openKeyCursor(IDBKeyRange.only(id)).onsuccess = (e) => {
+        const curseur = (e.target as IDBRequest<IDBCursor | null>).result;
+        if (curseur) {
+          photos.delete(curseur.primaryKey);
+          curseur.continue();
+        }
+      };
+    });
+  } catch {
+    /* sans conséquence */
+  }
+}
+
+export async function clesPhotosGardees(fuiteId: string): Promise<string[]> {
+  try {
+    const cles = await dansFiches(['photos'], 'readonly', (t) =>
+      t.objectStore('photos').index('fuite_id').getAllKeys(IDBKeyRange.only(fuiteId)));
+    return ((cles ?? []) as IDBValidKey[]).map(String);
+  } catch {
+    return [];
+  }
+}
+
+/** Garde une photo, seulement si la copie de sa fiche existe encore (pas de photo orpheline). */
+export async function garderPhoto(photo: PhotoGardee) {
+  await dansFiches(['fiches', 'photos'], 'readwrite', (t) => {
+    const r = t.objectStore('fiches').getKey(photo.fuite_id);
+    r.onsuccess = () => {
+      if (r.result !== undefined) t.objectStore('photos').put(photo);
+    };
+  });
+}
+
+export async function oublierPhotos(cles: string[]) {
+  if (!cles.length) return;
+  await dansFiches(['photos'], 'readwrite', (t) => {
+    const photos = t.objectStore('photos');
+    cles.forEach((cle) => photos.delete(cle));
+  });
+}
+
+/** Photos gardées d'une fiche, par clé (identifiant de la photo). */
+export async function lirePhotosGardees(fuiteId: string): Promise<Map<string, Blob>> {
+  try {
+    const lignes = (await dansFiches(['photos'], 'readonly', (t) =>
+      t.objectStore('photos').index('fuite_id').getAll(IDBKeyRange.only(fuiteId)))) as PhotoGardee[] | undefined;
+    return new Map((lignes ?? []).map((p) => [p.cle, p.blob]));
+  } catch {
+    return new Map();
+  }
+}
+
+/**
+ * Demande au service worker de garder la page de la fiche (sans données) pour l'ouvrir hors ligne :
+ * nécessaire quand la fiche a été ouverte depuis la liste, sans chargement complet de la page.
+ */
+export function preparerFicheHorsLigne(id: string) {
+  try {
+    navigator.serviceWorker?.controller?.postMessage({ type: 'coquille-fiche', id });
+  } catch {
+    /* pas de service worker (développement) */
+  }
+}
+
+// Déconnexion (bouton « Quitter », ou session refusée par le serveur) : les copies sont effacées.
+// Ce module est chargé sur toutes les pages de l'application (bandeau réseau de l'en-tête).
+if (typeof window !== 'undefined' && !configurationManquante()) {
+  getSupabase().auth.onAuthStateChange((evenement) => {
+    if (evenement === 'SIGNED_OUT') void effacerFichesGardees();
+  });
 }

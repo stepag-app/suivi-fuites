@@ -32,6 +32,7 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 | Sélecteur de marché lisible dans l'en-tête du panneau ; marchés classés du plus récent au plus ancien (SRM avant DEMO) ; choix du marché sur la tablette (mémorisé) ; « Attachement d'octobre » | `web/`, `mobile/src/session.tsx`, `mobile/src/ecrans.tsx` | PR [#11](https://github.com/stepag-app/suivi-fuites/pull/11) fusionnée et déployée |
 | **Lot B : carte des fuites** (`/carte`) : fond OpenStreetMap minimal (OpenFreeMap, sans clé), couleur par statut, alertes, regroupement, bulle avec lien vers la fiche, filtres (statut, secteur, période, alertes), recentrer, contours des zones / secteurs si `geom` rempli ; lien « Carte » dans le menu. Parcours Playwright (admin à la souris, agent de détection au toucher) sur pile Supabase locale ; fond réel **non vérifié ici** (tuiles bloquées par le réseau de la session : fond de secours testé) | `web/src/app/(app)/carte/`, `web/scripts/copier-maplibre.mjs` ; `web/README.md` § Carte | PR [#18](https://github.com/stepag-app/suivi-fuites/pull/18) ; **à vérifier sur Vercel et la tablette** (fond de carte, toucher) |
 | Retours d'Issam sur le lot (2026-10-04) : fuites cliquables (fiche dans un nouvel onglet), listes « Travaux du lot » et « À attacher » horizontales, compactes et zébrées, page élargie ; titre qui suit la saisie (date, N° prévu), intitulé qui suit le mois ; Excel prêt à imprimer en A4 (une page en largeur, titres répétés, colonnes resserrées selon l'orientation) | `web/src/app/(app)/attachements/`, `web/src/lib/export/xlsx.ts` | PR suivante |
+| **Lot A, tablette** : fiche d'une fuite (infos, statut, photos, réparations, réfections, sans prix), saisie d'une réparation (pièces du catalogue, ouvriers, photos avant / pendant / après) et d'une réfection, hors ligne (file d'attente ordonnée par fuite, reprise après coupure, erreurs claires dont fuite verrouillée), contrôle des doublons à la création (même fuite / nouvelle fuite liée), boutons de saisie selon les droits (détection en lecture), bouton « Y aller » (application de cartes externe ; carte intégrée reportée), photos regroupées dans `photos.ts` (prêt pour R2) | `mobile/src/` (`fiche.tsx`, `saisie.tsx`, `file-attente.ts`, `photos.ts`), `mobile/essais/` | PR [#13](https://github.com/stepag-app/suivi-fuites/pull/13) ; types et bundle Android vérifiés, **25 vérifications** contre une pile Supabase locale (chef, détection, DEMO) ; **à essayer sur la tablette** |
 | **Lot D : rapport PDF par fuite** (fiche : bouton « Rapport PDF » ; liste : « Rapports PDF (n) », une fuite par page) : en-tête du marché, identification et GPS, réparations, réfections, prix si droit « quantités / lire », photos par type réduites, visas ; 6 photos → 2 pages, 393 Ko, < 1 s | `web/src/lib/export/rapport-fuite.ts`, `web/README.md` § Rapport PDF par fuite | PR `claude/lot-d-rapport-pdf` ; testé sur pile locale (Playwright, PDF rendus et relus) ; PR #15 **fusionnée** ; **à faire valider par Issam** (contenu exigé par la SRM ?) |
 | Lot D, ajouts : itinéraire vers la fuite (lien dans le rapport, bouton « Y aller » sur la fiche) ; lecture des photos par `urlsPhotos` (point unique pour le futur passage à R2) | `web/src/lib/itineraire.ts`, `web/src/lib/photo.ts` | PR suivante |
 
@@ -48,10 +49,10 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
 4. **Secret GitHub `SAUVEGARDE_PASSPHRASE`** (phrase secrète, gestionnaire de mots de passe), puis lancer « Sauvegarde de la base » à la main et vérifier l'artefact.
-5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, la même que `NEXT_PUBLIC_SUPABASE_ANON_KEY` dans Vercel) :
-   **toujours absent au 2026-10-04 20 h** (le journal de compilation montre la clé factice), l'APK compile mais ne peut
-   pas se connecter. Ensuite : Actions > « Application Android (APK) » > Run workflow (main), télécharger l'artefact
-   `suivi-fuites-apk`, installer sur la tablette (sources inconnues autorisées), batterie « Non restreinte ».
+5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** : **créé le 2026-10-04** ; la compilation APK n° 13 sur `main`
+   (run 37241834456) l'a bien prise, artefact `suivi-fuites-apk` disponible jusqu'au 18/10/2026 : APK connectable.
+   Reste : l'installer sur la tablette (sources inconnues autorisées, batterie « Non restreinte ») et le tester
+   (avec le lot A une fois fusionné : fiche, réparation, réfection, hors ligne), puis le keystore de production.
 6. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
 7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 
@@ -135,9 +136,9 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 1. Retours du premier test terrain (parcours connexion → fuite → réparation → réfection).
 2. À ajouter dans le panneau selon les retours : paramètres (ouvriers, équipes, prix hors bordereau,
    motifs), carte des fuites, anomalies, journal, interface en arabe / mixte, exports PDF et Word.
-3. Application Expo : socle fait. À ajouter : réparations / réfections sur la tablette, suivi GPS en
-   arrière-plan (tracé par agent et par jour, M4), notifications push, mise à jour de l'APK, détection
-   des doublons. Mode hors ligne web : consultation et modification d'une fuite
+3. Application Expo : socle, fiche, réparations / réfections et doublons faits (lot A). À ajouter : suivi GPS en
+   arrière-plan (tracé par agent et par jour, M4), notifications push, mise à jour de l'APK, modification d'une
+   réparation envoyée, photos seules depuis la fiche. Mode hors ligne web : consultation et modification d'une fuite
    existante sans réseau non gérées.
 4. Migration 2 dès réception du DXF : le balayage (prix 1 et 2) pourra alors s'attacher par tronçon ;
    en attendant, une **ligne libre** du lot d'attachement porte le linéaire balayé par secteur.

@@ -24,6 +24,16 @@
 | C. Paramètres | page Marchés (copie, activation), secteurs, natures, catalogue, règles des prix | PR #14 ouverte |
 | D. Rapport PDF | rapport par fuite et par liste filtrée (fusionné, PR #15) ; suite : « Y aller », lecture des photos regroupée | suite en cours |
 
+Session 5 (2026-10-05), lots menés en parallèle, PR **en brouillon** (CI verte) :
+
+| Lot | Contenu | PR |
+|---|---|---|
+| F. Logos | logos du titulaire et du maître d'ouvrage dans tous les en-têtes (PDF, Word, Excel) | #22 |
+| G. Impression de la carte | PDF A4 / A3 : carte 200 dpi, légende, échelle, nord, coordonnées WGS84, liste | #25 |
+| H. Tablette | style Fiori de l'APK, photos depuis la fiche, modification d'une réparation | #24 |
+| I. Tableau de bord v1 | indicateurs, statuts, 12 semaines, secteurs / zones, attachements | #23 |
+| J. Marché désactivé | lecture seule en base (sauf administrateur) | #21 |
+
 ## 3. Photos sur Cloudflare R2 (lot E, après A et D)
 
 **À faire par Issam maintenant** (aucune valeur secrète dans le chat ni le dépôt) :
@@ -50,7 +60,7 @@ PDF archivés.
 
 ## 4. À faire ensuite (ordre proposé)
 
-1. **Logos** du titulaire et du maître d'ouvrage dans Paramètres > Marché (envoi d'une image, stockage
+1. ~~**Logos**~~ (lot F, PR #22) du titulaire et du maître d'ouvrage dans Paramètres > Marché (envoi d'une image, stockage
    privé), repris dans les en-têtes PDF, Word et Excel (exports, attachements, rapport par fuite).
    Après la fusion des lots C et D (mêmes fichiers).
 2. **États journaliers et hebdomadaires** : écran « Rapports » où le responsable choisit ce qu'il
@@ -73,12 +83,12 @@ PDF archivés.
    responsable.
 6. **Tableaux journaliers et hebdomadaires** des distances parcourues (GPS) et des linéaires balayés
    (tronçons), par agent, équipe, secteur, zone.
-7. **Tableau de bord** (à concevoir avec Issam) : fuites par statut et par secteur, délais, alertes,
+7. **Tableau de bord** : version 1 faite (lot I, PR #23) ; restent l'avancement du balayage et le contrôle tracé /
+   cochage (après la migration 2 et le suivi GPS), et les réponses d'Issam (voir `etat-avancement.md` § 2). Prévu : fuites par statut et par secteur, délais, alertes,
    avancement du balayage, quantités attachées / reste à attacher, contrôle tracking / cochage.
 8. **Google Maps intégré** : décision après avoir vu la carte du lot B.
 9. **Passe d'interface** : **faite pour le panneau web** (2026-10-05, PR #19) : style SAP Fiori en CSS
-   maison, widgets d'indicateurs, fiche d'une fuite au format de la maquette. Reste : reporter les mêmes
-   couleurs et la même typographie sur l'APK.
+   maison, widgets d'indicateurs, fiche d'une fuite au format de la maquette. APK : fait (lot H, PR #24).
 10. **Sauvegarde complète et restaurable** (demande d'Issam du 2026-10-05) :
     - **D'abord** : activer la sauvegarde nocturne existante (secret `SAUVEGARDE_PASSPHRASE`, voir
       `docs/etat-avancement.md` § 2) ; elle échoue chaque nuit tant que le secret manque (constaté le

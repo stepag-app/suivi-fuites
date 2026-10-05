@@ -25,6 +25,8 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
   fuites du mois (courbe : par jour sur 14 jours), non réparées au-delà du seuil (courbe : situation à chaque
   fin de jour), délai moyen de réparation (courbe : par semaine sur 8 semaines), réfections à faire ; puis
   tableau sur bureau, cartes sur tablette en portrait et téléphone.
+- Graphiques du tableau de bord en CSS (barres empilées, colonnes groupées, petites barres dans les tableaux), sans
+  bibliothèque ; couleurs des statuts = teintes des points de la carte.
 
 ## Écrans
 
@@ -32,10 +34,11 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
-| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli. Voir § Carte |
+| `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
+| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, voir § Carte |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
-| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Catalogue des pièces** (recherche, famille, unité, article suggéré) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
+| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, **logos des documents** : PNG ou JPEG, 2 Mo au plus, réduits à 600 px, droit « paramètres / modifier » ; délai, OS, arrêts et reprises, libellés et alertes du client), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Catalogue des pièces** (recherche, famille, unité, article suggéré) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
 | `/attachements` | droit « attachements » | lots d'attachement : reste à attacher, nouveau lot, liste (brouillons, arrêtés, acceptés, facturés) |
 | `/attachements/[id]` | droit « attachements » | en-tête et mentions du CPS (le titre suit la saisie ; numéro « prévu » d'un brouillon), récapitulatif par article (antérieur, lot, cumul, %), travaux du lot et sélection « À attacher » en listes compactes zébrées, une ligne par fuite (N° de fuite cliquable : fiche, photos dans un nouvel onglet ; filtres, cases par fuite et par article), ligne libre, réfection anticipée, refacturation forcée (admin), arrêt définitif, réouverture (admin), suivi (acceptation, facture) ; page élargie (écran de bureau) |
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
@@ -50,6 +53,11 @@ par secteur », « Attachement du mois » par défaut, d'autres s'enregistrent),
 avec Tout / Rien, filtres (période, zone, secteur, équipe ; « limiter à la liste affichée »), regroupement
 avec sous-totaux, synthèse des pièces, format, orientation, aperçu des premières lignes. En-tête tiré de la
 fiche du marché (titulaire, maître d'ouvrage, n° du marché, objet, OS) ; un lot en brouillon porte « PROJET ».
+
+**Logos** (Paramètres > Marché) repris en tête des PDF (exports, lots, rapport par fuite, carte), Word et Excel :
+titulaire à gauche, maître d'ouvrage à droite, 14 mm de haut, proportions conservées. Chargés avec le contexte du
+marché (`chargerLogosEntete` de `src/lib/logos.ts`) et transmis par l'en-tête (`logoTitulaire`, `logoMaitreOuvrage`) ;
+`dessinerEntete` les dessine pour tout PDF. Pas de logo en CSV. Vérification : `node scripts/essai-logos.mjs`.
 
 Fichiers fabriqués **dans le navigateur** (aucun coût serveur), bibliothèques chargées seulement au moment
 de l'export (mesures minifiées + gzip) :
@@ -101,7 +109,16 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   « Pas de réseau », bouton Actualiser. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
   fond uni avec un bandeau (les nombres des groupes n'apparaissent alors pas).
 - Tablette : boutons de zoom de 44 px, rotation désactivée, un toucher à 14 px près sélectionne le point.
-- Hors périmètre pour l'instant : impression PDF de la carte, tracés GPS des agents, balayage.
+- **Impression** (« Imprimer la carte », droit « exports / lire ») : format A4 / A3, portrait / paysage, titre, liste des
+  fuites affichées en option. PDF fabriqué dans le navigateur (`src/lib/export/carte-pdf.ts`, jsPDF chargé au clic) :
+  en-tête du marché (`dessinerEntete`, logos compris), filtres appliqués, vue affichée rendue hors écran par MapLibre à
+  200 dpi (`carte/capture.ts`, couches communes `carte/couches.ts` ; même zoom qu'à l'écran si la vue tient dans le cadre,
+  textes réduits à 77 % au plus, sinon recadrage), numéro à côté de chaque point, graduations en degrés, cartouche
+  (légende, échelle juste à la latitude du centre, nord, coordonnées WGS84 du centre et des coins), © OpenStreetMap,
+  bandeau si le fond est indisponible, liste paginée, « Page n / N ». Gabarit générique réglable (`GABARIT` en tête de
+  `carte-pdf.ts`) en attendant le modèle de la SRM. Mesures : A4 paysage 1,8 s, 0,4 Mo ; A3 paysage 0,9 Mo.
+  Vérification : `node scripts/verifier-carte-pdf.mjs`.
+- Hors périmètre pour l'instant : tracés GPS des agents, zones colorées selon le balayage (après le plan du réseau).
 
 ## Mode hors ligne léger
 

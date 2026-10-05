@@ -23,6 +23,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004220000_anomalies_corrigees.sql` | `v_anomalies` : plus de « terrassement sans avis » sans fouille, ni de « référence en double » sur la fuite d'origine d'une re-détection |
 | `migrations/20261004230000_marche_demo.sql` | marché de démonstration `DEMO` (données fictives, voir ci-dessous) |
 | `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes, natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
+| `migrations/20261005120000_logos_marche.sql` | lot F : logos du marché (compartiment privé `logos`, PNG ou JPEG, 2 Mo ; `<marche_id>/titulaire\|maitre_ouvrage.png\|jpg` dans `marches.logo_titulaire` / `logo_maitre_ouvrage` ; lecture « exports / lire » ou « paramètres / lire », écriture « paramètres / modifier ») ; non copiés par `copier_marche` |
+| `migrations/20261005120100_marche_inactif.sql` | lot J : marché désactivé en lecture seule (`peut` et `marches_autorises` exigent un marché actif pour toute action autre que « lire ») ; l'administrateur garde la main |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) |
@@ -31,6 +33,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/04_exports.test.sql` | 10 tests de l'étape C (modèles par défaut, droits, vue enrichie) |
 | `tests/database/05_marche_demo.test.sql` | 30 tests : marché DEMO, droits des agents de terrain (ni attachements, ni prix, ni paramètres, ni exports), isolation, lot N° 02 de bout en bout |
 | `tests/database/06_copie_marche_parametres.test.sql` | 36 tests du lot C : copie réservée à l'admin, contenu copié, isolation, paramètres édités par le responsable, règles de proposition sans nouvelle version, refus des agents, journal |
+| `tests/database/07_logos.test.sql` | 37 tests du lot F (droits, noms imposés, isolation, agents de terrain refusés, copie sans logos) |
+| `tests/database/08_marche_inactif.test.sql` | 9 tests du lot J (écritures refusées sur un marché désactivé sauf administrateur, lecture conservée, réactivation) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma

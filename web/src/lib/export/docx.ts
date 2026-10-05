@@ -1,12 +1,15 @@
 // Export Word (docx, chargé à la demande). Les textes arabes sont de vrais textes
 // de droite à gauche ; la police Amiri est embarquée dans le fichier si besoin.
 import { chargerFichiersAmiri, contientArabe } from './arabe';
-import { etendueLibelle, parcourir, texteCellule, texteDate, type DocumentExport, type SectionDoc } from './modele';
+import {
+  dimensionsLogo, etendueLibelle, mmEnPixels, octetsDataUrl, parcourir, texteCellule, texteDate,
+  type DocumentExport, type LogoEntete, type SectionDoc,
+} from './modele';
 
 export async function genererDocx(d: DocumentExport): Promise<Blob> {
   const x = await import('docx');
   const {
-    AlignmentType, BorderStyle, CharacterSet, Document, Footer, Packer, PageNumber, PageOrientation,
+    AlignmentType, BorderStyle, CharacterSet, Document, Footer, ImageRun, LineRuleType, Packer, PageNumber, PageOrientation,
     Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, VerticalAlign, WidthType,
   } = x;
 
@@ -37,12 +40,29 @@ export async function genererDocx(d: DocumentExport): Promise<Blob> {
   const trait = { style: BorderStyle.SINGLE, size: 4, color: 'AFBAC4' };
   const traits = { top: trait, bottom: trait, left: trait, right: trait };
 
-  // En-tête : titulaire à gauche, maître d'ouvrage à droite
-  const colonneEntete = (lignes: string[], ar: string | null | undefined, alignement: 'left' | 'right') =>
+  // En-tête : logo puis titulaire à gauche, logo puis maître d'ouvrage à droite. Les noms
+  // commencent à la même hauteur des deux côtés (espace de la hauteur du plus grand logo).
+  const twips = (mm: number) => Math.round(mm * 56.69);
+  const hauteurLogos = Math.max(0, ...[d.entete.logoTitulaire, d.entete.logoMaitreOuvrage].map((l) => (l ? dimensionsLogo(l).hauteurMm : 0)));
+  const paragrapheLogo = (logo: LogoEntete | null | undefined, alignement: 'left' | 'right') => {
+    if (!logo) return new Paragraph({ children: [], spacing: { after: 80, line: twips(hauteurLogos), lineRule: LineRuleType.EXACT } });
+    const { largeurMm, hauteurMm } = dimensionsLogo(logo);
+    return new Paragraph({
+      alignment: alignement === 'right' ? AlignmentType.RIGHT : AlignmentType.LEFT,
+      spacing: { after: 80 + twips(hauteurLogos - hauteurMm) },
+      children: [new ImageRun({
+        type: logo.format === 'PNG' ? 'png' : 'jpg',
+        data: octetsDataUrl(logo.donnees),
+        transformation: { width: mmEnPixels(largeurMm), height: mmEnPixels(hauteurMm) },
+      })],
+    });
+  };
+  const colonneEntete = (lignes: string[], ar: string | null | undefined, logo: LogoEntete | null | undefined, alignement: 'left' | 'right') =>
     new TableCell({
       borders: bordures,
       width: { size: 50, type: WidthType.PERCENTAGE },
       children: [
+        ...(hauteurLogos ? [paragrapheLogo(logo, alignement)] : []),
         ...lignes.map((t, i) => paragraphe(t, { gras: i === 0, taille: i === 0 ? 21 : 16, alignement, couleur: i === 0 ? undefined : '5B6B77' })),
         ...(ar ? [paragraphe(ar, { gras: true, taille: 22, alignement })] : []),
       ],
@@ -50,7 +70,10 @@ export async function genererDocx(d: DocumentExport): Promise<Blob> {
   const entete = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: { ...bordures, insideHorizontal: sansBordure, insideVertical: sansBordure },
-    rows: [new TableRow({ children: [colonneEntete(d.entete.titulaire, d.entete.titulaireAr, 'left'), colonneEntete(d.entete.client, d.entete.clientAr, 'right')] })],
+    rows: [new TableRow({ children: [
+      colonneEntete(d.entete.titulaire, d.entete.titulaireAr, d.entete.logoTitulaire, 'left'),
+      colonneEntete(d.entete.client, d.entete.clientAr, d.entete.logoMaitreOuvrage, 'right'),
+    ] })],
   });
 
   const tableau = (section: SectionDoc) => {

@@ -1,10 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { dateSeule, messageErreur } from '@/lib/format';
+import { COLONNES_LOGO, TYPES_LOGO, envoyerLogo, retirerLogo, telechargerLogo, type RoleLogo } from '@/lib/logos';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import { FormulaireFiche, type Champ } from './commun';
+import styles from './Logos.module.css';
 
 interface OrdreService {
   id: string; numero: string; date_os: string; nature: string; objet: string;
@@ -133,6 +135,11 @@ export function OngletMarche({ marcheId, modifiable }: { marcheId: string; modif
     return true;
   }
 
+  async function apresLogo() {
+    await charger();
+    recharger();
+  }
+
   const libelleOs = (id: string | null) => {
     const o = os.find((x) => x.id === id);
     return o ? `OS n° ${o.numero} du ${dateSeule(o.date_os)}` : '';
@@ -146,6 +153,26 @@ export function OngletMarche({ marcheId, modifiable }: { marcheId: string; modif
       <FormulaireFiche titre="Marché" champs={CHAMPS_MARCHE} valeurs={fiche} modifiable={modifiable} enregistrer={enregistrerFiche} />
       <FormulaireFiche titre="Maître d'ouvrage" champs={CHAMPS_CLIENT} valeurs={fiche} modifiable={modifiable} enregistrer={enregistrerFiche} />
       <FormulaireFiche titre="Société titulaire" champs={CHAMPS_TITULAIRE} valeurs={fiche} modifiable={modifiable} enregistrer={enregistrerFiche} />
+
+      <section className="carte">
+        <h2>Logos des documents</h2>
+        <p className="discret">
+          En haut des exports, des lots d&apos;attachement et des rapports par fuite : titulaire à gauche, maître
+          d&apos;ouvrage à droite. Image PNG ou JPEG, 2 Mo au plus, réduite à 600 px de large avant l&apos;envoi.
+        </p>
+        <div className={styles.grille}>
+          <Logo
+            role="titulaire" titre="Titulaire" marcheId={marcheId} modifiable={modifiable}
+            chemin={(fiche?.[COLONNES_LOGO.titulaire] as string | null | undefined) ?? null}
+            apresModification={apresLogo}
+          />
+          <Logo
+            role="maitre_ouvrage" titre="Maître d'ouvrage" marcheId={marcheId} modifiable={modifiable}
+            chemin={(fiche?.[COLONNES_LOGO.maitre_ouvrage] as string | null | undefined) ?? null}
+            apresModification={apresLogo}
+          />
+        </div>
+      </section>
 
       <FormDelai fiche={fiche} os={os} delai={delai} modifiable={modifiable} enregistrer={enregistrerFiche} />
 
@@ -168,6 +195,100 @@ export function OngletMarche({ marcheId, modifiable }: { marcheId: string; modif
         enregistrer={enregistrerFiche}
       />
     </>
+  );
+}
+
+function Logo({
+  role, titre, marcheId, chemin, modifiable, apresModification,
+}: {
+  role: RoleLogo; titre: string; marcheId: string; chemin: string | null; modifiable: boolean;
+  apresModification: () => Promise<void>;
+}) {
+  const selecteur = useRef<HTMLInputElement>(null);
+  const [apercu, setApercu] = useState<string | null>(null);
+  const [illisible, setIllisible] = useState(false);
+  const [occupe, setOccupe] = useState(false);
+  const [erreur, setErreur] = useState('');
+  const [version, setVersion] = useState(0);
+
+  // Aperçu lu avec les droits du compte ; « version » relit après un remplacement au même chemin.
+  useEffect(() => {
+    setApercu(null);
+    setIllisible(false);
+    if (!chemin) return;
+    let url: string | null = null;
+    let annule = false;
+    telechargerLogo(chemin)
+      .then((blob) => {
+        if (annule) return;
+        url = URL.createObjectURL(blob);
+        setApercu(url);
+      })
+      .catch(() => {
+        if (!annule) setIllisible(true);
+      });
+    return () => {
+      annule = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [chemin, version]);
+
+  async function envoyer(fichiers: FileList | null) {
+    const f = fichiers?.[0];
+    if (selecteur.current) selecteur.current.value = '';
+    if (!f) return;
+    setErreur('');
+    setOccupe(true);
+    try {
+      await envoyerLogo(marcheId, role, f, chemin);
+      await apresModification();
+      setVersion((v) => v + 1);
+    } catch (e) {
+      setErreur(messageErreur(e));
+    } finally {
+      setOccupe(false);
+    }
+  }
+
+  async function retirer() {
+    if (!chemin || !window.confirm(`Retirer le logo « ${titre} » ? Les documents n'auront plus ce logo.`)) return;
+    setErreur('');
+    setOccupe(true);
+    try {
+      await retirerLogo(marcheId, role, chemin);
+      await apresModification();
+    } catch (e) {
+      setErreur(messageErreur(e));
+    } finally {
+      setOccupe(false);
+    }
+  }
+
+  const droite = role === 'maitre_ouvrage';
+  return (
+    <div className={styles.logo}>
+      <h3>{titre} <span className="discret">({droite ? 'à droite' : 'à gauche'})</span></h3>
+      {apercu ? (
+        <div className={`${styles.apercu} ${droite ? styles.droite : ''}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={apercu} alt={`Logo : ${titre}`} />
+        </div>
+      ) : (
+        <div className={`${styles.apercu} ${styles.vide}`}>
+          {chemin ? (illisible ? 'Aperçu indisponible' : 'Chargement…') : 'Aucun logo : en-tête sans image'}
+        </div>
+      )}
+      {modifiable && (
+        <div className="actions">
+          <input ref={selecteur} type="file" accept={TYPES_LOGO.join(',')} hidden onChange={(e) => envoyer(e.target.files)} />
+          <button type="button" disabled={occupe} onClick={() => selecteur.current?.click()}>
+            {occupe ? 'Envoi…' : chemin ? 'Remplacer' : 'Envoyer une image'}
+          </button>
+          {chemin && <button type="button" className="danger" disabled={occupe} onClick={retirer}>Retirer</button>}
+        </div>
+      )}
+      {erreur && <p className="erreur">{erreur}</p>}
+    </div>
   );
 }
 

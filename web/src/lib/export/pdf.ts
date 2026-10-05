@@ -1,6 +1,6 @@
 // Export PDF (jsPDF + jspdf-autotable, chargés à la demande).
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
-import { etendueLibelle, parcourir, texteCellule, texteDate, type DocumentExport, type SectionDoc } from './modele';
+import { dimensionsLogo, etendueLibelle, parcourir, texteCellule, texteDate, type DocumentExport, type LogoEntete, type SectionDoc } from './modele';
 
 export const BLEU: [number, number, number] = [11, 93, 138];
 export const GRIS_TRAIT: [number, number, number] = [175, 186, 196];
@@ -10,14 +10,31 @@ const TAILLE_CELLULE = 8;
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
 
-// En-tête de première page (titulaire à gauche, maître d'ouvrage à droite, titre, infos).
+// Logos au-dessus des noms (titulaire à gauche, maître d'ouvrage à droite). Renvoie la
+// hauteur occupée (0 sans logo). L'alias fait inclure chaque image une seule fois par fichier.
+function dessinerLogos(pdf: Pdf, entete: DocumentExport['entete'], marge: number): number {
+  const largeur = pdf.internal.pageSize.getWidth();
+  const haut = marge - 2;
+  const poser = (logo: LogoEntete | null | undefined, cote: 'gauche' | 'droite') => {
+    if (!logo) return 0;
+    const { largeurMm, hauteurMm } = dimensionsLogo(logo);
+    const x = cote === 'gauche' ? marge : largeur - marge - largeurMm;
+    pdf.addImage(logo.donnees, logo.format, x, haut, largeurMm, hauteurMm, `logo-${cote}-${logo.donnees.length}`, 'FAST');
+    return hauteurMm;
+  };
+  const h = Math.max(poser(entete.logoTitulaire, 'gauche'), poser(entete.logoMaitreOuvrage, 'droite'));
+  return h ? h + 2 : 0;
+}
+
+// En-tête de première page (logos, titulaire à gauche, maître d'ouvrage à droite, titre, infos).
 // Renvoie l'ordonnée sous l'en-tête. Partagé avec le rapport par fuite.
 export function dessinerEntete(pdf: Pdf, entete: DocumentExport['entete'], imagesEntete: Map<string, ImageTexte>, marge: number): number {
   const largeur = pdf.internal.pageSize.getWidth();
   const utile = largeur - 2 * marge;
   pdf.setTextColor(20, 35, 46);
-  let yGauche = marge + 2;
-  let yDroite = marge + 2;
+  const hauteurLogos = dessinerLogos(pdf, entete, marge);
+  let yGauche = marge + 2 + hauteurLogos;
+  let yDroite = marge + 2 + hauteurLogos;
   const demi = utile / 2 - 4;
   entete.titulaire.forEach((t, i) => {
     pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');

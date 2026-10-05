@@ -33,6 +33,9 @@ export interface Marche {
   jalons_client?: boolean;
   delai_alerte_reparation_h?: number;
   devise?: string;
+  // Chemins des logos (compartiment privé « logos »), repris dans les en-têtes des documents
+  logo_titulaire?: string | null;
+  logo_maitre_ouvrage?: string | null;
 }
 
 export interface Droit {

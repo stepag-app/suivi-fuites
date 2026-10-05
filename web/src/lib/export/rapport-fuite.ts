@@ -8,6 +8,7 @@
 import type { ReglesAttachement } from '@/lib/attachements';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO, libellesMarche } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
+import { chargerLogosEntete } from '@/lib/logos';
 import { urlsPhotos } from '@/lib/photo';
 import { getSupabase } from '@/lib/supabase';
 import type { Marche, Quantite, Refection, Reparation, VFuite } from '@/lib/types';
@@ -66,7 +67,7 @@ export interface FicheRapport {
 
 export type Progression = (fait: number, total: number, etape: string) => void;
 
-// Contexte du marché (fiche, OS, règles d'attachement pour les visas), comme le panneau d'export.
+// Contexte du marché (fiche, OS, règles d'attachement pour les visas, logos), comme le panneau d'export.
 export async function chargerContexteRapport(marcheId: string, peutMontants: boolean): Promise<Contexte> {
   const sb = getSupabase();
   const [m, o, r] = await Promise.all([
@@ -83,6 +84,7 @@ export async function chargerContexteRapport(marcheId: string, peutMontants: boo
     osCommencement: os.find((x) => x.id === fiche.os_commencement_id) ?? null,
     regles: (r.data as ReglesAttachement | null) ?? null,
     peutMontants,
+    logos: await chargerLogosEntete(fiche),
   };
 }
 

@@ -29,6 +29,14 @@ export interface SectionDoc {
   lignes: LigneDoc[];
 }
 
+// Logo déjà chargé (data URL), dimensions de l'image en pixels.
+export interface LogoEntete {
+  donnees: string;
+  format: 'PNG' | 'JPEG';
+  largeur: number;
+  hauteur: number;
+}
+
 export interface EnteteDoc {
   titulaire: string[];
   titulaireAr?: string | null;
@@ -36,6 +44,28 @@ export interface EnteteDoc {
   clientAr?: string | null;
   titre: string;
   infos: string[];
+  logoTitulaire?: LogoEntete | null;      // à gauche
+  logoMaitreOuvrage?: LogoEntete | null;  // à droite
+}
+
+// Logos des en-têtes : hauteur fixe, proportions conservées ; un logo très large
+// est réduit pour ne pas dépasser la largeur maximale.
+export const LOGO_HAUTEUR_MM = 14;
+export const LOGO_LARGEUR_MAX_MM = 50;
+
+export function dimensionsLogo(logo: LogoEntete): { largeurMm: number; hauteurMm: number } {
+  const largeur = (LOGO_HAUTEUR_MM * logo.largeur) / logo.hauteur;
+  const k = Math.min(1, LOGO_LARGEUR_MAX_MM / largeur);
+  return { largeurMm: largeur * k, hauteurMm: LOGO_HAUTEUR_MM * k };
+}
+
+export const mmEnPixels = (mm: number) => Math.round((mm * 96) / 25.4);
+
+export function octetsDataUrl(dataUrl: string): Uint8Array {
+  const binaire = atob(dataUrl.slice(dataUrl.indexOf(',') + 1));
+  const octets = new Uint8Array(binaire.length);
+  for (let i = 0; i < binaire.length; i++) octets[i] = binaire.charCodeAt(i);
+  return octets;
 }
 
 export interface DocumentExport {

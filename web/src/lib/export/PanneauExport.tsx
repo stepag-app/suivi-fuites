@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { LigneLot, Lot, Recap, ReglesAttachement } from '@/lib/attachements';
 import { messageErreur } from '@/lib/format';
+import { chargerLogosEntete } from '@/lib/logos';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import { FORMATS, exporter, type FormatExport } from './generer';
@@ -88,6 +89,7 @@ export function PanneauExport({
       osCommencement: os.find((x) => x.id === fiche.os_commencement_id) ?? null,
       regles: (r.data as ReglesAttachement | null) ?? null,
       peutMontants: peut('quantites', 'lire'),
+      logos: await chargerLogosEntete(fiche),
     });
     setModeles((mo.data as Modele[] | null) ?? []);
     setZones((z.data as Choix[] | null) ?? []);

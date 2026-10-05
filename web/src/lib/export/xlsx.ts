@@ -2,7 +2,10 @@
 // en-tête du marché fusionné, ligne de titres figée, formats de nombres et de dates.
 // Impression : A4 dans l'orientation choisie, ajusté à une page en largeur, titres de
 // colonnes répétés sur chaque page, numéro de page en pied (réglages ajoutés au fichier).
-import { etendueLibelle, parcourir, decimalesPour, type DocumentExport, type SectionDoc } from './modele';
+import {
+  decimalesPour, dimensionsLogo, etendueLibelle, mmEnPixels, octetsDataUrl, parcourir,
+  type DocumentExport, type LogoEntete, type SectionDoc,
+} from './modele';
 
 type Cellule = Record<string, unknown> | null;
 
@@ -38,6 +41,43 @@ function largeurs(section: SectionDoc, orientation: DocumentExport['orientation'
   return base.map((w, i) => (fixe[i] ? w : Math.max(10, Math.floor(w * ratio))));
 }
 
+// Largeur approximative d'une colonne en pixels (police du classeur : Calibri 10).
+const PIXELS_PAR_CARACTERE = 7;
+
+interface ImageFeuille {
+  content: ArrayBuffer; contentType: string; width: number; height: number; dpi: number;
+  anchor: { row: number; column: number }; offsetX: number; title: string;
+}
+
+// Logos sur une ligne réservée en tête de feuille : titulaire calé à gauche, maître
+// d'ouvrage calé sur le bord droit de la dernière colonne (ancre + décalage en pixels).
+function imagesLogos(d: DocumentExport, tailles: number[], ligne: number): ImageFeuille[] {
+  const pixels = tailles.map((w) => Math.round(w * PIXELS_PAR_CARACTERE));
+  const totale = pixels.reduce((a, b) => a + b, 0);
+  const image = (logo: LogoEntete, x: number, titre: string): ImageFeuille => {
+    const { largeurMm, hauteurMm } = dimensionsLogo(logo);
+    let colonne = 0;
+    let debut = 0;
+    while (colonne < pixels.length - 1 && debut + pixels[colonne] <= x) debut += pixels[colonne++];
+    return {
+      content: octetsDataUrl(logo.donnees).buffer as ArrayBuffer,
+      contentType: logo.format === 'PNG' ? 'image/png' : 'image/jpeg',
+      width: mmEnPixels(largeurMm), height: mmEnPixels(hauteurMm), dpi: 96,
+      anchor: { row: ligne, column: colonne + 1 }, offsetX: Math.max(0, Math.round(x - debut)), title: titre,
+    };
+  };
+  const images: ImageFeuille[] = [];
+  const gauche = d.entete.logoTitulaire;
+  const droite = d.entete.logoMaitreOuvrage;
+  const largeurGauche = gauche ? mmEnPixels(dimensionsLogo(gauche).largeurMm) : 0;
+  if (gauche) images.push(image(gauche, 0, 'Logo du titulaire'));
+  if (droite) {
+    const x = totale - mmEnPixels(dimensionsLogo(droite).largeurMm) - 4;
+    images.push(image(droite, Math.max(x, largeurGauche ? largeurGauche + 8 : 0), 'Logo du maître d\'ouvrage'));
+  }
+  return images;
+}
+
 function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
   const n = section.colonnes.length;
   const tailles = largeurs(section, d.orientation);
@@ -48,6 +88,12 @@ function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
     lignes.push(l);
   };
 
+  const logos = [d.entete.logoTitulaire, d.entete.logoMaitreOuvrage].filter((l): l is LogoEntete => !!l);
+  if (logos.length) {
+    const hauteurPx = Math.max(...logos.map((l) => mmEnPixels(dimensionsLogo(l).hauteurMm)));
+    pleine('', { height: Math.ceil(hauteurPx * 0.75) + 6 });
+  }
+  const images = logos.length ? imagesLogos(d, tailles, lignes.length) : null;
   if (d.filigrane) pleine(`${d.filigrane} : document provisoire, non définitif`, { fontWeight: 'bold', textColor: '#B3261E' });
   d.entete.titulaire.forEach((t, i) => pleine(t, i === 0 ? { fontWeight: 'bold', fontSize: 12 } : { textColor: '#5B6B77' }));
   if (d.entete.titulaireAr) pleine(d.entete.titulaireAr, { fontWeight: 'bold', align: 'left' });
@@ -111,6 +157,7 @@ function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
     columns: tailles.map((width) => ({ width })),
     stickyRowsCount: ligneTitres + 1,
     ligneTitres: ligneTitres + 1,
+    ...(images ? { images } : {}),
   };
 }
 

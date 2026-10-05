@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche, messageErreur } from '@/lib/format';
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from '@/lib/export/jeux';
 import { PanneauExport } from '@/lib/export/PanneauExport';
@@ -11,9 +11,12 @@ import { getSupabase, lireTout } from '@/lib/supabase';
 import { Indicateur } from '@/lib/ui/Indicateur';
 import { delaiReparation, fuitesDuMois, nonReparees, refectionsAFaire } from '@/lib/ui/indicateurs';
 import type { Secteur, StatutFuite, VFuite } from '@/lib/types';
+import { correspondance, decrirePeriode, filtresActifs, type CleAlerte, type FuiteFiltrable } from './filtres';
+import styles from './fuites.module.css';
+import { useFiltresAdresse } from './useFiltresAdresse';
 
 type Libelles = ReturnType<typeof libellesMarche>;
-const ALERTES: { cle: keyof VFuite; texte: (l: Libelles) => string }[] = [
+const ALERTES: { cle: CleAlerte; texte: (l: Libelles) => string }[] = [
   { cle: 'alerte_non_reparee', texte: (l) => `Non réparée > ${l.delaiReparationH} h` },
   { cle: 'alerte_communication_srm', texte: (l) => `Non communiquée ${l.sigle}` },
   { cle: 'refection_chaussee_hors_delai', texte: () => 'Réfection chaussée hors délai' },
@@ -21,18 +24,28 @@ const ALERTES: { cle: keyof VFuite; texte: (l: Libelles) => string }[] = [
   { cle: 'alerte_refection_trottoir', texte: () => 'Réfection trottoir à faire' },
 ];
 
-export default function ListeFuites() {
+// useSearchParams demande une frontière Suspense (page rendue côté navigateur).
+export default function PageFuites() {
+  return (
+    <Suspense fallback={<p className="discret">Chargement…</p>}>
+      <ListeFuites />
+    </Suspense>
+  );
+}
+
+function ListeFuites() {
   const { marche, peut } = useSession();
   const router = useRouter();
   const libelles = libellesMarche(marche);
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
+  // Marché dont les secteurs ont été lus sans erreur : un secteur inconnu de l'adresse n'est retiré qu'alors.
+  const [secteursDe, setSecteursDe] = useState<string | null>(null);
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(true);
-  const [statut, setStatut] = useState<StatutFuite | ''>('');
-  const [secteur, setSecteur] = useState('');
-  const [texte, setTexte] = useState('');
-  const [alertesSeules, setAlertesSeules] = useState(false);
+  // Filtres : dans l'adresse (?statut=…&secteur=…&du=…&au=…&alertes=1&texte=…), voir filtres.ts.
+  const { filtres, changer, effacer } = useFiltresAdresse();
+  const { statut, secteur, texte, alertes: alertesSeules } = filtres;
 
   const marcheId = marche?.id;
   // Une réponse arrivée après un changement de marché (ou une actualisation plus récente) est ignorée.
@@ -54,6 +67,7 @@ export default function ListeFuites() {
     if (f.error) setErreur(messageErreur(f.error));
     setFuites(f.data ?? []);
     setSecteurs((s.data as Secteur[] | null) ?? []);
+    setSecteursDe(s.error ? null : marcheId);
     setChargement(false);
   }, [marcheId]);
 
@@ -61,22 +75,13 @@ export default function ListeFuites() {
     charger();
   }, [charger]);
 
+  // Secteur de l'adresse inconnu dans ce marché (lien d'un autre marché, secteur effacé) : ignoré et retiré.
+  useEffect(() => {
+    if (secteursDe === marcheId && secteur && !secteurs.some((s) => s.id === secteur)) changer({ secteur: '' });
+  }, [secteursDe, marcheId, secteur, secteurs, changer]);
+
   // Filtres de la liste, réutilisés par le panneau d'export (« limiter à la liste affichée »).
-  const correspond = useCallback(
-    (f: Pick<VFuite, 'statut' | 'secteur_id' | 'numero' | 'reference_srm' | 'adresse'> & Partial<VFuite>) => {
-      const t = texte.trim().toLowerCase();
-      const chiffres = t.replace(/\D/g, '');
-      return (!statut || f.statut === statut) &&
-        (!secteur || f.secteur_id === secteur) &&
-        (!alertesSeules || ALERTES.some((a) => f[a.cle] === true)) &&
-        (!t ||
-          String(f.numero) === t ||
-          (f.reference_srm ?? '').toLowerCase().includes(t) ||
-          (chiffres.length >= 3 && (f.reference_srm ?? '').replace(/\D/g, '').includes(chiffres)) ||
-          (f.adresse ?? '').toLowerCase().includes(t));
-    },
-    [statut, secteur, texte, alertesSeules],
-  );
+  const correspond = useMemo(() => correspondance(filtres), [filtres]);
   const filtrees = useMemo(() => fuites.filter(correspond), [fuites, correspond]);
   const [exportOuvert, setExportOuvert] = useState(false);
   const [rapports, setRapports] = useState<{ fait: number; total: number; etape: string; enCours: boolean } | null>(null);
@@ -104,6 +109,7 @@ export default function ListeFuites() {
   const descriptionListe = [
     statut && STATUTS[statut].libelle,
     secteur && secteurs.find((s) => s.id === secteur)?.libelle,
+    decrirePeriode(filtres),
     texte.trim() && `recherche « ${texte.trim()} »`,
     alertesSeules && 'alertes seulement',
   ].filter(Boolean).join(', ');
@@ -161,12 +167,12 @@ export default function ListeFuites() {
             key={s}
             className={`pastille ${STATUTS[s].classe} ${statut === s ? 'choisie' : ''}`}
             aria-pressed={statut === s}
-            onClick={() => setStatut(statut === s ? '' : s)}
+            onClick={() => changer({ statut: statut === s ? '' : s })}
           >
             {STATUTS[s].libelle} <b>{compteurs[s] ?? 0}</b>
           </button>
         ))}
-        <button className={`pastille ${statut === '' ? 'choisie' : ''}`} aria-pressed={statut === ''} onClick={() => setStatut('')}>
+        <button className={`pastille ${statut === '' ? 'choisie' : ''}`} aria-pressed={statut === ''} onClick={() => changer({ statut: '' })}>
           Toutes <b>{fuites.length}</b>
         </button>
       </div>
@@ -186,23 +192,34 @@ export default function ListeFuites() {
         ouvert={exportOuvert}
         fermer={() => setExportOuvert(false)}
         jeux={[JEU_FUITES, ...(peut('quantites', 'lire') ? [JEU_QUANTITES] : []), JEU_PIECES]}
-        filtreListe={(l) => correspond(l as unknown as VFuite)}
+        filtreListe={(l) => correspond(l as unknown as FuiteFiltrable)}
         descriptionListe={descriptionListe ? `Filtres de la liste : ${descriptionListe}` : undefined}
       />
 
       <section className="carte tableau-liste">
         <div className="filtres barre-filtres">
-          <input placeholder="Rechercher : N°, référence ou adresse" value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Rechercher" />
-          <select value={secteur} onChange={(e) => setSecteur(e.target.value)} aria-label="Secteur">
+          <input placeholder="Rechercher : N°, référence ou adresse" value={texte} onChange={(e) => changer({ texte: e.target.value }, true)} aria-label="Rechercher" />
+          <select value={secteur} onChange={(e) => changer({ secteur: e.target.value })} aria-label="Secteur">
             <option value="">Tous les secteurs</option>
             {secteurs.map((s) => (
               <option key={s.id} value={s.id}>{s.libelle}</option>
             ))}
           </select>
+          <span className={styles.periode} role="group" aria-label="Période de détection">
+            <label className={styles.date}>
+              Détectées du
+              <input type="date" value={filtres.du} max={filtres.au || undefined} onChange={(e) => changer({ du: e.target.value }, true)} />
+            </label>
+            <label className={styles.date}>
+              au
+              <input type="date" value={filtres.au} min={filtres.du || undefined} onChange={(e) => changer({ au: e.target.value }, true)} />
+            </label>
+          </span>
           <label className="ligne">
-            <input type="checkbox" checked={alertesSeules} onChange={(e) => setAlertesSeules(e.target.checked)} />
+            <input type="checkbox" checked={alertesSeules} onChange={(e) => changer({ alertes: e.target.checked })} />
             Alertes seulement
           </label>
+          {filtresActifs(filtres) && <button type="button" onClick={effacer}>Effacer les filtres</button>}
         </div>
 
         {chargement && <p className="discret vide-liste">Chargement…</p>}

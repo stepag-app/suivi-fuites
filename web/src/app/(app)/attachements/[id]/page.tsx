@@ -22,7 +22,7 @@ interface Zone { id: string; libelle: string }
 export default function DetailLot() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { marche, profil, peut } = useSession();
+  const { marche, profil, peut, verrouille } = useSession();
   const [lot, setLot] = useState<Lot | null>(null);
   const [lignes, setLignes] = useState<LigneLot[]>([]);
   const [recap, setRecap] = useState<Recap[]>([]);
@@ -190,7 +190,9 @@ export default function DetailLot() {
             <button className="danger" disabled={occupe} onClick={supprimerBrouillon}>Supprimer le brouillon</button>
           )}
           {!brouillon && estAdmin && lot.numero === dernierNumero && (
-            <button className="danger" disabled={occupe} onClick={rouvrir}>Rouvrir (administrateur)</button>
+            verrouille('attachements', 'rouvrir')
+              ? <button className="danger" disabled title="Verrouillé par vous : rouvrez le verrou dans Utilisateurs > Droits">Rouvrir (verrouillé par vous)</button>
+              : <button className="danger" disabled={occupe} onClick={rouvrir}>Rouvrir (administrateur)</button>
           )}
         </div>
       </section>
@@ -242,7 +244,9 @@ export default function DetailLot() {
           {modifiable && (
             <span className="actions">
               <button onClick={() => setFormulaire(formulaire === 'libre' ? '' : 'libre')}>+ Ligne libre</button>
-              {estAdmin && <button onClick={() => setFormulaire(formulaire === 'forcage' ? '' : 'forcage')}>+ Refacturation forcée</button>}
+              {estAdmin && (verrouille('attachements', 'forcer')
+                ? <button disabled title="Verrouillé par vous : rouvrez le verrou dans Utilisateurs > Droits">+ Refacturation forcée (verrouillée)</button>
+                : <button onClick={() => setFormulaire(formulaire === 'forcage' ? '' : 'forcage')}>+ Refacturation forcée</button>)}
             </span>
           )}
         </div>

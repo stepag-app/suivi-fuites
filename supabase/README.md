@@ -111,16 +111,44 @@ artefact GitHub. Une fois : créer le secret `SAUVEGARDE_PASSPHRASE` (phrase sec
 gestionnaire de mots de passe, copie hors ligne ; jamais dans le dépôt ni dans le chat), puis lancer le
 workflow à la main pour valider la première sauvegarde.
 
-Restauration (sur un projet Supabase **vierge**, jamais sur la production sans décision explicite) :
+**Test de restauration** (lot K, PR #27) : le workflow `.github/workflows/test-restauration.yml` tourne chaque
+lundi à 04:07 UTC, et à la demande (Actions > Test de restauration > Run workflow). Il prend la dernière
+sauvegarde réussie de `main`, la déchiffre avec `SAUVEGARDE_PASSPHRASE`, la restaure dans une base Supabase
+locale et vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la
+production), puis compare table par table les lignes de la sauvegarde à celles de la base restaurée.
+Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ; aucune donnée n'est
+affichée. Premier essai (2026-10-05) : 65 tables, 91 comparaisons, toutes égales.
+
+Si le test échoue :
+- « aucune exécution réussie » ou « plus de 48 h » : la sauvegarde nocturne ne tourne plus ; vérifier
+  Actions > Sauvegarde de la base, puis la relancer ;
+- échec du déchiffrement : `SAUVEGARDE_PASSPHRASE` ne correspond plus ;
+- échec de restauration ou écart de lignes : la sauvegarde n'est pas fiable ; relancer une sauvegarde puis
+  le test, et corriger avant toute opération risquée sur la base.
+
+**Défauts de la sauvegarde actuelle** (révélés par le test, **à corriger**, voir `docs/feuille-de-route.md`) :
+1. `donnees_public.sql` contient `storage.buckets_vectors` et `storage.vector_indexes`, non inscriptibles
+   (`permission denied`) : les exclure de l'export (`-x storage.buckets_vectors -x storage.vector_indexes`).
+2. `donnees_public.sql` contient déjà les comptes (`auth`) : `donnees_auth.sql` fait doublon et l'ancienne
+   procédure (auth puis public) échoue sur des doublons.
+3. `schema.sql` n'a ni le déclencheur `creer_profil_apres_inscription` (sur `auth.users`) ni les règles de
+   `storage.objects` (photos, evenements, logos) : une base restaurée ne crée plus de profil et refuse les
+   fichiers.
+
+Restauration réelle (sur un projet Supabase **vierge**, jamais sur la production sans décision explicite),
+en attendant la correction de l'export :
 ```bash
 gpg --decrypt sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg | tar -xzf -     # schema.sql, donnees_*.sql
-psql "$URL_BASE_NEUVE" -f schema.sql
-psql "$URL_BASE_NEUVE" -f donnees_auth.sql
-psql "$URL_BASE_NEUVE" -f donnees_public.sql
+psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f schema.sql
+# retirer d'abord de donnees_public.sql les deux blocs COPY vides storage.buckets_vectors / vector_indexes
+psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f donnees_public.sql   # comptes compris
 ```
-**Limites** : les photos (Storage) ne sont pas incluses (copie vers R2 prévue quand la carte bancaire
-sera disponible) ; 30 jours de rétention ; test de restauration à faire une fois sur un projet vierge
-avant de s'y fier.
+Puis recréer le déclencheur `creer_profil_apres_inscription` (migration `20261004090100`) et les règles de
+`storage.objects` (migrations `20261004090600`, `20261004180100`, `20261005120000`), et marquer les
+migrations comme appliquées (`supabase migration repair --status applied …`) avant tout `db push`.
+
+**Limites** : les photos (Storage) ne sont pas incluses ; 30 jours de rétention ; l'historique des migrations
+n'est pas sauvegardé.
 
 ## Application « standard » (étape A)
 

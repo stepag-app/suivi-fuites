@@ -33,8 +33,8 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 | Écran | Qui | Contenu |
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
-| `/fuites` | tous les affectés | liste, filtres (statut, secteur, texte, alertes), export Excel (CSV) |
-| `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
+| `/fuites` | tous les affectés | liste, filtres (statut, secteur, période de détection du / au, texte, alertes) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée |
+| `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Chiffres cliquables vers la liste `/fuites` filtrée à l'identique, seulement quand la liste a le filtre exact (détectées sur la période, réfections à faire = statut « réparée », répartition par statut, détectées par semaine, détectées et alertes par secteur, totaux) ; les autres chiffres restent du texte. Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
 | `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, voir § Carte |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique |
@@ -44,6 +44,16 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/marches` | administrateur | liste des marchés, activer / désactiver (un marché désactivé n'est plus proposé aux agents), créer un marché vide ou en copiant les paramètres d'un marché existant (`copier_marche`) |
 | `/utilisateurs` | administrateur | créer un agent, rôles par marché, changer le mot de passe, révoquer / réactiver |
+
+### Filtres de la liste dans l'adresse
+
+- Paramètres : `statut` (detectee, en_reparation, reparee, achevee, sans_reparation), `secteur` (uuid du secteur),
+  `du` et `au` (jour de détection AAAA-MM-JJ à l'heure du Maroc, bornes comprises), `alertes=1` (mêmes 5 alertes
+  que la colonne « Alertes »), `texte` (N°, référence ou adresse, 100 caractères au plus). Ordre fixe, filtres vides omis.
+- Écrits par `router.replace` (l'historique ne s'allonge pas), recherche et dates après une pause de 400 ms. Une valeur
+  inconnue ou invalide est ignorée ; un secteur d'un autre marché est retiré.
+- Le tableau de bord fabrique ses liens avec `lienFuites` (`src/app/(app)/fuites/filtres.ts`) : la liste ouverte
+  compte exactement le chiffre cliqué. Vérification : `node scripts/verifier-filtres-fuites.mjs`.
 
 ## Exports (panneau « Exporter »)
 
@@ -129,8 +139,22 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   locales ne sont effacées qu'après confirmation du serveur.
 - Mis en cache : liste des secteurs, profil / marchés / droits du dernier utilisateur connecté
   (effacés à la déconnexion), pages de l'application (service worker `public/sw.js`, actif en production).
-- **Hors périmètre** : consulter ou modifier une fuite existante sans réseau ; la détection des
-  doublons (re-détection) est muette sans réseau.
+- **Fiche déjà vue** : chaque fiche ouverte en ligne est copiée sur l'appareil (IndexedDB, base
+  `suivi-fuites-fiches`, à part de la file d'attente) : fuite, réparations, réfections, quantités si le
+  compte les voit, photos réduites à 1 024 px (clé = identifiant de la photo, jamais l'URL signée). Seul ce
+  que la RLS a renvoyé à ce compte est gardé ; une fuite devenue introuvable ou refusée est effacée.
+- Sans réseau, en cas d'échec ou après 10 s sans réponse, la fiche s'affiche depuis cette copie avec le
+  bandeau « Hors ligne : version du … », en lecture seule (aucun bouton d'écriture, ni rapport PDF) ; fiche
+  jamais ouverte sur l'appareil : « Fiche non disponible hors ligne ». Relecture automatique au retour du réseau.
+- Taille bornée : 50 fiches et 400 photos (≈ 40 Mo), les moins récemment ouvertes purgées d'abord. Tout est
+  effacé à la déconnexion (en ligne : « Quitter » sans réseau n'efface rien).
+- Service worker : une seule page « coquille » (sans données) sert toutes les fiches `/fuites/<uuid>` hors
+  ligne, avec ses scripts ; les données de navigation des fiches ne sont pas gardées une par une.
+  Vérification : `node scripts/verifier-fiche-hors-ligne.mjs`. **Non vérifié dans un navigateur ni sur la
+  tablette** (service worker hors ligne, photos en cache) : à essayer en mode avion.
+- **Hors périmètre** : modifier une fuite existante sans réseau ; la liste des fuites hors ligne (une fiche
+  gardée s'ouvre par l'historique, un lien ou la réouverture de l'application) ; la détection des doublons
+  (re-détection) est muette sans réseau.
 - Limite : la session reste valable tant que le jeton se rafraîchit ; après une très longue coupure,
   il faut se reconnecter en ligne (les envois en attente sont conservés).
 

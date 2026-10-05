@@ -34,6 +34,15 @@ Session 5 (2026-10-05), lots menés en parallèle, PR **en brouillon** (CI verte
 | I. Tableau de bord v1 | indicateurs, statuts, 12 semaines, secteurs / zones, attachements | #23 |
 | J. Marché désactivé | lecture seule en base (sauf administrateur) | #21 |
 
+Lots F à J fusionnés le 2026-10-05 (session 6). Session 6, lots en parallèle, PR **en brouillon** :
+
+| Lot | Contenu | PR |
+|---|---|---|
+| K. Test de restauration | restauration hebdomadaire de la dernière sauvegarde dans une base vierge de la CI, lignes comparées | #27 |
+| L. Filtres dans l'adresse | filtres de `/fuites` dans l'URL (dont la période), chiffres du tableau de bord cliquables | #28 |
+| M. Fiche hors ligne | fiche déjà vue consultable sans réseau (données et photos en cache, lecture seule) | #29 |
+| N. Photos sur R2 | **non lancé** : secrets R2 absents de GitHub | — |
+
 ## 3. Photos sur Cloudflare R2 (lot E, après A et D)
 
 **À faire par Issam maintenant** (aucune valeur secrète dans le chat ni le dépôt) :
@@ -90,9 +99,10 @@ PDF archivés.
 9. **Passe d'interface** : **faite pour le panneau web** (2026-10-05, PR #19) : style SAP Fiori en CSS
    maison, widgets d'indicateurs, fiche d'une fuite au format de la maquette. APK : fait (lot H, PR #24).
 10. **Sauvegarde complète et restaurable** (demande d'Issam du 2026-10-05) :
-    - **D'abord** : activer la sauvegarde nocturne existante (secret `SAUVEGARDE_PASSPHRASE`, voir
-      `docs/etat-avancement.md` § 2) ; elle échoue chaque nuit tant que le secret manque (constaté le
-      2026-10-05 à 02 h 30).
+    - ~~Activer la sauvegarde nocturne~~ : active depuis le 2026-10-05. ~~Test de restauration~~ : lot K (PR #27).
+    - **D'abord** : corriger les trois défauts de l'export relevés par le lot K (tables `storage` vectorielles
+      non inscriptibles, `donnees_auth.sql` en doublon, déclencheur sur `auth.users` et règles de
+      `storage.objects` absents ; détail dans `supabase/README.md` § Sauvegarde et restauration).
     - **Ensuite** : envoyer aussi la sauvegarde **hors de GitHub** (une boîte Gmail dédiée, par exemple),
       sous un format restaurable à tout moment (SQL ou archive), **photos comprises**.
     - Contraintes à trancher avec Issam (**stockage et destination décidés plus tard**) :

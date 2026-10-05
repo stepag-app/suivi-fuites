@@ -3,8 +3,9 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-05 (session 5 : lots F, G, H, I, J menés en parallèle ; PR #21 à #25 **en brouillon**,
-non fusionnées, CI verte ; fusion sur demande d'Issam après ses essais).
+Dernière mise à jour : 2026-10-05 (session 6 : PR #21 à #26 des lots F, G, H, I, J **fusionnées**, migrations des
+lots F et J **déployées** à 16 h 51 UTC ; lots K, L, M menés en parallèle, PR #27 à #29 **en brouillon** ; le test de
+restauration (K) révèle trois défauts de l'export de la sauvegarde, à corriger en priorité).
 
 ## 1. Fait
 
@@ -37,17 +38,30 @@ non fusionnées, CI verte ; fusion sur demande d'Issam après ses essais).
 | Lot D, ajouts : itinéraire vers la fuite (lien dans le rapport, bouton « Y aller » sur la fiche) ; lecture des photos par `urlsPhotos` (point unique pour le futur passage à R2) | `web/src/lib/itineraire.ts`, `web/src/lib/photo.ts` | PR #17 fusionnée |
 | **Interface au style SAP Fiori** (choix d'Issam du 2026-10-05 parmi 5 maquettes) : barre d'application sombre, onglets de modules, tableaux et statuts Fiori, densité bureau / tactile ; widgets d'indicateurs (modèle ERP) sur la liste des fuites ; liste en tableau sur bureau | `web/src/app/globals.css`, `web/src/app/(app)/layout.tsx`, `web/src/lib/ui/` ; `web/README.md` § Style | PR #19 fusionnée ; **à valider par Issam** ; APK : fait par le lot H (PR #24) |
 | **Lot C : paramètres à l'écran** : page `/marches` (admin : liste, activer / désactiver, créer vide ou par copie des paramètres d'un marché), Paramètres > Secteurs (zones et secteurs), Natures de réfection, Catalogue des pièces (recherche), règles de proposition des articles du bordereau (famille, matériaux, diamètres, sans nouvelle version) ; marché désactivé masqué aux agents | migration `20261005100000_copie_marche.sql` (`copier_marche`) ; `web/src/app/(app)/marches/`, `web/src/app/(app)/parametres/Onglet{Secteurs,Natures,Catalogue}.tsx` ; 36 tests pgTAP (`06_copie_marche_parametres`) | PR #14 fusionnée, migration **déployée** le 2026-10-04 à 23 h 40 UTC ; tests pgTAP, tsc et parcours Playwright sur pile Supabase locale verts |
-| **Lot F : logos** du titulaire et du maître d'ouvrage (Paramètres > Marché ; PNG ou JPEG, 2 Mo, réduits à 600 px), repris dans les en-têtes PDF (exports, lots, rapport par fuite, carte), Word et Excel | migration `20261005120000_logos_marche.sql` (compartiment privé `logos`) ; `web/src/lib/logos.ts`, `web/src/lib/export/` ; 37 tests pgTAP (`07_logos`), `web/scripts/essai-logos.mjs` | PR [#22](https://github.com/stepag-app/suivi-fuites/pull/22) **en brouillon**, CI verte (267 tests pgTAP) ; écran non essayé connecté ; **à essayer après fusion et déploiement** (l'envoi échoue sur l'aperçu tant que la migration n'est pas en production) |
-| **Lot G : impression de la carte** (« Imprimer la carte ») : PDF A4 / A3, portrait / paysage, en-tête du marché, filtres, carte à 200 dpi, légende, échelle, nord, coordonnées WGS84, © OSM, liste des fuites en option ; gabarit générique réglable (`GABARIT`) | `web/src/lib/export/carte-pdf.ts`, `web/src/app/(app)/carte/{capture,couches,impression}.ts`, `web/scripts/verifier-carte-pdf.mjs` | PR [#25](https://github.com/stepag-app/suivi-fuites/pull/25) **en brouillon**, CI verte ; essais Chromium sur le vrai fond (page d'essai) ; **à essayer sur l'aperçu Vercel** (DEMO) ; gabarit à confirmer avec la SRM (point ouvert 12) |
-| **Lot H, tablette** : style Fiori de l'APK, photos seules depuis la fiche (fuite, avant / pendant / après, réfection ; droit « photos / créer »), modification d'une réparation envoyée (droit et portée, hors ligne, changements seulement, après la création) | `mobile/src/` (`ui.tsx`, `fiche.tsx`, `saisie.tsx`, `modification.ts`, `file-attente.ts`), `mobile/essais/file-attente-hors-pile.test.mjs` | PR [#24](https://github.com/stepag-app/suivi-fuites/pull/24) **en brouillon**, CI verte (APK compilé, artefact de la PR) ; 28 vérifications sans pile ; rendu vu sur aucune tablette : **à essayer sur la tablette** ; le chef ne peut pas retirer une pièce déjà envoyée (droit « supprimer » = non) |
-| **Lot I : tableau de bord v1** (`/tableau-de-bord`) : période, indicateurs de la période et à ce jour, statuts, 12 semaines, secteurs / zones, attachements (selon les droits) ; pas de lien vers `/fuites` (pas de filtres dans l'URL) | `web/src/app/(app)/tableau-de-bord/`, `web/src/lib/ui/tableau-de-bord.ts`, `web/scripts/verifier-tableau-de-bord.mjs` | PR [#23](https://github.com/stepag-app/suivi-fuites/pull/23) **en brouillon**, CI verte ; 15 vérifications de calcul ; **à essayer sur l'aperçu Vercel** (DEMO, admin puis agent de détection) |
-| **Lot J : marché désactivé en lecture seule** (écritures refusées en base sauf administrateur, lecture conservée) | migration `20261005120100_marche_inactif.sql` ; 9 tests pgTAP (`08_marche_inactif`) | PR [#21](https://github.com/stepag-app/suivi-fuites/pull/21) **en brouillon**, CI verte (tous les tests existants inchangés) |
+| **Lot F : logos** du titulaire et du maître d'ouvrage (Paramètres > Marché ; PNG ou JPEG, 2 Mo, réduits à 600 px), repris dans les en-têtes PDF (exports, lots, rapport par fuite, carte), Word et Excel | migration `20261005120000_logos_marche.sql` (compartiment privé `logos`) ; `web/src/lib/logos.ts`, `web/src/lib/export/` ; 37 tests pgTAP (`07_logos`), `web/scripts/essai-logos.mjs` | PR [#22](https://github.com/stepag-app/suivi-fuites/pull/22) **fusionnée** le 2026-10-05 (267 tests pgTAP) ; migration **déployée** le 2026-10-05 à 16 h 51 UTC ; écran non essayé connecté : **à essayer** (envoi des logos, en-têtes) |
+| **Lot G : impression de la carte** (« Imprimer la carte ») : PDF A4 / A3, portrait / paysage, en-tête du marché, filtres, carte à 200 dpi, légende, échelle, nord, coordonnées WGS84, © OSM, liste des fuites en option ; gabarit générique réglable (`GABARIT`) | `web/src/lib/export/carte-pdf.ts`, `web/src/app/(app)/carte/{capture,couches,impression}.ts`, `web/scripts/verifier-carte-pdf.mjs` | PR [#25](https://github.com/stepag-app/suivi-fuites/pull/25) **fusionnée** le 2026-10-05 ; essais Chromium sur le vrai fond (page d'essai) ; **à essayer sur l'aperçu Vercel** (DEMO) ; gabarit à confirmer avec la SRM (point ouvert 12) |
+| **Lot H, tablette** : style Fiori de l'APK, photos seules depuis la fiche (fuite, avant / pendant / après, réfection ; droit « photos / créer »), modification d'une réparation envoyée (droit et portée, hors ligne, changements seulement, après la création) | `mobile/src/` (`ui.tsx`, `fiche.tsx`, `saisie.tsx`, `modification.ts`, `file-attente.ts`), `mobile/essais/file-attente-hors-pile.test.mjs` | PR [#24](https://github.com/stepag-app/suivi-fuites/pull/24) **fusionnée** le 2026-10-05 (APK compilé, artefact de la PR) ; 28 vérifications sans pile ; rendu vu sur aucune tablette : **à essayer sur la tablette** ; le chef ne peut pas retirer une pièce déjà envoyée (droit « supprimer » = non) |
+| **Lot I : tableau de bord v1** (`/tableau-de-bord`) : période, indicateurs de la période et à ce jour, statuts, 12 semaines, secteurs / zones, attachements (selon les droits) ; chiffres cliquables vers `/fuites` : lot L | `web/src/app/(app)/tableau-de-bord/`, `web/src/lib/ui/tableau-de-bord.ts`, `web/scripts/verifier-tableau-de-bord.mjs` | PR [#23](https://github.com/stepag-app/suivi-fuites/pull/23) **fusionnée** le 2026-10-05 ; 15 vérifications de calcul ; **à essayer sur l'aperçu Vercel** (DEMO, admin puis agent de détection) |
+| **Lot J : marché désactivé en lecture seule** (écritures refusées en base sauf administrateur, lecture conservée) | migration `20261005120100_marche_inactif.sql` ; 9 tests pgTAP (`08_marche_inactif`) | PR [#21](https://github.com/stepag-app/suivi-fuites/pull/21) **fusionnée** le 2026-10-05, migration **déployée** à 16 h 51 UTC (après celle du lot F) |
 | Intégration des PR web #21, #22, #23, #25 : fusion ensemble sans conflit sur `main`, tsc, build et les 3 scripts de vérification verts ; la carte imprimée reçoit les logos du lot F | — | vérifié le 2026-10-05 |
+| **Lot K : test de restauration de la sauvegarde** : chaque lundi 04:07 UTC et à la demande ; dernière sauvegarde réussie de `main`, déchiffrée, restaurée dans une base Supabase vierge de la CI (`supabase start`, jamais la production), lignes comparées table par table, alerte si la sauvegarde a plus de 48 h | `.github/workflows/test-restauration.yml` ; `supabase/README.md` § Sauvegarde et restauration | PR [#27](https://github.com/stepag-app/suivi-fuites/pull/27) **en brouillon**, CI verte (65 tables, 91 comparaisons égales) ; **3 défauts de l'export** relevés, voir § 2 |
+| **Lot L : filtres de la liste dans l'adresse** (`?statut=…&secteur=…&du=…&au=…&alertes=1&texte=…`, filtre de période ajouté, « Effacer les filtres ») et chiffres du tableau de bord cliquables vers la liste filtrée à l'identique | `web/src/app/(app)/fuites/{filtres.ts,useFiltresAdresse.ts}`, `web/src/app/(app)/tableau-de-bord/` ; `web/scripts/verifier-filtres-fuites.mjs` (15 vérifications) | PR [#28](https://github.com/stepag-app/suivi-fuites/pull/28) **en brouillon**, CI verte ; essai navigateur avec données fictives (26 liens = chiffres) ; **à essayer sur l'aperçu Vercel** |
+| **Lot M : fiche déjà vue consultable sans réseau** (copie IndexedDB, photos 1 024 px par identifiant, 50 fiches / 400 photos, effacées à la déconnexion, lecture seule hors ligne ; page « coquille » du service worker pour `/fuites/<uuid>`) | `web/src/app/(app)/fuites/[id]/` (page découpée : `donnees.ts`, `copie.ts`, `fiche-hors-ligne.ts`, `formulaires.tsx`), `web/src/lib/hors-ligne.ts`, `web/public/sw.js` ; `web/scripts/verifier-fiche-hors-ligne.mjs` (20 vérifications) | PR [#29](https://github.com/stepag-app/suivi-fuites/pull/29) **en brouillon** ; tsc et build verts en local ; CI GitHub bloquée par un incident Actions le 2026-10-05 (relancée) ; **service worker et photos hors ligne non vérifiés dans un navigateur : à essayer en mode avion** |
+| Intégration des PR #27, #28, #29 : fusion ensemble sans conflit, tsc, build et les 3 scripts web verts (15 + 20 + 15) | — | vérifié le 2026-10-05 |
 
 ## 2. En attente d'Issam
 
-**Priorité (session 5) : essais des PR en brouillon #21 à #25** (aperçus Vercel ; APK : artefact de la PR #24), puis dire « fusionner » :
-Claude fusionne une fois la CI verte et vérifie le déploiement de la base (migrations des lots F et J).
+**Priorité (session 6)** :
+- **Corriger l'export de la sauvegarde** (lot à lancer, `sauvegarde-base.yml` + `supabase/README.md`) : exclure
+  `storage.buckets_vectors` et `storage.vector_indexes`, supprimer le doublon `donnees_auth.sql`, sauvegarder aussi le
+  déclencheur `creer_profil_apres_inscription` et les règles de `storage.objects` ; le test du lot K doit alors passer
+  sans contournement. D'ici là, la restauration se fait à la main (`supabase/README.md` § Sauvegarde et restauration).
+- **Essais des PR en brouillon #27 à #29** (aperçus Vercel ; lot M en mode avion sur la tablette), puis dire « fusionner ».
+- **Essais en production des lots F à J**, fusionnés : logos (Paramètres > Marché), carte imprimée, tableau de bord,
+  marché désactivé ; APK du lot H (artefact de la compilation sur `main`).
+- **Photos sur R2** (lot E / N) : non lancé, les secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
+  n'existent pas dans GitHub (vérifié le 2026-10-05) ; les créer (`docs/feuille-de-route.md` § 3).
+
 Fournir les **logos** STEPAG et SRM (PNG de préférence) et confirmer le droit d'usage du logo SRM.
 Questions : tableau de bord (page d'accueil du responsable ? délais en heures ou jours ? date de réparation =
 dernière réparation ou passage à « achevée » ? comparaison avec la période précédente ? export PDF ?) ;
@@ -63,8 +77,8 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
 4. ~~Sauvegarde nocturne~~ **active depuis le 2026-10-05** : secret `SAUVEGARDE_PASSPHRASE` créé par Issam (phrase
    dans son gestionnaire de mots de passe), deux exécutions manuelles réussies à 16 h 05 UTC (runs 37337525271 et
-   37337615644, archive chiffrée de 155 Ko, contenu contrôlé par le workflow : schéma, `marches`, comptes). **Reste** :
-   un essai de déchiffrement et de restauration sur une base vierge. Historique : elle **échouait chaque nuit** (constaté le 2026-10-05 à
+   37337615644, archive chiffrée de 155 Ko, contenu contrôlé par le workflow : schéma, `marches`, comptes). Test de
+   restauration : lot K (PR #27), vert, mais **trois défauts de l'export** à corriger (voir la priorité ci-dessus). Historique : elle **échouait chaque nuit** (constaté le 2026-10-05 à
    02 h 30 : « Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub »), donc **aucune sauvegarde n'existe**.
    Créer le secret GitHub `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le gestionnaire de mots de
    passe ; Settings > Secrets and variables > Actions), puis lancer « Sauvegarde de la base » à la main et
@@ -154,8 +168,13 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 
 ## 5. Prochaines étapes proposées
 
-**Fait cette session (5)** : lots F (logos), G (impression de la carte), H (tablette), I (tableau de bord),
-J (marché désactivé en lecture seule), en brouillon (PR #21 à #25).
+**Fait en session 5** : lots F (logos), G (impression de la carte), H (tablette), I (tableau de bord),
+J (marché désactivé en lecture seule) ; **fusionnés et déployés en session 6**.
+
+**Fait en session 6** : lots K (test de restauration), L (filtres dans l'adresse, tableau de bord cliquable),
+M (fiche déjà vue sans réseau), en brouillon (PR #27 à #29). Points ouverts du lot L : « Non réparées > seuil » et
+« En attente » non cliquables (il faudrait un filtre par type d'alerte et un filtre multi-statuts), pas de filtre
+par zone, période du tableau de bord absente de son adresse. Lot M : pas encore de liste « Fiches disponibles hors ligne ».
 
 **Application standard, ce qui manquait à l'écran** : fait par le lot C (marchés, secteurs, natures,
 catalogue, règles de proposition). Reste : dessin des zones et secteurs (avec le plan du réseau), phases du
@@ -171,8 +190,8 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 3. Application Expo : socle, fiche, réparations / réfections et doublons faits (lot A). Lot H : style Fiori, photos depuis la fiche,
    modification d'une réparation. À ajouter : suivi GPS en arrière-plan (tracé par agent et par jour, M4 ; **bloqué** par
    les questions heures de suivi / information des agents / CNDP), notifications (**bloqué** : push, e-mail ou les deux ?),
-   mise à jour de l'APK, suppression d'une réparation, modification d'une réfection. Mode hors ligne web : consultation et modification d'une fuite
-   existante sans réseau non gérées.
+   mise à jour de l'APK, suppression d'une réparation, modification d'une réfection. Mode hors ligne web : consultation d'une fiche déjà vue
+   (lot M) ; modification d'une fuite existante sans réseau non gérée.
 4. Migration 2 dès réception du DXF : le balayage (prix 1 et 2) pourra alors s'attacher par tronçon ;
    en attendant, une **ligne libre** du lot d'attachement porte le linéaire balayé par secteur.
 5. ~~Rapport PDF par fuite~~ (lot D, fait ; contenu à valider avec la SRM), ~~carte des fuites~~ (lot B, fait),
@@ -183,9 +202,9 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : tout jusqu'à la PR #20 est fusionné et déployé. Session 5 : lots F, G, H, I, J en PR brouillon
-#21 à #25 (CI verte) : vérifie leur état ; fusionne celles qu'Issam a validées (CI verte, puis workflow
-« Déploiement de la base » pour #21 et #22), puis ses retours de test (DEMO, exports, carte, tableau de bord, APK).
+Contexte : tout jusqu'à la PR #26 est fusionné et déployé (lots F à J). Session 6 : lots K, L, M en PR brouillon
+#27 à #29, plus la PR de documentation : vérifie leur état et la CI ; fusionne celles qu'Issam a validées (CI verte).
+Priorité : corriger l'export de la sauvegarde (3 défauts, docs/etat-avancement.md § 2), puis les retours de test.
 Le plan DWG du réseau n'est pas encore disponible : ne commence pas la migration 2.
 Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
 fonctionnalité].

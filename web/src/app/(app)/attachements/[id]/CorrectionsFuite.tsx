@@ -1,16 +1,17 @@
 'use client';
 
 // Corrections d'une fuite à l'attachement (lot R) : contrôles en défaut, requalification d'une ligne
-// de prix (article et quantité, motif obligatoire), ajout d'une ligne, ajout d'une pièce posée
-// (marquée « ajoutée au bureau » par la base). Toutes les fournitures sont comprises dans les prix :
-// une pièce ajoutée n'est jamais payée à part ; une réparation = une unité par prix.
+// de prix (article et quantité, motif obligatoire), ajout d'une ligne, corrections des pièces posées
+// selon leur nature (remplacement, oubli, retrait : PiecesFuite). Toutes les fournitures sont comprises
+// dans les prix : une pièce ne change jamais le montant ; une réparation = une unité par prix.
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
-import { MATERIAUX, dateHeure, dateSeule, messageErreur, nombre } from '@/lib/format';
+import { MATERIAUX, dateSeule, messageErreur, nombre } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
-import { GRAVITES, type Controle } from '../controles';
+import { COLONNES_PIECES, GRAVITES, type Controle, type PieceLue } from '../controles';
 import styles from '../controles.module.css';
 import type { ArticleChoix } from './FormsLignes';
+import { PiecesFuite, type PieceCatalogue } from './PiecesFuite';
 
 interface RepFuite {
   id: string;
@@ -24,6 +25,8 @@ interface RepFuite {
   bouche_a_cle_mise_a_niveau: boolean;
   longueur_pe_m: number | null;
   volume_m3: number | null;
+  auteur_terrain_id: string | null;
+  saisi_par: string | null;
 }
 
 interface LigneFuite {
@@ -37,18 +40,6 @@ interface LigneFuite {
   motif_correction: string | null;
   reparation_id: string | null;
 }
-
-interface PieceFuite {
-  id: string;
-  reparation_id: string;
-  piece_id: string | null;
-  designation_libre: string | null;
-  quantite: number;
-  ajoutee_bureau: boolean;
-  ajoutee_bureau_le: string | null;
-}
-
-interface PieceCatalogue { id: string; designation: string; unite: string; actif: boolean }
 
 export interface LotCorrection { id: string; unites: Set<string> }
 
@@ -79,10 +70,10 @@ export function CorrectionsFuite({
   marcheId: string; fuiteId: string; fuiteNumero: number | null; controles: Controle[]; articles: ArticleChoix[];
   lot?: LotCorrection; fermer: () => void; corrige: () => void;
 }) {
-  const { peut } = useSession();
+  const { peut, session } = useSession();
   const [reps, setReps] = useState<RepFuite[]>([]);
   const [lignes, setLignes] = useState<LigneFuite[]>([]);
-  const [pieces, setPieces] = useState<PieceFuite[]>([]);
+  const [pieces, setPieces] = useState<PieceLue[]>([]);
   const [catalogue, setCatalogue] = useState<PieceCatalogue[]>([]);
   const [verrouillee, setVerrouillee] = useState(false);
   const [chargement, setChargement] = useState(true);
@@ -90,14 +81,14 @@ export function CorrectionsFuite({
   const [info, setInfo] = useState('');
   const [occupe, setOccupe] = useState(false);
   const [requalif, setRequalif] = useState<string | null>(null);
-  const [formulaire, setFormulaire] = useState<'' | 'ligne' | 'piece'>('');
+  const [formulaire, setFormulaire] = useState<'' | 'ligne'>('');
 
   const charger = useCallback(async () => {
     const sb = getSupabase();
     try {
       const [f, r, l, c] = await Promise.all([
         sb.from('fuites').select('verrouillee_le').eq('id', fuiteId).maybeSingle(),
-        sb.from('reparations').select('id, realisee_le, resultat, materiau, diametre_mm, tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, longueur_pe_m, volume_m3')
+        sb.from('reparations').select('id, realisee_le, resultat, materiau, diametre_mm, tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, longueur_pe_m, volume_m3, auteur_terrain_id, saisi_par')
           .eq('fuite_id', fuiteId).is('supprime_le', null).order('realisee_le'),
         sb.from('v_quantites').select('id, prix_id, prix_numero, prix_designation, unite, quantite, origine_ligne, motif_correction, reparation_id')
           .eq('fuite_id', fuiteId).order('prix_ordre').order('id'),
@@ -106,7 +97,7 @@ export function CorrectionsFuite({
       ]);
       const rs = (r.data as RepFuite[] | null) ?? [];
       const p = rs.length
-        ? await sb.from('reparation_pieces').select('id, reparation_id, piece_id, designation_libre, quantite, ajoutee_bureau, ajoutee_bureau_le')
+        ? await sb.from('reparation_pieces').select(COLONNES_PIECES)
           .in('reparation_id', rs.map((x) => x.id)).is('supprime_le', null).order('cree_le').order('id')
         : { data: [], error: null };
       const premiere = f.error || r.error || l.error || p.error;
@@ -114,7 +105,7 @@ export function CorrectionsFuite({
       setVerrouillee(!!(f.data as { verrouillee_le: string | null } | null)?.verrouillee_le);
       setReps(rs);
       setLignes((l.data as LigneFuite[] | null) ?? []);
-      setPieces((p.data as PieceFuite[] | null) ?? []);
+      setPieces((p.data as PieceLue[] | null) ?? []);
       setCatalogue(c);
     } catch (e) {
       setErreur(messageErreur(e));
@@ -129,10 +120,9 @@ export function CorrectionsFuite({
   const valider = (type: 'quantites' | 'interventions') => !verrouillee || peut(type, 'valider');
   const peutRequalifier = peut('quantites', 'modifier') && valider('quantites');
   const peutAjouterLigne = peut('quantites', 'creer') && valider('quantites');
-  const peutAjouterPiece = peut('interventions', 'creer') && peut('interventions', 'modifier') && valider('interventions') && reps.length > 0;
+  const peutCorrigerPieces = peut('interventions', 'modifier') && valider('interventions');
+  const peutAjouterPiece = peut('interventions', 'creer') && peutCorrigerPieces;
   const repDefaut = [...reps].reverse().find((r) => r.resultat === 'reparee') ?? reps[reps.length - 1];
-  const nomPiece = (p: PieceFuite) => catalogue.find((c) => c.id === p.piece_id)?.designation ?? p.designation_libre ?? '?';
-  const unitePiece = (p: PieceFuite) => catalogue.find((c) => c.id === p.piece_id)?.unite ?? 'u';
   const lignesIncoherentes = new Set(controles.filter((c) => c.ligne_id).map((c) => c.ligne_id as string));
 
   async function agir(action: () => Promise<string>): Promise<boolean> {
@@ -181,14 +171,6 @@ export function CorrectionsFuite({
     });
     if (error) throw error;
     return `Ligne ajoutée, motif gardé dans le journal.${await ajouterAuLot(prixId)}`;
-  });
-
-  const ajouterPiece = (reparationId: string, pieceId: string, quantite: number) => agir(async () => {
-    const { error } = await getSupabase().from('reparation_pieces').insert({
-      marche_id: marcheId, reparation_id: reparationId, piece_id: pieceId, quantite,
-    });
-    if (error) throw error;
-    return 'Pièce ajoutée (marquée « ajoutée au bureau » si elle ne vient pas du réparateur).';
   });
 
   return (
@@ -266,34 +248,15 @@ export function CorrectionsFuite({
                 envoyer={ajouterLigne} annuler={() => setFormulaire('')} />
             )}
           </section>
-          <section>
-            <h4>Pièces posées</h4>
-            {pieces.length === 0 && <p className="discret">Aucune pièce déclarée.</p>}
-            <ul className="simple">
-              {pieces.map((p) => (
-                <li key={p.id}>
-                  {nomPiece(p)} × {nombre(p.quantite)} {unitePiece(p)}
-                  {p.ajoutee_bureau
-                    ? <span className={styles.bureau} title={`Ajoutée le ${dateHeure(p.ajoutee_bureau_le)}`}>ajoutée au bureau</span>
-                    : <span className={styles.terrain}>déclarée sur le terrain</span>}
-                </li>
-              ))}
-            </ul>
-            {peutAjouterPiece && formulaire !== 'piece' && (
-              <div className="actions">
-                <button type="button" className="petit" disabled={occupe} onClick={() => { setFormulaire('piece'); setRequalif(null); }}>+ Ajouter une pièce</button>
-              </div>
-            )}
-            {formulaire === 'piece' && (
-              <FormAjoutPiece catalogue={catalogue.filter((c) => c.actif)} reps={reps} repDefaut={repDefaut?.id ?? ''} occupe={occupe}
-                envoyer={ajouterPiece} annuler={() => setFormulaire('')} />
-            )}
-          </section>
+          <PiecesFuite
+            marcheId={marcheId} reps={reps} pieces={pieces} catalogue={catalogue} utilisateurId={session?.user.id}
+            peutAjouter={peutAjouterPiece} peutRetirer={peutCorrigerPieces} occupe={occupe} agir={agir}
+          />
         </div>
       )}
       <p className={styles.rappel}>
-        Fournitures comprises dans les prix de réparation : une pièce ajoutée n&apos;est jamais payée à part. Une réparation = une
-        unité par prix (deux joints = un seul prix). Chaque correction exige un motif, gardé dans le journal.
+        Fournitures comprises dans les prix de réparation : une pièce ne change jamais le montant. Une réparation = une unité par
+        prix (deux joints = un seul prix). Chaque correction (ligne de prix ou pièce) exige un motif, gardé dans le journal.
       </p>
     </div>
   );
@@ -389,44 +352,6 @@ function FormAjoutLigne({
       <ChampMotif valeur={motif} maj={setMotif} />
       <div className="actions">
         <button className="primaire" disabled={occupe || !prixId || !nombreValide(qte) || enNombre(qte) <= 0 || !motif.trim()}>Ajouter la ligne</button>
-        <button type="button" onClick={annuler}>Annuler</button>
-      </div>
-    </form>
-  );
-}
-
-function FormAjoutPiece({
-  catalogue, reps, repDefaut, occupe, envoyer, annuler,
-}: {
-  catalogue: PieceCatalogue[]; reps: RepFuite[]; repDefaut: string; occupe: boolean;
-  envoyer: (reparationId: string, pieceId: string, quantite: number) => Promise<boolean>; annuler: () => void;
-}) {
-  const [texte, setTexte] = useState('');
-  const [qte, setQte] = useState('1');
-  const [repId, setRepId] = useState(repDefaut);
-  const piece = catalogue.find((c) => c.designation.toLowerCase() === texte.trim().toLowerCase());
-  const soumettre = (e: FormEvent) => {
-    e.preventDefault();
-    if (piece) envoyer(repId, piece.id, enNombre(qte));
-  };
-  const idListe = `catalogue-${repDefaut}`;
-  return (
-    <form onSubmit={soumettre} className={styles.formulaire}>
-      <strong>Ajouter une pièce posée</strong>
-      <div className="deux">
-        <label>
-          Pièce du catalogue
-          <input value={texte} onChange={(e) => setTexte(e.target.value)} list={idListe} required placeholder="Rechercher…" />
-          <datalist id={idListe}>
-            {catalogue.map((c) => <option key={c.id} value={c.designation} />)}
-          </datalist>
-        </label>
-        <label>Quantité{piece ? ` (${piece.unite})` : ''}<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
-      </div>
-      <ChoixReparation reps={reps} valeur={repId} maj={setRepId} />
-      {texte.trim() && !piece && <p className="discret">Choisissez une pièce de la liste (catalogue du marché).</p>}
-      <div className="actions">
-        <button className="primaire" disabled={occupe || !piece || !repId || !nombreValide(qte) || enNombre(qte) <= 0}>Ajouter la pièce</button>
         <button type="button" onClick={annuler}>Annuler</button>
       </div>
     </form>

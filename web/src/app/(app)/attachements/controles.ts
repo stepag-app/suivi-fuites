@@ -1,6 +1,7 @@
-// Contrôles de cohérence à l'attachement (vue v_controles_attachement) et travaux hors bordereau
-// à faire valoir (vue v_hors_bordereau) : logique pure, sans navigateur ni réseau. Seuls des imports
-// de types : le script scripts/verifier-controles-attachement.mjs charge ce fichier avec Node.
+// Contrôles de cohérence à l'attachement (vue v_controles_attachement), travaux hors bordereau
+// à faire valoir (vue v_hors_bordereau) et pièces posées (terrain, corrections du bureau) : logique
+// pure, sans navigateur ni réseau. Seuls des imports de types : le script
+// scripts/verifier-controles-attachement.mjs charge ce fichier avec Node.
 import type { Colonne } from '@/lib/export/modele';
 
 export type Gravite = 'alerte' | 'avertissement' | 'information';
@@ -39,7 +40,7 @@ export const LIBELLES_COURTS: Record<string, string> = {
   reparation_sans_prix: 'Sans prix de réparation',
   refection_hors_delai: 'Réfection en retard',
   ligne_incoherente: 'Ligne incohérente',
-  pe_superieur_2m: 'PE au-delà de 2 m',
+  pe_superieur_2m: 'PE au-delà du seuil',
   reparation_hors_bordereau: 'Sans article',
 };
 
@@ -101,13 +102,15 @@ export function syntheseControles(liste: Controle[]): { controle: string; libell
 }
 
 // ---------------------------------------------------------------------------
-// Polyéthylène au-delà de 2 m (même calcul que la base : longueur − 2 m, jamais négatif)
+// Polyéthylène au-delà du seuil du marché (marches.longueur_pe_max_m, 2 m par défaut ; même
+// calcul que la base : longueur − seuil, jamais négatif)
 // ---------------------------------------------------------------------------
-export const LONGUEUR_PE_COUVERTE_M = 2;
+export const LONGUEUR_PE_MAX_DEFAUT_M = 2;
 
-export function excedentPe(longueur: number | null | undefined, couverte = LONGUEUR_PE_COUVERTE_M): number {
+export function excedentPe(longueur: number | null | undefined, seuil: number | null | undefined = LONGUEUR_PE_MAX_DEFAUT_M): number {
   if (longueur == null || Number.isNaN(Number(longueur))) return 0;
-  return Math.max(0, Math.round((Number(longueur) - couverte) * 100) / 100);
+  const s = seuil == null || Number.isNaN(Number(seuil)) || Number(seuil) <= 0 ? LONGUEUR_PE_MAX_DEFAUT_M : Number(seuil);
+  return Math.max(0, Math.round((Number(longueur) - s) * 100) / 100);
 }
 
 // ---------------------------------------------------------------------------
@@ -138,14 +141,16 @@ export type TravailHorsBordereau = {
   quantite: number;
   unite: string;
   piece_ligne_id: string | null;
-  ajoutee_bureau: boolean | null;
+  /** Pièce non couverte : déclarée sur le terrain, ou correction du bureau (et sa nature). */
+  piece_provenance: ProvenancePiece | null;
+  piece_nature_correction: NatureCorrection | null;
 };
 
 // Une seule chaîne littérale : supabase-js en déduit le type des lignes lues.
-export const COLONNES_HORS_BORDEREAU = 'marche_id, nature, libelle, fuite_id, fuite_numero, reference_srm, adresse, zone_id, zone, secteur_id, secteur, reparation_id, realisee_le, jour, materiau, diametre_mm, designation, quantite, unite, piece_ligne_id, ajoutee_bureau';
+export const COLONNES_HORS_BORDEREAU = 'marche_id, nature, libelle, fuite_id, fuite_numero, reference_srm, adresse, zone_id, zone, secteur_id, secteur, reparation_id, realisee_le, jour, materiau, diametre_mm, designation, quantite, unite, piece_ligne_id, piece_provenance, piece_nature_correction';
 
 export const NATURES_HORS_BORDEREAU: Record<NatureHorsBordereau, string> = {
-  pe_au_dela_2m: 'Polyéthylène au-delà de 2 m',
+  pe_au_dela_2m: 'Polyéthylène au-delà du seuil du marché',
   reparation_sans_article: 'Réparation sans article au bordereau',
   piece_non_couverte: 'Pièce non couverte par un article',
 };
@@ -204,7 +209,7 @@ export function lignesExportHorsBordereau(lignes: TravailHorsBordereau[]): Ligne
   return trierHorsBordereau(lignes).map((l) => ({
     ...l,
     nature_libelle: NATURES_HORS_BORDEREAU[l.nature] ?? l.libelle,
-    origine_piece: l.ajoutee_bureau == null ? '' : l.ajoutee_bureau ? 'Ajoutée au bureau' : 'Déclarée sur le terrain',
+    origine_piece: l.piece_provenance ? majuscule(libelleProvenance(l.piece_provenance, l.piece_nature_correction)) : '',
   }));
 }
 
@@ -221,3 +226,110 @@ export const COLONNES_EXPORT_HB: Colonne<LigneExportHb>[] = [
 
 /** Libellé du groupe d'une ligne exportée (une section par nature de travaux). */
 export const groupeExportHb = (l: Pick<LigneExportHb, 'nature_libelle'>) => l.nature_libelle;
+
+// ---------------------------------------------------------------------------
+// Pièces posées : déclaration du terrain et corrections du bureau (lot R)
+//  * terrain : saisie par l'auteur de la réparation (à tout moment, tablette ou web) ;
+//  * correction du bureau : oubli, ou remplacement d'une pièce erronée (motif obligatoire) ;
+//  * une pièce remplacée ou retirée reste en base (hors inventaire réel), barrée à l'affichage.
+// Les fournitures sont comprises dans les prix : une pièce ne change jamais le montant.
+// ---------------------------------------------------------------------------
+export type ProvenancePiece = 'terrain' | 'correction';
+export type NatureCorrection = 'oubli' | 'remplacement';
+export type EtatPiece = 'posee' | 'remplacee' | 'retiree';
+
+/** Ligne de reparation_pieces telle que la lisent l'écran « Corriger » et la fiche d'une fuite. */
+export interface PieceLue {
+  id: string;
+  reparation_id: string;
+  piece_id: string | null;
+  designation_libre: string | null;
+  quantite: number;
+  provenance: ProvenancePiece;
+  nature_correction: NatureCorrection | null;
+  remplace_piece_id: string | null;
+  motif_correction: string | null;
+  etat: EtatPiece;
+  etat_le: string | null;
+  motif_retrait: string | null;
+  cree_le: string;
+}
+
+export const COLONNES_PIECES =
+  'id, reparation_id, piece_id, designation_libre, quantite, provenance, nature_correction, remplace_piece_id, motif_correction, etat, etat_le, motif_retrait, cree_le';
+
+export const PHRASE_PIECE_AJOUTEE = 'Une pièce ajoutée doit avoir été posée ; pour changer le prix, requalifier la ligne de prix.';
+
+export const ETATS_PIECE: Record<EtatPiece, string> = { posee: 'posée', remplacee: 'remplacée', retiree: 'retirée' };
+
+const majuscule = (t: string) => (t ? t[0].toUpperCase() + t.slice(1) : t);
+
+/** « déclarée sur le terrain », « correction du bureau : oubli » ou « correction du bureau : remplacement ». */
+export function libelleProvenance(provenance: ProvenancePiece | null | undefined, nature: NatureCorrection | null | undefined): string {
+  if (provenance !== 'correction') return 'déclarée sur le terrain';
+  return nature ? `correction du bureau : ${nature}` : 'correction du bureau';
+}
+
+/** Pièce prête à afficher (fiche, écran « Corriger ») ; gardée telle quelle dans la copie hors ligne de la fiche. */
+export interface PieceAffichee {
+  id: string;
+  reparation_id: string;
+  /** « Manchon droit 25/25 : 2 u » */
+  texte: string;
+  provenance: ProvenancePiece;
+  nature: NatureCorrection | null;
+  etat: EtatPiece;
+  /** Motif de la correction (oubli, remplacement), du retrait, ou du remplacement subi. */
+  motif: string | null;
+  /** Remplacement : pièce remplacée. */
+  remplace: string | null;
+  /** Pièce remplacée : pièce qui la remplace. */
+  remplaceePar: string | null;
+  /** Date du remplacement ou du retrait. */
+  le: string | null;
+}
+
+/**
+ * Pièces dans l'ordre de saisie, chaque remplacement juste après la pièce qu'il remplace (la saisie
+ * d'origine reste visible, barrée).
+ */
+export function decrirePieces(pieces: PieceLue[], texte: (p: PieceLue) => string): PieceAffichee[] {
+  const parId = new Map(pieces.map((p) => [p.id, p]));
+  const remplacante = new Map<string, PieceLue>();
+  pieces.forEach((p) => {
+    if (p.remplace_piece_id && parId.has(p.remplace_piece_id)) remplacante.set(p.remplace_piece_id, p);
+  });
+  const parDate = [...pieces].sort((a, b) => a.cree_le.localeCompare(b.cree_le) || a.id.localeCompare(b.id));
+  const ordre: PieceLue[] = [];
+  const vues = new Set<string>();
+  const suivre = (p: PieceLue | undefined) => {
+    for (let x = p; x && !vues.has(x.id); x = remplacante.get(x.id)) {
+      vues.add(x.id);
+      ordre.push(x);
+    }
+  };
+  parDate.filter((p) => !p.remplace_piece_id || !parId.has(p.remplace_piece_id)).forEach(suivre);
+  parDate.forEach(suivre);
+  return ordre.map((p) => {
+    const nouvelle = remplacante.get(p.id);
+    const ancienne = p.remplace_piece_id ? parId.get(p.remplace_piece_id) : undefined;
+    return {
+      id: p.id,
+      reparation_id: p.reparation_id,
+      texte: texte(p),
+      provenance: p.provenance,
+      nature: p.nature_correction,
+      etat: p.etat,
+      motif: p.etat === 'retiree' ? p.motif_retrait : p.etat === 'remplacee' ? nouvelle?.motif_correction ?? null : p.motif_correction,
+      remplace: ancienne ? texte(ancienne) : null,
+      remplaceePar: p.etat === 'remplacee' && nouvelle ? texte(nouvelle) : null,
+      le: p.etat === 'posee' ? null : p.etat_le,
+    };
+  });
+}
+
+/** Inventaire réel : pièces ni remplacées ni retirées. */
+export const piecesReelles = <T extends Pick<PieceAffichee, 'etat'>>(pieces: T[]) => pieces.filter((p) => p.etat === 'posee');
+
+/** Motif saisi pour une correction : obligatoire, sans espaces superflus. */
+export const motifValide = (motif: string | null | undefined) => (motif ?? '').trim().length > 0;

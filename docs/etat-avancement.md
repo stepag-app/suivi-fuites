@@ -65,6 +65,9 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 
 ## 3. Décisions prises (à respecter)
 
+- **Façon de travailler** (2026-10-05) : travail courant **en local** sur le MacBook avec Claude Code
+  (`docs/travail-local.md`) ; solde cloud (≈ 60 $, expire le 5 novembre) gardé pour les gros lots autonomes.
+
 - **Interface** (2026-10-05) : style **SAP Fiori** reproduit en CSS maison (pas de bibliothèque SAP UI5 :
   poids), avec les widgets d'indicateurs du modèle ERP ; planches PDF du réseau **en attente** des DXF / DWG
   (essai Qods Bas : extraction vectorielle fiable, attributs absents, calage à faire).

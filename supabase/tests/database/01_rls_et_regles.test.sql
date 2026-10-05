@@ -296,7 +296,7 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 
 select lives_ok($$
-  update lignes_quantites set quantite = 0.800
+  update lignes_quantites set quantite = 0.800, motif_modification = 'Profondeur relevée contradictoirement'
    where fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001'
      and prix_id = (select id from prix where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001' and numero = '3')
 $$, 'responsable : corrige une quantité');

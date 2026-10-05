@@ -17,13 +17,27 @@ import type {
 } from '@/lib/types';
 import { garderCopie, lireCopie } from './copie';
 import { FormRefection, FormReparation } from './formulaires';
-import { lireFicheEnLigne, type LectureEnLigne } from './donnees';
+import { SUFFIXE_BUREAU, lireFicheEnLigne, type LectureEnLigne } from './donnees';
 import {
   DELAI_RESEAU_MS, NOMS_VIDES, actionsFiche, choisirAffichage, type ContenuFiche, type LiensReparations, type NomsFiche,
 } from './fiche-hors-ligne';
 import styles from './fiche.module.css';
 
 const nombreOuNul = (t: string) => (t.trim() === '' ? null : Number(t.replace(',', '.')));
+// Ligne de prix avec le motif de sa dernière correction (lot R)
+type QuantiteFiche = Quantite & { motif_correction?: string | null };
+
+// Pièces d'une réparation : déclarées sur le terrain, puis ajoutées au bureau (marque posée par la base)
+function PiecesReparation({ pieces = [] }: { pieces?: string[] }) {
+  const terrain = pieces.filter((p) => !p.endsWith(SUFFIXE_BUREAU));
+  const bureau = pieces.filter((p) => p.endsWith(SUFFIXE_BUREAU)).map((p) => p.slice(0, -SUFFIXE_BUREAU.length));
+  return (
+    <>
+      {terrain.length > 0 && (<><dt>Pièces déclarées sur le terrain</dt><dd className="large">{terrain.join(' · ')}</dd></>)}
+      {bureau.length > 0 && (<><dt>Pièces ajoutées au bureau</dt><dd className="large">{bureau.join(' · ')}</dd></>)}
+    </>
+  );
+}
 
 export default function DetailFuite() {
   const { id } = useParams<{ id: string }>();
@@ -397,7 +411,7 @@ export default function DetailFuite() {
                     ? <>{nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = <b>{nombre(r.volume_m3, 3)} m³</b></>
                     : '—'}</dd>
                   <dt>Emplacement</dt><dd>{r.emplacement ? EMPLACEMENTS[r.emplacement] : '—'}</dd>
-                  {liens.pieces[r.id]?.length ? (<><dt>Pièces posées</dt><dd className="large">{liens.pieces[r.id].join(' · ')}</dd></>) : null}
+                  <PiecesReparation pieces={liens.pieces[r.id]} />
                   {r.representant_srm && (<><dt>Représentant {libelles.sigle}</dt><dd className="large">{r.representant_srm}</dd></>)}
                   {r.motif_id && (<><dt>Motif</dt><dd className="large">{motifLibelle(r.motif_id)}</dd></>)}
                   {r.observation && (<><dt>Observation</dt><dd className="large">{r.observation}</dd></>)}
@@ -601,14 +615,20 @@ function Photos({
 
 function LigneQuantite({
   ligne, modifiable, onChange, onErreur,
-}: { ligne: Quantite; modifiable: boolean; onChange: () => void; onErreur: (m: string) => void }) {
+}: { ligne: QuantiteFiche; modifiable: boolean; onChange: () => void; onErreur: (m: string) => void }) {
   const [valeur, setValeur] = useState(String(ligne.quantite));
   useEffect(() => setValeur(String(ligne.quantite)), [ligne.quantite]);
 
+  // Toute correction d'une ligne exige un motif (contrôle en base, gardé dans le journal).
   async function enregistrer() {
     const q = nombreOuNul(valeur);
     if (q == null || Number.isNaN(q) || q < 0 || q === ligne.quantite) return;
-    const { error } = await getSupabase().from('lignes_quantites').update({ quantite: q }).eq('id', ligne.id);
+    const motif = window.prompt('Motif de la correction (obligatoire, gardé dans le journal) :');
+    if (!motif?.trim()) {
+      setValeur(String(ligne.quantite));
+      return;
+    }
+    const { error } = await getSupabase().from('lignes_quantites').update({ quantite: q, motif_modification: motif.trim() }).eq('id', ligne.id);
     if (error) onErreur(messageErreur(error));
     onChange();
   }
@@ -616,7 +636,10 @@ function LigneQuantite({
   return (
     <tr>
       <td>{ligne.prix_numero}</td>
-      <td title={ligne.prix_designation}>{ligne.prix_designation.slice(0, 60)}…{ligne.origine_ligne === 'manuel' ? ' ✎' : ''}</td>
+      <td title={ligne.prix_designation}>
+        {ligne.prix_designation.slice(0, 60)}…{ligne.origine_ligne === 'manuel' ? ' ✎' : ''}
+        {ligne.motif_correction && <><br /><span className="discret">Motif : {ligne.motif_correction}</span></>}
+      </td>
       <td>
         {modifiable ? (
           <input className="court" value={valeur} onChange={(e) => setValeur(e.target.value)} onBlur={enregistrer} inputMode="decimal" />

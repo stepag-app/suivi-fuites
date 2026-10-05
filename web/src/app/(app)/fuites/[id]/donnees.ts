@@ -29,6 +29,9 @@ export interface LectureEnLigne {
 
 type Reponse = { data: unknown; error: unknown };
 
+/** Marque d'une pièce ajoutée après coup par le bureau (et non déclarée par le réparateur). */
+export const SUFFIXE_BUREAU = ' (ajoutée au bureau)';
+
 const lignes = <T,>(r: Reponse) => (r.data as T[] | null) ?? [];
 
 export async function lireFicheEnLigne(id: string, marcheId: string): Promise<LectureEnLigne> {
@@ -38,7 +41,7 @@ export async function lireFicheEnLigne(id: string, marcheId: string): Promise<Le
     sb.from('photos').select('id, type, chemin, prise_le, stockage').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
     sb.from('reparations').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
     sb.from('refections').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
-    sb.from('v_quantites').select('id, prix_numero, prix_ordre, prix_designation, unite, quantite, pu_ht, montant_ht_bordereau, origine_ligne').eq('fuite_id', id).order('prix_ordre'),
+    sb.from('v_quantites').select('id, prix_numero, prix_ordre, prix_designation, unite, quantite, pu_ht, montant_ht_bordereau, origine_ligne, motif_correction').eq('fuite_id', id).order('prix_ordre'),
     sb.from('natures_refection').select('id, code, libelle_fr, emplacement, necessite_refection').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     sb.from('motifs').select('id, categorie, code, libelle_fr').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     sb.from('catalogue_pieces').select('id, designation, unite').eq('marche_id', marcheId).eq('actif', true).order('designation'),
@@ -59,15 +62,17 @@ export async function lireFicheEnLigne(id: string, marcheId: string): Promise<Le
     const nomsPieces = new Map(pieces.map((x) => [x.id, x]));
     const [ro, rpi]: Reponse[] = await Promise.all([
       sb.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', idsRep),
-      sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', idsRep).is('supprime_le', null),
+      sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite, ajoutee_bureau').in('reparation_id', idsRep).is('supprime_le', null),
     ]);
     reponsesLiens.push(ro, rpi);
     lignes<{ reparation_id: string; ouvrier_id: string }>(ro).forEach((l) => {
       (liens.ouvriers[l.reparation_id] ??= []).push(nomsOuvriers.get(l.ouvrier_id) ?? '?');
     });
-    lignes<{ reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number }>(rpi).forEach((l) => {
+    lignes<{ reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number; ajoutee_bureau?: boolean }>(rpi).forEach((l) => {
       const piece = l.piece_id ? nomsPieces.get(l.piece_id) : undefined;
-      (liens.pieces[l.reparation_id] ??= []).push(`${piece?.designation ?? l.designation_libre ?? '?'} : ${nombre(l.quantite)} ${piece?.unite ?? 'u'}`);
+      (liens.pieces[l.reparation_id] ??= []).push(
+        `${piece?.designation ?? l.designation_libre ?? '?'} : ${nombre(l.quantite)} ${piece?.unite ?? 'u'}${l.ajoutee_bureau ? SUFFIXE_BUREAU : ''}`,
+      );
     });
   }
 

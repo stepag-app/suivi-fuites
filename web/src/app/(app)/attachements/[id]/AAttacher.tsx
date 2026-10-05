@@ -1,11 +1,15 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { quantite, type ReglesAttachement, type Unite } from '@/lib/attachements';
 import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
 import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
+import { BadgeControles } from '../BadgeControles';
+import type { Controle } from '../controles';
+import { CorrectionsFuite } from './CorrectionsFuite';
+import type { ArticleChoix } from './FormsLignes';
 
 const AFFICHAGE_MAX = 150;
 
@@ -21,12 +25,14 @@ export function LienFuite({ id, numero }: { id: string; numero: number | null })
 const cleUnite = (u: Pick<Unite, 'fuite_id' | 'prix_id'>) => `${u.fuite_id}|${u.prix_id}`;
 
 // Travaux exécutés et pas encore attachés (régularisations comprises), à cocher
-// par fuite ou par article, puis ajoutés au brouillon.
+// par fuite ou par article, puis ajoutés au brouillon. Contrôles en défaut par fuite et
+// corrections (requalification, ligne, pièce) : lot R.
 export function AAttacher({
-  marcheId, lotId, regles, zones, version, ajoute, onErreur,
+  marcheId, lotId, regles, zones, version, ajoute, onErreur, controles, bordereau, peutCorriger,
 }: {
   marcheId: string; lotId: string; regles: ReglesAttachement; zones: { id: string; libelle: string }[];
   version: number; ajoute: () => void; onErreur: (m: string) => void;
+  controles: Map<string, Controle[]>; bordereau: ArticleChoix[]; peutCorriger: boolean;
 }) {
   const [unites, setUnites] = useState<Unite[]>([]);
   const [chargement, setChargement] = useState(true);
@@ -39,6 +45,8 @@ export function AAttacher({
   const [article, setArticle] = useState('');
   const [etat, setEtat] = useState<ReglesAttachement['fuites_admissibles']>(regles.fuites_admissibles);
   const [texte, setTexte] = useState('');
+  const [enDefaut, setEnDefaut] = useState(false);
+  const [correction, setCorrection] = useState<string | null>(null);
   const [occupe, setOccupe] = useState(false);
 
   const charger = useCallback(async () => {
@@ -72,10 +80,11 @@ export function AAttacher({
         && (!zone || u.zone_id === zone) && (!secteur || u.secteur_id === secteur)
         && (!equipe || u.equipe_id === equipe) && (!article || u.prix_id === article)
         && (etat === 'toutes' || (etat === 'verrouillees' ? u.verrouillee : u.statut === 'achevee'))
+        && (!enDefaut || controles.has(u.fuite_id))
         && (!t || String(u.fuite_numero) === t || (u.reference_srm ?? '').toLowerCase().includes(t)
           || (u.adresse ?? '').toLowerCase().includes(t));
     });
-  }, [disponibles, du, au, zone, secteur, equipe, article, etat, texte]);
+  }, [disponibles, du, au, zone, secteur, equipe, article, etat, texte, enDefaut, controles]);
 
   const parFuite = useMemo(() => {
     const m = new Map<string, Unite[]>();
@@ -156,6 +165,9 @@ export function AAttacher({
           </select>
         </label>
         <label>Recherche<input value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="N°, référence, adresse" /></label>
+        <label className="ligne">
+          <input type="checkbox" checked={enDefaut} onChange={(e) => setEnDefaut(e.target.checked)} /> Contrôles en défaut seulement
+        </label>
       </div>
       <div className="actions">
         <button onClick={() => basculer(cochables.map(cleUnite), true)}>Tout cocher</button>
@@ -168,8 +180,9 @@ export function AAttacher({
           <table className="liste-compacte">
             <thead>
               <tr>
-                <th aria-label="Toute la fuite" /><th>Fuite</th><th>Référence</th><th>Secteur</th><th>État</th>
+                <th aria-label="Toute la fuite" /><th>Fuite</th><th>Référence</th><th>Secteur</th><th>État</th><th>Contrôles</th>
                 <th>Réparée le</th><th>Réfection</th><th>Équipe</th><th>Unités à attacher (prix, reste)</th>
+                {peutCorriger && <th aria-label="Corrections" />}
               </tr>
             </thead>
             <tbody>
@@ -178,44 +191,66 @@ export function AAttacher({
                 const cles = g.filter((u) => !u.brouillon_id).map(cleUnite);
                 const toutes = cles.length > 0 && cles.every((k) => choix.has(k));
                 const statut = STATUTS[t.statut as StatutFuite];
+                const zebre = i % 2 === 1 ? 'zebre' : '';
                 return (
-                  <tr key={t.fuite_id} className={i % 2 === 1 ? 'zebre' : ''}>
-                    <td>
-                      <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${t.fuite_numero}`}
-                        onChange={(e) => basculer(cles, e.target.checked)} />
-                    </td>
-                    <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
-                    <td className="nowrap">{t.reference_srm ?? '—'}</td>
-                    <td>{t.secteur ?? '—'}</td>
-                    <td className="nowrap">
-                      <span className={`badge ${statut?.classe ?? ''}`}>{statut?.libelle ?? t.statut}</span>
-                      {t.verrouillee && <span className="etiquette">Verrouillée</span>}
-                    </td>
-                    <td className="nowrap">{dateSeule(t.reparee_le)}</td>
-                    <td className="nowrap">{t.refectionnee_le ? dateSeule(t.refectionnee_le) : <span className="discret">non faite</span>}</td>
-                    <td>{t.equipe ?? '—'}</td>
-                    <td>
-                      <div className="unites-ligne">
-                        {g.map((u) => (
-                          <label key={cleUnite(u)} className="unite-ligne">
-                            <input
-                              type="checkbox"
-                              disabled={!!u.brouillon_id}
-                              checked={choix.has(cleUnite(u))}
-                              onChange={(e) => basculer([cleUnite(u)], e.target.checked)}
-                            />
-                            P{u.prix_numero} <strong>{quantite(u.reste, u.unite, regles.decimales)}</strong> {u.unite}
-                            {u.dernier_lot != null && (
-                              <span className={`etiquette ${u.reste < 0 ? 'etiquette-alerte' : ''}`}>
-                                Régul. lot {u.dernier_lot} ({quantite(u.quantite_executee, u.unite, regles.decimales)} − {quantite(u.quantite_attachee, u.unite, regles.decimales)})
-                              </span>
-                            )}
-                            {u.brouillon_id && <span className="discret">(autre brouillon)</span>}
-                          </label>
-                        ))}
-                      </div>
-                    </td>
-                  </tr>
+                  <Fragment key={t.fuite_id}>
+                    <tr className={zebre}>
+                      <td>
+                        <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${t.fuite_numero}`}
+                          onChange={(e) => basculer(cles, e.target.checked)} />
+                      </td>
+                      <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
+                      <td className="nowrap">{t.reference_srm ?? '—'}</td>
+                      <td>{t.secteur ?? '—'}</td>
+                      <td className="nowrap">
+                        <span className={`badge ${statut?.classe ?? ''}`}>{statut?.libelle ?? t.statut}</span>
+                        {t.verrouillee && <span className="etiquette">Verrouillée</span>}
+                      </td>
+                      <td><BadgeControles liste={controles.get(t.fuite_id)} /></td>
+                      <td className="nowrap">{dateSeule(t.reparee_le)}</td>
+                      <td className="nowrap">{t.refectionnee_le ? dateSeule(t.refectionnee_le) : <span className="discret">non faite</span>}</td>
+                      <td>{t.equipe ?? '—'}</td>
+                      <td>
+                        <div className="unites-ligne">
+                          {g.map((u) => (
+                            <label key={cleUnite(u)} className="unite-ligne">
+                              <input
+                                type="checkbox"
+                                disabled={!!u.brouillon_id}
+                                checked={choix.has(cleUnite(u))}
+                                onChange={(e) => basculer([cleUnite(u)], e.target.checked)}
+                              />
+                              P{u.prix_numero} <strong>{quantite(u.reste, u.unite, regles.decimales)}</strong> {u.unite}
+                              {u.dernier_lot != null && (
+                                <span className={`etiquette ${u.reste < 0 ? 'etiquette-alerte' : ''}`}>
+                                  Régul. lot {u.dernier_lot} ({quantite(u.quantite_executee, u.unite, regles.decimales)} − {quantite(u.quantite_attachee, u.unite, regles.decimales)})
+                                </span>
+                              )}
+                              {u.brouillon_id && <span className="discret">(autre brouillon)</span>}
+                            </label>
+                          ))}
+                        </div>
+                      </td>
+                      {peutCorriger && (
+                        <td className="nowrap">
+                          <button className="petit" onClick={() => setCorrection(correction === t.fuite_id ? null : t.fuite_id)}>
+                            {correction === t.fuite_id ? 'Fermer' : 'Corriger'}
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                    {correction === t.fuite_id && (
+                      <tr className={zebre}>
+                        <td colSpan={11}>
+                          <CorrectionsFuite
+                            marcheId={marcheId} fuiteId={t.fuite_id} fuiteNumero={t.fuite_numero}
+                            controles={controles.get(t.fuite_id) ?? []} articles={bordereau}
+                            fermer={() => setCorrection(null)} corrige={ajoute}
+                          />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>

@@ -4,9 +4,12 @@
 // effacées qu'après confirmation du serveur.
 //
 // Ordre : les envois partent dans l'ordre de saisie. Pour une même fuite, un envoi refusé bloque
-// les suivants (fuite → réparation → pièces / ouvriers → réfection → photos) jusqu'à ce qu'il passe
-// ou soit abandonné. Les statuts et les quantités sont recalculés par le serveur (déclencheurs).
+// les suivants (fuite → réparation → pièces / ouvriers → réfection → photos → modification ou photos
+// ajoutées depuis la fiche) jusqu'à ce qu'il passe ou soit abandonné. Une modification ou des photos
+// ajoutées à une saisie encore en attente partent donc toujours après elle. Les statuts et les
+// quantités sont recalculés par le serveur (déclencheurs).
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import type { Changements } from './modification';
 import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
 import { supabase } from './supabase';
 
@@ -26,7 +29,15 @@ export interface EnvoiReparation extends Commun {
 export interface EnvoiRefection extends Commun {
   type: 'refection'; fuite_id: string; fuite_libelle: string; ligne: Record<string, unknown>;
 }
-export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection;
+/** Photos ajoutées depuis la fiche, à la fuite ou à une réparation / réfection existante. */
+export interface EnvoiPhotos extends Commun {
+  type: 'photos'; fuite_id: string; fuite_libelle: string; reparation_id?: string | null; refection_id?: string | null;
+}
+/** Modification d'une réparation déjà saisie (changements seulement, voir modification.ts). */
+export interface EnvoiModification extends Commun {
+  type: 'modification'; fuite_id: string; fuite_libelle: string; reparation_id: string; changements: Changements;
+}
+export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection | EnvoiPhotos | EnvoiModification;
 /** Ancien nom, gardé pour les écrans de détection. */
 export type FuiteAttente = EnvoiFuite;
 
@@ -66,11 +77,17 @@ export async function ajouterEnvoi(e: Nouveau<Envoi>) {
 }
 export const mettreEnAttente = (f: Omit<EnvoiFuite, 'creee_le' | 'erreur' | 'fait'>) => ajouterEnvoi(f);
 
-/** Envois qui tombent si on abandonne celui-ci (une fuite emporte ses réparations et réfections). */
+/**
+ * Envois qui tombent si on abandonne celui-ci : une fuite emporte tout ce qui la concerne ; une réparation
+ * ou une réfection emporte ses modifications et les photos ajoutées ensuite.
+ */
 export async function dependants(id: string): Promise<Envoi[]> {
   const liste = await lireAttente();
   const e = liste.find((x) => x.id === id);
-  return e && estFuite(e) ? liste.filter((x) => x.id !== id && fuiteDe(x) === id) : [];
+  if (!e) return [];
+  const rattache = (x: Envoi) =>
+    ((x.type === 'modification' || x.type === 'photos') && x.reparation_id === id) || (x.type === 'photos' && x.refection_id === id);
+  return liste.filter((x) => x.id !== id && (estFuite(e) ? fuiteDe(x) === id : rattache(x)));
 }
 
 export async function abandonner(id: string) {
@@ -90,7 +107,7 @@ export function messageClair(e: unknown): string {
   const err = (e ?? {}) as ErreurApi;
   const brut = String(err.message ?? e);
   if (/verrouill/i.test(brut)) {
-    return 'Fuite verrouillée (lot d\'attachement arrêté) : seul le responsable peut encore y ajouter une saisie. '
+    return 'Fuite verrouillée (lot d\'attachement arrêté) : seul le responsable peut encore la compléter ou la modifier. '
       + 'Rien n\'est perdu : prévenez le responsable, puis « Envoyer maintenant ».';
   }
   if (err.code === '42501' || /row-level security|non autorisée|permission denied/i.test(brut)) {
@@ -119,7 +136,7 @@ async function verifier(r: PromiseLike<{ error: ErreurApi | null }>) {
   if (error && !dejaEnvoye(error)) throw error;
 }
 
-async function envoyerPhotos(e: Envoi, liens: { reparation_id?: string; refection_id?: string }) {
+async function envoyerPhotos(e: Envoi, liens: { reparation_id?: string | null; refection_id?: string | null }) {
   const fuiteId = fuiteDe(e);
   for (const p of e.photos) {
     await envoyerPhoto(p, { marche_id: e.marche_id, fuite_id: fuiteId, ...liens, position: estFuite(e) ? e.position : null });
@@ -127,32 +144,65 @@ async function envoyerPhotos(e: Envoi, liens: { reparation_id?: string; refectio
   }
 }
 
-async function envoyer(e: Envoi) {
+const noter = (id: string, f: NonNullable<Commun['fait']>) => majEnvoi(id, (x) => ({ ...x, fait: { ...x.fait, ...f } }));
+
+const insererPiece = (marcheId: string, reparationId: string, p: PieceAttente) => verifier(supabase.from('reparation_pieces').insert({
+  id: p.id, marche_id: marcheId, reparation_id: reparationId, piece_id: p.piece_id,
+  designation_libre: p.piece_id ? null : p.designation, quantite: p.quantite,
+}));
+const insererOuvrier = (marcheId: string, reparationId: string, ouvrierId: string) =>
+  verifier(supabase.from('reparation_ouvriers').insert({ marche_id: marcheId, reparation_id: reparationId, ouvrier_id: ouvrierId }));
+
+async function envoyerCreation(e: EnvoiFuite | EnvoiReparation | EnvoiRefection) {
   const fait = e.fait ?? {};
-  const noter = (f: NonNullable<Commun['fait']>) => majEnvoi(e.id, (x) => ({ ...x, fait: { ...x.fait, ...f } }));
   const table = estFuite(e) ? 'fuites' : e.type === 'reparation' ? 'reparations' : 'refections';
   if (!fait.ligne) {
     await verifier(supabase.from(table).insert({ ...e.ligne, id: e.id, marche_id: e.marche_id }));
-    await noter({ ligne: true });
+    await noter(e.id, { ligne: true });
   }
   if (e.type === 'reparation') {
     const pieces = [...(fait.pieces ?? [])];
     for (const p of e.pieces.filter((x) => !pieces.includes(x.id))) {
-      await verifier(supabase.from('reparation_pieces').insert({
-        id: p.id, marche_id: e.marche_id, reparation_id: e.id, piece_id: p.piece_id,
-        designation_libre: p.piece_id ? null : p.designation, quantite: p.quantite,
-      }));
+      await insererPiece(e.marche_id, e.id, p);
       pieces.push(p.id);
-      await noter({ pieces });
+      await noter(e.id, { pieces });
     }
     const ouvriers = [...(fait.ouvriers ?? [])];
     for (const o of e.ouvriers.filter((x) => !ouvriers.includes(x))) {
-      await verifier(supabase.from('reparation_ouvriers').insert({ marche_id: e.marche_id, reparation_id: e.id, ouvrier_id: o }));
+      await insererOuvrier(e.marche_id, e.id, o);
       ouvriers.push(o);
-      await noter({ ouvriers });
+      await noter(e.id, { ouvriers });
     }
   }
   await envoyerPhotos(e, e.type === 'reparation' ? { reparation_id: e.id } : e.type === 'refection' ? { refection_id: e.id } : {});
+}
+
+/** Chaque étape peut être rejouée sans effet de plus (identifiants créés sur la tablette, retraits déjà faits ignorés). */
+async function envoyerModification(e: EnvoiModification) {
+  const c = e.changements;
+  if (!e.fait?.ligne && Object.keys(c.ligne).length) {
+    const { data, error } = await supabase.from('reparations').update(c.ligne).eq('id', e.reparation_id).select('id');
+    if (error) throw error;
+    // Sans droit de modification sur le marché, la base ne touche aucune ligne et ne signale rien.
+    if (!data?.length) throw Object.assign(new Error('Modification non autorisée'), { code: '42501' });
+    await noter(e.id, { ligne: true });
+  }
+  for (const p of c.pieces_ajoutees) await insererPiece(e.marche_id, e.reparation_id, p);
+  for (const q of c.quantites) await verifier(supabase.from('reparation_pieces').update({ quantite: q.quantite }).eq('id', q.id));
+  for (const id of c.pieces_retirees) {
+    await verifier(supabase.from('reparation_pieces').update({ supprime_le: new Date().toISOString() }).eq('id', id).is('supprime_le', null));
+  }
+  for (const o of c.ouvriers_ajoutes) await insererOuvrier(e.marche_id, e.reparation_id, o);
+  if (c.ouvriers_retires.length) {
+    await verifier(supabase.from('reparation_ouvriers').delete().eq('reparation_id', e.reparation_id).in('ouvrier_id', c.ouvriers_retires));
+  }
+  await envoyerPhotos(e, { reparation_id: e.reparation_id });
+}
+
+function envoyer(e: Envoi) {
+  if (e.type === 'photos') return envoyerPhotos(e, { reparation_id: e.reparation_id, refection_id: e.refection_id });
+  if (e.type === 'modification') return envoyerModification(e);
+  return envoyerCreation(e);
 }
 
 const ATTENTE_PRECEDENT = 'En attente : une saisie précédente de cette fuite n\'est pas encore passée.';

@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { configurationManquante, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
 
+type Action = 'lire' | 'creer' | 'valider' | 'modifier' | 'supprimer';
+
 interface Etat {
   chargement: boolean;
   session: Session | null;
@@ -11,7 +13,11 @@ interface Etat {
   marche: Marche | null;
   marches: Marche[];
   choisirMarche: (id: string) => void;
-  peut: (type: string, action: 'lire' | 'creer' | 'valider') => boolean;
+  /**
+   * Droit sur le marché choisi. Pour « modifier » et « supprimer », `auteurs` (auteur terrain, compte de
+   * saisie) applique la portée « siennes » comme la base ; sans `auteurs`, la ligne est supposée saisie ici.
+   */
+  peut: (type: string, action: Action, auteurs?: (string | null | undefined)[]) => boolean;
   deconnecter: () => Promise<void>;
 }
 
@@ -102,12 +108,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   );
 
   const peut = useCallback(
-    (type: string, action: 'lire' | 'creer' | 'valider') => {
+    (type: string, action: Action, auteurs?: (string | null | undefined)[]) => {
       if (profil?.est_admin) return true;
       const d = droits.find((x) => x.marche_id === marche?.id && x.type_donnee === type);
-      return !!d && d[action];
+      if (!d) return false;
+      if (action === 'modifier' || action === 'supprimer') {
+        const portee = d[action];
+        return portee === 'toutes' || (portee === 'siennes' && (!auteurs || (!!uid && auteurs.includes(uid))));
+      }
+      return d[action];
     },
-    [profil, droits, marche],
+    [profil, droits, marche, uid],
   );
 
   const deconnecter = useCallback(async () => {

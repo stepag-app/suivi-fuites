@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, FlatList, Image, Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Alert, FlatList, Modal, Pressable, ScrollView, Text, View } from 'react-native';
 import { dateHeure } from './fiche';
 import {
   abandonner, dependants, effacerPhotos, estFuite, lireAttente, mettreEnAttente, surChangement, synchroniser,
@@ -12,7 +12,9 @@ import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import { STATUTS, type Proche, type Secteur, type VFuite } from './types';
-import { Bouton, BoutonYAller, Carte, COULEURS, s } from './ui';
+import {
+  Alerte, BarreApp, Bouton, BoutonBarre, BoutonYAller, Carte, COULEURS, Puces, s, Saisie, Statut, Vignettes,
+} from './ui';
 // Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
 const formaterReference = (t: string, masque: string | null | undefined) => {
   if (!masque) return t;
@@ -45,17 +47,20 @@ export function Connexion() {
   }
 
   return (
-    <ScrollView style={s.ecran} contentContainerStyle={[s.contenu, { paddingTop: 80 }]} keyboardShouldPersistTaps="handled">
-      <Text style={s.titre}>Suivi des fuites</Text>
-      <Carte>
-        <Text style={s.etiquette}>Identifiant</Text>
-        <TextInput style={s.champ} value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} />
-        <Text style={s.etiquette}>Mot de passe</Text>
-        <TextInput style={s.champ} value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" />
-        {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
-        <Bouton titre="Se connecter" primaire onPress={entrer} occupe={occupe} desactive={!identifiant || !motDePasse} />
-      </Carte>
-    </ScrollView>
+    <View style={s.ecran}>
+      <BarreApp titre="Suivi des fuites" sousTitre="Connexion" />
+      <ScrollView contentContainerStyle={[s.defile, { paddingTop: 40, width: '100%', maxWidth: 520, alignSelf: 'center' }]} keyboardShouldPersistTaps="handled">
+        <Carte>
+          <Text style={s.sousTitre}>Se connecter</Text>
+          <Text style={s.etiquette}>Identifiant</Text>
+          <Saisie value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} />
+          <Text style={s.etiquette}>Mot de passe</Text>
+          <Saisie value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" />
+          {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
+          <Bouton titre="Se connecter" primaire onPress={entrer} occupe={occupe} desactive={!identifiant || !motDePasse} />
+        </Carte>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -98,73 +103,63 @@ export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; att
   // Fuites saisies sur la tablette et pas encore arrivées au serveur : en tête, ouvrables.
   const locales = envois.filter((e): e is EnvoiFuite => estFuite(e) && e.marche_id === marche?.id && !fuites.some((f) => f.id === e.id));
   const nbAttente = envois.length;
+  const delai = marche?.delai_alerte_reparation_h ?? 48;
+  const styleCarte = ({ pressed }: { pressed: boolean }) => [s.carte, pressed && { borderColor: COULEURS.principal, backgroundColor: COULEURS.survol }];
 
   return (
     <View style={s.ecran}>
-      <View style={[s.contenu, { paddingTop: 48 }]}>
-        <Text style={s.titre}>Fuites · {marche?.code}</Text>
-        <Text style={s.discret}>{profil?.nom_complet}</Text>
+      <BarreApp
+        titre={`Fuites · ${marche?.code ?? ''}`}
+        sousTitre={profil?.nom_complet}
+        droite={<BoutonBarre titre="Quitter" onPress={deconnecter} />}
+      />
+      <View style={s.contenu}>
         {marches.length > 1 && (
-          <View style={s.ligne}>
-            {marches.map((m) => (
-              <Pressable
-                key={m.id}
-                onPress={() => choisirMarche(m.id)}
-                style={[s.puce, m.id === marche?.id && s.puceActive]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: m.id === marche?.id }}
-              >
-                <Text style={[s.etiquette, m.id === marche?.id && { color: '#fff' }]}>{m.code}</Text>
-              </Pressable>
-            ))}
-          </View>
+          <Puces options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={(v) => v && choisirMarche(v)} />
         )}
-        {peut('fuites', 'creer') && <Bouton titre="+ Nouvelle fuite" primaire onPress={nouvelle} />}
-        {nbAttente > 0 && <Bouton titre={`${nbAttente} envoi(s) en attente`} onPress={attente} />}
-        {!!message && <Text style={s.discret}>{message}</Text>}
+        <View style={s.ligne}>
+          {peut('fuites', 'creer') && (
+            <View style={{ flexGrow: 1, flexBasis: 220 }}><Bouton titre="+ Nouvelle fuite" primaire onPress={nouvelle} /></View>
+          )}
+          {nbAttente > 0 && (
+            <View style={{ flexGrow: 1, flexBasis: 220 }}><Bouton titre={`${nbAttente} envoi(s) en attente`} onPress={attente} /></View>
+          )}
+        </View>
+        {!!message && <Text style={s.attention}>{message}</Text>}
       </View>
       <FlatList
         data={fuites}
         keyExtractor={(f) => f.id}
         refreshing={rafraichit}
         onRefresh={charger}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 24 }}
+        contentContainerStyle={{ paddingHorizontal: 16, gap: 10, paddingBottom: 32 }}
         ListEmptyComponent={locales.length ? null : <Text style={s.discret}>Aucune fuite.</Text>}
         ListHeaderComponent={locales.length ? (
           <View style={{ gap: 10 }}>
             {locales.map((e) => (
-              <Pressable key={e.id} onPress={() => ouvrir(e.id)} accessibilityRole="button">
-                <Carte>
-                  <Text style={s.sousTitre}>À envoyer{e.ligne.reference_srm ? ` · ${String(e.ligne.reference_srm)}` : ''}</Text>
-                  {!!e.ligne.adresse && <Text style={s.discret}>{String(e.ligne.adresse)}</Text>}
-                  <Text style={s.discret}>{dateHeure(e.creee_le)} · gardée sur la tablette</Text>
-                </Carte>
+              <Pressable key={e.id} onPress={() => ouvrir(e.id)} accessibilityRole="button" style={styleCarte}>
+                <Text style={s.sousTitre}>À envoyer{e.ligne.reference_srm ? ` · ${String(e.ligne.reference_srm)}` : ''}</Text>
+                {!!e.ligne.adresse && <Text style={s.texte}>{String(e.ligne.adresse)}</Text>}
+                <Text style={s.attention}>{dateHeure(e.creee_le)} · gardée sur la tablette</Text>
               </Pressable>
             ))}
           </View>
         ) : null}
         renderItem={({ item: f }) => (
-          <Pressable onPress={() => ouvrir(f.id)} accessibilityRole="button">
-          <Carte>
-            <Text style={s.sousTitre}>N° {f.numero}{f.reference_srm ? ` · ${f.reference_srm}` : ''}</Text>
-            <Text>{STATUTS[f.statut]}{f.secteur ? ` · ${f.secteur}` : ''}</Text>
-            {!!f.adresse && <Text style={s.discret}>{f.adresse}</Text>}
+          <Pressable onPress={() => ouvrir(f.id)} accessibilityRole="button" style={styleCarte}>
+            <View style={[s.ligne, { justifyContent: 'space-between', alignItems: 'center' }]}>
+              <Text style={s.sousTitre}>N° {f.numero}{f.reference_srm ? ` · ${f.reference_srm}` : ''}</Text>
+              <Statut statut={f.statut} />
+            </View>
+            {!!(f.secteur || f.adresse) && <Text style={s.texte}>{[f.secteur, f.adresse].filter(Boolean).join(' · ')}</Text>}
             <Text style={s.discret}>{dateHeure(f.date_detection)} · {f.nb_photos} photo(s)</Text>
-            {f.alerte_non_reparee && (
-              <Text style={{ color: COULEURS.danger, fontWeight: '700' }}>
-                Non réparée depuis plus de {marche?.delai_alerte_reparation_h ?? 48} h
-              </Text>
-            )}
+            {f.alerte_non_reparee && <Alerte texte={`Non réparée depuis plus de ${delai} h`} />}
             {f.latitude != null && f.longitude != null && (
               <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={`Fuite N° ${f.numero}`} />
             )}
-          </Carte>
           </Pressable>
         )}
       />
-      <View style={[s.contenu, { paddingTop: 0 }]}>
-        <Bouton titre="Quitter" onPress={deconnecter} />
-      </View>
     </View>
   );
 }
@@ -276,6 +271,11 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     }
   }
 
+  function retirerPhoto(id: string) {
+    void effacerPhotos(photos.filter((x) => x.id === id));
+    setPhotos(photos.filter((x) => x.id !== id));
+  }
+
   function memeFuite(id: string) {
     const ouvrirLaFiche = () => {
       void effacerPhotos(photos);
@@ -321,88 +321,83 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
   }
 
   return (
-    <ScrollView style={s.ecran} contentContainerStyle={[s.contenu, { paddingTop: 48 }]} keyboardShouldPersistTaps="handled">
-      <Text style={s.titre}>Nouvelle fuite</Text>
-      <Carte>
-        <Text style={s.sousTitre}>Position</Text>
-        {position ? (
-          <Text>{position.lat.toFixed(6)}, {position.lon.toFixed(6)} (± {Math.round(position.precision)} m)</Text>
-        ) : <Text style={s.discret}>{gps}</Text>}
-        <Bouton titre="Actualiser la position" onPress={localiser} />
-      </Carte>
-      {controle === 'hors_ligne' && (
-        <Text style={s.attention}>Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu&apos;elle n&apos;est pas déjà signalée.</Text>
-      )}
-      {proches.length > 0 && (
+    <View style={s.ecran}>
+      <BarreApp titre="Nouvelle fuite" sousTitre={marche?.code} retour={retour} />
+      <ScrollView contentContainerStyle={s.defile} keyboardShouldPersistTaps="handled">
         <Carte>
-          <Text style={s.sousTitre}>Fuite déjà signalée ici ?</Text>
-          {proches.map((p) => (
-            <View key={p.id} style={{ gap: 6, borderTopWidth: 1, borderColor: COULEURS.bord, paddingTop: 8 }}>
-              <Text style={{ fontSize: 16 }}>
-                N° {p.numero} · {STATUTS[p.statut]} · {dateHeure(p.date_detection)}
-                {p.meme_reference ? ' · même référence' : ''}
-                {p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ''}
-              </Text>
-              <View style={s.ligne}>
-                <View style={{ flexGrow: 1, flexBasis: 200 }}>
-                  <Bouton titre="C'est la même fuite" onPress={() => memeFuite(p.id)} />
-                </View>
-                <View style={{ flexGrow: 1, flexBasis: 200 }}>
-                  <Bouton
-                    titre={lierA === p.id ? '✓ Nouvelle fuite liée' : 'Nouvelle fuite liée'}
-                    primaire={lierA === p.id}
-                    onPress={() => setLierA(lierA === p.id ? '' : p.id)}
-                  />
+          <Text style={s.sousTitre}>Position</Text>
+          {position ? (
+            <Text style={s.texte}>{position.lat.toFixed(6)}, {position.lon.toFixed(6)} (± {Math.round(position.precision)} m)</Text>
+          ) : <Text style={s.discret}>{gps}</Text>}
+          <Bouton titre="Actualiser la position" onPress={localiser} />
+        </Carte>
+        {controle === 'hors_ligne' && (
+          <Text style={s.attention}>Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu&apos;elle n&apos;est pas déjà signalée.</Text>
+        )}
+        {proches.length > 0 && (
+          <Carte>
+            <Text style={s.sousTitre}>Fuite déjà signalée ici ?</Text>
+            {proches.map((p) => (
+              <View key={p.id} style={s.separateur}>
+                <Text style={s.texte}>
+                  N° {p.numero} · {STATUTS[p.statut]} · {dateHeure(p.date_detection)}
+                  {p.meme_reference ? ' · même référence' : ''}
+                  {p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ''}
+                </Text>
+                <View style={s.ligne}>
+                  <View style={{ flexGrow: 1, flexBasis: 200 }}>
+                    <Bouton titre="C'est la même fuite" onPress={() => memeFuite(p.id)} />
+                  </View>
+                  <View style={{ flexGrow: 1, flexBasis: 200 }}>
+                    <Bouton
+                      titre={lierA === p.id ? '✓ Nouvelle fuite liée' : 'Nouvelle fuite liée'}
+                      primaire={lierA === p.id}
+                      onPress={() => setLierA(lierA === p.id ? '' : p.id)}
+                    />
+                  </View>
                 </View>
               </View>
-            </View>
-          ))}
-          <Text style={s.discret}>
-            {lierA
-              ? `Elle sera enregistrée comme nouvelle fuite liée au N° ${proches.find((p) => p.id === lierA)?.numero ?? ''}.`
-              : 'Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.'}
-          </Text>
+            ))}
+            <Text style={s.discret}>
+              {lierA
+                ? `Elle sera enregistrée comme nouvelle fuite liée au N° ${proches.find((p) => p.id === lierA)?.numero ?? ''}.`
+                : 'Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.'}
+            </Text>
+          </Carte>
+        )}
+        <Carte>
+          <Text style={s.etiquette}>{libelleReference}</Text>
+          <Saisie
+            value={reference}
+            onChangeText={(t) => setReference(formaterReference(t, masque))}
+            keyboardType={masque ? 'number-pad' : 'default'}
+            placeholder={masque ? masque.replace(/9/g, '0') : undefined}
+            maxLength={masque ? masque.length : undefined}
+          />
+          <Text style={s.etiquette}>Secteur</Text>
+          <Bouton titre={secteurs.find((x) => x.id === secteurId)?.libelle ?? '— Choisir —'} onPress={() => setChoixSecteur(true)} />
+          <Text style={s.etiquette}>Adresse / repère</Text>
+          <Saisie value={adresse} onChangeText={setAdresse} />
+          <Text style={s.etiquette}>Observation</Text>
+          <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
         </Carte>
-      )}
-      <Carte>
-        <Text style={s.etiquette}>{libelleReference}</Text>
-        <TextInput
-          style={s.champ}
-          value={reference}
-          onChangeText={(t) => setReference(formaterReference(t, masque))}
-          keyboardType={masque ? 'number-pad' : 'default'}
-          placeholder={masque ? masque.replace(/9/g, '0') : undefined}
-          maxLength={masque ? masque.length : undefined}
-        />
-        <Text style={s.etiquette}>Secteur</Text>
-        <Bouton titre={secteurs.find((x) => x.id === secteurId)?.libelle ?? '— Choisir —'} onPress={() => setChoixSecteur(true)} />
-        <Text style={s.etiquette}>Adresse / repère</Text>
-        <TextInput style={s.champ} value={adresse} onChangeText={setAdresse} />
-        <Text style={s.etiquette}>Observation</Text>
-        <TextInput style={[s.champ, { minHeight: 80, textAlignVertical: 'top', paddingTop: 10 }]} value={observation} onChangeText={setObservation} multiline />
-      </Carte>
-      <Carte>
-        <Text style={s.sousTitre}>Photos ({photos.length})</Text>
-        <Bouton titre="Prendre une photo" onPress={prendrePhoto} />
-        <View style={s.ligne}>
-          {photos.map((p) => (
-            <Pressable key={p.id} onPress={() => { void effacerPhotos([p]); setPhotos(photos.filter((x) => x.id !== p.id)); }}>
-              <Image source={{ uri: p.fichier }} style={{ width: 96, height: 96, borderRadius: 8 }} />
-              <Text style={s.discret}>Retirer</Text>
-            </Pressable>
-          ))}
-        </View>
-      </Carte>
-      {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
-      <Bouton titre={envoi || 'Enregistrer la fuite'} primaire onPress={enregistrer} occupe={!!envoi} />
-      <Bouton titre="Annuler" onPress={retour} desactive={!!envoi} />
+        <Carte>
+          <Text style={s.sousTitre}>Photos ({photos.length})</Text>
+          <Bouton titre="📷 Prendre une photo" onPress={prendrePhoto} />
+          <Vignettes photos={photos.map((p) => ({ id: p.id, uri: p.fichier, legende: 'Détection' }))} retirer={retirerPhoto} />
+        </Carte>
+        {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
+        <Bouton titre={envoi || 'Enregistrer la fuite'} primaire onPress={enregistrer} occupe={!!envoi} />
+        <Bouton titre="Annuler" onPress={retour} desactive={!!envoi} />
+      </ScrollView>
 
-      <Modal visible={choixSecteur} animationType="slide" onRequestClose={() => setChoixSecteur(false)}>
-        <View style={[s.ecran, { paddingTop: 48 }]}>
+      <Modal visible={choixSecteur} animationType="slide" statusBarTranslucent onRequestClose={() => setChoixSecteur(false)}>
+        <View style={s.ecran}>
+          <BarreApp titre="Choisir le secteur" retour={() => setChoixSecteur(false)} />
           <FlatList
             data={[{ id: '', libelle: '— Aucun —' } as Secteur, ...secteurs]}
             keyExtractor={(x) => x.id || 'aucun'}
-            contentContainerStyle={{ padding: 16, gap: 8 }}
+            contentContainerStyle={{ padding: 16, gap: 8, paddingBottom: 32 }}
             renderItem={({ item }) => (
               <Pressable
                 style={[s.puce, item.id === secteurId && s.puceActive]}
@@ -410,16 +405,28 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
                   setSecteurId(item.id);
                   setChoixSecteur(false);
                 }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: item.id === secteurId }}
               >
-                <Text style={{ fontSize: 18, color: item.id === secteurId ? '#fff' : '#12222d' }}>{item.libelle}</Text>
+                <Text style={[s.textePuce, { fontSize: 18 }, item.id === secteurId && { color: '#fff' }]}>{item.libelle}</Text>
               </Pressable>
             )}
           />
         </View>
       </Modal>
-    </ScrollView>
+    </View>
   );
 }
+
+const titreEnvoi = (e: Envoi) => {
+  switch (e.type) {
+    case 'reparation': return `Réparation · ${e.fuite_libelle}`;
+    case 'refection': return `Réfection · ${e.fuite_libelle}`;
+    case 'modification': return `Modification de réparation · ${e.fuite_libelle}`;
+    case 'photos': return `Photo(s) ajoutée(s) · ${e.fuite_libelle}`;
+    default: return `Nouvelle fuite · ${(e.ligne.reference_srm as string) || (e.ligne.adresse as string) || 'sans référence'}`;
+  }
+};
 
 export function EnAttente({ retour }: { retour: () => void }) {
   const [liste, setListe] = useState<Envoi[]>([]);
@@ -443,7 +450,7 @@ export function EnAttente({ retour }: { retour: () => void }) {
     const suite = await dependants(e.id);
     Alert.alert(
       'Supprimer de la tablette ?',
-      `Cette saisie${suite.length ? ` et ${suite.length} saisie(s) liée(s) (réparation, réfection)` : ''} et ses photos seront définitivement perdues.`,
+      `Cette saisie${suite.length ? ` et ${suite.length} saisie(s) liée(s) (réparation, réfection, modification, photos)` : ''} et ses photos seront définitivement perdues.`,
       [
         { text: 'Garder', style: 'cancel' },
         { text: 'Supprimer', style: 'destructive', onPress: async () => { await abandonner(e.id); charger(); } },
@@ -451,29 +458,26 @@ export function EnAttente({ retour }: { retour: () => void }) {
     );
   }
 
-  const titre = (e: Envoi) => {
-    if (estFuite(e)) return `Nouvelle fuite · ${(e.ligne.reference_srm as string) || (e.ligne.adresse as string) || 'sans référence'}`;
-    return `${e.type === 'reparation' ? 'Réparation' : 'Réfection'} · ${e.fuite_libelle}`;
-  };
-
   return (
-    <ScrollView style={s.ecran} contentContainerStyle={[s.contenu, { paddingTop: 48 }]}>
-      <Text style={s.titre}>Envois en attente</Text>
-      <Text style={s.discret}>
-        Ces saisies sont gardées sur la tablette. Elles partent dans l&apos;ordre dès que le réseau revient ;
-        ne désinstallez pas l&apos;application avant.
-      </Text>
-      <Bouton titre="Envoyer maintenant" primaire onPress={envoyer} occupe={occupe} desactive={liste.length === 0} />
-      {!!message && <Text style={s.info}>{message}</Text>}
-      {liste.map((e) => (
-        <Carte key={e.id}>
-          <Text style={s.sousTitre}>{titre(e)}</Text>
-          <Text style={s.discret}>Saisie le {dateHeure(e.creee_le)} · {e.photos.length} photo(s) en attente</Text>
-          {!!e.erreur && <Text style={s.erreur}>{e.erreur}</Text>}
-          <Bouton titre="Supprimer de la tablette" onPress={() => supprimer(e)} />
-        </Carte>
-      ))}
-      <Bouton titre="Retour" onPress={retour} />
-    </ScrollView>
+    <View style={s.ecran}>
+      <BarreApp titre="Envois en attente" sousTitre={`${liste.length} saisie(s) sur la tablette`} retour={retour} />
+      <ScrollView contentContainerStyle={s.defile}>
+        <Text style={s.discret}>
+          Ces saisies sont gardées sur la tablette. Elles partent dans l&apos;ordre dès que le réseau revient ;
+          ne désinstallez pas l&apos;application avant.
+        </Text>
+        <Bouton titre="Envoyer maintenant" primaire onPress={envoyer} occupe={occupe} desactive={liste.length === 0} />
+        {!!message && <Text style={s.info}>{message}</Text>}
+        {liste.map((e) => (
+          <Carte key={e.id}>
+            <Text style={s.sousTitre}>{titreEnvoi(e)}</Text>
+            <Text style={s.discret}>Saisie le {dateHeure(e.creee_le)} · {e.photos.length} photo(s) en attente</Text>
+            {!!e.erreur && <Text style={s.erreur}>{e.erreur}</Text>}
+            <Bouton titre="Supprimer de la tablette" danger onPress={() => supprimer(e)} />
+          </Carte>
+        ))}
+        <Bouton titre="Retour" onPress={retour} />
+      </ScrollView>
+    </View>
   );
 }

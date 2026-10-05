@@ -12,7 +12,8 @@ const COLONNES_FUITE = 'id, numero, reference_srm, statut, secteur, zone, adress
   + 'detectee_par, motif_sans_reparation, fuite_liee_id, verrouillee_le, observation, nb_photos, alerte_non_reparee';
 const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, equipe_id, ouvrage, materiau, diametre_mm, representant_srm, '
   + 'tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, element_remplace, longueur_pe_m, '
-  + 'fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, nature_revetement_id, observation';
+  + 'fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, nature_revetement_id, observation, '
+  + 'auteur_terrain_id, saisi_par';
 
 export async function chargerServeur(id: string): Promise<Donnees | null> {
   const [f, ph, rp, rf] = await Promise.all([
@@ -27,7 +28,7 @@ export async function chargerServeur(id: string): Promise<Donnees | null> {
   const ids = reparations.map((r) => r.id);
   const [pc, ou] = ids.length
     ? await Promise.all([
-      supabase.from('reparation_pieces').select('id, reparation_id, piece_id, designation_libre, quantite').in('reparation_id', ids).is('supprime_le', null),
+      supabase.from('reparation_pieces').select('id, reparation_id, piece_id, designation_libre, quantite, saisi_par').in('reparation_id', ids).is('supprime_le', null),
       supabase.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', ids),
     ])
     : [{ data: [], error: null }, { data: [], error: null }];

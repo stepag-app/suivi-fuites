@@ -3,79 +3,116 @@
 --
 -- Décisions d'Issam (2026-10-05) :
 --  * toutes les fournitures sont comprises dans les prix de réparation (CPS art. II-15) :
---    aucune pièce n'est payée à part ;
---  * le réparateur fait foi pour les pièces posées ; le bureau (responsable, administrateur)
---    peut, à l'attachement, ajouter une pièce, ajouter une ligne de prix ou requalifier une
---    ligne quand les faits le justifient ;
+--    aucune pièce n'est payée à part ; une pièce ne change jamais le montant (la facture passe
+--    uniquement par les lignes de prix et leur requalification avec motif) ;
+--  * le bureau (responsable, administrateur) peut, à l'attachement, corriger les pièces, ajouter
+--    une ligne de prix ou requalifier une ligne quand les faits le justifient ;
 --  * une réparation = une unité par prix (réglage « une unité par prix et par fuite »
 --    inchangé) : le lot sert la traçabilité et la détection des oublis, jamais à gonfler
 --    les quantités.
+-- Décisions d'Issam (2026-10-06) :
+--  * l'inventaire des fournitures posées reflète le réel du terrain : une correction des pièces
+--    par le bureau a une nature (remplacement d'une pièce erronée, oubli, retrait d'une pièce non
+--    posée) et un motif obligatoire ; la saisie d'origine du réparateur reste toujours en base ;
+--  * pas de délai : une pièce saisie par l'auteur de la réparation est « terrain », quels que
+--    soient le moment et le canal ; tout ajout, remplacement ou retrait par un autre compte est
+--    une correction du bureau ;
+--  * longueur de polyéthylène couverte par l'article de réparation réglable par marché.
 --
 -- Contenu :
---  1. reparation_pieces : pièce « ajoutée au bureau » (indicateur, auteur, date), posé par
---     déclencheur ; ajout sur la réparation d'un autre agent soumis au droit « modifier ».
+--  1. reparation_pieces : provenance (terrain / correction), nature de la correction
+--     (remplacement, oubli), pièce remplacée, motif, état (posée, remplacée, retirée), posés ou
+--     contrôlés par déclencheur ; correction sur la réparation d'un autre soumise au droit
+--     « interventions / modifier ».
 --  2. lignes_quantites : motif obligatoire pour toute modification par un utilisateur
 --     (ajout manuel, article, quantité, suppression), article d'origine gardé à la
 --     requalification (la règle automatique ne le repropose plus), une unité par prix et
 --     par fuite aussi pour les lignes saisies à la main.
---  3. Vues : private.v_prix_proposes (articles que propose la règle R-DER-007),
---     v_controles_attachement (oublis probables, lignes incohérentes, polyéthylène au-delà
---     de 2 m, réparations sans article), v_hors_bordereau (travaux à faire valoir) ;
---     v_quantites et v_pieces_posees reçoivent les nouvelles colonnes (en fin de liste).
+--  3. marches.longueur_pe_max_m : seuil du polyéthylène (défaut 2 m).
+--  4. Vues : private.v_prix_proposes (articles que propose la règle R-DER-007),
+--     v_controles_attachement (oublis probables, lignes incohérentes, polyéthylène au-delà du
+--     seuil, réparations sans article), v_hors_bordereau (travaux à faire valoir),
+--     v_pieces_reelles (inventaire réel) ; v_pieces_posees, v_fuites_export et
+--     v_controles_attachement ne comptent plus les pièces remplacées ou retirées ; v_anomalies
+--     suit le seuil du marché ; v_quantites et v_pieces_posees reçoivent les nouvelles colonnes
+--     (en fin de liste).
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 1. Pièces ajoutées au bureau
+-- 1. Pièces posées : déclaration du terrain et corrections du bureau
 -- -----------------------------------------------------------------------------
 alter table public.reparation_pieces
-  add column ajoutee_bureau boolean not null default false,
-  add column ajoutee_bureau_par uuid references public.profils (id),
-  add column ajoutee_bureau_le timestamptz;
+  add column provenance text not null default 'terrain',
+  add column nature_correction text,
+  add column remplace_piece_id uuid references public.reparation_pieces (id),
+  add column motif_correction text,
+  add column etat text not null default 'posee',
+  add column etat_par uuid references public.profils (id),
+  add column etat_le timestamptz,
+  add column motif_retrait text,
+  add column motif_modification text;
 
-comment on column public.reparation_pieces.ajoutee_bureau is
-  'Pièce ajoutée après coup par un autre que le réparateur (bureau) ; posé par déclencheur';
+comment on column public.reparation_pieces.provenance is
+  'terrain : saisie par l''auteur de la réparation (réparateur, ou compte qui l''a saisie) ; correction : ajoutée par un autre compte (bureau). Posée par déclencheur';
+comment on column public.reparation_pieces.nature_correction is
+  'Correction du bureau : remplacement (d''une pièce erronée, remplace_piece_id) ou oubli ; nulle pour le terrain. Posée par déclencheur';
+comment on column public.reparation_pieces.remplace_piece_id is
+  'Pièce remplacée par celle-ci (même réparation) : elle reste en base, marquée « remplacee »';
+comment on column public.reparation_pieces.motif_correction is
+  'Motif de la correction qui a créé la pièce (oubli, remplacement), obligatoire pour le bureau';
+comment on column public.reparation_pieces.etat is
+  'posee : dans l''inventaire réel ; remplacee, retiree : hors inventaire, gardée pour la trace (jamais supprimée)';
+comment on column public.reparation_pieces.motif_retrait is
+  'Motif du retrait d''une pièce non posée (erreur de saisie), obligatoire';
+comment on column public.reparation_pieces.motif_modification is
+  'Motif envoyé avec un ajout, un remplacement ou un retrait (écriture seule : vidé par le déclencheur, gardé dans motif_correction ou motif_retrait)';
 
--- Profil « de bureau » sur un marché : administrateur, ou droit de validation des interventions.
-create function private.profil_de_bureau(p_profil uuid, p_marche uuid)
+-- Pièces existantes : celles saisies par un autre compte que l'auteur de la réparation sont des
+-- corrections du bureau (oubli), avec un motif de reprise.
+update public.reparation_pieces rp
+   set provenance = 'correction',
+       nature_correction = 'oubli',
+       motif_correction = 'Reprise : pièce ajoutée par un autre compte que l''auteur de la réparation, avant le suivi des corrections'
+  from public.reparations r
+ where r.id = rp.reparation_id
+   and rp.saisi_par is not null
+   and rp.saisi_par is distinct from r.auteur_terrain_id
+   and rp.saisi_par is distinct from r.saisi_par;
+
+alter table public.reparation_pieces
+  add constraint reparation_pieces_provenance check (provenance in ('terrain', 'correction')),
+  add constraint reparation_pieces_nature check (coalesce(
+    (provenance = 'terrain' and nature_correction is null)
+    or (provenance = 'correction' and remplace_piece_id is null and nature_correction = 'oubli')
+    or (provenance = 'correction' and remplace_piece_id is not null and nature_correction = 'remplacement'),
+    false)),
+  add constraint reparation_pieces_motif_correction check (
+    (provenance = 'terrain' and remplace_piece_id is null) or nullif(btrim(motif_correction), '') is not null),
+  add constraint reparation_pieces_remplace_autre check (remplace_piece_id <> id),
+  add constraint reparation_pieces_etat check (etat in ('posee', 'remplacee', 'retiree')),
+  add constraint reparation_pieces_etat_date check ((etat = 'posee') = (etat_le is null)),
+  add constraint reparation_pieces_motif_retrait check (etat <> 'retiree' or nullif(btrim(motif_retrait), '') is not null);
+
+create index reparation_pieces_remplace_idx on public.reparation_pieces (remplace_piece_id)
+  where remplace_piece_id is not null;
+
+-- Auteur d'une réparation : le compte qui l'a faite sur le terrain (auteur_terrain_id) ou qui l'a
+-- saisie (saisi_par : fiche papier recopiée au bureau). Ses pièces sont la déclaration du terrain,
+-- quels que soient le moment et le canal (tablette ou web) : aucun délai.
+create function private.est_auteur_reparation(p_reparation uuid)
 returns boolean
 language sql
 stable
 security definer
 set search_path = ''
 as $$
-  select exists (select 1 from public.profils p where p.id = p_profil and p.est_admin)
-      or exists (
-        select 1 from public.droits d
-         where d.profil_id = p_profil and d.marche_id = p_marche
-           and d.type_donnee = 'interventions' and d.valider
-      )
+  select exists (
+    select 1 from public.reparations r
+     where r.id = p_reparation and auth.uid() in (r.auteur_terrain_id, r.saisi_par)
+  )
 $$;
 
--- Une pièce enregistrée par p_profil à l'instant p_le est-elle « ajoutée au bureau » ?
--- Non (déclaration du réparateur) quand :
---  * elle est saisie par le compte qui a saisi la réparation, dans les 15 minutes de sa
---    création (envoi de la tablette, fiche papier recopiée au bureau avec la réparation) ;
---  * elle est saisie par le réparateur lui-même (auteur terrain), agent de terrain sans droit
---    de validation (ajout depuis la tablette, même plus tard).
--- Oui dans tous les autres cas (responsable ou administrateur après coup, autre agent).
-create function private.piece_ajoutee_au_bureau(p_reparation uuid, p_profil uuid, p_le timestamptz)
-returns boolean
-language sql
-stable
-security definer
-set search_path = ''
-as $$
-  select case
-    when p_profil is null or r.id is null then false
-    when p_profil = r.saisi_par and p_le <= r.cree_le + interval '15 minutes' then false
-    when p_profil = r.auteur_terrain_id and not private.profil_de_bureau(p_profil, r.marche_id) then false
-    else true
-  end
-  from (select 1) x
-  left join public.reparations r on r.id = p_reparation
-$$;
-
--- Droit de compléter la réparation d'un autre : « interventions / modifier » avec sa portée
+-- Droit de corriger la réparation d'un autre : « interventions / modifier » avec sa portée
 -- (le responsable : toutes ; le chef de réparation : seulement les siennes).
 create function private.peut_completer_reparation(p_reparation uuid)
 returns boolean
@@ -91,51 +128,169 @@ as $$
   ), false)
 $$;
 
--- Déclencheur : indicateur, auteur et date posés par le serveur, jamais par le client.
-create function private.marquer_piece_bureau()
+-- Droit de remplacer ou de retirer une pièce : l'auteur de la réparation pour une pièce du terrain
+-- (une correction du bureau seulement s'il peut modifier toutes les pièces) ; un autre compte avec
+-- le droit de corriger la réparation d'un autre. (private.peut renvoie null, et non false, quand
+-- l'auteur est inconnu : d'où le coalesce.)
+create function private.peut_corriger_piece(p_reparation uuid, p_marche uuid, p_provenance text, p_saisi_par uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select case
+    when private.est_auteur_reparation(p_reparation)
+      then p_provenance = 'terrain'
+           or coalesce(private.peut(p_marche, 'interventions', 'modifier', null, p_saisi_par), false)
+    else private.peut_completer_reparation(p_reparation)
+  end
+$$;
+
+-- Remplacement : la pièce remplacée reste en base, marquée « remplacée » (hors inventaire réel).
+-- Appelée par le déclencheur à l'insertion de la pièce qui la remplace ; contrôle les droits de
+-- l'utilisateur, puis écrit avec ceux du propriétaire (la marque n'est pas une modification à la
+-- main) ; le journal garde l'utilisateur.
+create function private.remplacer_piece(p_piece uuid, p_reparation uuid)
+returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  _p public.reparation_pieces;
+begin
+  select * into _p from public.reparation_pieces where id = p_piece for update;
+  if _p.id is null or _p.reparation_id is distinct from p_reparation or _p.supprime_le is not null then
+    raise exception 'Pièce à remplacer introuvable sur cette réparation' using errcode = 'check_violation';
+  end if;
+  if _p.etat <> 'posee' then
+    raise exception 'Pièce déjà remplacée ou retirée' using errcode = 'check_violation';
+  end if;
+  if not private.peut_corriger_piece(_p.reparation_id, _p.marche_id, _p.provenance, _p.saisi_par) then
+    raise exception 'Correction refusée : pièce saisie par un autre compte' using errcode = 'insufficient_privilege';
+  end if;
+  if exists (select 1 from public.reparations r join public.fuites f on f.id = r.fuite_id
+              where r.id = p_reparation and f.verrouillee_le is not null)
+     and not private.peut(_p.marche_id, 'interventions', 'valider') then
+    raise exception 'Fuite verrouillée : modification réservée au responsable' using errcode = 'insufficient_privilege';
+  end if;
+  update public.reparation_pieces
+     set etat = 'remplacee', etat_par = auth.uid(), etat_le = now()
+   where id = p_piece;
+end
+$$;
+
+-- Déclencheur des pièces posées : provenance, nature, état et motifs posés par le serveur.
+--  * Ajout par l'auteur de la réparation : terrain (motif seulement s'il remplace une pièce).
+--  * Ajout par un autre compte : correction du bureau (oubli, ou remplacement si
+--    remplace_piece_id), motif obligatoire, droit de corriger la réparation d'un autre.
+--  * Retrait (etat → retiree) : motif obligatoire ; la pièce reste telle que saisie.
+--  * Une pièce de l'auteur ne se modifie ni ne se supprime par un autre compte, une correction du
+--    bureau par personne : on la remplace ou on la retire. Une pièce remplacée ou retirée est figée.
+--  * Remplacer ou retirer : private.peut_corriger_piece (la règle « siennes » de
+--    avant_modification_saisie ne s'applique pas aux pièces, faute d'auteur terrain sur la ligne).
+create function private.controler_piece()
 returns trigger
 language plpgsql
 set search_path = ''
 as $$
+declare
+  _motif text := nullif(btrim(new.motif_modification), '');
+  _auteur boolean;
+  _donnees boolean;
 begin
+  new.motif_modification := null;
   if private.appel_systeme() then
     return new;
   end if;
-  if tg_op = 'UPDATE' then
-    new.ajoutee_bureau := old.ajoutee_bureau;
-    new.ajoutee_bureau_par := old.ajoutee_bureau_par;
-    new.ajoutee_bureau_le := old.ajoutee_bureau_le;
-    return new;
-  end if;
-  new.ajoutee_bureau := private.piece_ajoutee_au_bureau(new.reparation_id, auth.uid(), now());
-  if new.ajoutee_bureau then
-    if not private.peut_completer_reparation(new.reparation_id) then
-      raise exception 'Ajout d''une pièce refusé : réparation saisie par un autre agent'
+
+  if tg_op = 'INSERT' then
+    _auteur := private.est_auteur_reparation(new.reparation_id);
+    new.provenance := case when _auteur then 'terrain' else 'correction' end;
+    new.nature_correction := case
+      when _auteur then null
+      when new.remplace_piece_id is null then 'oubli'
+      else 'remplacement'
+    end;
+    new.motif_correction := _motif;
+    new.etat := 'posee';
+    new.etat_par := null;
+    new.etat_le := null;
+    new.motif_retrait := null;
+    if not _auteur and not private.peut_completer_reparation(new.reparation_id) then
+      raise exception 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)'
         using errcode = 'insufficient_privilege';
     end if;
-    new.ajoutee_bureau_par := auth.uid();
-    new.ajoutee_bureau_le := now();
-  else
-    new.ajoutee_bureau_par := null;
-    new.ajoutee_bureau_le := null;
+    if _motif is null and (not _auteur or new.remplace_piece_id is not null) then
+      raise exception 'Motif obligatoire pour corriger les pièces posées (remplacement, oubli ou retrait)'
+        using errcode = 'check_violation';
+    end if;
+    if new.remplace_piece_id is not null then
+      perform private.remplacer_piece(new.remplace_piece_id, new.reparation_id);
+    end if;
+    return new;
   end if;
+
+  -- Modification : provenance, nature, pièce remplacée et motif de la correction ne changent jamais
+  _auteur := private.est_auteur_reparation(old.reparation_id);
+  new.provenance := old.provenance;
+  new.nature_correction := old.nature_correction;
+  new.remplace_piece_id := old.remplace_piece_id;
+  new.motif_correction := old.motif_correction;
+  _donnees := row(new.reparation_id, new.piece_id, new.designation_libre, new.quantite, new.supprime_le)
+              is distinct from row(old.reparation_id, old.piece_id, old.designation_libre, old.quantite, old.supprime_le);
+  if not _donnees and new.etat is not distinct from old.etat then
+    new.etat_par := old.etat_par;
+    new.etat_le := old.etat_le;
+    new.motif_retrait := old.motif_retrait;
+    return new;
+  end if;
+
+  if not _auteur and not private.peut_completer_reparation(old.reparation_id) then
+    raise exception 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)'
+      using errcode = 'insufficient_privilege';
+  end if;
+  if _auteur and not private.peut_corriger_piece(old.reparation_id, old.marche_id, old.provenance, old.saisi_par) then
+    raise exception 'Correction refusée : pièce saisie par un autre compte' using errcode = 'insufficient_privilege';
+  end if;
+  if old.etat <> 'posee' then
+    raise exception 'Pièce remplacée ou retirée : elle ne se modifie plus' using errcode = 'check_violation';
+  end if;
+
+  -- Retrait d'une pièce non posée : motif obligatoire, la pièce reste telle que saisie
+  if new.etat is distinct from old.etat then
+    if new.etat is distinct from 'retiree' then
+      raise exception 'Seul le retrait d''une pièce se fait à la main (un remplacement passe par la pièce qui la remplace)'
+        using errcode = 'check_violation';
+    end if;
+    if _donnees then
+      raise exception 'Retrait : la pièce retirée reste telle que saisie' using errcode = 'check_violation';
+    end if;
+    if _motif is null then
+      raise exception 'Motif obligatoire pour corriger les pièces posées (remplacement, oubli ou retrait)'
+        using errcode = 'check_violation';
+    end if;
+    new.etat_par := auth.uid();
+    new.etat_le := now();
+    new.motif_retrait := _motif;
+    return new;
+  end if;
+
+  -- Modification ou suppression directe : seulement l'auteur, sur une pièce du terrain
+  if not _auteur or old.provenance = 'correction' then
+    raise exception 'Pièce déclarée par le réparateur ou corrigée par le bureau : la remplacer ou la retirer, avec motif (jamais la modifier ni la supprimer)'
+      using errcode = 'check_violation';
+  end if;
+  new.etat_par := old.etat_par;
+  new.etat_le := old.etat_le;
+  new.motif_retrait := old.motif_retrait;
   return new;
 end
 $$;
 
--- Pièces existantes : même règle, d'après le compte et la date de saisie gardés.
-update public.reparation_pieces rp
-   set ajoutee_bureau = true, ajoutee_bureau_par = rp.saisi_par, ajoutee_bureau_le = rp.cree_le
- where rp.saisi_par is not null
-   and private.piece_ajoutee_au_bureau(rp.reparation_id, rp.saisi_par, rp.cree_le);
-
-alter table public.reparation_pieces
-  add constraint reparation_pieces_ajout_bureau_date check (ajoutee_bureau = (ajoutee_bureau_le is not null));
-
-create index reparation_pieces_bureau_idx on public.reparation_pieces (marche_id) where ajoutee_bureau;
-
-create trigger d_marquer_piece_bureau before insert or update on public.reparation_pieces
-  for each row execute function private.marquer_piece_bureau();
+create trigger d_controler_piece before insert or update on public.reparation_pieces
+  for each row execute function private.controler_piece();
 
 -- -----------------------------------------------------------------------------
 -- 2. Lignes de quantités : motif obligatoire, article d'origine, une unité par prix
@@ -285,8 +440,21 @@ begin
 end
 $$;
 
+
 -- -----------------------------------------------------------------------------
--- 3. Vues
+-- 3. Seuil du polyéthylène, réglable par marché (Paramètres > Marché, droit « paramètres /
+--    modifier ») : longueur couverte par l'article de réparation ; au-delà, l'excédent est hors
+--    bordereau (contrôles, travaux hors bordereau, anomalies).
+-- -----------------------------------------------------------------------------
+alter table public.marches
+  add column longueur_pe_max_m numeric(5,2) not null default 2
+    constraint marches_longueur_pe_max_m check (longueur_pe_max_m > 0);
+
+comment on column public.marches.longueur_pe_max_m is
+  'Longueur de polyéthylène (m) couverte par l''article de réparation ; au-delà : excédent hors bordereau, à faire valoir';
+
+-- -----------------------------------------------------------------------------
+-- 4. Vues
 -- -----------------------------------------------------------------------------
 
 -- Libellé lisible d'un code de matériau (détails des contrôles).
@@ -359,11 +527,13 @@ select rf.marche_id, rf.fuite_id, rf.reparation_id, rf.id, 'refection'::public.f
 -- Contrôles de cohérence à l'attachement (non bloquants). Gravité : « alerte » (risque de
 -- facturation injustifiée), « avertissement » (oubli probable), « information » (travaux hors
 -- bordereau à faire valoir). Réservé aux comptes qui lisent les attachements et les quantités.
+-- Pièces : inventaire réel seulement (ni remplacées ni retirées).
 create view public.v_controles_attachement with (security_invoker = true) as
 with rep as (
-  select r.*, f.numero as fuite_numero, f.statut as statut_fuite
+  select r.*, f.numero as fuite_numero, f.statut as statut_fuite, m.longueur_pe_max_m
     from public.reparations r
     join public.fuites f on f.id = r.fuite_id and f.supprime_le is null
+    join public.marches m on m.id = r.marche_id
    where r.supprime_le is null
 ),
 derniere_reparee as (
@@ -378,7 +548,7 @@ pieces_pec as (
     join public.reparations r on r.id = rp.reparation_id and r.supprime_le is null
     join public.catalogue_pieces cp on cp.id = rp.piece_id
     join public.prix px on px.id = cp.prix_suggere_id
-   where rp.supprime_le is null and px.famille in ('robinet_pec', 'collier_pec')
+   where rp.supprime_le is null and rp.etat = 'posee' and px.famille in ('robinet_pec', 'collier_pec')
    group by r.fuite_id, px.famille
 ),
 cases_pec as (
@@ -515,15 +685,16 @@ controles as (
      and nullif(btrim(l.motif_correction), '') is null
      and not coalesce(prop.couvert, false)
   union all
-  -- Polyéthylène au-delà de 2 m : les articles de réparation PE couvrent 2 m au plus (Q-12)
+  -- Polyéthylène au-delà du seuil du marché (marches.longueur_pe_max_m, 2 m par défaut, Q-12)
   select rep.marche_id, rep.fuite_id, rep.fuite_numero, rep.id, null,
          'pe_superieur_2m', 'information',
-         'Polyéthylène au-delà de 2 m : excédent hors bordereau, à faire valoir',
-         format('%s m posés : %s m au-delà des 2 m couverts par l''article de réparation',
-                private.nombre_fr(rep.longueur_pe_m), private.nombre_fr(rep.longueur_pe_m - 2)),
-         rep.longueur_pe_m - 2, 'm'
+         format('Polyéthylène au-delà de %s m : excédent hors bordereau, à faire valoir', private.nombre_fr(rep.longueur_pe_max_m)),
+         format('%s m posés : %s m au-delà des %s m couverts par l''article de réparation',
+                private.nombre_fr(rep.longueur_pe_m), private.nombre_fr(rep.longueur_pe_m - rep.longueur_pe_max_m),
+                private.nombre_fr(rep.longueur_pe_max_m)),
+         rep.longueur_pe_m - rep.longueur_pe_max_m, 'm'
     from rep
-   where rep.resultat = 'reparee' and rep.materiau = 'polyethylene' and rep.longueur_pe_m > 2
+   where rep.resultat = 'reparee' and rep.materiau = 'polyethylene' and rep.longueur_pe_m > rep.longueur_pe_max_m
   union all
   -- Réparation sur un matériau ou un diamètre sans article (DN > 315, fonte, acier…)
   select rep.marche_id, rep.fuite_id, rep.fuite_numero, rep.id, null,
@@ -542,33 +713,36 @@ select c.*
         and c.marche_id = any ((select private.marches_autorises('quantites', 'lire'))::uuid[]));
 
 -- Travaux hors bordereau à faire valoir (rien n'est attaché ni facturé automatiquement) :
--- excédent de polyéthylène au-delà de 2 m, réparation sans article (matériau ou diamètre),
--- pièces non couvertes (article suggéré hors bordereau, ou fuite sans aucune ligne de prix
--- de réparation qui couvrirait ses fournitures).
+-- excédent de polyéthylène au-delà du seuil du marché, réparation sans article (matériau ou
+-- diamètre), pièces de l'inventaire réel non couvertes (article suggéré hors bordereau, ou fuite
+-- sans aucune ligne de prix de réparation qui couvrirait ses fournitures).
 create view public.v_hors_bordereau with (security_invoker = true) as
 with rep as (
   select r.*, f.numero as fuite_numero, f.reference_srm, f.adresse, f.zone_id, z.libelle as zone,
-         f.secteur_id, s.libelle as secteur
+         f.secteur_id, s.libelle as secteur, m.longueur_pe_max_m
     from public.reparations r
     join public.fuites f on f.id = r.fuite_id and f.supprime_le is null
+    join public.marches m on m.id = r.marche_id
     left join public.zones z on z.id = f.zone_id
     left join public.secteurs s on s.id = f.secteur_id
    where r.supprime_le is null and r.resultat = 'reparee'
 ),
 travaux as (
   select rep.marche_id, 'pe_au_dela_2m'::text as nature,
-         'Polyéthylène au-delà de 2 m'::text as libelle,
-         format('Polyéthylène %s mm : %s m posés, excédent au-delà de 2 m',
-                coalesce(rep.diametre_mm::text, '?'), private.nombre_fr(rep.longueur_pe_m)) as designation,
-         rep.longueur_pe_m - 2 as quantite, 'm'::text as unite,
-         rep.id as reparation_id, null::uuid as piece_ligne_id, null::boolean as ajoutee_bureau
+         format('Polyéthylène au-delà de %s m', private.nombre_fr(rep.longueur_pe_max_m)) as libelle,
+         format('Polyéthylène %s mm : %s m posés, excédent au-delà de %s m',
+                coalesce(rep.diametre_mm::text, '?'), private.nombre_fr(rep.longueur_pe_m),
+                private.nombre_fr(rep.longueur_pe_max_m)) as designation,
+         rep.longueur_pe_m - rep.longueur_pe_max_m as quantite, 'm'::text as unite,
+         rep.id as reparation_id, null::uuid as piece_ligne_id,
+         null::text as piece_provenance, null::text as piece_nature_correction
     from rep
-   where rep.materiau = 'polyethylene' and rep.longueur_pe_m > 2
+   where rep.materiau = 'polyethylene' and rep.longueur_pe_m > rep.longueur_pe_max_m
   union all
   select rep.marche_id, 'reparation_sans_article', 'Réparation sans article au bordereau',
          format('Réparation %s, diamètre %s', private.libelle_materiau(rep.materiau),
                 coalesce(rep.diametre_mm || ' mm', 'non saisi')),
-         1, 'u', rep.id, null, null
+         1, 'u', rep.id, null, null, null
     from rep
    where rep.tuyau_repare
      and exists (
@@ -585,12 +759,12 @@ travaux as (
   union all
   select rep.marche_id, 'piece_non_couverte', 'Pièce non couverte par un article',
          coalesce(cp.designation, rp.designation_libre),
-         rp.quantite, coalesce(cp.unite, 'u'), rep.id, rp.id, rp.ajoutee_bureau
+         rp.quantite, coalesce(cp.unite, 'u'), rep.id, rp.id, rp.provenance, rp.nature_correction
     from public.reparation_pieces rp
     join rep on rep.id = rp.reparation_id
     left join public.catalogue_pieces cp on cp.id = rp.piece_id
     left join public.prix ps on ps.id = cp.prix_suggere_id
-   where rp.supprime_le is null
+   where rp.supprime_le is null and rp.etat = 'posee'
      and (coalesce(ps.hors_bordereau, false)
           or not exists (
             select 1 from public.lignes_quantites l
@@ -603,7 +777,7 @@ select t.marche_id, t.nature, t.libelle, rep.fuite_id, rep.fuite_numero, rep.ref
        rep.zone_id, rep.zone, rep.secteur_id, rep.secteur, t.reparation_id, rep.realisee_le,
        (rep.realisee_le at time zone 'Africa/Casablanca')::date as jour,
        rep.materiau::text as materiau, rep.diametre_mm, t.designation, t.quantite, t.unite,
-       t.piece_ligne_id, t.ajoutee_bureau
+       t.piece_ligne_id, t.piece_provenance, t.piece_nature_correction
   from travaux t
   join rep on rep.id = t.reparation_id
  where private.contexte_serveur()
@@ -651,8 +825,11 @@ left join public.reparations r on r.id = l.reparation_id
 left join public.refections rf on rf.id = l.refection_id
 where l.supprime_le is null;
 
--- Pièces posées : « ajoutée au bureau » (futur inventaire des fournitures posées, filtre).
-create or replace view public.v_pieces_posees with (security_invoker = true) as
+-- Inventaire réel des fournitures posées : pièces du terrain ni remplacées ni retirées, et
+-- corrections du bureau (oubli, remplacement), avec leur provenance, leur nature, leur motif,
+-- leur auteur et la pièce remplacée. Base du futur inventaire et du rapprochement avec Dolibarr.
+-- Mêmes droits de lecture que les pièces (security_invoker : règle de reparation_pieces).
+create view public.v_pieces_reelles with (security_invoker = true) as
 select
   rp.id,
   rp.marche_id,
@@ -675,9 +852,15 @@ select
   cp.famille,
   coalesce(cp.unite, 'u') as unite,
   rp.quantite,
-  rp.ajoutee_bureau,
-  rp.ajoutee_bureau_par,
-  rp.ajoutee_bureau_le
+  rp.provenance,
+  rp.nature_correction,
+  rp.motif_correction,
+  rp.saisi_par,
+  ps.nom_complet as saisi_par_nom,
+  rp.cree_le as saisi_le,
+  rp.remplace_piece_id,
+  coalesce(cpa.designation, pa.designation_libre) as designation_remplacee,
+  pa.quantite as quantite_remplacee
 from public.reparation_pieces rp
 join public.reparations r on r.id = rp.reparation_id and r.supprime_le is null
 join public.fuites f on f.id = r.fuite_id and f.supprime_le is null
@@ -686,19 +869,167 @@ left join public.zones z on z.id = f.zone_id
 left join public.secteurs s on s.id = f.secteur_id
 left join public.equipes e on e.id = r.equipe_id
 left join public.profils pc on pc.id = r.auteur_terrain_id
-where rp.supprime_le is null;
+left join public.profils ps on ps.id = rp.saisi_par
+left join public.reparation_pieces pa on pa.id = rp.remplace_piece_id
+left join public.catalogue_pieces cpa on cpa.id = pa.piece_id
+where rp.supprime_le is null and rp.etat = 'posee';
+
+-- Pièces posées (exports) : désormais l'inventaire réel (ni remplacées ni retirées), avec la
+-- provenance, la nature et le motif de la correction en fin de liste.
+create or replace view public.v_pieces_posees with (security_invoker = true) as
+select
+  id, marche_id, reparation_id, fuite_id, fuite_numero, reference_srm, zone_id, zone, secteur_id, secteur,
+  equipe_id, equipe, chef_id, chef, realisee_le, jour, piece_id, designation, famille, unite, quantite,
+  provenance, nature_correction, motif_correction
+from public.v_pieces_reelles;
+
+-- Fuites enrichies pour les exports : corps de 20261004210000, pièces de l'inventaire réel.
+create or replace view public.v_fuites_export with (security_invoker = true) as
+select
+  v.*,
+  r.realisee_le as reparation_le,
+  r.resultat as resultat_reparation,
+  r.ouvrage as ouvrage_constate,
+  r.materiau,
+  r.diametre_mm,
+  r.fouille_longueur_m,
+  r.fouille_largeur_m,
+  r.fouille_profondeur_m,
+  r.volume_m3,
+  r.longueur_pe_m,
+  r.tuyau_repare,
+  r.robinet_pec_change,
+  r.collier_pec_change,
+  r.bouche_a_cle_mise_a_niveau,
+  r.representant_srm as representant_client,
+  er.libelle as equipe_reparation,
+  pc.nom_complet as chef_reparation,
+  nr.libelle_fr as revetement,
+  nr.libelle_ar as revetement_ar,
+  rf.realisee_le as refection_le,
+  rf.resultat as resultat_refection,
+  nf.libelle_fr as nature_refection,
+  nf.libelle_ar as nature_refection_ar,
+  rf.surface_m2 as surface_refection_m2,
+  pp.pieces as pieces_posees,
+  q.quantites
+from public.v_fuites v
+left join lateral (
+  select rp.*
+    from public.reparations rp
+   where rp.fuite_id = v.id and rp.supprime_le is null
+   order by rp.realisee_le desc
+   limit 1
+) r on true
+left join public.equipes er on er.id = r.equipe_id
+left join public.profils pc on pc.id = r.auteur_terrain_id
+left join public.natures_refection nr on nr.id = r.nature_revetement_id
+left join lateral (
+  select x.*
+    from public.refections x
+   where x.fuite_id = v.id and x.supprime_le is null
+   order by x.realisee_le desc
+   limit 1
+) rf on true
+left join public.natures_refection nf on nf.id = rf.nature_id
+left join lateral (
+  select string_agg(coalesce(cp.designation, p.designation_libre) || ' × ' || trim_scale(p.quantite), ' ; '
+                    order by coalesce(cp.designation, p.designation_libre)) as pieces
+    from public.reparation_pieces p
+    join public.reparations rr on rr.id = p.reparation_id and rr.supprime_le is null
+    left join public.catalogue_pieces cp on cp.id = p.piece_id
+   where rr.fuite_id = v.id and p.supprime_le is null and p.etat = 'posee'
+) pp on true
+left join lateral (
+  select string_agg(format('P%s : %s %s', s.numero, trim_scale(s.total), s.unite), ' ; ' order by s.ordre, s.numero) as quantites
+    from (
+      select px.numero, px.ordre, px.unite, sum(l.quantite) as total
+        from public.lignes_quantites l
+        join public.prix px on px.id = l.prix_id
+       where l.fuite_id = v.id and l.supprime_le is null
+       group by px.numero, px.ordre, px.unite
+    ) s
+) q on true;
+
+-- Anomalies : corps de 20261004220000, seul le seuil du polyéthylène suit le marché
+-- (marches.longueur_pe_max_m ; code et libellé inchangés).
+create or replace view public.v_anomalies with (security_invoker = true) as
+with rep as (
+  select r.*, f.numero, f.date_detection, f.avis_terrassement_srm_le, m.jalons_client, m.longueur_pe_max_m
+    from public.reparations r
+    join public.fuites f on f.id = r.fuite_id and f.supprime_le is null
+    join public.marches m on m.id = r.marche_id
+   where r.supprime_le is null
+)
+select rep.marche_id, rep.fuite_id, rep.numero as fuite_numero, rep.id as reparation_id,
+       'prix_hors_bordereau'::text as anomalie,
+       format('Réparation %s DN %s sans prix au bordereau', rep.materiau, rep.diametre_mm) as detail
+  from rep
+ where rep.resultat = 'reparee' and rep.tuyau_repare
+   and not exists (
+     select 1 from public.lignes_quantites l
+       join public.prix p on p.id = l.prix_id
+      where l.reparation_id = rep.id and l.supprime_le is null
+        and (p.famille = 'reparation_tuyau' or p.hors_bordereau)
+   )
+union all
+select rep.marche_id, rep.fuite_id, rep.numero, rep.id, 'fouille_superieure_2m',
+       format('Longueur de fouille %s m sans remplacement d''élément', rep.fouille_longueur_m)
+  from rep where rep.fouille_longueur_m > 2 and not rep.element_remplace
+union all
+select rep.marche_id, rep.fuite_id, rep.numero, rep.id, 'longueur_pe_superieure_2m',
+       format('Longueur de polyéthylène %s m', rep.longueur_pe_m)
+  from rep where rep.longueur_pe_m > rep.longueur_pe_max_m
+union all
+select rep.marche_id, rep.fuite_id, rep.numero, rep.id, 'reparation_avant_detection',
+       'Date de réparation antérieure à la date de détection'
+  from rep where rep.realisee_le < rep.date_detection
+union all
+select rep.marche_id, rep.fuite_id, rep.numero, rep.id, 'terrassement_sans_avis_srm',
+       'Terrassement sans avis préalable du maître d''ouvrage enregistré'
+  from rep
+ where rep.jalons_client and rep.avis_terrassement_srm_le is null
+   and (rep.resultat = 'reparee' or coalesce(rep.volume_m3, 0) > 0)
+union all
+select rf.marche_id, rf.fuite_id, f.numero, rf.reparation_id, 'refection_avant_reparation',
+       'Date de réfection antérieure à la date de réparation'
+  from public.refections rf
+  join public.reparations r on r.id = rf.reparation_id
+  join public.fuites f on f.id = rf.fuite_id and f.supprime_le is null
+ where rf.supprime_le is null and rf.realisee_le < r.realisee_le
+union all
+select f.marche_id, f.id, f.numero, null::uuid, 'reference_srm_format',
+       format('Référence « %s » hors format %s', f.reference_srm, m.masque_reference)
+  from public.fuites f
+  join public.marches m on m.id = f.marche_id
+ where f.supprime_le is null and f.reference_srm is not null
+   and m.masque_reference is not null
+   and f.reference_srm !~ private.regex_masque(m.masque_reference)
+union all
+select f.marche_id, f.id, f.numero, null::uuid, 'reference_srm_doublon',
+       format('Référence « %s » portée par une autre fuite', f.reference_srm)
+  from public.fuites f
+ where f.supprime_le is null and f.reference_srm is not null
+   and f.fuite_liee_id is null
+   and exists (
+     select 1 from public.fuites g
+      where g.marche_id = f.marche_id and g.id <> f.id and g.supprime_le is null
+        and g.reference_srm = f.reference_srm
+        and g.fuite_liee_id is distinct from f.id
+   );
 
 -- -----------------------------------------------------------------------------
--- 4. Privilèges
+-- 5. Privilèges
 -- -----------------------------------------------------------------------------
-grant select on public.v_controles_attachement, public.v_hors_bordereau to authenticated;
+grant select on public.v_controles_attachement, public.v_hors_bordereau, public.v_pieces_reelles to authenticated;
 grant select on private.v_prix_proposes to authenticated, service_role;
 
 revoke execute on function
-  private.profil_de_bureau(uuid, uuid),
-  private.piece_ajoutee_au_bureau(uuid, uuid, timestamptz),
+  private.est_auteur_reparation(uuid),
   private.peut_completer_reparation(uuid),
-  private.marquer_piece_bureau(),
+  private.peut_corriger_piece(uuid, uuid, text, uuid),
+  private.remplacer_piece(uuid, uuid),
+  private.controler_piece(),
   private.controler_ligne_quantite(),
   private.libelle_materiau(text),
   private.nombre_fr(numeric)
@@ -706,13 +1037,14 @@ revoke execute on function
 
 -- Appelées par les déclencheurs (rôle de l'utilisateur) et par les vues (security_invoker).
 grant execute on function
-  private.profil_de_bureau(uuid, uuid),
-  private.piece_ajoutee_au_bureau(uuid, uuid, timestamptz),
+  private.est_auteur_reparation(uuid),
   private.peut_completer_reparation(uuid),
+  private.peut_corriger_piece(uuid, uuid, text, uuid),
+  private.remplacer_piece(uuid, uuid),
   private.libelle_materiau(text),
   private.nombre_fr(numeric)
   to authenticated, service_role;
 grant execute on function
-  private.marquer_piece_bureau(),
+  private.controler_piece(),
   private.controler_ligne_quantite()
   to service_role;

@@ -7,6 +7,9 @@ import { finDuMois, intituleMensuel, titreLot, type Lot, type ReglesAttachement 
 import { dateSeule, messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
+import { GRAVITES, syntheseControles } from './controles';
+import styles from './controles.module.css';
+import { useControles } from './useControles';
 
 export default function Attachements() {
   const { marche, peut } = useSession();
@@ -17,6 +20,8 @@ export default function Attachements() {
   const [erreur, setErreur] = useState('');
   const [chargement, setChargement] = useState(true);
   const marcheId = marche?.id;
+  const { liste: controles } = useControles(marcheId, 0);
+  const synthese = syntheseControles(controles);
 
   const charger = useCallback(async () => {
     if (!marcheId) return;
@@ -79,6 +84,26 @@ export default function Attachements() {
           Reste à attacher : <strong>{aAttacher.unites}</strong> unité{aAttacher.unites > 1 ? 's' : ''} de travaux sur{' '}
           <strong>{aAttacher.fuites}</strong> fuite{aAttacher.fuites > 1 ? 's' : ''} (régularisations comprises).
         </p>
+      )}
+      {peut('quantites', 'lire') && (
+        <section className="carte">
+          <div className="barre">
+            <h2>Contrôles avant attachement</h2>
+            <Link href="/attachements/hors-bordereau" className="bouton">Travaux hors bordereau à faire valoir</Link>
+          </div>
+          {synthese.length === 0 ? (
+            <p className="discret">Aucun contrôle en défaut (oublis probables, lignes incohérentes, travaux hors bordereau).</p>
+          ) : (
+            <div className={styles.synthese}>
+              {synthese.map((c) => (
+                <span key={c.controle} className={`${styles.puce} ${styles[c.gravite]}`} title={GRAVITES[c.gravite]?.libelle}>
+                  {c.libelle} : {c.fuites} fuite{c.fuites > 1 ? 's' : ''}
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="discret">Détail et corrections (« Corriger ») dans la fiche d&apos;un lot en brouillon, colonne « Contrôles ».</p>
+        </section>
       )}
       {chargement && <p className="discret">Chargement…</p>}
       {!chargement && lots.length === 0 && <p className="carte">Aucun lot pour l&apos;instant.</p>}

@@ -10,7 +10,10 @@ import { dateSeule, messageErreur } from '@/lib/format';
 import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
+import { BadgeControles } from '../BadgeControles';
+import { useControles } from '../useControles';
 import { AAttacher, LienFuite } from './AAttacher';
+import { CorrectionsFuite } from './CorrectionsFuite';
 import { FormAnticipation, FormForcage, FormLigneLibre, type ArticleChoix } from './FormsLignes';
 
 interface Os { id: string; numero: string; date_os: string; nature: string }
@@ -34,6 +37,7 @@ export default function DetailLot() {
   const [occupe, setOccupe] = useState(false);
   const [formulaire, setFormulaire] = useState<'' | 'libre' | 'forcage'>('');
   const [anticipation, setAnticipation] = useState<string | null>(null);
+  const [correction, setCorrection] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
   const [exportOuvert, setExportOuvert] = useState(false);
   // Valeurs de l'en-tête en cours de saisie (pas encore enregistrées) : le titre les suit en direct.
@@ -80,6 +84,8 @@ export default function DetailLot() {
 
   const rafraichir = () => setVersion((v) => v + 1);
   const dec = regles?.decimales;
+  // Contrôles de cohérence (lot R), relus à chaque changement du lot
+  const { parFuite: controles, erreur: erreurControles } = useControles(marcheId, version);
 
   // Lignes regroupées par fuite (les lignes libres à part)
   const groupes = useMemo(() => {
@@ -98,6 +104,10 @@ export default function DetailLot() {
   const estAdmin = !!profil?.est_admin;
   const recapUtile = recap.filter((r) => r.quantite_cumulee !== 0 || !r.hors_bordereau);
   const fuitesDuLot = new Set(lignes.filter((l) => l.fuite_id).map((l) => l.fuite_id));
+  const fuitesEnDefaut = [...fuitesDuLot].filter((f) => f && controles.has(f)).length;
+  const peutCorriger = modifiable && (peut('quantites', 'modifier') || peut('quantites', 'creer') || peut('interventions', 'creer'));
+  const unitesLot = new Set(lignes.filter((l) => l.fuite_id && (l.nature === 'solde' || l.nature === 'anticipation'))
+    .map((l) => `${l.fuite_id}|${l.prix_id}`));
   const negatives = lignes.filter((l) => l.quantite < 0).length;
   const lotAffiche = {
     ...lot,
@@ -245,6 +255,13 @@ export default function DetailLot() {
             fini={() => { setFormulaire(''); rafraichir(); }} onErreur={setErreur} />
         )}
         {negatives > 0 && <p className="carte attention">{negatives} régularisation(s) négative(s) : quantité attachée en trop dans un lot précédent, déduite ici.</p>}
+        {fuitesEnDefaut > 0 && (
+          <p className="carte attention">
+            {fuitesEnDefaut} fuite{fuitesEnDefaut > 1 ? 's' : ''} du lot avec des contrôles en défaut (colonne « Contrôles » : oublis
+            probables, lignes incohérentes, travaux hors bordereau).{peutCorriger ? ' « Corriger » ouvre le détail et les corrections.' : ''}
+          </p>
+        )}
+        {erreurControles && <p className="discret">{erreurControles}</p>}
         {lignes.length === 0 && <p className="discret">Aucun travail dans ce lot. {modifiable ? 'Cochez des travaux ci-dessous.' : ''}</p>}
         {lignes.length > 0 && (
           <>
@@ -253,7 +270,7 @@ export default function DetailLot() {
               <table className="liste-compacte">
                 <thead>
                   <tr>
-                    <th>Fuite</th><th>Référence</th><th>Secteur</th><th>Réparée le</th><th>Fouille L × l × p (m)</th><th>Réfection</th>
+                    <th>Fuite</th><th>Contrôles</th><th>Référence</th><th>Secteur</th><th>Réparée le</th><th>Fouille L × l × p (m)</th><th>Réfection</th>
                     <th>Lignes du lot</th>{modifiable && <th />}
                   </tr>
                 </thead>
@@ -269,6 +286,7 @@ export default function DetailLot() {
                           {t.fuite_id ? (
                             <>
                               <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
+                              <td><BadgeControles liste={controles.get(t.fuite_id)} /></td>
                               <td className="nowrap">{t.reference_srm ?? '—'}</td>
                               <td>{t.secteur ?? '—'}</td>
                               <td className="nowrap">{dateSeule(t.reparee_le)}</td>
@@ -280,7 +298,7 @@ export default function DetailLot() {
                               <td className="nowrap">{t.refectionnee_le ? dateSeule(t.refectionnee_le) : <span className="discret">non faite</span>}</td>
                             </>
                           ) : (
-                            <td colSpan={6}><strong>{NATURES_LIGNE[t.nature]}</strong> · {t.designation}</td>
+                            <td colSpan={7}><strong>{NATURES_LIGNE[t.nature]}</strong> · {t.designation}</td>
                           )}
                           <td>
                             <div className="unites-ligne">
@@ -304,13 +322,30 @@ export default function DetailLot() {
                               {refectionAttendue && (
                                 <button className="petit" onClick={() => setAnticipation(anticipation === t.fuite_id ? null : t.fuite_id)}>Réfection anticipée</button>
                               )}
+                              {peutCorriger && t.fuite_id && (
+                                <button className="petit" onClick={() => setCorrection(correction === t.fuite_id ? null : t.fuite_id)}>
+                                  {correction === t.fuite_id ? 'Fermer' : 'Corriger'}
+                                </button>
+                              )}
                               <button className="petit" onClick={() => retirer(g.map((l) => l.id))}>Retirer</button>
                             </td>
                           )}
                         </tr>
+                        {correction === t.fuite_id && t.fuite_id && (
+                          <tr className={zebre}>
+                            <td colSpan={modifiable ? 9 : 8}>
+                              <CorrectionsFuite
+                                marcheId={marcheId!} fuiteId={t.fuite_id} fuiteNumero={t.fuite_numero}
+                                controles={controles.get(t.fuite_id) ?? []} articles={articles}
+                                lot={{ id: lot.id, unites: unitesLot }}
+                                fermer={() => setCorrection(null)} corrige={rafraichir}
+                              />
+                            </td>
+                          </tr>
+                        )}
                         {anticipation === t.fuite_id && t.fuite_id && (
                           <tr className={zebre}>
-                            <td colSpan={modifiable ? 8 : 7}>
+                            <td colSpan={modifiable ? 9 : 8}>
                               <FormAnticipation
                                 articles={articles.filter((a) => prixRefection.has(a.id))}
                                 prixPropose={t.prix_refection_prevu}
@@ -332,7 +367,10 @@ export default function DetailLot() {
       </section>
 
       {modifiable && regles && (
-        <AAttacher marcheId={marcheId!} lotId={lot.id} regles={regles} zones={zones} version={version} ajoute={rafraichir} onErreur={setErreur} />
+        <AAttacher
+          marcheId={marcheId!} lotId={lot.id} regles={regles} zones={zones} version={version} ajoute={rafraichir} onErreur={setErreur}
+          controles={controles} bordereau={articles} peutCorriger={peutCorriger}
+        />
       )}
     </>
   );

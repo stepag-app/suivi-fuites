@@ -1,0 +1,328 @@
+name: Test de restauration
+
+# Vérifie que la dernière sauvegarde nocturne (workflow sauvegarde-base.yml) se restaure vraiment :
+# téléchargement de l'artefact chiffré, déchiffrement, restauration dans une base Supabase locale
+# et vierge créée dans la CI, puis contrôle des tables et des nombres de lignes.
+#
+# Déclencheurs : chaque lundi à 04:07 UTC (après la sauvegarde de 02:17), à la demande (Actions >
+# Test de restauration > Run workflow) et sur une PR qui modifie ce fichier.
+#
+# Sécurité :
+#  * aucune connexion au projet Supabase de production : pas de « supabase link », ni
+#    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seul l'artefact de sauvegarde est lu ;
+#  * secret utilisé : SAUVEGARDE_PASSPHRASE (le même que pour la sauvegarde), transmis à gpg par
+#    l'entrée standard, jamais en argument de commande ;
+#  * aucune donnée affichée : journaux et résumé ne montrent que des noms de tables, des nombres de
+#    lignes et des messages d'erreur dont les valeurs sont masquées ; les fichiers déchiffrés ne sont
+#    jamais republiés et sont effacés en fin de job, même en cas d'échec.
+#
+# Méthode : pile Supabase locale (« supabase start ») dans un dossier temporaire sans migrations.
+# Même image PostgreSQL 17 que la production, schémas auth et storage créés par les vrais services
+# GoTrue et Storage, rôles anon / authenticated / service_role, PostGIS ; les autres services sont
+# exclus. Restauration avec le psql de l'image, ON_ERROR_STOP=1, une transaction par fichier :
+# schema.sql, puis donnees_public.sql, puis donnees_auth.sql.
+#
+# Exceptions tolérées, et pourquoi :
+#  1. donnees_public.sql contient déjà les comptes : « supabase db dump --data-only » sans « -s »
+#     exporte aussi les données des schémas auth et storage. Charger ensuite donnees_auth.sql tel
+#     quel échouerait sur des doublons de clés. Les tables auth qu'il contient sont donc vidées dans
+#     la même transaction juste avant (mode replica : aucune cascade vers public), puis rechargées :
+#     les deux fichiers sont ainsi contrôlés.
+#  2. Un bloc COPY VIDE visant une table absente de la pile locale ou interdite en écriture au rôle
+#     postgres est retiré avant chargement, avec un avertissement. Cas constaté :
+#     storage.buckets_vectors et storage.vector_indexes (tables internes des « vector buckets »,
+#     « permission denied » pour postgres ; le guide de migration de Supabase les exclut lui-même
+#     des exports). Un bloc NON vide dans ce cas fait échouer le test.
+# Avertissements non bloquants : déclencheur applicatif de auth.users et politiques de
+# storage.objects absents après restauration (ils ne sont pas dans schema.sql, car les schémas auth
+# et storage sont exclus du dump) : à recréer depuis les migrations après une vraie restauration.
+
+on:
+  schedule:
+    - cron: '7 4 * * 1'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/test-restauration.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  restauration:
+    name: Restaurer et contrôler la dernière sauvegarde
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Préparer les outils
+        run: |
+          cat > "$RUNNER_TEMP/outils.sh" <<'OUTILS'
+          # Fonctions communes. Elles n'affichent jamais de données : seulement des noms de tables,
+          # des nombres de lignes et des erreurs dont les valeurs sont masquées.
+          R="$RUNNER_TEMP/restauration"   # dossier de travail, effacé en fin de job
+          F="$R/fichiers"                 # fichiers SQL déchiffrés
+
+          # psql de l'image Supabase, exécuté dans le conteneur de la base locale.
+          psql_pile() {
+            docker exec -i "$BASE_CONTENEUR" \
+              psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -X -q \
+                   -v ON_ERROR_STOP=1 -v VERBOSITY=terse -v SHOW_CONTEXT=never "$@"
+          }
+
+          # Masque les valeurs que PostgreSQL cite dans certains messages d'erreur.
+          masquer() {
+            sed -E -e 's/value "[^"]*"/value "<masqué>"/g' -e 's/: "[^"]*"$/: "<masqué>"/' \
+                   -e 's/\([^)]*\)=\([^)]*\)/(<masqué>)=(<masqué>)/g'
+          }
+
+          # Charge le SQL lu sur l'entrée standard en une transaction, arrêt à la première erreur.
+          charger() {
+            local libelle="$1" journal
+            journal="$(mktemp)"
+            if psql_pile -1 -f - > /dev/null 2> "$journal"; then
+              rm -f "$journal"
+              echo "$libelle : restauré sans erreur."
+            else
+              echo "::error::$libelle : la restauration a échoué (ON_ERROR_STOP=1)."
+              grep -iE 'error|fatal' "$journal" | masquer | head -n 5
+              rm -f "$journal"
+              return 1
+            fi
+          }
+
+          # « schéma<TAB>table<TAB>lignes » pour chaque bloc COPY d'un fichier de données.
+          blocs_copy() {
+            awk '
+              dans { if ($0 == "\\.") { print s "\t" t "\t" n; dans = 0 } else n++; next }
+              /^COPY "[^"]+"\."[^"]+" .*FROM stdin;$/ { split($0, p, "\""); s = p[2]; t = p[4]; n = 0; dans = 1 }
+            ' "$1"
+          }
+
+          # Tables de la base locale où le rôle postgres peut écrire (« schéma.table »).
+          tables_inscriptibles() {
+            psql_pile -At -c "select n.nspname || '.' || c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r', 'p') and has_table_privilege(c.oid, 'INSERT')"
+          }
+
+          # Copie $1 dans $2 sans les blocs COPY vides qui visent une table absente ou interdite en
+          # écriture (exception 2 de l'en-tête). $3 : liste des tables inscriptibles.
+          filtrer() {
+            awk -v existantes="$3" -v dest="$2" '
+              BEGIN { while ((getline l < existantes) > 0) ok[l] = 1 }
+              attente != "" {
+                if ($0 == "\\.") { print "::warning::Bloc COPY vide ignoré (table absente ou interdite en écriture au rôle postgres) : " cle; attente = ""; next }
+                print attente > dest; attente = ""; dans = 1
+              }
+              dans { print > dest; if ($0 == "\\.") dans = 0; next }
+              /^COPY "[^"]+"\."[^"]+" .*FROM stdin;$/ {
+                split($0, p, "\""); cle = p[2] "." p[4]
+                if (!(cle in ok)) { attente = $0; next }
+                dans = 1
+              }
+              { print > dest }
+            ' "$1"
+          }
+
+          # Compare chaque bloc COPY (TSV schéma/table/lignes) au count(*) de la base restaurée.
+          # Sortie : « schéma.table<TAB>attendu<TAB>obtenu » (obtenu = -1 : table absente).
+          verifier() {
+            {
+              printf 'create temp table attendu (s text, t text, n bigint);\ncopy attendu from stdin;\n'
+              cat "$1"
+              printf '%s\n' '\.'
+              cat <<'SQL'
+          select s || '.' || t, n,
+                 case when to_regclass(format('%I.%I', s, t)) is null then -1
+                      else (xpath('/row/n/text()', query_to_xml(format('select count(*) as n from %I.%I', s, t), false, true, '')))[1]::text::bigint
+                 end
+          from attendu
+          order by 1;
+          SQL
+            } | psql_pile -At -F $'\t' -f -
+          }
+
+          # Affiche le résultat de verifier ($1) et échoue au moindre écart.
+          comparer() {
+            local ko=0 table attendu obtenu
+            while IFS=$'\t' read -r table attendu obtenu; do
+              if [ "$obtenu" = "-1" ]; then
+                echo "::error::$table : table absente après restauration."
+                ko=1
+              elif [ "$attendu" != "$obtenu" ]; then
+                echo "::error::$table : $attendu ligne(s) dans la sauvegarde, $obtenu après restauration."
+                ko=1
+              else
+                printf '  %-48s %9s\n' "$table" "$obtenu"
+              fi
+            done < "$1"
+            return "$ko"
+          }
+          OUTILS
+
+      - name: Trouver la dernière sauvegarde réussie
+        run: |
+          ligne="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow sauvegarde-base.yml --branch main \
+                     --status success --limit 1 --json databaseId,createdAt \
+                     --jq '.[] | "\(.databaseId) \(.createdAt)"')"
+          if [ -z "$ligne" ]; then
+            echo "::error::Aucune exécution réussie de « Sauvegarde de la base » sur main : rien à restaurer."
+            exit 1
+          fi
+          read -r run_id lancee_le <<< "$ligne"
+          age=$(( $(date -u +%s) - $(date -u -d "$lancee_le" +%s) ))
+          echo "Dernière sauvegarde réussie : exécution $run_id, lancée le $lancee_le (il y a $(( age / 3600 )) h)."
+          echo "SAUVEGARDE_RUN_ID=$run_id" >> "$GITHUB_ENV"
+          if [ "$age" -gt $(( 48 * 3600 )) ]; then
+            echo "::warning::La dernière sauvegarde réussie a plus de 48 h. Le test continue sur celle-ci, puis échouera."
+            echo "SAUVEGARDE_PERIMEE=1" >> "$GITHUB_ENV"
+          fi
+
+      - name: Télécharger l'artefact chiffré
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          mkdir -p "$R/artefact"
+          gh run download "$SAUVEGARDE_RUN_ID" --repo "$GITHUB_REPOSITORY" --name sauvegarde-base --dir "$R/artefact"
+          shopt -s nullglob
+          archives=("$R"/artefact/sauvegarde-*.tar.gz.gpg)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "::error::L'artefact sauvegarde-base doit contenir une seule archive sauvegarde-*.tar.gz.gpg (trouvé : ${#archives[@]})."
+            exit 1
+          fi
+          nom="$(basename "${archives[0]}")"
+          if [[ "$nom" =~ ^sauvegarde-([0-9]{4})([0-9]{2})([0-9]{2})-([0-9]{2})([0-9]{2})\.tar\.gz\.gpg$ ]]; then
+            date_sauvegarde="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}-${BASH_REMATCH[3]} ${BASH_REMATCH[4]}:${BASH_REMATCH[5]} UTC"
+          else
+            date_sauvegarde="$nom"
+          fi
+          echo "SAUVEGARDE_ARCHIVE=${archives[0]}" >> "$GITHUB_ENV"
+          echo "SAUVEGARDE_DATE=$date_sauvegarde" >> "$GITHUB_ENV"
+          echo "Archive $nom ($(stat -c %s "${archives[0]}") octets) : sauvegarde du $date_sauvegarde."
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Démarrer une pile Supabase locale vierge
+        run: |
+          mkdir -p "$RUNNER_TEMP/pile-supabase"
+          cd "$RUNNER_TEMP/pile-supabase"
+          supabase --version
+          supabase init
+          supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor > /dev/null
+          docker ps --format '{{.Names}}  {{.Image}}'
+          conteneur="$(docker ps --format '{{.Names}}' | grep '^supabase_db_')"
+          echo "BASE_CONTENEUR=$conteneur" >> "$GITHUB_ENV"
+
+      - name: Déchiffrer la sauvegarde
+        env:
+          SAUVEGARDE_PASSPHRASE: ${{ secrets.SAUVEGARDE_PASSPHRASE }}
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          if [ -z "$SAUVEGARDE_PASSPHRASE" ]; then
+            echo "::error::Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub."
+            exit 1
+          fi
+          mkdir -p "$F"
+          printf '%s' "$SAUVEGARDE_PASSPHRASE" \
+            | gpg --batch --quiet --no-symkey-cache --pinentry-mode loopback --passphrase-fd 0 \
+                  --decrypt "$SAUVEGARDE_ARCHIVE" \
+            | tar -xzf - -C "$F"
+          for f in schema.sql donnees_public.sql donnees_auth.sql; do
+            if [ ! -s "$F/$f" ]; then
+              echo "::error::Sauvegarde incomplète : $f absent ou vide."
+              exit 1
+            fi
+          done
+          wc -c "$F"/*.sql
+          for f in donnees_public.sql donnees_auth.sql; do
+            echo "$f : blocs COPY par schéma"
+            blocs_copy "$F/$f" | cut -f1 | sort | uniq -c
+          done
+
+      - name: Restaurer le schéma (schema.sql)
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          charger schema.sql < "$F/schema.sql"
+          tables_inscriptibles > "$R/tables-inscriptibles.txt"
+
+      - name: Restaurer donnees_public.sql et compter les lignes
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          filtrer "$F/donnees_public.sql" "$R/public.sql" "$R/tables-inscriptibles.txt"
+          blocs_copy "$R/public.sql" > "$R/attendu-public.tsv"
+          charger donnees_public.sql < "$R/public.sql"
+          verifier "$R/attendu-public.tsv" > "$R/resultats-public.tsv"
+          echo "Lignes par table (donnees_public.sql) :"
+          comparer "$R/resultats-public.tsv"
+
+      - name: Restaurer donnees_auth.sql et compter les lignes
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          filtrer "$F/donnees_auth.sql" "$R/auth.sql" "$R/tables-inscriptibles.txt"
+          blocs_copy "$R/auth.sql" > "$R/attendu-auth.tsv"
+          # Exception 1 de l'en-tête : vider d'abord les tables déjà chargées par donnees_public.sql.
+          {
+            echo 'SET session_replication_role = replica;'
+            while IFS=$'\t' read -r s t _; do printf 'DELETE FROM "%s"."%s";\n' "$s" "$t"; done < "$R/attendu-auth.tsv"
+            cat "$R/auth.sql"
+          } | charger donnees_auth.sql
+          verifier "$R/attendu-auth.tsv" > "$R/resultats-auth.tsv"
+          echo "Lignes par table (donnees_auth.sql) :"
+          comparer "$R/resultats-auth.tsv"
+
+      - name: Contrôles finaux
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          absentes="$(psql_pile -At -c "select string_agg(t, ', ') from unnest(array['public.marches', 'public.profils', 'public.affectations', 'public.zones', 'public.fuites', 'public.photos', 'public.reparations', 'public.prix', 'public.attachements', 'public.journal', 'auth.users']) as t where to_regclass(t) is null")"
+          if [ -n "$absentes" ]; then
+            echo "::error::Tables clés absentes après restauration : $absentes"
+            exit 1
+          fi
+          read -r marches comptes <<< "$(psql_pile -At -F ' ' -c 'select (select count(*) from public.marches), (select count(*) from auth.users)')"
+          echo "Marchés : $marches ; comptes auth.users : $comptes"
+          if [ "$marches" -lt 1 ]; then echo "::error::Aucun marché dans la base restaurée."; exit 1; fi
+          if [ "$comptes" -lt 1 ]; then echo "::error::Aucun compte dans auth.users après restauration."; exit 1; fi
+          declencheurs="$(psql_pile -At -c "select count(*) from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid join pg_namespace n on n.oid = p.pronamespace where tg.tgrelid = 'auth.users'::regclass and not tg.tgisinternal and n.nspname <> 'auth'")"
+          if [ "$declencheurs" -eq 0 ]; then
+            echo "::warning::Aucun déclencheur applicatif sur auth.users après restauration : la création automatique du profil d'un nouveau compte (migration 20261004090100_noyau_droits.sql) n'est pas dans la sauvegarde. À recréer après une vraie restauration."
+          fi
+          politiques="$(psql_pile -At -c "select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects'")"
+          if [ "$politiques" -eq 0 ]; then
+            echo "::warning::Aucune politique sur storage.objects après restauration : celles des compartiments photos, evenements et logos (migrations 20261004090600, 20261004180100, 20261005120000) ne sont pas dans la sauvegarde. À recréer après une vraie restauration."
+          fi
+
+      - name: Résumé
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          {
+            echo "## Test de restauration"
+            echo
+            echo "Sauvegarde du $SAUVEGARDE_DATE"
+            echo
+            echo "| Table | Lignes |"
+            echo "| --- | ---: |"
+            cat "$R/resultats-auth.tsv" "$R/resultats-public.tsv" \
+              | sort -t $'\t' -s -u -k1,1 \
+              | while IFS=$'\t' read -r table _ obtenu; do echo "| $table | $obtenu |"; done
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Signaler une sauvegarde trop ancienne
+        if: env.SAUVEGARDE_PERIMEE == '1'
+        run: |
+          echo "::error::La dernière sauvegarde réussie a plus de 48 h : la sauvegarde nocturne semble arrêtée (voir Actions > Sauvegarde de la base)."
+          exit 1
+
+      - name: Effacer les fichiers déchiffrés et arrêter la pile
+        if: always()
+        run: |
+          rm -rf "$RUNNER_TEMP/restauration" "$RUNNER_TEMP/outils.sh"
+          gpgconf --kill gpg-agent 2> /dev/null || true
+          if command -v supabase > /dev/null && [ -d "$RUNNER_TEMP/pile-supabase/supabase" ]; then
+            (cd "$RUNNER_TEMP/pile-supabase" && supabase stop --no-backup) || true
+          fi

@@ -74,6 +74,7 @@ export interface VFuite {
   avis_terrassement_srm_le: string | null;
   derniere_reparation_le: string | null;
   derniere_refection_le: string | null;
+  emplacement_fouille?: string | null;
   nb_photos: number;
   motif_sans_reparation: string | null;
   verrouillee_le: string | null;

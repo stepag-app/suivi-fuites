@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useSession } from '@/lib/session';
 import { StatutReseau } from '@/lib/StatutReseau';
+import { NOM_ORGANISATION } from '@/lib/supabase';
 
 export default function MiseEnPage({ children }: { children: ReactNode }) {
   const { chargement, session, profil, marches, marche, choisirMarche, peut, deconnecter } = useSession();
@@ -17,37 +18,47 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
 
   if (chargement || !session) return <p className="centre">Chargement…</p>;
 
-  const lien = (href: string, texte: string) => (
-    <Link href={href} className={chemin === href || (href !== '/fuites' && chemin.startsWith(href)) ? 'actif' : ''}>
+  const actif = (href: string) =>
+    href === '/fuites' ? chemin === '/fuites' || (chemin.startsWith('/fuites/') && chemin !== '/fuites/nouvelle') : chemin.startsWith(href);
+  const lien = (href: string, texte: string, classe = '') => (
+    <Link href={href} className={[actif(href) ? 'actif' : '', classe].filter(Boolean).join(' ')}>
       {texte}
     </Link>
   );
+  const nom = profil?.nom_complet ?? session.user.email ?? '';
+  const initiales = nom.split(/[\s@.]+/).filter(Boolean).slice(0, 2).map((m) => m[0]?.toUpperCase()).join('');
 
   return (
     <>
-      <header className="entete">
-        <nav>
-          {lien('/fuites', 'Fuites')}
-          {lien('/fuites/nouvelle', '+ Nouvelle fuite')}
-          {peut('fuites', 'lire') && lien('/carte', 'Carte')}
-          {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
-          {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
-            lien('/parametres', 'Paramètres')}
-          {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
-          {profil?.est_admin && lien('/marches', 'Marchés')}
-        </nav>
-        <div className="entete-droite">
-          {marches.length > 1 && (
+      {/* Barre d'application (style SAP Fiori) : logo, marché, utilisateur */}
+      <header className="shell">
+        <Link href="/fuites" className="shell-logo"><span className="goutte" aria-hidden="true" />Suivi des fuites</Link>
+        <span className="shell-org">{NOM_ORGANISATION}</span>
+        <div className="shell-droite">
+          {marches.length > 1 ? (
             <select value={marche?.id ?? ''} onChange={(e) => choisirMarche(e.target.value)} aria-label="Marché">
               {marches.map((m) => (
                 <option key={m.id} value={m.id}>{m.code}{m.actif === false ? ' (désactivé)' : ''}</option>
               ))}
             </select>
-          )}
-          <span className="discret">{profil?.nom_complet ?? session.user.email}</span>
+          ) : marche ? <span className="shell-org">{marche.code}</span> : null}
+          <span className="shell-utilisateur" title={nom}>
+            <span className="avatar" aria-hidden="true">{initiales}</span><span className="nom">{nom}</span>
+          </span>
           <button onClick={deconnecter}>Quitter</button>
         </div>
       </header>
+      {/* Onglets des modules, selon les droits */}
+      <nav className="onglets-modules" aria-label="Modules">
+        {lien('/fuites', 'Fuites')}
+        {peut('fuites', 'lire') && lien('/carte', 'Carte')}
+        {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
+        {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
+          lien('/parametres', 'Paramètres')}
+        {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
+        {profil?.est_admin && lien('/marches', 'Marchés')}
+        {lien('/fuites/nouvelle', '+ Nouvelle fuite', 'action')}
+      </nav>
       <StatutReseau />
       {/* Écrans de bureau (attachements) et carte : plus larges */}
       <main className={chemin.startsWith('/attachements') || chemin.startsWith('/carte') ? 'contenu large' : 'contenu'}>

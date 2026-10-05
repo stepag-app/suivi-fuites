@@ -163,7 +163,7 @@ export default function DetailLot() {
       <section className="carte">
         <div className="fuite-tete">
           <h1>{titreLot(regles?.titre, lotAffiche)}</h1>
-          <span className={`badge ${brouillon ? 'st-detectee' : 'st-achevee'}`}>
+          <span className={`badge ${brouillon ? 'st-encours' : 'st-achevee'}`}>
             {brouillon ? (lot.numero != null ? 'Rouvert (brouillon)' : 'Brouillon : projet non définitif') : 'Arrêté'}
           </span>
         </div>

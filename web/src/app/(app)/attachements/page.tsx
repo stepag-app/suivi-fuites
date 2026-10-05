@@ -88,7 +88,7 @@ export default function Attachements() {
             <Link href={`/attachements/${l.id}`} className="carte fuite">
               <div className="fuite-tete">
                 <strong>{l.numero != null ? `N° ${String(l.numero).padStart(2, '0')}` : 'Brouillon'} · {l.intitule ?? 'Sans titre'}</strong>
-                <span className={`badge ${l.statut === 'arrete' ? 'st-achevee' : 'st-detectee'}`}>
+                <span className={`badge ${l.statut === 'arrete' ? 'st-achevee' : 'st-encours'}`}>
                   {l.statut === 'arrete' ? 'Arrêté' : l.numero != null ? 'Rouvert' : 'Brouillon'}
                 </span>
               </div>

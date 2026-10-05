@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche, messageErreur } from '@/lib/format';
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from '@/lib/export/jeux';
 import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
+import { Indicateur } from '@/lib/ui/Indicateur';
+import { delaiReparation, fuitesDuMois, nonReparees, refectionsAFaire } from '@/lib/ui/indicateurs';
 import type { Secteur, StatutFuite, VFuite } from '@/lib/types';
 
 type Libelles = ReturnType<typeof libellesMarche>;
@@ -20,6 +23,7 @@ const ALERTES: { cle: keyof VFuite; texte: (l: Libelles) => string }[] = [
 
 export default function ListeFuites() {
   const { marche, peut } = useSession();
+  const router = useRouter();
   const libelles = libellesMarche(marche);
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
@@ -110,44 +114,61 @@ export default function ListeFuites() {
     return c;
   }, [fuites]);
 
+  // Indicateurs (widgets) calculés sur toutes les fuites du marché, pas seulement la liste filtrée.
+  const ind = useMemo(() => ({
+    mois: fuitesDuMois(fuites),
+    retard: nonReparees(fuites, libelles.delaiReparationH),
+    delai: delaiReparation(fuites),
+    refections: refectionsAFaire(fuites),
+    horsDelai: fuites.some((f) => f.refection_chaussee_hors_delai),
+  }), [fuites, libelles.delaiReparationH]);
+
+  const alertesDe = (f: VFuite) => ALERTES.filter((a) => f[a.cle] === true);
+
   return (
     <>
       <div className="barre">
-        <h1>Fuites <span className="discret">({filtrees.length}/{fuites.length})</span></h1>
-        <Link href="/fuites/nouvelle" className="bouton gros primaire">+ Nouvelle fuite</Link>
+        <h1>Fuites <span className="sous-titre">{filtrees.length} affichée{filtrees.length > 1 ? 's' : ''} sur {fuites.length}</span></h1>
+        <div className="actions en-tete">
+          <button onClick={charger}>Actualiser</button>
+          {peut('exports', 'lire') && <button onClick={() => setExportOuvert(true)}>Exporter</button>}
+          {peut('exports', 'lire') && (
+            <button disabled={!filtrees.length || !!rapports?.enCours} onClick={rapportsPdf}>
+              Rapports PDF ({filtrees.length})
+            </button>
+          )}
+          <Link href="/fuites/nouvelle" className="bouton primaire">+ Nouvelle fuite</Link>
+        </div>
       </div>
 
-      <div className="pastilles">
+      {fuites.length > 0 && (
+        <div className="indicateurs">
+          <Indicateur libelle={`Fuites détectées (${ind.mois.mois})`} valeur={ind.mois.valeur} commentaire={ind.mois.commentaire}
+            serie={ind.mois.serie} titreCourbe="Fuites détectées par jour, 14 derniers jours" />
+          <Indicateur libelle={`Non réparées > ${libelles.delaiReparationH} h`} valeur={ind.retard.valeur} commentaire={ind.retard.commentaire}
+            serie={ind.retard.serie} ton="negatif" titreCourbe="Fuites en retard à chaque fin de journée, 14 derniers jours" />
+          <Indicateur libelle="Délai moyen de réparation" valeur={ind.delai.valeur} unite=" h" commentaire={ind.delai.commentaire}
+            serie={ind.delai.serie} titreCourbe="Délai moyen par semaine, 8 dernières semaines (heures)" />
+          <Indicateur libelle="Réfections à faire" valeur={ind.refections.valeur} commentaire={ind.refections.commentaire}
+            serie={ind.refections.serie} ton={ind.horsDelai ? 'negatif' : 'critique'}
+            titreCourbe="Réfections en attente à chaque fin de journée, 14 derniers jours" />
+        </div>
+      )}
+
+      <div className="pastilles" role="group" aria-label="Filtrer par statut">
         {(Object.keys(STATUTS) as StatutFuite[]).map((s) => (
           <button
             key={s}
             className={`pastille ${STATUTS[s].classe} ${statut === s ? 'choisie' : ''}`}
+            aria-pressed={statut === s}
             onClick={() => setStatut(statut === s ? '' : s)}
           >
-            {STATUTS[s].libelle} · {compteurs[s] ?? 0}
+            {STATUTS[s].libelle} <b>{compteurs[s] ?? 0}</b>
           </button>
         ))}
-      </div>
-
-      <div className="filtres">
-        <input placeholder="N°, référence ou adresse" value={texte} onChange={(e) => setTexte(e.target.value)} />
-        <select value={secteur} onChange={(e) => setSecteur(e.target.value)}>
-          <option value="">Tous les secteurs</option>
-          {secteurs.map((s) => (
-            <option key={s.id} value={s.id}>{s.libelle}</option>
-          ))}
-        </select>
-        <label className="ligne">
-          <input type="checkbox" checked={alertesSeules} onChange={(e) => setAlertesSeules(e.target.checked)} />
-          Alertes seulement
-        </label>
-        <button onClick={charger}>Actualiser</button>
-        {peut('exports', 'lire') && <button onClick={() => setExportOuvert(true)}>Exporter</button>}
-        {peut('exports', 'lire') && (
-          <button disabled={!filtrees.length || !!rapports?.enCours} onClick={rapportsPdf}>
-            Rapports PDF ({filtrees.length})
-          </button>
-        )}
+        <button className={`pastille ${statut === '' ? 'choisie' : ''}`} aria-pressed={statut === ''} onClick={() => setStatut('')}>
+          Toutes <b>{fuites.length}</b>
+        </button>
       </div>
 
       {rapports && (
@@ -160,8 +181,6 @@ export default function ListeFuites() {
       )}
 
       {erreur && <p className="erreur">{erreur}</p>}
-      {chargement && <p className="discret">Chargement…</p>}
-      {!chargement && filtrees.length === 0 && <p className="carte">Aucune fuite à afficher.</p>}
 
       <PanneauExport
         ouvert={exportOuvert}
@@ -171,34 +190,89 @@ export default function ListeFuites() {
         descriptionListe={descriptionListe ? `Filtres de la liste : ${descriptionListe}` : undefined}
       />
 
-      <ul className="liste">
-        {filtrees.map((f) => (
-          <li key={f.id}>
-            <Link href={`/fuites/${f.id}`} className="carte fuite">
-              <div className="fuite-tete">
-                <strong>N° {f.numero}</strong>
-                <span className={`badge ${STATUTS[f.statut].classe}`}>{STATUTS[f.statut].libelle}</span>
-              </div>
-              <div>
-                {f.reference_srm ? <>Réf. {f.reference_srm} · </> : null}
-                {f.secteur ?? 'Secteur non renseigné'}
-                {f.origine === 'srm' && <span className="etiquette">{libelles.sigle}</span>}
-              </div>
-              {f.adresse && <div className="discret">{f.adresse}</div>}
-              <div className="discret">
-                {dateHeure(f.date_detection)} · {f.nb_photos} photo{f.nb_photos > 1 ? 's' : ''}
-                {f.detectee_par ? ` · ${f.detectee_par}` : ''}
-              </div>
-              <div className="alertes">
-                {ALERTES.filter((a) => f[a.cle] === true).map((a) => (
-                  <span key={a.cle} className="alerte">{a.texte(libelles)}</span>
+      <section className="carte tableau-liste">
+        <div className="filtres barre-filtres">
+          <input placeholder="Rechercher : N°, référence ou adresse" value={texte} onChange={(e) => setTexte(e.target.value)} aria-label="Rechercher" />
+          <select value={secteur} onChange={(e) => setSecteur(e.target.value)} aria-label="Secteur">
+            <option value="">Tous les secteurs</option>
+            {secteurs.map((s) => (
+              <option key={s.id} value={s.id}>{s.libelle}</option>
+            ))}
+          </select>
+          <label className="ligne">
+            <input type="checkbox" checked={alertesSeules} onChange={(e) => setAlertesSeules(e.target.checked)} />
+            Alertes seulement
+          </label>
+        </div>
+
+        {chargement && <p className="discret vide-liste">Chargement…</p>}
+        {!chargement && filtrees.length === 0 && <p className="discret vide-liste">Aucune fuite à afficher.</p>}
+
+        {/* Bureau : tableau ; tablette en portrait et téléphone : une carte par fuite */}
+        {filtrees.length > 0 && (
+          <div className="defilement vue-tableau">
+            <table>
+              <thead>
+                <tr>
+                  <th>N°</th><th>{libelles.reference}</th><th>Secteur</th><th>Adresse</th><th>Détectée le</th>
+                  <th>Statut</th><th>Alertes</th><th className="num">Photos</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrees.map((f) => (
+                  <tr key={f.id} className="ligne-cliquable" onClick={() => router.push(`/fuites/${f.id}`)}>
+                    <td><Link href={`/fuites/${f.id}`} className="lien-fuite" onClick={(e) => e.stopPropagation()}>{f.numero}</Link></td>
+                    <td className="nowrap">{f.reference_srm ?? '—'}{f.origine === 'srm' && <span className="etiquette">{libelles.sigle}</span>}</td>
+                    <td>{f.secteur ?? '—'}</td>
+                    <td>{f.adresse ?? '—'}</td>
+                    <td className="nowrap">{dateHeure(f.date_detection)}{f.detectee_par && <div className="discret">{f.detectee_par}</div>}</td>
+                    <td><span className={`badge ${STATUTS[f.statut].classe}`}>{STATUTS[f.statut].libelle}</span></td>
+                    <td>
+                      <div className="alertes">
+                        {alertesDe(f).map((a) => (
+                          <span key={a.cle} className={`alerte ${String(a.cle).includes('refection') ? 'orange' : ''}`}>{a.texte(libelles)}</span>
+                        ))}
+                        {f.verrouillee_le && <span className="etiquette">Verrouillée</span>}
+                        {!alertesDe(f).length && !f.verrouillee_le && <span className="discret">—</span>}
+                      </div>
+                    </td>
+                    <td className="num">{f.nb_photos}</td>
+                  </tr>
                 ))}
-                {f.verrouillee_le && <span className="etiquette">Verrouillée</span>}
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        <ul className="liste vue-cartes">
+          {filtrees.map((f) => (
+            <li key={f.id}>
+              <Link href={`/fuites/${f.id}`} className="fuite">
+                <div className="fuite-tete">
+                  <strong>N° {f.numero}</strong>
+                  <span className={`badge ${STATUTS[f.statut].classe}`}>{STATUTS[f.statut].libelle}</span>
+                </div>
+                <div>
+                  {f.reference_srm ? <>Réf. {f.reference_srm} · </> : null}
+                  {f.secteur ?? 'Secteur non renseigné'}
+                  {f.origine === 'srm' && <span className="etiquette">{libelles.sigle}</span>}
+                </div>
+                {f.adresse && <div className="discret">{f.adresse}</div>}
+                <div className="discret">
+                  {dateHeure(f.date_detection)} · {f.nb_photos} photo{f.nb_photos > 1 ? 's' : ''}
+                  {f.detectee_par ? ` · ${f.detectee_par}` : ''}
+                </div>
+                <div className="alertes">
+                  {alertesDe(f).map((a) => (
+                    <span key={a.cle} className={`alerte ${String(a.cle).includes('refection') ? 'orange' : ''}`}>{a.texte(libelles)}</span>
+                  ))}
+                  {f.verrouillee_le && <span className="etiquette">Verrouillée</span>}
+                </div>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
     </>
   );
 }

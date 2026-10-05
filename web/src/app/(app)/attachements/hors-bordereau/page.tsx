@@ -1,16 +1,17 @@
 'use client';
 
-// Travaux hors bordereau à faire valoir (lot R) : excédents de polyéthylène au-delà de 2 m,
-// réparations sur un matériau ou un diamètre sans article, pièces non couvertes. Liste de suivi :
-// rien n'est attaché ni facturé automatiquement.
+// Travaux hors bordereau à faire valoir (lot R) : excédents de polyéthylène au-delà du seuil du
+// marché (Paramètres > Marché, 2 m par défaut), réparations sur un matériau ou un diamètre sans
+// article, pièces non couvertes de l'inventaire réel. Liste de suivi : rien n'est attaché ni facturé
+// automatiquement.
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { dateSeule, messageErreur, nombre } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
 import {
-  COLONNES_EXPORT_HB, COLONNES_HORS_BORDEREAU, NATURES_HORS_BORDEREAU, filtrerHorsBordereau, groupeExportHb,
-  libellePeriodeHb, lignesExportHorsBordereau, totauxHorsBordereau, trierHorsBordereau,
+  COLONNES_EXPORT_HB, COLONNES_HORS_BORDEREAU, LONGUEUR_PE_MAX_DEFAUT_M, NATURES_HORS_BORDEREAU, filtrerHorsBordereau,
+  groupeExportHb, libellePeriodeHb, libelleProvenance, lignesExportHorsBordereau, totauxHorsBordereau, trierHorsBordereau,
   type FiltresHorsBordereau, type TravailHorsBordereau,
 } from '../controles';
 import styles from '../controles.module.css';
@@ -22,6 +23,7 @@ export default function HorsBordereau() {
   const { marche, peut } = useSession();
   const marcheId = marche?.id;
   const [lignes, setLignes] = useState<TravailHorsBordereau[]>([]);
+  const [seuilPe, setSeuilPe] = useState<number>(LONGUEUR_PE_MAX_DEFAUT_M);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [filtres, setFiltres] = useState<FiltresHorsBordereau>({});
@@ -33,9 +35,16 @@ export default function HorsBordereau() {
     if (!marcheId) return;
     setChargement(true);
     try {
-      setLignes(await lireTout<TravailHorsBordereau>((de, a) => getSupabase().from('v_hors_bordereau').select(COLONNES_HORS_BORDEREAU)
-        .eq('marche_id', marcheId).order('fuite_numero').order('nature').order('reparation_id').order('piece_ligne_id').range(de, a)));
-      setErreur('');
+      const sb = getSupabase();
+      const [l, m] = await Promise.all([
+        lireTout<TravailHorsBordereau>((de, a) => sb.from('v_hors_bordereau').select(COLONNES_HORS_BORDEREAU)
+          .eq('marche_id', marcheId).order('fuite_numero').order('nature').order('reparation_id').order('piece_ligne_id').range(de, a)),
+        sb.from('marches').select('longueur_pe_max_m').eq('id', marcheId).maybeSingle(),
+      ]);
+      setLignes(l);
+      const seuil = Number((m.data as { longueur_pe_max_m: number | null } | null)?.longueur_pe_max_m);
+      setSeuilPe(seuil > 0 ? seuil : LONGUEUR_PE_MAX_DEFAUT_M);
+      setErreur(m.error ? messageErreur(m.error) : '');
     } catch (e) {
       setErreur(messageErreur(e));
     }
@@ -106,8 +115,9 @@ export default function HorsBordereau() {
         <h1>Travaux hors bordereau à faire valoir</h1>
       </div>
       <p className="discret">
-        Travaux réellement exécutés que le bordereau ne paie pas : polyéthylène au-delà des 2 m couverts par l&apos;article de
-        réparation, réparations sur un matériau ou un diamètre sans article (DN &gt; 315, fonte, acier…), pièces non couvertes.
+        Travaux réellement exécutés que le bordereau ne paie pas : polyéthylène au-delà des {nombre(seuilPe)} m couverts par
+        l&apos;article de réparation (seuil du marché, Paramètres &gt; Marché), réparations sur un matériau ou un diamètre sans
+        article (DN &gt; 315, fonte, acier…), pièces non couvertes de l&apos;inventaire réel (ni remplacées ni retirées).
         Liste de suivi à présenter au maître d&apos;ouvrage : rien n&apos;est attaché ni facturé automatiquement.
       </p>
       {erreur && <p className="erreur">{erreur}</p>}
@@ -182,13 +192,13 @@ export default function HorsBordereau() {
                     <td className="nowrap">{l.reference_srm ?? '—'}</td>
                     <td>{l.secteur ?? '—'}</td>
                     <td className="nowrap">{dateSeule(l.realisee_le)}</td>
-                    <td>{NATURES_HORS_BORDEREAU[l.nature] ?? l.libelle}</td>
+                    <td>{l.nature === 'pe_au_dela_2m' ? l.libelle : NATURES_HORS_BORDEREAU[l.nature] ?? l.libelle}</td>
                     <td>{l.designation}</td>
                     <td className="nowrap">{nombre(l.quantite, 3)} {l.unite}</td>
                     <td className="nowrap">
-                      {l.ajoutee_bureau == null ? '' : l.ajoutee_bureau
-                        ? <span className={styles.bureau}>ajoutée au bureau</span>
-                        : <span className={styles.terrain}>déclarée sur le terrain</span>}
+                      {l.piece_provenance == null ? '' : l.piece_provenance === 'correction'
+                        ? <span className={styles.bureau}>{libelleProvenance(l.piece_provenance, l.piece_nature_correction)}</span>
+                        : <span className={styles.terrain}>{libelleProvenance(l.piece_provenance, l.piece_nature_correction)}</span>}
                     </td>
                   </tr>
                 ))}

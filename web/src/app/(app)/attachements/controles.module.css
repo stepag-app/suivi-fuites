@@ -146,6 +146,56 @@
   white-space: nowrap;
 }
 
+/* Pièces posées : inventaire réel, corrections du bureau, saisie d'origine barrée */
+.consigne {
+  margin: 0 0 0.45rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.82rem;
+  color: var(--texte);
+  background: var(--info-fond);
+  border-left: 3px solid #0040b0;
+  border-radius: var(--rayon-petit);
+}
+
+.pieces {
+  list-style: none;
+  margin: 0 0 0.4rem;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  font-size: 0.88rem;
+}
+
+.pieces li {
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--bord-doux);
+}
+
+.pieceHors {
+  color: var(--discret);
+}
+
+.barre {
+  text-decoration: line-through;
+}
+
+.horsInventaire {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--st-critique);
+  background: #fef3e6;
+  border-radius: var(--rayon-petit);
+  padding: 0 0.35rem;
+  margin-left: 0.3rem;
+  white-space: nowrap;
+}
+
+.actionsPiece {
+  display: inline-flex;
+  gap: 0.3rem;
+  margin-left: 0.4rem;
+}
+
 .formulaire {
   margin-top: 0.5rem;
   padding: 0.55rem 0.6rem;

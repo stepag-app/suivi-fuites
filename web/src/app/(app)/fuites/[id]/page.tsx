@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ETATS_PIECE, libelleProvenance, type PieceAffichee } from '@/app/(app)/attachements/controles';
 import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO,
   dateHeure, libellesMarche, messageErreur, montant, nombre,
@@ -17,7 +18,7 @@ import type {
 } from '@/lib/types';
 import { garderCopie, lireCopie } from './copie';
 import { FormRefection, FormReparation } from './formulaires';
-import { SUFFIXE_BUREAU, lireFicheEnLigne, type LectureEnLigne } from './donnees';
+import { lireFicheEnLigne, type LectureEnLigne } from './donnees';
 import {
   DELAI_RESEAU_MS, NOMS_VIDES, actionsFiche, choisirAffichage, type ContenuFiche, type LiensReparations, type NomsFiche,
 } from './fiche-hors-ligne';
@@ -27,14 +28,28 @@ const nombreOuNul = (t: string) => (t.trim() === '' ? null : Number(t.replace(',
 // Ligne de prix avec le motif de sa dernière correction (lot R)
 type QuantiteFiche = Quantite & { motif_correction?: string | null };
 
-// Pièces d'une réparation : déclarées sur le terrain, puis ajoutées au bureau (marque posée par la base)
-function PiecesReparation({ pieces = [] }: { pieces?: string[] }) {
-  const terrain = pieces.filter((p) => !p.endsWith(SUFFIXE_BUREAU));
-  const bureau = pieces.filter((p) => p.endsWith(SUFFIXE_BUREAU)).map((p) => p.slice(0, -SUFFIXE_BUREAU.length));
+// Pièces d'une réparation (lot R) : inventaire réel, avec les corrections du bureau (nature, motif) ;
+// la saisie d'origine corrigée reste visible, barrée « remplacée » ou « retirée ». Une copie gardée
+// avant le lot R ne contient que le texte de chaque pièce.
+function PiecesReparation({ pieces = [] }: { pieces?: (PieceAffichee | string)[] }) {
+  if (!pieces.length) return null;
   return (
     <>
-      {terrain.length > 0 && (<><dt>Pièces déclarées sur le terrain</dt><dd className="large">{terrain.join(' · ')}</dd></>)}
-      {bureau.length > 0 && (<><dt>Pièces ajoutées au bureau</dt><dd className="large">{bureau.join(' · ')}</dd></>)}
+      <dt>Pièces posées</dt>
+      <dd className="large">
+        <ul className={styles.pieces}>
+          {pieces.map((p, i) => (typeof p === 'string' ? <li key={i}>{p}</li> : (
+            <li key={p.id} className={p.etat === 'posee' ? undefined : styles.pieceHors}>
+              <span className={p.etat === 'posee' ? undefined : styles.barre}>{p.texte}</span>
+              {p.etat !== 'posee' && <span className={styles.etatPiece}>{ETATS_PIECE[p.etat]}</span>}
+              {p.provenance === 'correction' && <span className={styles.correction}>{libelleProvenance(p.provenance, p.nature)}</span>}
+              {p.remplace && <span className="discret"> · remplace {p.remplace}</span>}
+              {p.remplaceePar && <span className="discret"> · remplacée par {p.remplaceePar}</span>}
+              {p.motif && <span className="discret"> · « {p.motif} »</span>}
+            </li>
+          )))}
+        </ul>
+      </dd>
     </>
   );
 }

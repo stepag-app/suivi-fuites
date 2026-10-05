@@ -1,5 +1,6 @@
 // Consultation sans réseau d'une fiche déjà vue : règles pures (sans navigateur ni réseau),
 // vérifiées par `node scripts/verifier-fiche-hors-ligne.mjs`. Le stockage est dans `src/lib/hors-ligne.ts`.
+import type { PieceAffichee } from '@/app/(app)/attachements/controles';
 import type { Action, PhotoLigne, Quantite, Refection, Reparation, TypeDonnee, VFuite } from '@/lib/types';
 
 /** Taille bornée : les 50 dernières fiches ouvertes et 400 photos au plus (≈ 40 Mo après réduction). */
@@ -22,7 +23,8 @@ export interface NomsFiche {
 
 export interface LiensReparations {
   ouvriers: Record<string, string[]>;
-  pieces: Record<string, string[]>;
+  /** Pièces de chaque réparation (lot R : provenance, nature, état) ; texte seul dans une copie plus ancienne. */
+  pieces: Record<string, (PieceAffichee | string)[]>;
 }
 
 /** Ce que la fiche affiche, tel que la RLS l'a renvoyé à l'utilisateur. */

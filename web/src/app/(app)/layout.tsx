@@ -29,6 +29,7 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         <nav>
           {lien('/fuites', 'Fuites')}
           {lien('/fuites/nouvelle', '+ Nouvelle fuite')}
+          {peut('fuites', 'lire') && lien('/carte', 'Carte')}
           {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
           {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
             lien('/parametres', 'Paramètres')}
@@ -48,8 +49,8 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         </div>
       </header>
       <StatutReseau />
-      {/* Écrans de bureau (attachements) : plus larges, pour les listes compactes */}
-      <main className={chemin.startsWith('/attachements') ? 'contenu large' : 'contenu'}>
+      {/* Écrans de bureau (attachements) et carte : plus larges */}
+      <main className={chemin.startsWith('/attachements') || chemin.startsWith('/carte') ? 'contenu large' : 'contenu'}>
         {/* La page Marchés reste accessible à l'administrateur sans marché (création du premier). */}
         {marche || (profil?.est_admin && chemin.startsWith('/marches')) ? (
           children

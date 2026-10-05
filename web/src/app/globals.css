@@ -216,3 +216,42 @@ button.petit { min-height: 30px; padding: 0.1rem 0.55rem; font-size: 0.82rem; bo
 .progression-rapports { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 1rem; }
 .progression-rapports progress { flex: 1 1 14rem; height: 1rem; accent-color: var(--principal); }
 a.bouton.petit { display: inline-flex; min-height: 30px; padding: 0.1rem 0.7rem; font-size: 0.85rem; border-radius: 8px; text-decoration: none; }
+
+/* Carte */
+.page-carte .barre { margin-bottom: 0.6rem; }
+.page-carte .barre .actions { margin-top: 0; }
+.page-carte .barre button.gros { width: auto; min-height: 48px; font-size: 1rem; }
+.carte-cadre {
+  position: relative; height: calc(100vh - 19rem); height: calc(100dvh - 19rem); min-height: 420px;
+  border: 1px solid var(--bord); border-radius: var(--rayon); overflow: hidden; background: #eef2f5;
+}
+.carte-cadre > .carte-maplibre { position: absolute; inset: 0; } /* l'emporte sur .maplibregl-map */
+.carte-message { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; padding: 1rem; text-align: center; color: var(--discret); }
+.carte-message.erreur { inset: auto 1rem 1rem; border-radius: 8px; }
+.carte-bandeau {
+  position: absolute; top: 0.6rem; left: 0.6rem; right: 4rem; margin: 0; padding: 0.4rem 0.7rem;
+  background: #fde8c8; color: #7a3e00; border-radius: 8px; font-size: 0.9rem;
+}
+.point-legende { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid; flex: none; }
+.pt-detectee { background: #e0b400; border-color: #6b4e00; }
+.pt-en_reparation { background: #60a5fa; border-color: #1e3a8a; }
+.pt-reparee { background: #8cc56a; border-color: #2c5a12; }
+.pt-achevee { background: #38a05a; border-color: #14532d; }
+.pt-sans_reparation { background: #9ca3af; border-color: #374151; }
+.pt-alerte { background: rgba(179, 38, 30, 0.25); border-color: #b3261e; width: 18px; height: 18px; }
+.legende-carte .pastille { display: inline-flex; align-items: center; gap: 0.4rem; }
+.page-carte .filtres label.ligne { flex: none; min-width: 0; align-self: flex-end; min-height: 48px; }
+.page-carte .filtres label.ligne > input[type='checkbox'] { width: 26px; height: 26px; margin: 0; flex: none; }
+.legende-alerte { background: #fdecea; color: var(--danger); border-color: #f1b8b3; cursor: default; }
+/* Bulle d'une fuite */
+.maplibregl-popup-content { padding: 0.8rem 0.9rem; border-radius: 10px; font: inherit; font-size: 0.95rem; }
+.maplibregl-popup-close-button { width: 36px; height: 36px; font-size: 1.4rem; }
+.bulle-fuite { display: grid; gap: 0.25rem; padding-right: 1.2rem; }
+.bulle-boutons { display: flex; gap: 0.5rem; margin-top: 0.4rem; }
+.bulle-boutons .bouton { flex: 1; min-height: 44px; }
+/* Boutons de zoom plus grands, pour le doigt */
+.carte-maplibre .maplibregl-ctrl-group button { width: 44px; height: 44px; }
+.carte-maplibre .maplibregl-ctrl-attrib { font-size: 0.75rem; }
+@media (max-width: 640px) {
+  .carte-cadre { height: calc(100dvh - 24rem); min-height: 360px; }
+}

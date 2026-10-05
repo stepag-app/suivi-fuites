@@ -70,12 +70,17 @@ export interface Reparation {
   bouche_a_cle_mise_a_niveau: boolean; element_remplace: boolean; longueur_pe_m: number | null;
   fouille_longueur_m: number | null; fouille_largeur_m: number | null; fouille_profondeur_m: number | null;
   emplacement: string | null; nature_revetement_id: string | null; observation: string | null;
+  // Portée « siennes » des droits (absents d'une fiche gardée avant le lot H)
+  auteur_terrain_id?: string | null; saisi_par?: string | null;
 }
 export interface Refection {
   id: string; resultat: ResultatRefection; motif_id: string | null; realisee_le: string; nature_id: string | null;
   longueur_m: number | null; largeur_m: number | null; equipe_id: string | null; observation: string | null;
 }
-export interface PiecePosee { id: string; reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number }
+export interface PiecePosee {
+  id: string; reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number;
+  saisi_par?: string | null;
+}
 export interface OuvrierPresent { reparation_id: string; ouvrier_id: string }
 
 // Paramètres du marché (gardés sur la tablette pour la saisie hors ligne)

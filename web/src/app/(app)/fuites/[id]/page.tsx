@@ -2,25 +2,33 @@
 
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO,
-  dateHeure, libellesMarche, localVersIso, messageErreur, montant, nombre,
+  dateHeure, libellesMarche, messageErreur, montant, nombre,
 } from '@/lib/format';
+import { estErreurReseau, noterConsultation, oublierFiche } from '@/lib/hors-ligne';
 import { lienItineraire } from '@/lib/itineraire';
-import { preparerPhoto, urlsPhotos } from '@/lib/photo';
+import { preparerPhoto } from '@/lib/photo';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type {
   Motif, Nature, PhotoLigne, Piece, Profil, Quantite, Refection, Reparation, StatutFuite, VFuite,
 } from '@/lib/types';
+import { garderCopie, lireCopie } from './copie';
+import { FormRefection, FormReparation } from './formulaires';
+import { lireFicheEnLigne, type LectureEnLigne } from './donnees';
+import {
+  DELAI_RESEAU_MS, NOMS_VIDES, actionsFiche, choisirAffichage, type ContenuFiche, type LiensReparations, type NomsFiche,
+} from './fiche-hors-ligne';
+import styles from './fiche.module.css';
 
 const nombreOuNul = (t: string) => (t.trim() === '' ? null : Number(t.replace(',', '.')));
 
 export default function DetailFuite() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { marche, peut } = useSession();
+  const { marche, peut, session } = useSession();
   const libelles = libellesMarche(marche);
   const [fuite, setFuite] = useState<VFuite | null>(null);
   const [photos, setPhotos] = useState<(PhotoLigne & { url?: string })[]>([]);
@@ -31,77 +39,124 @@ export default function DetailFuite() {
   const [motifs, setMotifs] = useState<Motif[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [profils, setProfils] = useState<Profil[]>([]);
-  const [equipes, setEquipes] = useState<{ id: string; libelle: string }[]>([]);
-  const [liens, setLiens] = useState<{ ouvriers: Record<string, string[]>; pieces: Record<string, string[]> }>({ ouvriers: {}, pieces: {} });
+  const [noms, setNoms] = useState<NomsFiche>(NOMS_VIDES);
+  const [liens, setLiens] = useState<LiensReparations>({ ouvriers: {}, pieces: {} });
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [occupe, setOccupe] = useState(false);
   const [formulaire, setFormulaire] = useState<'' | 'reparation' | 'refection'>('');
   const [rapport, setRapport] = useState('');
   const [rapportEnCours, setRapportEnCours] = useState(false);
+  // Sans réseau : date de la copie affichée (lecture seule), ou fiche jamais ouverte sur cet appareil.
+  const [horsLigne, setHorsLigne] = useState<string | null>(null);
+  const [indisponible, setIndisponible] = useState(false);
+  const generation = useRef(0);
+  const surCopie = useRef(false);
+  const urlsLocales = useRef<string[]>([]);
 
   const marcheId = marche?.id;
+  const utilisateurId = session?.user.id;
+
+  const appliquer = useCallback((c: ContenuFiche, urls: Map<string, string>) => {
+    setFuite(c.fuite);
+    setPhotos(c.photos.map((p) => ({ ...p, url: urls.get(p.id) })));
+    setReparations(c.reparations);
+    setRefections(c.refections);
+    setQuantites(c.quantites);
+    setLiens(c.liens);
+    setNoms(c.noms);
+  }, []);
+
+  // Adresses blob: des photos de la copie, libérées dès qu'elles ne sont plus affichées.
+  const remplacerUrlsLocales = useCallback((urls: string[]) => {
+    urlsLocales.current.forEach((u) => URL.revokeObjectURL(u));
+    urlsLocales.current = urls;
+  }, []);
+  useEffect(() => () => remplacerUrlsLocales([]), [remplacerUrlsLocales]);
 
   const charger = useCallback(async () => {
-    if (!marcheId) return;
-    const sb = getSupabase();
-    const [f, ph, rp, rf, q, n, m, pc, pr, eq, ou] = await Promise.all([
-      sb.from('v_fuites').select('*').eq('id', id).maybeSingle(),
-      sb.from('photos').select('id, type, chemin, prise_le, stockage').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
-      sb.from('reparations').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
-      sb.from('refections').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
-      sb.from('v_quantites').select('id, prix_numero, prix_ordre, prix_designation, unite, quantite, pu_ht, montant_ht_bordereau, origine_ligne').eq('fuite_id', id).order('prix_ordre'),
-      sb.from('natures_refection').select('id, code, libelle_fr, emplacement, necessite_refection').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
-      sb.from('motifs').select('id, categorie, code, libelle_fr').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
-      sb.from('catalogue_pieces').select('id, designation, unite').eq('marche_id', marcheId).eq('actif', true).order('designation'),
-      sb.from('profils').select('id, identifiant, nom_complet, telephone, langue, est_admin, actif').eq('actif', true).order('nom_complet'),
-      sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
-      sb.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId),
-    ]);
-    // Ouvriers et pièces posées de chaque réparation (vide si le compte n'y a pas accès)
-    const idsRep = ((rp.data as { id: string }[] | null) ?? []).map((r) => r.id);
-    if (idsRep.length) {
-      const nomsOuvriers = new Map(((ou.data as { id: string; nom_complet: string }[] | null) ?? []).map((o) => [o.id, o.nom_complet]));
-      const nomsPieces = new Map(((pc.data as Piece[] | null) ?? []).map((x) => [x.id, x]));
-      const [ro, rpi] = await Promise.all([
-        sb.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', idsRep),
-        sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', idsRep).is('supprime_le', null),
-      ]);
-      const o: Record<string, string[]> = {};
-      ((ro.data as { reparation_id: string; ouvrier_id: string }[] | null) ?? []).forEach((l) => {
-        (o[l.reparation_id] ??= []).push(nomsOuvriers.get(l.ouvrier_id) ?? '?');
-      });
-      const pcs: Record<string, string[]> = {};
-      ((rpi.data as { reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number }[] | null) ?? []).forEach((l) => {
-        const piece = l.piece_id ? nomsPieces.get(l.piece_id) : undefined;
-        (pcs[l.reparation_id] ??= []).push(`${piece?.designation ?? l.designation_libre ?? '?'} : ${nombre(l.quantite)} ${piece?.unite ?? 'u'}`);
-      });
-      setLiens({ ouvriers: o, pieces: pcs });
-    } else {
-      setLiens({ ouvriers: {}, pieces: {} });
+    if (!marcheId || !utilisateurId) return;
+    const tour = ++generation.current;
+    let enLigne = false;
+
+    // Copie gardée lors d'une ouverture en ligne : affichée sans réseau, ou si le réseau ne répond pas.
+    const afficherCopie = async (lecture: 'reseau' | 'en_cours') => {
+      const copie = await lireCopie(id, utilisateurId);
+      if (tour !== generation.current || enLigne) {
+        copie?.urls.forEach((u) => URL.revokeObjectURL(u));
+        return;
+      }
+      const affichage = choisirAffichage({ lecture, copie: !!copie });
+      if (affichage === 'attente') return;
+      surCopie.current = true;
+      setFormulaire('');
+      if (copie) {
+        remplacerUrlsLocales([...copie.urls.values()]);
+        appliquer(copie.fiche, copie.urls);
+        setHorsLigne(copie.fiche.version_le);
+        setIndisponible(false);
+        void noterConsultation(id, new Date().toISOString());
+      } else {
+        setIndisponible(true);
+      }
+      setChargement(false);
+    };
+
+    if (navigator.onLine === false) {
+      await afficherCopie('reseau');
+      return;
     }
-    if (f.error) setErreur(messageErreur(f.error));
-    setFuite((f.data as VFuite | null) ?? null);
-    const lignesPhotos = (ph.data as PhotoLigne[] | null) ?? [];
-    if (lignesPhotos.length) {
-      const urls = await urlsPhotos(lignesPhotos);
-      setPhotos(lignesPhotos.map((p) => ({ ...p, url: urls.get(p.id) })));
-    } else {
-      setPhotos([]);
+    const minuteur = window.setTimeout(() => void afficherCopie('en_cours'), DELAI_RESEAU_MS);
+    let lu: LectureEnLigne;
+    try {
+      lu = await lireFicheEnLigne(id, marcheId);
+    } catch (e) {
+      window.clearTimeout(minuteur);
+      if (tour !== generation.current) return;
+      if (estErreurReseau(e)) {
+        await afficherCopie('reseau');
+      } else {
+        setErreur(messageErreur(e));
+        setChargement(false);
+      }
+      return;
     }
-    setReparations((rp.data as Reparation[] | null) ?? []);
-    setRefections((rf.data as Refection[] | null) ?? []);
-    setQuantites((q.data as Quantite[] | null) ?? []);
-    setNatures((n.data as Nature[] | null) ?? []);
-    setMotifs((m.data as Motif[] | null) ?? []);
-    setPieces((pc.data as Piece[] | null) ?? []);
-    setProfils((pr.data as Profil[] | null) ?? []);
-    setEquipes((eq.data as { id: string; libelle: string }[] | null) ?? []);
+    window.clearTimeout(minuteur);
+    if (tour !== generation.current) return;
+    if (lu.reseau) {
+      await afficherCopie('reseau');
+      return;
+    }
+    enLigne = true;
+    surCopie.current = false;
+    remplacerUrlsLocales([]);
+    setHorsLigne(null);
+    setIndisponible(false);
+    if (lu.erreur) setErreur(messageErreur(lu.erreur));
+    if (lu.contenu) appliquer(lu.contenu, lu.urls);
+    else setFuite(null);
+    setNatures(lu.listes.natures);
+    setMotifs(lu.listes.motifs);
+    setPieces(lu.listes.pieces);
+    setProfils(lu.listes.profils);
     setChargement(false);
-  }, [id, marcheId]);
+    // Copie pour la consultation sans réseau : seulement après une lecture complète (jamais une copie
+    // tronquée par une coupure) ; une fuite introuvable ou refusée par la RLS n'est plus gardée.
+    if (lu.contenu && lu.complete) void garderCopie(lu.contenu, lu.urls, utilisateurId).catch(() => undefined);
+    else if (!lu.contenu && !lu.erreur) void oublierFiche(id);
+  }, [id, marcheId, utilisateurId, appliquer, remplacerUrlsLocales]);
 
   useEffect(() => {
     charger();
+  }, [charger]);
+
+  // Retour du réseau pendant qu'une copie est affichée : relecture en ligne.
+  useEffect(() => {
+    const retour = () => {
+      if (surCopie.current) void charger();
+    };
+    window.addEventListener('online', retour);
+    return () => window.removeEventListener('online', retour);
   }, [charger]);
 
   async function executer(action: () => PromiseLike<{ error: unknown }>) {
@@ -141,13 +196,24 @@ export default function DetailFuite() {
     executer(() => getSupabase().from('fuites').update(champs).eq('id', id));
 
   if (chargement) return <p className="discret">Chargement…</p>;
+  if (indisponible) {
+    return (
+      <section className={`carte ${styles.indisponible}`} role="status">
+        <p><strong>Fiche non disponible hors ligne.</strong></p>
+        <p className="discret">Elle n&apos;a pas encore été ouverte sur cet appareil avec du réseau.</p>
+        <button onClick={() => charger()}>Réessayer</button>
+      </section>
+    );
+  }
   if (!fuite) return <p className="carte">Fuite introuvable ou accès refusé. <Link href="/fuites">Retour à la liste</Link></p>;
 
   const verrouillee = !!fuite.verrouillee_le;
   const peutValider = peut('fuites', 'valider');
+  // Copie hors ligne : aucune action d'écriture (statut, réparation, réfection, quantités, photos…).
+  const actions = actionsFiche(peut, { horsLigne: !!horsLigne, verrouillee });
   const maintenant = () => new Date().toISOString();
-  const natureLibelle = (nid: string | null) => natures.find((n) => n.id === nid)?.libelle_fr ?? '—';
-  const motifLibelle = (mid: string | null) => motifs.find((m) => m.id === mid)?.libelle_fr ?? '—';
+  const natureLibelle = (nid: string | null | undefined) => (nid && noms.natures[nid]) || '—';
+  const motifLibelle = (mid: string | null | undefined) => (mid && noms.motifs[mid]) || '—';
   const totalHt = quantites.reduce((s, l) => s + (l.montant_ht_bordereau ?? 0), 0);
 
   // Étapes de la frise : détection, jalons du client (si suivis), réparation, réfection, validation.
@@ -162,8 +228,8 @@ export default function DetailFuite() {
       ['Réfection', fuite.derniere_refection_le],
       ...(jalons ? [[`Validée ${libelles.sigle}`, fuite.validation_srm_le]] as [string, string | null][] : []),
     ];
-  const nomProfil = (pid: string | null | undefined) => profils.find((p) => p.id === pid)?.nom_complet ?? null;
-  const nomEquipe = (eid: string | null | undefined) => equipes.find((e) => e.id === eid)?.libelle ?? null;
+  const nomProfil = (pid: string | null | undefined) => (pid && noms.profils[pid]) || null;
+  const nomEquipe = (eid: string | null | undefined) => (eid && noms.equipes[eid]) || null;
 
   // Historique déduit des dates de la fiche (le plus récent en premier).
   const historique: [string, string][] = ([
@@ -188,6 +254,12 @@ export default function DetailFuite() {
   return (
     <>
       <p className="fil-ariane"><Link href="/fuites">Fuites</Link> / <b>N° {fuite.numero}</b></p>
+      {horsLigne && (
+        <p className={styles.horsLigne} role="status">
+          <strong>Hors ligne : version du {dateHeure(horsLigne)}</strong>
+          <span>Lecture seule : les modifications reviendront avec le réseau.</span>
+        </p>
+      )}
 
       {/* En-tête de l'objet : titre, statut, actions */}
       <div className="objet-entete">
@@ -198,10 +270,10 @@ export default function DetailFuite() {
         </div>
         <div className="actions en-tete">
           {itineraire && <a className="bouton" href={itineraire} target="_blank" rel="noreferrer">Y aller</a>}
-          {peut('exports', 'lire') && (
+          {actions.rapportPdf && (
             <button disabled={rapportEnCours} onClick={rapportPdf}>Rapport PDF</button>
           )}
-          {peutValider && (
+          {actions.verrouiller && (
             <button className={verrouillee ? '' : 'primaire'} disabled={occupe}
               onClick={() => modifierFuite({ verrouillee_le: verrouillee ? null : maintenant() })}>
               {verrouillee ? 'Déverrouiller' : 'Valider et verrouiller'}
@@ -263,19 +335,19 @@ export default function DetailFuite() {
               <dl className="dl4 jalons">
                 <dt>Communiquée</dt>
                 <dd className="large">
-                  {fuite.date_communication_srm ? dateHeure(fuite.date_communication_srm) : (
+                  {fuite.date_communication_srm ? dateHeure(fuite.date_communication_srm) : !actions.suiviClient ? '—' : (
                     <button className="petit" disabled={occupe} onClick={() => modifierFuite({ date_communication_srm: maintenant() })}>Marquer communiquée</button>
                   )}
                 </dd>
                 <dt>Avis avant terrassement</dt>
                 <dd className="large">
-                  {fuite.avis_terrassement_srm_le ? dateHeure(fuite.avis_terrassement_srm_le) : (
+                  {fuite.avis_terrassement_srm_le ? dateHeure(fuite.avis_terrassement_srm_le) : !actions.suiviClient ? '—' : (
                     <button className="petit" disabled={occupe} onClick={() => modifierFuite({ avis_terrassement_srm_le: maintenant() })}>Avis obtenu</button>
                   )}
                 </dd>
                 <dt>Validation</dt>
                 <dd className="large">
-                  {fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : (
+                  {fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : !actions.suiviClient ? '—' : (
                     <button
                       className="petit"
                       disabled={occupe}
@@ -295,8 +367,8 @@ export default function DetailFuite() {
           <section className="carte">
             <div className="barre">
               <h2>Réparation{reparations.length > 1 ? 's' : ''}</h2>
-              {peut('interventions', 'creer') && formulaire !== 'reparation' && (
-                <button className="petit" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('reparation')}>
+              {actions.ajouterReparation && formulaire !== 'reparation' && (
+                <button className="petit" disabled={actions.interventionsBloquees} onClick={() => setFormulaire('reparation')}>
                   + Réparation
                 </button>
               )}
@@ -353,7 +425,7 @@ export default function DetailFuite() {
                   </thead>
                   <tbody>
                     {quantites.map((l) => (
-                      <LigneQuantite key={l.id} ligne={l} modifiable={peut('quantites', 'modifier')} onChange={charger} onErreur={setErreur} />
+                      <LigneQuantite key={l.id} ligne={l} modifiable={actions.modifierQuantites} onChange={charger} onErreur={setErreur} />
                     ))}
                   </tbody>
                   <tfoot>
@@ -367,11 +439,11 @@ export default function DetailFuite() {
             </section>
           )}
 
-          {(peutValider || peut('fuites', 'supprimer')) && (
+          {(actions.changerStatut || actions.supprimer) && (
             <section className="carte">
               <h2>Responsable</h2>
               <div className="actions">
-                {peutValider && (
+                {actions.changerStatut && (
                   <label className="ligne">
                     Statut
                     <select value={fuite.statut} disabled={occupe} onChange={(e) => modifierFuite({ statut: e.target.value as StatutFuite })}>
@@ -381,7 +453,7 @@ export default function DetailFuite() {
                     </select>
                   </label>
                 )}
-                {peut('fuites', 'supprimer') && (
+                {actions.supprimer && (
                   <button
                     className="danger"
                     disabled={occupe}
@@ -402,7 +474,7 @@ export default function DetailFuite() {
 
         <div className="colonne">
           <Photos
-            photos={photos} fuiteId={id} marcheId={marche!.id} peutAjouter={peut('photos', 'creer')}
+            photos={photos} fuiteId={id} marcheId={marche!.id} peutAjouter={actions.ajouterPhoto} horsLigne={!!horsLigne}
             onChange={charger} onErreur={setErreur}
           />
 
@@ -410,8 +482,8 @@ export default function DetailFuite() {
             <section className="carte">
               <div className="barre">
                 <h2>Réfection{refections.length > 1 ? 's' : ''}</h2>
-                {peut('interventions', 'creer') && formulaire !== 'refection' && (
-                  <button className="petit" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('refection')}>
+                {actions.ajouterRefection && formulaire !== 'refection' && (
+                  <button className="petit" disabled={actions.interventionsBloquees} onClick={() => setFormulaire('refection')}>
                     + Réfection
                   </button>
                 )}
@@ -458,9 +530,9 @@ export default function DetailFuite() {
 /* ----------------------------------------------------------------------- */
 
 function Photos({
-  photos, fuiteId, marcheId, peutAjouter, onChange, onErreur,
+  photos, fuiteId, marcheId, peutAjouter, horsLigne, onChange, onErreur,
 }: {
-  photos: (PhotoLigne & { url?: string })[]; fuiteId: string; marcheId: string; peutAjouter: boolean;
+  photos: (PhotoLigne & { url?: string })[]; fuiteId: string; marcheId: string; peutAjouter: boolean; horsLigne: boolean;
   onChange: () => void; onErreur: (m: string) => void;
 }) {
   const [type, setType] = useState('avant');
@@ -508,7 +580,7 @@ function Photos({
                 <img src={p.url} alt={TYPES_PHOTO[p.type] ?? p.type} loading="lazy" />
               </a>
             ) : (
-              <div className="vide">Indisponible</div>
+              <div className="vide">{horsLigne ? 'Pas de copie hors ligne' : 'Indisponible'}</div>
             )}
             <figcaption>{TYPES_PHOTO[p.type] ?? p.type}</figcaption>
           </figure>
@@ -554,365 +626,5 @@ function LigneQuantite({
       <td>{montant(ligne.pu_ht)}</td>
       <td>{montant(ligne.montant_ht_bordereau)}</td>
     </tr>
-  );
-}
-
-/* ----------------------------------------------------------------------- */
-
-function FormReparation({
-  marcheId, fuiteId, natures, motifs, pieces, profils, avance, onFini, onAnnuler,
-}: {
-  marcheId: string; fuiteId: string; natures: Nature[]; motifs: Motif[]; pieces: Piece[]; profils: Profil[];
-  avance: boolean; onFini: () => void; onAnnuler: () => void;
-}) {
-  const libelles = libellesMarche(useSession().marche);
-  const [resultat, setResultat] = useState<'reparee' | 'en_cours' | 'non_reparee'>('reparee');
-  const [motifId, setMotifId] = useState('');
-  const [ouvrage, setOuvrage] = useState('');
-  const [materiau, setMateriau] = useState('');
-  const [diametre, setDiametre] = useState('');
-  const [tuyau, setTuyau] = useState(false);
-  const [robinet, setRobinet] = useState(false);
-  const [collier, setCollier] = useState(false);
-  const [boucheACle, setBoucheACle] = useState(false);
-  const [elementRemplace, setElementRemplace] = useState(false);
-  const [longueurPe, setLongueurPe] = useState('');
-  const [fL, setFL] = useState('');
-  const [fl, setFl] = useState('');
-  const [fP, setFP] = useState('');
-  const [natureId, setNatureId] = useState('');
-  const [emplacement, setEmplacement] = useState('');
-  const [representant, setRepresentant] = useState('');
-  const [observation, setObservation] = useState('');
-  const [lignes, setLignes] = useState<{ piece_id: string | null; designation: string; quantite: number }[]>([]);
-  const [pieceTexte, setPieceTexte] = useState('');
-  const [pieceQte, setPieceQte] = useState('1');
-  const [saisiPour, setSaisiPour] = useState('');
-  const [source, setSource] = useState('tablette');
-  const [date, setDate] = useState('');
-  const [occupe, setOccupe] = useState(false);
-  const [erreur, setErreur] = useState('');
-
-  const volume = (() => {
-    const [a, b, c] = [nombreOuNul(fL), nombreOuNul(fl), nombreOuNul(fP)];
-    return a != null && b != null && c != null ? a * b * c : null;
-  })();
-
-  function choisirNature(nid: string) {
-    setNatureId(nid);
-    const n = natures.find((x) => x.id === nid);
-    if (n && n.emplacement !== 'autre') setEmplacement(n.emplacement);
-  }
-
-  function ajouterPiece() {
-    const texte = pieceTexte.trim();
-    const q = nombreOuNul(pieceQte);
-    if (!texte || !q || q <= 0) return;
-    const piece = pieces.find((p) => p.designation.toLowerCase() === texte.toLowerCase());
-    setLignes([...lignes, { piece_id: piece?.id ?? null, designation: piece?.designation ?? texte, quantite: q }]);
-    setPieceTexte('');
-    setPieceQte('1');
-  }
-
-  async function enregistrer(e: FormEvent) {
-    e.preventDefault();
-    setErreur('');
-    setOccupe(true);
-    try {
-      const sb = getSupabase();
-      const ligne: Record<string, unknown> = {
-        marche_id: marcheId,
-        fuite_id: fuiteId,
-        resultat,
-        motif_id: resultat === 'non_reparee' ? motifId || null : null,
-        ouvrage: ouvrage || null,
-        materiau: materiau || null,
-        diametre_mm: nombreOuNul(diametre),
-        tuyau_repare: tuyau,
-        robinet_pec_change: robinet,
-        collier_pec_change: collier,
-        bouche_a_cle_mise_a_niveau: boucheACle,
-        element_remplace: elementRemplace,
-        longueur_pe_m: nombreOuNul(longueurPe),
-        fouille_longueur_m: nombreOuNul(fL),
-        fouille_largeur_m: nombreOuNul(fl),
-        fouille_profondeur_m: nombreOuNul(fP),
-        emplacement: emplacement || null,
-        nature_revetement_id: natureId || null,
-        representant_srm: representant.trim() || null,
-        observation: observation.trim() || null,
-        source_saisie: source,
-      };
-      if (saisiPour) ligne.auteur_terrain_id = saisiPour;
-      const quand = localVersIso(date);
-      if (quand) ligne.realisee_le = quand;
-      const id = crypto.randomUUID();
-      ligne.id = id;
-      const { error } = await sb.from('reparations').insert(ligne);
-      if (error) throw error;
-      if (lignes.length) {
-        const rp = await sb.from('reparation_pieces').insert(
-          lignes.map((l) => ({
-            marche_id: marcheId, reparation_id: id, piece_id: l.piece_id,
-            designation_libre: l.piece_id ? null : l.designation, quantite: l.quantite,
-          })),
-        );
-        if (rp.error) throw rp.error;
-      }
-      onFini();
-    } catch (err) {
-      setErreur(messageErreur(err));
-      setOccupe(false);
-    }
-  }
-
-  const motifsRep = motifs.filter((m) => m.categorie === 'sans_reparation');
-
-  return (
-    <form onSubmit={enregistrer} className="sous-formulaire">
-      <h3>Nouvelle réparation</h3>
-      <label>
-        Résultat
-        <select value={resultat} onChange={(e) => setResultat(e.target.value as typeof resultat)}>
-          <option value="reparee">Réparée</option>
-          <option value="en_cours">En cours / reste à finir</option>
-          <option value="non_reparee">Non réparée (sondage négatif, refus…)</option>
-        </select>
-      </label>
-      {resultat === 'non_reparee' && (
-        <label>
-          Motif (obligatoire)
-          <select value={motifId} onChange={(e) => setMotifId(e.target.value)} required>
-            <option value="">— Choisir —</option>
-            {motifsRep.map((m) => (<option key={m.id} value={m.id}>{m.libelle_fr}</option>))}
-          </select>
-        </label>
-      )}
-
-      <div className="deux">
-        <label>
-          Ouvrage
-          <select value={ouvrage} onChange={(e) => setOuvrage(e.target.value)}>
-            <option value="">—</option>
-            {Object.entries(OUVRAGES).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-          </select>
-        </label>
-        <label>
-          Matériau
-          <select value={materiau} onChange={(e) => setMateriau(e.target.value)}>
-            <option value="">—</option>
-            {Object.entries(MATERIAUX).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-          </select>
-        </label>
-      </div>
-      <label>
-        Diamètre (mm) : DE pour le PE, DN pour les conduites
-        <input value={diametre} onChange={(e) => setDiametre(e.target.value)} inputMode="numeric" />
-      </label>
-
-      {resultat !== 'non_reparee' && (
-        <>
-          <fieldset>
-            <legend>Travaux réalisés</legend>
-            <label className="ligne"><input type="checkbox" checked={tuyau} onChange={(e) => setTuyau(e.target.checked)} /> Tuyau / conduite réparé(e)</label>
-            <label className="ligne"><input type="checkbox" checked={robinet} onChange={(e) => setRobinet(e.target.checked)} /> Robinet PEC changé</label>
-            <label className="ligne"><input type="checkbox" checked={collier} onChange={(e) => setCollier(e.target.checked)} /> Collier PEC changé</label>
-            <label className="ligne"><input type="checkbox" checked={boucheACle} onChange={(e) => setBoucheACle(e.target.checked)} /> Bouche à clé mise à niveau</label>
-            <label className="ligne"><input type="checkbox" checked={elementRemplace} onChange={(e) => setElementRemplace(e.target.checked)} /> Élément de conduite remplacé</label>
-          </fieldset>
-          {materiau === 'polyethylene' && tuyau && (
-            <label>
-              Longueur de PE posée (m)
-              <input value={longueurPe} onChange={(e) => setLongueurPe(e.target.value)} inputMode="decimal" />
-            </label>
-          )}
-        </>
-      )}
-
-      <fieldset>
-        <legend>Fouille (terrassement)</legend>
-        <div className="trois">
-          <label>Longueur (m)<input value={fL} onChange={(e) => setFL(e.target.value)} inputMode="decimal" /></label>
-          <label>Largeur (m)<input value={fl} onChange={(e) => setFl(e.target.value)} inputMode="decimal" /></label>
-          <label>Profondeur (m)<input value={fP} onChange={(e) => setFP(e.target.value)} inputMode="decimal" /></label>
-        </div>
-        {volume != null && <p className="discret">Volume : {nombre(volume, 3)} m³</p>}
-        {nombreOuNul(fL) != null && (nombreOuNul(fL) ?? 0) > 2 && !elementRemplace && (
-          <p className="alerte">Longueur &gt; 2 m : justifiez par un remplacement d&apos;élément.</p>
-        )}
-        <label>
-          Revêtement à refaire
-          <select value={natureId} onChange={(e) => choisirNature(e.target.value)}>
-            <option value="">—</option>
-            {natures.map((n) => (<option key={n.id} value={n.id}>{n.libelle_fr}</option>))}
-          </select>
-        </label>
-        <label>
-          Emplacement
-          <select value={emplacement} onChange={(e) => setEmplacement(e.target.value)}>
-            <option value="">—</option>
-            {Object.entries(EMPLACEMENTS).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
-          </select>
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Pièces posées</legend>
-        <ul className="simple">
-          {lignes.map((l, i) => (
-            <li key={i}>
-              {l.quantite} × {l.designation}{' '}
-              <button type="button" onClick={() => setLignes(lignes.filter((_, j) => j !== i))}>Retirer</button>
-            </li>
-          ))}
-        </ul>
-        <div className="ligne-pieces">
-          <input list="catalogue" placeholder="Rechercher une pièce" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
-          <datalist id="catalogue">
-            {pieces.map((p) => (<option key={p.id} value={p.designation} />))}
-          </datalist>
-          <input className="court" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />
-          <button type="button" onClick={ajouterPiece}>Ajouter</button>
-        </div>
-      </fieldset>
-
-      <label>
-        Représentant {libelles.sigle} présent
-        <input value={representant} onChange={(e) => setRepresentant(e.target.value)} />
-      </label>
-      <label>
-        Observation
-        <textarea rows={2} value={observation} onChange={(e) => setObservation(e.target.value)} />
-      </label>
-
-      {avance && (
-        <fieldset>
-          <legend>Saisie pour le compte d&apos;un chef d&apos;équipe (responsable)</legend>
-          <label>
-            Réalisée par
-            <select value={saisiPour} onChange={(e) => setSaisiPour(e.target.value)}>
-              <option value="">Moi-même</option>
-              {profils.map((p) => (<option key={p.id} value={p.id}>{p.nom_complet}</option>))}
-            </select>
-          </label>
-          <div className="deux">
-            <label>
-              Source
-              <select value={source} onChange={(e) => setSource(e.target.value)}>
-                <option value="tablette">Tablette</option>
-                <option value="web">Panneau web</option>
-                <option value="papier">Fiche papier</option>
-              </select>
-            </label>
-            <label>
-              Date et heure réelles
-              <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-            </label>
-          </div>
-        </fieldset>
-      )}
-
-      {erreur && <p className="erreur">{erreur}</p>}
-      <div className="actions">
-        <button className="gros primaire" disabled={occupe}>{occupe ? 'Enregistrement…' : 'Enregistrer la réparation'}</button>
-        <button type="button" onClick={onAnnuler}>Annuler</button>
-      </div>
-    </form>
-  );
-}
-
-/* ----------------------------------------------------------------------- */
-
-function FormRefection({
-  marcheId, fuiteId, natures, motifs, avance, onFini, onAnnuler,
-}: {
-  marcheId: string; fuiteId: string; natures: Nature[]; motifs: Motif[];
-  avance: boolean; onFini: () => void; onAnnuler: () => void;
-}) {
-  const [resultat, setResultat] = useState<'faite' | 'non_faite'>('faite');
-  const [natureId, setNatureId] = useState('');
-  const [longueur, setLongueur] = useState('');
-  const [largeur, setLargeur] = useState('');
-  const [motifId, setMotifId] = useState('');
-  const [observation, setObservation] = useState('');
-  const [date, setDate] = useState('');
-  const [occupe, setOccupe] = useState(false);
-  const [erreur, setErreur] = useState('');
-
-  async function enregistrer(e: FormEvent) {
-    e.preventDefault();
-    setErreur('');
-    setOccupe(true);
-    try {
-      const ligne: Record<string, unknown> = {
-        marche_id: marcheId,
-        fuite_id: fuiteId,
-        resultat,
-        nature_id: resultat === 'faite' ? natureId || null : null,
-        motif_id: resultat === 'non_faite' ? motifId || null : null,
-        longueur_m: resultat === 'faite' ? nombreOuNul(longueur) : null,
-        largeur_m: resultat === 'faite' ? nombreOuNul(largeur) : null,
-        observation: observation.trim() || null,
-      };
-      const quand = localVersIso(date);
-      if (quand) ligne.realisee_le = quand;
-      const { error } = await getSupabase().from('refections').insert(ligne);
-      if (error) throw error;
-      onFini();
-    } catch (err) {
-      setErreur(messageErreur(err));
-      setOccupe(false);
-    }
-  }
-
-  return (
-    <form onSubmit={enregistrer} className="sous-formulaire">
-      <h3>Nouvelle réfection</h3>
-      <label>
-        Résultat
-        <select value={resultat} onChange={(e) => setResultat(e.target.value as typeof resultat)}>
-          <option value="faite">Réfection faite</option>
-          <option value="non_faite">Clôturer sans réfection</option>
-        </select>
-      </label>
-      {resultat === 'faite' ? (
-        <>
-          <label>
-            Nature de la réfection (si vide : celle prévue à la réparation)
-            <select value={natureId} onChange={(e) => setNatureId(e.target.value)}>
-              <option value="">— Reprendre de la réparation —</option>
-              {natures.map((n) => (<option key={n.id} value={n.id}>{n.libelle_fr}</option>))}
-            </select>
-          </label>
-          <div className="deux">
-            <label>Longueur (m)<input value={longueur} onChange={(e) => setLongueur(e.target.value)} inputMode="decimal" placeholder="reprise de la fouille" /></label>
-            <label>Largeur (m)<input value={largeur} onChange={(e) => setLargeur(e.target.value)} inputMode="decimal" placeholder="reprise de la fouille" /></label>
-          </div>
-        </>
-      ) : (
-        <label>
-          Motif (obligatoire)
-          <select value={motifId} onChange={(e) => setMotifId(e.target.value)} required>
-            <option value="">— Choisir —</option>
-            {motifs.filter((m) => m.categorie === 'sans_refection').map((m) => (<option key={m.id} value={m.id}>{m.libelle_fr}</option>))}
-          </select>
-        </label>
-      )}
-      <label>
-        Observation
-        <textarea rows={2} value={observation} onChange={(e) => setObservation(e.target.value)} />
-      </label>
-      {avance && (
-        <label>
-          Date et heure réelles
-          <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
-        </label>
-      )}
-      {erreur && <p className="erreur">{erreur}</p>}
-      <div className="actions">
-        <button className="gros primaire" disabled={occupe}>{occupe ? 'Enregistrement…' : 'Enregistrer la réfection'}</button>
-        <button type="button" onClick={onAnnuler}>Annuler</button>
-      </div>
-    </form>
   );
 }

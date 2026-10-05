@@ -1,0 +1,34 @@
+/* Fiche ouverte depuis la copie gardée sur l'appareil (sans réseau) : bandeau de lecture seule. */
+.horsLigne {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin: 0 0 0.9rem;
+  padding: 0.65rem 0.9rem;
+  color: #7a3e00;
+  background: #fde8c8;
+  border: 1px solid #f0b46c;
+  border-left: 4px solid var(--st-critique);
+  border-radius: var(--rayon-petit);
+}
+
+.horsLigne strong {
+  font-size: 1.02rem;
+}
+
+.horsLigne span {
+  font-size: 0.93rem;
+}
+
+.indisponible {
+  max-width: 34rem;
+}
+
+.indisponible p {
+  margin: 0 0 0.6rem;
+}
+
+.indisponible button {
+  min-height: var(--h-cmd-gros);
+}

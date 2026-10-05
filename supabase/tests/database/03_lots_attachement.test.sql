@@ -144,7 +144,7 @@ select lives_ok($$ update attachements set accepte_le = '2026-11-05', accepte_pa
   'lot arrêté : acceptation et référence de facture enregistrées');
 
 -- Corrections après coup : terrassement de F1 corrigé, vraie réfection de F1 (1,0 m2)
-select lives_ok($$ update lignes_quantites set quantite = 0.800
+select lives_ok($$ update lignes_quantites set quantite = 0.800, motif_modification = 'Profondeur relevée contradictoirement'
                     where fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001' and prix_id = 'aaaaaaaa-4444-0000-0000-000000000003' $$,
   'responsable : corrige le terrassement de F1 après l''arrêt');
 select lives_ok($$ insert into refections (marche_id, fuite_id, longueur_m, largeur_m) values

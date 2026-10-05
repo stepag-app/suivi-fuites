@@ -7,11 +7,15 @@ import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 import { Carte, type CarteRef } from './Carte';
 import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from './commun';
+import type { ChoixImpression } from './impression';
+import { PanneauImpression } from './PanneauImpression';
 
 type SecteurCarte = Contour & { zone_id: string | null };
 
+const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR');
+
 export default function PageCarte() {
-  const { marche } = useSession();
+  const { marche, peut } = useSession();
   const libelles = libellesMarche(marche);
   const [fuites, setFuites] = useState<FuiteCarte[]>([]);
   const [secteurs, setSecteurs] = useState<SecteurCarte[]>([]);
@@ -23,6 +27,7 @@ export default function PageCarte() {
   const [du, setDu] = useState('');
   const [au, setAu] = useState('');
   const [alertesSeules, setAlertesSeules] = useState(false);
+  const [impressionOuverte, setImpressionOuverte] = useState(false);
   const carte = useRef<CarteRef>(null);
 
   const marcheId = marche?.id;
@@ -94,6 +99,27 @@ export default function PageCarte() {
     return c;
   }, [fuites]);
 
+  // Filtres appliqués, écrits dans le PDF de la carte.
+  const libelleSecteur = secteurs.find((s) => s.id === secteur)?.libelle;
+  const descriptionFiltres = [
+    statuts.length > 0 && `statut : ${statuts.map((s) => STATUTS[s].libelle).join(' / ')}`,
+    libelleSecteur && `secteur : ${libelleSecteur}`,
+    du && au ? `détectées du ${jourFr(du)} au ${jourFr(au)}` : du ? `détectées depuis le ${jourFr(du)}` : au ? `détectées jusqu'au ${jourFr(au)}` : '',
+    alertesSeules && 'alertes seulement',
+  ].filter(Boolean).join(' ; ');
+  const filtresImpression = `Filtres : ${descriptionFiltres || 'aucun (toutes les fuites du marché)'}`;
+
+  const imprimer = async (choix: ChoixImpression, etape: (texte: string) => void) => {
+    const etat = carte.current?.etatImpression();
+    if (!etat || !marcheId) throw new Error('La carte n\'est pas encore affichée : attendez la fin du chargement puis réessayez.');
+    const { imprimerCarte } = await import('./impression');
+    const r = await imprimerCarte(marcheId, choix, {
+      etat, fuites: filtrees, zones: zonesAffichees, secteurs: secteursAffiches,
+      filtres: filtresImpression, libelleReference: libelles.reference,
+    }, etape);
+    return `PDF téléchargé (${(r.octets / 1048576).toFixed(1).replace('.', ',')} Mo, ${Math.max(1, Math.round(r.secondes))} s).`;
+  };
+
   const basculer = (s: StatutFuite) =>
     setStatuts((liste) => (liste.includes(s) ? liste.filter((x) => x !== s) : [...liste, s]));
   const filtresActifs = statuts.length > 0 || !!secteur || !!du || !!au || alertesSeules;
@@ -121,6 +147,11 @@ export default function PageCarte() {
         <div className="actions">
           <button className="gros" onClick={() => carte.current?.recentrer()}>Recentrer</button>
           <button className="gros" onClick={charger} disabled={chargement}>Actualiser</button>
+          {peut('exports', 'lire') && (
+            <button className="gros" onClick={() => setImpressionOuverte(true)} disabled={chargement || !!erreur}>
+              Imprimer la carte
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,6 +209,16 @@ export default function PageCarte() {
       )}
 
       <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} />
+
+      <PanneauImpression
+        ouvert={impressionOuverte}
+        fermer={() => setImpressionOuverte(false)}
+        titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ''}`}
+        nombreSurCarte={placees.length}
+        nombreListe={filtrees.length}
+        filtres={filtresImpression}
+        imprimer={imprimer}
+      />
     </div>
   );
 }

@@ -31,6 +31,8 @@ export default function DetailFuite() {
   const [motifs, setMotifs] = useState<Motif[]>([]);
   const [pieces, setPieces] = useState<Piece[]>([]);
   const [profils, setProfils] = useState<Profil[]>([]);
+  const [equipes, setEquipes] = useState<{ id: string; libelle: string }[]>([]);
+  const [liens, setLiens] = useState<{ ouvriers: Record<string, string[]>; pieces: Record<string, string[]> }>({ ouvriers: {}, pieces: {} });
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [occupe, setOccupe] = useState(false);
@@ -43,7 +45,7 @@ export default function DetailFuite() {
   const charger = useCallback(async () => {
     if (!marcheId) return;
     const sb = getSupabase();
-    const [f, ph, rp, rf, q, n, m, pc, pr] = await Promise.all([
+    const [f, ph, rp, rf, q, n, m, pc, pr, eq, ou] = await Promise.all([
       sb.from('v_fuites').select('*').eq('id', id).maybeSingle(),
       sb.from('photos').select('id, type, chemin, prise_le, stockage').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
       sb.from('reparations').select('*').eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
@@ -53,7 +55,31 @@ export default function DetailFuite() {
       sb.from('motifs').select('id, categorie, code, libelle_fr').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
       sb.from('catalogue_pieces').select('id, designation, unite').eq('marche_id', marcheId).eq('actif', true).order('designation'),
       sb.from('profils').select('id, identifiant, nom_complet, telephone, langue, est_admin, actif').eq('actif', true).order('nom_complet'),
+      sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
+      sb.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId),
     ]);
+    // Ouvriers et pièces posées de chaque réparation (vide si le compte n'y a pas accès)
+    const idsRep = ((rp.data as { id: string }[] | null) ?? []).map((r) => r.id);
+    if (idsRep.length) {
+      const nomsOuvriers = new Map(((ou.data as { id: string; nom_complet: string }[] | null) ?? []).map((o) => [o.id, o.nom_complet]));
+      const nomsPieces = new Map(((pc.data as Piece[] | null) ?? []).map((x) => [x.id, x]));
+      const [ro, rpi] = await Promise.all([
+        sb.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', idsRep),
+        sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', idsRep).is('supprime_le', null),
+      ]);
+      const o: Record<string, string[]> = {};
+      ((ro.data as { reparation_id: string; ouvrier_id: string }[] | null) ?? []).forEach((l) => {
+        (o[l.reparation_id] ??= []).push(nomsOuvriers.get(l.ouvrier_id) ?? '?');
+      });
+      const pcs: Record<string, string[]> = {};
+      ((rpi.data as { reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number }[] | null) ?? []).forEach((l) => {
+        const piece = l.piece_id ? nomsPieces.get(l.piece_id) : undefined;
+        (pcs[l.reparation_id] ??= []).push(`${piece?.designation ?? l.designation_libre ?? '?'} : ${nombre(l.quantite)} ${piece?.unite ?? 'u'}`);
+      });
+      setLiens({ ouvriers: o, pieces: pcs });
+    } else {
+      setLiens({ ouvriers: {}, pieces: {} });
+    }
     if (f.error) setErreur(messageErreur(f.error));
     setFuite((f.data as VFuite | null) ?? null);
     const lignesPhotos = (ph.data as PhotoLigne[] | null) ?? [];
@@ -70,6 +96,7 @@ export default function DetailFuite() {
     setMotifs((m.data as Motif[] | null) ?? []);
     setPieces((pc.data as Piece[] | null) ?? []);
     setProfils((pr.data as Profil[] | null) ?? []);
+    setEquipes((eq.data as { id: string; libelle: string }[] | null) ?? []);
     setChargement(false);
   }, [id, marcheId]);
 
@@ -123,231 +150,307 @@ export default function DetailFuite() {
   const motifLibelle = (mid: string | null) => motifs.find((m) => m.id === mid)?.libelle_fr ?? '—';
   const totalHt = quantites.reduce((s, l) => s + (l.montant_ht_bordereau ?? 0), 0);
 
+  // Étapes de la frise : détection, jalons du client (si suivis), réparation, réfection, validation.
+  const premiereReparee = reparations.find((r) => r.resultat === 'reparee');
+  const jalons = libelles.jalons || !!(fuite.date_communication_srm || fuite.avis_terrassement_srm_le || fuite.validation_srm_le);
+  const etapes: [string, string | null | undefined][] = fuite.statut === 'sans_reparation'
+    ? [['Détectée', fuite.date_detection], ['Sans réparation', fuite.verrouillee_le ?? fuite.date_detection]]
+    : [
+      ['Détectée', fuite.date_detection],
+      ...(jalons ? [[`Communiquée ${libelles.sigle}`, fuite.date_communication_srm], ['Avis terrassement', fuite.avis_terrassement_srm_le]] as [string, string | null][] : []),
+      ['Réparée', premiereReparee?.realisee_le],
+      ['Réfection', fuite.derniere_refection_le],
+      ...(jalons ? [[`Validée ${libelles.sigle}`, fuite.validation_srm_le]] as [string, string | null][] : []),
+    ];
+  const nomProfil = (pid: string | null | undefined) => profils.find((p) => p.id === pid)?.nom_complet ?? null;
+  const nomEquipe = (eid: string | null | undefined) => equipes.find((e) => e.id === eid)?.libelle ?? null;
+
+  // Historique déduit des dates de la fiche (le plus récent en premier).
+  const historique: [string, string][] = ([
+    [fuite.date_detection, `détectée${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''} (saisie ${fuite.source_saisie})`],
+    [fuite.date_communication_srm, `communiquée à ${libelles.sigle}`],
+    [fuite.avis_terrassement_srm_le, 'avis préalable avant terrassement obtenu'],
+    ...reparations.map((r) => [r.realisee_le, `réparation saisie (${r.resultat === 'reparee' ? 'réparée' : r.resultat === 'en_cours' ? 'en cours' : 'non réparée'})${nomProfil(r.auteur_terrain_id) ? ` par ${nomProfil(r.auteur_terrain_id)}` : ''}`]),
+    ...refections.map((r) => [r.realisee_le, r.resultat === 'faite' ? 'réfection saisie' : 'clôturée sans réfection']),
+    [fuite.validation_srm_le, `validée par ${fuite.validation_srm_par || `le représentant ${libelles.sigle}`}`],
+    [fuite.verrouillee_le, 'validée et verrouillée'],
+  ] as [string | null | undefined, string][])
+    .filter((e): e is [string, string] => !!e[0])
+    .sort((a, b) => b[0].localeCompare(a[0]));
+
+  const sousTitre = [
+    fuite.reference_srm && `Réf. ${libelles.sigle} ${fuite.reference_srm}`,
+    fuite.secteur,
+    verrouillee && `verrouillée le ${dateHeure(fuite.verrouillee_le)}`,
+  ].filter(Boolean).join(' · ');
+  const itineraire = lienItineraire(fuite.latitude, fuite.longitude);
+
   return (
     <>
-      <p><Link href="/fuites">← Liste des fuites</Link></p>
+      <p className="fil-ariane"><Link href="/fuites">Fuites</Link> / <b>N° {fuite.numero}</b></p>
 
-      <section className="carte">
-        <div className="fuite-tete">
+      {/* En-tête de l'objet : titre, statut, actions */}
+      <div className="objet-entete">
+        <div className="objet-titre">
           <h1>Fuite N° {fuite.numero}</h1>
           <span className={`badge ${STATUTS[fuite.statut].classe}`}>{STATUTS[fuite.statut].libelle}</span>
+          {sousTitre && <span className="discret">{sousTitre}</span>}
+        </div>
+        <div className="actions en-tete">
+          {itineraire && <a className="bouton" href={itineraire} target="_blank" rel="noreferrer">Y aller</a>}
           {peut('exports', 'lire') && (
-            <button className="bouton-rapport" disabled={rapportEnCours} onClick={rapportPdf}>
-              Rapport PDF
+            <button disabled={rapportEnCours} onClick={rapportPdf}>Rapport PDF</button>
+          )}
+          {peutValider && (
+            <button className={verrouillee ? '' : 'primaire'} disabled={occupe}
+              onClick={() => modifierFuite({ verrouillee_le: verrouillee ? null : maintenant() })}>
+              {verrouillee ? 'Déverrouiller' : 'Valider et verrouiller'}
             </button>
           )}
         </div>
-        {rapport && <p className="discret" role="status">{rapport}</p>}
-        {verrouillee && <p className="etiquette">Verrouillée le {dateHeure(fuite.verrouillee_le)}</p>}
-        <dl className="infos">
-          <dt>{libelles.reference}</dt><dd>{fuite.reference_srm ?? '—'}</dd>
-          <dt>Secteur</dt><dd>{fuite.secteur ?? '—'}{fuite.zone ? ` (${fuite.zone})` : ''}</dd>
-          <dt>Adresse</dt><dd>{fuite.adresse ?? '—'}</dd>
-          <dt>Ouvrage / visibilité</dt>
-          <dd>{fuite.ouvrage ? OUVRAGES[fuite.ouvrage] : '—'} / {fuite.visibilite ?? '—'}</dd>
-          <dt>Détectée</dt><dd>{dateHeure(fuite.date_detection)}{fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''}</dd>
-          <dt>Origine</dt><dd>{fuite.origine === 'srm' ? `Signalée par ${libelles.sigle}` : 'Détection de l\'entreprise'} · saisie {fuite.source_saisie}</dd>
-          {fuite.latitude != null && fuite.longitude != null && (
-            <>
-              <dt>Position</dt>
-              <dd>
-                {fuite.latitude.toFixed(6)}, {fuite.longitude.toFixed(6)} ·{' '}
-                <a href={`https://www.google.com/maps?q=${fuite.latitude},${fuite.longitude}`} target="_blank" rel="noreferrer">
-                  Ouvrir dans Cartes
-                </a>{' '}
-                <a className="bouton petit" href={lienItineraire(fuite.latitude, fuite.longitude)!} target="_blank" rel="noreferrer">
-                  Y aller
-                </a>
-              </dd>
-            </>
-          )}
-          {fuite.motif_sans_reparation && (<><dt>Motif</dt><dd>{fuite.motif_sans_reparation}</dd></>)}
-          {fuite.observation && (<><dt>Observation</dt><dd>{fuite.observation}</dd></>)}
-        </dl>
-        <div className="alertes">
-          {fuite.alerte_non_reparee && <span className="alerte">Non réparée depuis plus de {libelles.delaiReparationH} h</span>}
-          {fuite.alerte_communication_srm && <span className="alerte">Non communiquée à {libelles.sigle}</span>}
-          {fuite.refection_chaussee_hors_delai && <span className="alerte">Réfection chaussée hors délai</span>}
-          {fuite.alerte_refection_chaussee && !fuite.refection_chaussee_hors_delai && <span className="alerte">Réfection chaussée à faire</span>}
-          {fuite.alerte_refection_trottoir && <span className="alerte">Réfection trottoir à faire</span>}
-          {fuite.alerte_sans_photo && <span className="alerte">Aucune photo</span>}
-        </div>
-      </section>
-
+      </div>
+      {rapport && <p className="discret" role="status">{rapport}</p>}
+      <div className="alertes objet-alertes">
+        {fuite.alerte_non_reparee && <span className="alerte">Non réparée depuis plus de {libelles.delaiReparationH} h</span>}
+        {fuite.alerte_communication_srm && <span className="alerte">Non communiquée à {libelles.sigle}</span>}
+        {fuite.refection_chaussee_hors_delai && <span className="alerte orange">Réfection chaussée hors délai</span>}
+        {fuite.alerte_refection_chaussee && !fuite.refection_chaussee_hors_delai && <span className="alerte orange">Réfection chaussée à faire</span>}
+        {fuite.alerte_refection_trottoir && <span className="alerte orange">Réfection trottoir à faire</span>}
+        {fuite.alerte_sans_photo && <span className="alerte">Aucune photo</span>}
+      </div>
       {erreur && <p className="erreur">{erreur}</p>}
 
-      <Photos
-        photos={photos} fuiteId={id} marcheId={marche!.id} peutAjouter={peut('photos', 'creer')}
-        onChange={charger} onErreur={setErreur}
-      />
-
-      {(peut('fuites', 'modifier') || peutValider)
-        && (libelles.jalons || fuite.date_communication_srm || fuite.avis_terrassement_srm_le || fuite.validation_srm_le) && (
-        <section className="carte">
-          <h2>Suivi {libelles.sigle}</h2>
-          <ul className="simple">
-            <li>
-              Communiquée à {libelles.sigle} : <strong>{dateHeure(fuite.date_communication_srm)}</strong>{' '}
-              {!fuite.date_communication_srm && (
-                <button disabled={occupe} onClick={() => modifierFuite({ date_communication_srm: maintenant() })}>Marquer communiquée</button>
-              )}
-            </li>
-            <li>
-              Avis préalable avant terrassement : <strong>{dateHeure(fuite.avis_terrassement_srm_le)}</strong>{' '}
-              {!fuite.avis_terrassement_srm_le && (
-                <button disabled={occupe} onClick={() => modifierFuite({ avis_terrassement_srm_le: maintenant() })}>Avis obtenu</button>
-              )}
-            </li>
-            <li>
-              Validation {libelles.sigle} : <strong>{fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : '—'}</strong>{' '}
-              {!fuite.validation_srm_le && (
-                <button
-                  disabled={occupe}
-                  onClick={() => {
-                    const nom = window.prompt(`Nom du représentant ${libelles.sigle} présent :`);
-                    if (nom !== null) modifierFuite({ validation_srm_le: maintenant(), validation_srm_par: nom.trim() || null });
-                  }}
-                >
-                  Enregistrer la validation
-                </button>
-              )}
-            </li>
-          </ul>
-        </section>
-      )}
-
-      <section className="carte">
-        <div className="barre">
-          <h2>Réparations</h2>
-          {peut('interventions', 'creer') && formulaire !== 'reparation' && (
-            <button className="primaire" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('reparation')}>
-              + Réparation
-            </button>
-          )}
-        </div>
-        {reparations.length === 0 && <p className="discret">Aucune réparation saisie.</p>}
-        {reparations.map((r) => (
-          <div key={r.id} className="bloc">
-            <strong>
-              {r.resultat === 'reparee' ? 'Réparée' : r.resultat === 'en_cours' ? 'En cours' : 'Non réparée'} · {dateHeure(r.realisee_le)}
-            </strong>
-            <div className="discret">
-              {[r.ouvrage ? OUVRAGES[r.ouvrage] : null, r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null]
-                .filter(Boolean).join(' · ') || '—'}
-            </div>
-            <div>
-              {[r.tuyau_repare && 'tuyau réparé', r.robinet_pec_change && 'robinet PEC changé', r.collier_pec_change && 'collier PEC changé',
-                r.bouche_a_cle_mise_a_niveau && 'bouche à clé mise à niveau', r.element_remplace && 'élément remplacé']
-                .filter(Boolean).join(', ')}
-            </div>
-            {r.volume_m3 != null && (
-              <div>Fouille {nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = {nombre(r.volume_m3, 3)} m³ ({r.emplacement ? EMPLACEMENTS[r.emplacement] : '—'})</div>
-            )}
-            {r.observation && <div className="discret">{r.observation}</div>}
+      {/* Frise des étapes */}
+      <section className="carte frise" aria-label="Étapes">
+        {etapes.map(([libelle, date]) => (
+          <div key={libelle} className={`etape ${date ? 'fait' : ''}`}>
+            <span className="etape-libelle">{libelle}</span>
+            <span className="etape-date">{date ? dateHeure(date) : '—'}</span>
           </div>
         ))}
-        {formulaire === 'reparation' && (
-          <FormReparation
-            marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs} pieces={pieces} profils={profils}
-            avance={peutValider} onFini={() => { setFormulaire(''); charger(); }} onAnnuler={() => setFormulaire('')}
-          />
-        )}
       </section>
 
-      {(reparations.length > 0 || refections.length > 0) && (
-        <section className="carte">
-          <div className="barre">
-            <h2>Réfections</h2>
-            {peut('interventions', 'creer') && formulaire !== 'refection' && (
-              <button className="primaire" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('refection')}>
-                + Réfection
-              </button>
-            )}
-          </div>
-          {refections.length === 0 && <p className="discret">Aucune réfection saisie.</p>}
-          {refections.map((r) => (
-            <div key={r.id} className="bloc">
-              <strong>{r.resultat === 'faite' ? 'Réfection faite' : 'Clôturée sans réfection'} · {dateHeure(r.realisee_le)}</strong>
-              {r.resultat === 'faite' ? (
-                <div>{natureLibelle(r.nature_id)} · {nombre(r.longueur_m)} × {nombre(r.largeur_m)} m = {nombre(r.surface_m2, 3)} m²</div>
-              ) : (
-                <div>Motif : {motifLibelle(r.motif_id)}</div>
-              )}
-              {r.observation && <div className="discret">{r.observation}</div>}
-            </div>
-          ))}
-          {formulaire === 'refection' && (
-            <FormRefection
-              marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs}
-              avance={peutValider}
-              onFini={() => { setFormulaire(''); charger(); }} onAnnuler={() => setFormulaire('')}
-            />
+      <div className="fiche-grille">
+        <div className="colonne">
+          <section className="carte">
+            <h2>Identification</h2>
+            <dl className="dl4">
+              <dt>Origine</dt><dd>{fuite.origine === 'srm' ? `Signalée par ${libelles.sigle}` : 'Détection de l\'entreprise'}</dd>
+              <dt>Ouvrage</dt><dd>{fuite.ouvrage ? OUVRAGES[fuite.ouvrage] : '—'}{fuite.visibilite ? ` (${fuite.visibilite})` : ''}</dd>
+              <dt>Zone</dt><dd>{fuite.zone ?? '—'}</dd>
+              <dt>Secteur</dt><dd>{fuite.secteur ?? '—'}</dd>
+              <dt>{libelles.reference}</dt><dd>{fuite.reference_srm ?? '—'}</dd>
+              <dt>Détectée</dt><dd>{dateHeure(fuite.date_detection)}{fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''}</dd>
+              <dt>Adresse</dt><dd className="large">{fuite.adresse ?? '—'}</dd>
+              <dt>Coordonnées GPS</dt>
+              <dd className="large">
+                {fuite.latitude != null && fuite.longitude != null ? (
+                  <>
+                    <span className="coord">{fuite.latitude.toFixed(6)} ; {fuite.longitude.toFixed(6)}</span> ·{' '}
+                    <a href={`https://www.google.com/maps?q=${fuite.latitude},${fuite.longitude}`} target="_blank" rel="noreferrer">Carte</a> ·{' '}
+                    <a href={itineraire!} target="_blank" rel="noreferrer">Itinéraire ›</a>
+                  </>
+                ) : 'Non relevées'}
+              </dd>
+              {fuite.motif_sans_reparation && (<><dt>Motif</dt><dd className="large">{fuite.motif_sans_reparation}</dd></>)}
+              {fuite.observation && (<><dt>Observation</dt><dd className="large">{fuite.observation}</dd></>)}
+            </dl>
+          </section>
+
+          {(peut('fuites', 'modifier') || peutValider) && jalons && (
+            <section className="carte">
+              <h2>Suivi {libelles.sigle}</h2>
+              <dl className="dl4 jalons">
+                <dt>Communiquée</dt>
+                <dd className="large">
+                  {fuite.date_communication_srm ? dateHeure(fuite.date_communication_srm) : (
+                    <button className="petit" disabled={occupe} onClick={() => modifierFuite({ date_communication_srm: maintenant() })}>Marquer communiquée</button>
+                  )}
+                </dd>
+                <dt>Avis avant terrassement</dt>
+                <dd className="large">
+                  {fuite.avis_terrassement_srm_le ? dateHeure(fuite.avis_terrassement_srm_le) : (
+                    <button className="petit" disabled={occupe} onClick={() => modifierFuite({ avis_terrassement_srm_le: maintenant() })}>Avis obtenu</button>
+                  )}
+                </dd>
+                <dt>Validation</dt>
+                <dd className="large">
+                  {fuite.validation_srm_le ? `${dateHeure(fuite.validation_srm_le)}${fuite.validation_srm_par ? ` (${fuite.validation_srm_par})` : ''}` : (
+                    <button
+                      className="petit"
+                      disabled={occupe}
+                      onClick={() => {
+                        const nom = window.prompt(`Nom du représentant ${libelles.sigle} présent :`);
+                        if (nom !== null) modifierFuite({ validation_srm_le: maintenant(), validation_srm_par: nom.trim() || null });
+                      }}
+                    >
+                      Enregistrer la validation
+                    </button>
+                  )}
+                </dd>
+              </dl>
+            </section>
           )}
-        </section>
-      )}
 
-      {quantites.length > 0 && (
-        <section className="carte">
-          <h2>Quantités et prix du bordereau</h2>
-          <div className="defilement">
-            <table>
-              <thead>
-                <tr><th>Prix</th><th>Désignation</th><th>Qté</th><th>PU HT</th><th>Montant HT</th></tr>
-              </thead>
-              <tbody>
-                {quantites.map((l) => (
-                  <LigneQuantite key={l.id} ligne={l} modifiable={peut('quantites', 'modifier')} onChange={charger} onErreur={setErreur} />
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={4}>
-                    Total HT aux prix du bordereau{marche?.taux_majoration ? ` (hors majoration de ${marche.taux_majoration} %)` : ''}
-                  </td>
-                  <td>{montant(totalHt)}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {(peutValider || peut('fuites', 'supprimer')) && (
-        <section className="carte">
-          <h2>Responsable</h2>
-          <div className="actions">
-            {peutValider && (
-              <>
-                <button disabled={occupe} onClick={() => modifierFuite({ verrouillee_le: verrouillee ? null : maintenant() })}>
-                  {verrouillee ? 'Déverrouiller' : 'Valider et verrouiller'}
+          <section className="carte">
+            <div className="barre">
+              <h2>Réparation{reparations.length > 1 ? 's' : ''}</h2>
+              {peut('interventions', 'creer') && formulaire !== 'reparation' && (
+                <button className="petit" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('reparation')}>
+                  + Réparation
                 </button>
-                <label className="ligne">
-                  Statut :
-                  <select value={fuite.statut} disabled={occupe} onChange={(e) => modifierFuite({ statut: e.target.value as StatutFuite })}>
-                    {(Object.keys(STATUTS) as StatutFuite[]).map((s) => (
-                      <option key={s} value={s} disabled={s === 'sans_reparation' && !fuite.motif_sans_reparation}>{STATUTS[s].libelle}</option>
+              )}
+            </div>
+            {reparations.length === 0 && <p className="discret">Aucune réparation saisie.</p>}
+            {reparations.map((r) => (
+              <div key={r.id} className="bloc-objet">
+                <div className="bloc-objet-tete">
+                  <strong>{r.resultat === 'reparee' ? 'Réparée' : r.resultat === 'en_cours' ? 'En cours / reste à finir' : 'Non réparée'}</strong>
+                  <span className="discret">{dateHeure(r.realisee_le)}{nomEquipe(r.equipe_id) ? ` · ${nomEquipe(r.equipe_id)}` : ''}</span>
+                </div>
+                <dl className="dl4">
+                  <dt>Chef d&apos;équipe</dt><dd>{nomProfil(r.auteur_terrain_id) ?? '—'}</dd>
+                  <dt>Ouvriers</dt><dd>{liens.ouvriers[r.id]?.join(', ') || '—'}</dd>
+                  <dt>Matériau</dt>
+                  <dd>{[r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null].filter(Boolean).join(' ') || '—'}</dd>
+                  <dt>Ouvrage</dt><dd>{r.ouvrage ? OUVRAGES[r.ouvrage] : '—'}</dd>
+                  <dt>Travaux</dt>
+                  <dd className="large">
+                    {[r.tuyau_repare && 'tuyau réparé', r.robinet_pec_change && 'robinet PEC changé', r.collier_pec_change && 'collier PEC changé',
+                      r.bouche_a_cle_mise_a_niveau && 'bouche à clé mise à niveau', r.element_remplace && 'élément remplacé']
+                      .filter(Boolean).join(', ') || '—'}
+                  </dd>
+                  <dt>Fouille</dt>
+                  <dd>{r.volume_m3 != null
+                    ? <>{nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = <b>{nombre(r.volume_m3, 3)} m³</b></>
+                    : '—'}</dd>
+                  <dt>Emplacement</dt><dd>{r.emplacement ? EMPLACEMENTS[r.emplacement] : '—'}</dd>
+                  {liens.pieces[r.id]?.length ? (<><dt>Pièces posées</dt><dd className="large">{liens.pieces[r.id].join(' · ')}</dd></>) : null}
+                  {r.representant_srm && (<><dt>Représentant {libelles.sigle}</dt><dd className="large">{r.representant_srm}</dd></>)}
+                  {r.motif_id && (<><dt>Motif</dt><dd className="large">{motifLibelle(r.motif_id)}</dd></>)}
+                  {r.observation && (<><dt>Observation</dt><dd className="large">{r.observation}</dd></>)}
+                </dl>
+              </div>
+            ))}
+            {formulaire === 'reparation' && (
+              <FormReparation
+                marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs} pieces={pieces} profils={profils}
+                avance={peutValider} onFini={() => { setFormulaire(''); charger(); }} onAnnuler={() => setFormulaire('')}
+              />
+            )}
+          </section>
+
+          {quantites.length > 0 && (
+            <section className="carte carte-tableau">
+              <div className="barre">
+                <h2>Quantités du bordereau</h2>
+                {marche?.taux_majoration ? <span className="discret">hors majoration de {marche.taux_majoration} %</span> : null}
+              </div>
+              <div className="defilement">
+                <table>
+                  <thead>
+                    <tr><th>Prix</th><th>Désignation</th><th>Qté</th><th className="num">PU HT</th><th className="num">Montant HT</th></tr>
+                  </thead>
+                  <tbody>
+                    {quantites.map((l) => (
+                      <LigneQuantite key={l.id} ligne={l} modifiable={peut('quantites', 'modifier')} onChange={charger} onErreur={setErreur} />
                     ))}
-                  </select>
-                </label>
-              </>
-            )}
-            {peut('fuites', 'supprimer') && (
-              <button
-                className="danger"
-                disabled={occupe}
-                onClick={async () => {
-                  if (!window.confirm('Supprimer cette fuite ? (elle sera masquée, la trace reste dans le journal)')) return;
-                  const { error } = await getSupabase().from('fuites').update({ supprime_le: maintenant() }).eq('id', id);
-                  if (error) setErreur(messageErreur(error));
-                  else router.replace('/fuites');
-                }}
-              >
-                Supprimer
-              </button>
-            )}
-          </div>
-        </section>
-      )}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan={4}>Total HT ({libelles.devise})</td>
+                      <td className="num">{montant(totalHt)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </section>
+          )}
+
+          {(peutValider || peut('fuites', 'supprimer')) && (
+            <section className="carte">
+              <h2>Responsable</h2>
+              <div className="actions">
+                {peutValider && (
+                  <label className="ligne">
+                    Statut
+                    <select value={fuite.statut} disabled={occupe} onChange={(e) => modifierFuite({ statut: e.target.value as StatutFuite })}>
+                      {(Object.keys(STATUTS) as StatutFuite[]).map((s) => (
+                        <option key={s} value={s} disabled={s === 'sans_reparation' && !fuite.motif_sans_reparation}>{STATUTS[s].libelle}</option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {peut('fuites', 'supprimer') && (
+                  <button
+                    className="danger"
+                    disabled={occupe}
+                    onClick={async () => {
+                      if (!window.confirm('Supprimer cette fuite ? (elle sera masquée, la trace reste dans le journal)')) return;
+                      const { error } = await getSupabase().from('fuites').update({ supprime_le: maintenant() }).eq('id', id);
+                      if (error) setErreur(messageErreur(error));
+                      else router.replace('/fuites');
+                    }}
+                  >
+                    Supprimer
+                  </button>
+                )}
+              </div>
+            </section>
+          )}
+        </div>
+
+        <div className="colonne">
+          <Photos
+            photos={photos} fuiteId={id} marcheId={marche!.id} peutAjouter={peut('photos', 'creer')}
+            onChange={charger} onErreur={setErreur}
+          />
+
+          {(reparations.length > 0 || refections.length > 0) && (
+            <section className="carte">
+              <div className="barre">
+                <h2>Réfection{refections.length > 1 ? 's' : ''}</h2>
+                {peut('interventions', 'creer') && formulaire !== 'refection' && (
+                  <button className="petit" disabled={verrouillee && !peut('interventions', 'valider')} onClick={() => setFormulaire('refection')}>
+                    + Réfection
+                  </button>
+                )}
+              </div>
+              {refections.length === 0 && <p className="discret">Aucune réfection saisie.</p>}
+              {refections.map((r) => (
+                <dl key={r.id} className="dl2 bloc-objet">
+                  <dt>Date</dt><dd>{dateHeure(r.realisee_le)}</dd>
+                  {r.resultat === 'faite' ? (
+                    <>
+                      <dt>Nature</dt><dd>{natureLibelle(r.nature_id)}</dd>
+                      <dt>Surface</dt><dd>{nombre(r.longueur_m)} × {nombre(r.largeur_m)} m = <b>{nombre(r.surface_m2, 3)} m²</b></dd>
+                    </>
+                  ) : (
+                    <><dt>Résultat</dt><dd>Clôturée sans réfection : {motifLibelle(r.motif_id)}</dd></>
+                  )}
+                  {r.observation && (<><dt>Observation</dt><dd>{r.observation}</dd></>)}
+                </dl>
+              ))}
+              {formulaire === 'refection' && (
+                <FormRefection
+                  marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs}
+                  avance={peutValider}
+                  onFini={() => { setFormulaire(''); charger(); }} onAnnuler={() => setFormulaire('')}
+                />
+              )}
+            </section>
+          )}
+
+          <section className="carte">
+            <h2>Historique</h2>
+            <ul className="historique">
+              {historique.map(([date, texte], i) => (
+                <li key={i}><b>{dateHeure(date)}</b> · {texte}</li>
+              ))}
+            </ul>
+          </section>
+        </div>
+      </div>
     </>
   );
 }
@@ -394,12 +497,13 @@ function Photos({
 
   return (
     <section className="carte">
-      <h2>Photos ({photos.length})</h2>
-      <div className="vignettes">
+      <div className="barre"><h2>Photos</h2><span className="discret">{photos.length}</span></div>
+      {photos.length === 0 && <p className="discret">Aucune photo.</p>}
+      <div className="galerie">
         {photos.map((p) => (
-          <figure key={p.id} className="vignette">
+          <figure key={p.id} className="galerie-photo">
             {p.url ? (
-              <a href={p.url} target="_blank" rel="noreferrer">
+              <a href={p.url} target="_blank" rel="noreferrer" title={`${TYPES_PHOTO[p.type] ?? p.type} · ${dateHeure(p.prise_le)}`}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={p.url} alt={TYPES_PHOTO[p.type] ?? p.type} loading="lazy" />
               </a>
@@ -411,8 +515,8 @@ function Photos({
         ))}
       </div>
       {peutAjouter && (
-        <div className="actions">
-          <select value={type} onChange={(e) => setType(e.target.value)}>
+        <div className="actions ajout-photo">
+          <select value={type} onChange={(e) => setType(e.target.value)} aria-label="Type de photo">
             {Object.entries(TYPES_PHOTO).map(([k, v]) => (<option key={k} value={k}>{v}</option>))}
           </select>
           <input ref={champ} type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => ajouter(e.target.files)} />

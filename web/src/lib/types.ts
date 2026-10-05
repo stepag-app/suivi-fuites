@@ -108,6 +108,10 @@ export interface Reparation {
   observation: string | null;
   source_saisie: string;
   auteur_terrain_id: string | null;
+  equipe_id?: string | null;
+  motif_id?: string | null;
+  representant_srm?: string | null;
+  nature_revetement_id?: string | null;
 }
 
 export interface Refection {

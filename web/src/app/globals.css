@@ -420,3 +420,56 @@ tr.ligne-cliquable { cursor: pointer; }
 .connexion { border-top: 4px solid var(--shell); padding: 1.4rem 1.4rem 1.2rem; }
 .connexion h1 { display: flex; align-items: center; gap: 0.55rem; }
 .connexion h1::before { content: ""; width: 1.1rem; height: 1.1rem; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--principal); flex: none; }
+
+/* Fiche d'une fuite (« object page » Fiori) : en-tête, frise, deux colonnes */
+.fil-ariane { margin: 0 0 0.5rem; color: var(--discret); font-size: 0.93rem; }
+.fil-ariane a { text-decoration: none; }
+.fil-ariane b { color: var(--texte); font-weight: 600; }
+.objet-entete { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 0.6rem 1rem; margin-bottom: 0.4rem; }
+.objet-titre { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 0.8rem; min-width: 0; }
+.objet-titre h1 { margin: 0; }
+.objet-alertes:empty { display: none; }
+.objet-alertes { margin: 0 0 0.6rem; }
+.frise { display: flex; padding: 1rem 0.6rem 0.8rem; margin-top: 0.4rem; overflow-x: auto; }
+.etape { flex: 1 0 7.5rem; display: grid; justify-items: center; gap: 0.1rem; text-align: center; position: relative; padding-top: 1.35rem; font-size: 0.86rem; color: var(--discret); }
+.etape::before { content: ""; position: absolute; top: 0.45rem; left: 0; right: 0; height: 2px; background: var(--bord); }
+.etape:first-child::before { left: 50%; }
+.etape:last-child::before { right: 50%; }
+.etape::after { content: ""; position: absolute; top: 0; left: calc(50% - 0.5rem); width: 1rem; height: 1rem; border-radius: 50%; background: var(--carte); border: 2px solid var(--bord); box-sizing: border-box; }
+.etape.fait { color: var(--texte); }
+.etape.fait::before { background: var(--st-positif); }
+.etape.fait::after { background: var(--st-positif); border-color: var(--st-positif); }
+.etape-libelle { font-weight: 600; }
+.etape-date { color: var(--discret); font-variant-numeric: tabular-nums; }
+.fiche-grille { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr); gap: 0 0.9rem; align-items: start; }
+.fiche-grille .colonne { min-width: 0; }
+@media (max-width: 1000px) { .fiche-grille { grid-template-columns: minmax(0, 1fr); } }
+/* Paires libellé / valeur sur deux colonnes (une seule sur écran étroit) */
+.dl4 { display: grid; grid-template-columns: minmax(7rem, max-content) minmax(0, 1fr) minmax(7rem, max-content) minmax(0, 1fr); margin: 0; }
+.dl4 dt, .dl4 dd, .dl2 dt, .dl2 dd { margin: 0; padding: 0.45rem 0.6rem; border-bottom: 1px solid var(--bord-doux); }
+.dl4 dt, .dl2 dt { color: var(--discret); }
+.dl4 dd.large { grid-column: span 3; }
+.dl4.jalons dd { padding-block: 0.3rem; }
+.dl2 { display: grid; grid-template-columns: minmax(6rem, max-content) minmax(0, 1fr); margin: 0; }
+@media (max-width: 640px) {
+  .dl4 { grid-template-columns: minmax(6.5rem, max-content) minmax(0, 1fr); }
+  .dl4 dd.large { grid-column: auto; }
+}
+.coord { font-family: var(--police-chiffres); font-size: 0.93rem; }
+.bloc-objet { padding-top: 0.6rem; }
+.bloc-objet + .bloc-objet { border-top: 1px solid var(--bord); margin-top: 0.6rem; }
+.bloc-objet-tete { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 0.3rem 1rem; margin-bottom: 0.2rem; }
+.carte-tableau table td, .carte-tableau table th { padding-inline: 0.5rem; }
+.historique { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.35rem; font-size: 0.93rem; }
+.historique b { font-variant-numeric: tabular-nums; }
+.galerie { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+.galerie-photo { margin: 0; position: relative; aspect-ratio: 4 / 3; border-radius: var(--rayon-petit); overflow: hidden; background: #eaecee; }
+.galerie-photo a, .galerie-photo img { display: block; width: 100%; height: 100%; }
+.galerie-photo img { object-fit: cover; }
+.galerie-photo .vide { width: 100%; height: 100%; display: grid; place-items: center; color: var(--discret); font-size: 0.86rem; }
+.galerie-photo figcaption {
+  position: absolute; left: 0.35rem; bottom: 0.35rem; padding: 0.05rem 0.4rem; border-radius: 4px;
+  background: rgba(15, 25, 35, 0.72); color: #fff; font-size: 0.78rem; pointer-events: none;
+}
+.ajout-photo select { width: auto; flex: 1 1 10rem; margin: 0; }
+@media (pointer: coarse) { button.petit { min-height: 40px; } }

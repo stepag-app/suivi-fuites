@@ -50,9 +50,9 @@ archives ; trois défauts de l'export de la sauvegarde toujours à corriger).
 | **Lot M : fiche déjà vue consultable sans réseau** (copie IndexedDB, photos 1 024 px par identifiant, 50 fiches / 400 photos, effacées à la déconnexion, lecture seule hors ligne ; page « coquille » du service worker pour `/fuites/<uuid>`) | `web/src/app/(app)/fuites/[id]/` (page découpée : `donnees.ts`, `copie.ts`, `fiche-hors-ligne.ts`, `formulaires.tsx`), `web/src/lib/hors-ligne.ts`, `web/public/sw.js` ; `web/scripts/verifier-fiche-hors-ligne.mjs` (20 vérifications) | PR [#29](https://github.com/stepag-app/suivi-fuites/pull/29) **fusionnée** le 2026-10-05 ; tsc et build verts en local ; CI GitHub bloquée par un incident Actions le 2026-10-05 (relancée) ; **service worker et photos hors ligne non vérifiés dans un navigateur : à essayer en mode avion** |
 | Intégration des PR #27, #28, #29 : fusion ensemble sans conflit, tsc, build et les 3 scripts web verts (15 + 20 + 15) | — | vérifié le 2026-10-05 |
 | **Lot Q : matrice des droits et verrous de l'administrateur** : Utilisateurs > Droits, utilisateurs en colonnes et droits en lignes (une ligne = une colonne de `droits`), modèles par colonne, enregistrement journalisé ; l'admin a tout (colonne grisée) et peut se poser des **verrous** refusés par la base (arrêter / rouvrir un lot, refacturation forcée, supprimer une fuite, désactiver / copier un marché, révoquer un compte, et toute ligne de la matrice), sans refermeture automatique ; révocation : la base d'abord, puis la fonction serveur | migration `20261006100000_droits_verrous.sql` ; `web/src/app/(app)/utilisateurs/` ; 68 tests pgTAP (`09`) ; `web/scripts/verifier-matrice-droits.mjs` | PR [#31](https://github.com/stepag-app/suivi-fuites/pull/31) **en brouillon**, CI verte ; à fusionner avec le panneau web (le circuit de révocation change) ; APK : boutons sans connaissance des verrous (la base refuse) |
-| **Lot R : contrôles et corrections à l'attachement** : pièces « ajoutées au bureau » (celles du réparateur font foi), requalification et ajout de lignes avec **motif obligatoire** (article d'origine gardé, jamais reproposé), une unité par prix et par fuite y compris en manuel ; 10 contrôles (robinet / collier PEC posé sans la case et l'inverse, fouille sans volume, réparation sans prix, réfection en retard, ligne incohérente, PE au-delà de 2 m, réparation sans article) ; page **Travaux hors bordereau à faire valoir** | migration `20261006100100_controles_attachement.sql` ; `web/src/app/(app)/attachements/` (`controles.ts`, `hors-bordereau/`, `[id]/CorrectionsFuite.tsx`) ; 67 tests pgTAP (`10`) | PR [#32](https://github.com/stepag-app/suivi-fuites/pull/32) **en brouillon**, CI verte ; écrans non vus connectés : **à essayer sur l'aperçu** (DEMO : fuites N° 9, 10, 18) |
+| **Lot R : contrôles et corrections à l'attachement** : les pièces du réparateur font foi (« terrain », sans délai) ; corrections du bureau selon leur nature, avec **motif obligatoire** : **remplacement** d'une pièce erronée, **oubli**, **retrait** d'une pièce non posée (saisie d'origine gardée, barrée) ; vue **`v_pieces_reelles`** (inventaire réel) ; requalification et ajout de lignes de prix avec motif (article d'origine gardé, jamais reproposé), une unité par prix et par fuite y compris en manuel ; **seuil du PE réglable par marché** (2 m par défaut) ; 10 contrôles ; page **Travaux hors bordereau à faire valoir** | migration `20261006100100_controles_attachement.sql` ; `web/src/app/(app)/attachements/` (`controles.ts`, `hors-bordereau/`, `[id]/CorrectionsFuite.tsx`, `[id]/PiecesFuite.tsx`) ; Paramètres > Marché ; 110 tests pgTAP (`10`) | PR [#32](https://github.com/stepag-app/suivi-fuites/pull/32) **en brouillon**, CI verte ; écrans non vus connectés : **à essayer sur l'aperçu** (DEMO : fuites N° 9, 10, 18) ; APK : pièces remplacées ou retirées encore affichées comme normales (lot APK à prévoir) |
 | **Lot P1 : nomenclature Dolibarr** : `produits_dolibarr` (sans prix), import de `produits.csv` dans le navigateur (familles RAC, CND, ROB, AEP, VRI par défaut), rapprochement des pièces du catalogue par l'**identifiant produit** (référence en option ; diamètres et filetages identiques obligatoires), écran de validation, ajout de produits ; **le réparateur ne voit que la désignation** (APK inchangée) | migration `20261006100200_nomenclature_dolibarr.sql` ; Paramètres > Nomenclature Dolibarr ; `web/src/lib/nomenclature/` ; 43 tests pgTAP (`11`) | PR [#33](https://github.com/stepag-app/suivi-fuites/pull/33) **en brouillon**, CI verte ; sur l'export du 2026-10-05 : 113 sûres, 58 probables, 90 sans correspondance ; **après fusion : importer `produits.csv` et rapprocher** |
-| Intégration des PR #31, #32, #33 : fusion sans conflit de fichiers ; `copier_marche` redéfinie par Q et P1, réconciliée par la migration `20261006100300` ; boutons de l'admin (rouvrir, refacturation forcée, désactiver, copier) grisés « verrouillé par vous » ; **454 tests pgTAP**, tsc, build et 7 scripts verts | branche `claude/integration-q-r` | vérifié le 2026-10-06 ; à fusionner **après** #31, #32, #33 |
+| Intégration des PR #31, #32, #33 : fusion sans conflit de fichiers ; `copier_marche` redéfinie par Q et P1, réconciliée par la migration `20261006100300` (verrou, liens Dolibarr, seuil du PE copié) ; boutons de l'admin (rouvrir, refacturation forcée, désactiver, copier) grisés « verrouillé par vous » ; rapport PDF par fuite sans les pièces remplacées ou retirées ; libellé neutre au tableau de bord ; **497 tests pgTAP**, tsc, build et 7 scripts verts | PR [#35](https://github.com/stepag-app/suivi-fuites/pull/35) | vérifié le 2026-10-06 ; à fusionner **après** #31, #32, #33 |
 | Archivage : dossier du marché 4500004453 (documents, rapports, plans, **`Reseau aep oujda.dwg`**) et ancien dossier `Suivi-fuites-ancien` | `data-private/archives/` (ignoré par git, 359 Mo) | fait le 2026-10-05 |
 | Export Dolibarr (lecture seule, sans prix) : produits, entrepôts, mouvements du chantier | `data-private/dolibarr/` (ignoré par git ; `RAPPORT.md`) | reçu le 2026-10-05 ; entrepôt du chantier **76**, projet **40**, sorties par **bons de transfert** depuis le dépôt 1 ; aucune consommation saisie |
 
@@ -62,9 +62,12 @@ archives ; trois défauts de l'export de la sauvegarde toujours à corriger).
 - **Essais des PR #31, #32, #33** (aperçus Vercel ; DEMO), réponses aux questions ci-dessous, puis dire « fusionner » :
   ordre **#31 → #32 → #33 → intégration** (le déploiement refuse une migration plus ancienne que la dernière appliquée).
   Après fusion : Paramètres > Nomenclature Dolibarr > importer `produits.csv`, puis rapprocher le catalogue de chaque marché.
-- **Questions du lot R** : (1) le bureau peut-il encore modifier ou retirer une pièce déclarée sur le terrain, ou
-  seulement en ajouter ? (2) délai de 15 min pendant lequel une saisie du même compte compte comme « terrain » (fiche
-  papier recopiée) ; (3) seuil de 2 m du PE fixe (CPS) ou réglable par marché ?
+- **Lot R, réponses d'Issam du 2026-10-06 appliquées** : corrections du bureau selon leur nature (remplacement, oubli,
+  retrait), pas de délai, seuil du PE réglable par marché. Reste à confirmer : le responsable qui recopie une fiche papier
+  est l'auteur de la réparation, ses pièces restent « terrain » même plus tard.
+- **Défaut antérieur à corriger** (migration ultérieure) : `private.peut(…)` renvoie `null` et non `false` quand l'auteur
+  d'une saisie est inconnu ; `avant_modification_saisie` ne bloque donc pas un chef qui modifie la saisie d'un autre
+  (le lot R le couvre pour les pièces seulement).
 - **Questions du lot P1** : « BU » = « BIYOU » ? « ASTOR » traité comme une marque ? 6 libellés en double dans les
   familles RAC à VRI à corriger dans Dolibarr.
 - **Dans Dolibarr** (relevé par l'export) : bons 6804 et 6814 arrivés dans l'entrepôt 76 mais rattachés au projet 30
@@ -116,11 +119,13 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
   réparation (CPS art. II-15) : pas d'étiquette « facturable / non facturable ». La liste des pièces posables est la
   **nomenclature de Dolibarr**, rapprochée par l'**identifiant produit** (référence en option) ; le réparateur ne voit
   **jamais de code**, seulement la désignation. **Le réparateur fait foi** pour ce qu'il a posé (fiche et inventaire).
-  À l'attachement, le responsable et l'admin peuvent ajouter des pièces (marquées « ajoutées au bureau »), ajouter des
-  lignes et requalifier une ligne, **motif obligatoire**. Une réparation = une unité par prix (deux joints sur un
+  À l'attachement, le responsable et l'admin corrigent les pièces selon leur **intention** (remplacement d'une pièce
+  erronée, oubli, retrait d'une pièce non posée ; l'inventaire reflète le réel, la saisie d'origine reste visible),
+  ajoutent des lignes et requalifient une ligne de prix, **motif obligatoire** ; pas de délai : la pièce saisie par
+  l'auteur de la réparation est « terrain ». Une réparation = une unité par prix (deux joints sur un
   même élément = un seul prix 11 à 13) ; aucune facturation artificielle ; cumul légitime de prix différents
   (6 ou 9 + 7 ou 8 + terrassement + réfection) quand les travaux ont eu lieu ; deux ruptures distinctes = deux fuites liées.
-- **Polyéthylène au-delà de 2 m** : pas de prix au bordereau (prix 6 et 9 jusqu'à 2 m) ; l'excédent est listé dans
+- **Polyéthylène au-delà du seuil** (2 m par défaut, **réglable par marché**) : pas de prix au bordereau ; l'excédent est listé dans
   « Travaux hors bordereau à faire valoir », pour demander un prix nouveau à la SRM ; rien n'est facturé automatiquement.
 - **Droits** : réglés par utilisateur dans la matrice (Utilisateurs > Droits) ; l'admin a tout et se pose lui-même des
   verrous de sécurité, **sans refermeture automatique**.
@@ -245,8 +250,8 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : tout jusqu'à la PR #30 est fusionné et déployé. Lots Q, R, P1 en PR brouillon #31 à #33, plus la branche
-claude/integration-q-r (réconciliation de copier_marche, boutons verrouillés) et la PR de documentation : vérifie leur
+Contexte : tout jusqu'à la PR #30 est fusionné et déployé. Lots Q, R, P1 en PR brouillon #31 à #33, plus la PR #35
+(intégration : réconciliation de copier_marche, boutons verrouillés, correctifs) et la PR de documentation #34 : vérifie leur
 état et la CI ; fusionne celles qu'Issam a validées, dans l'ordre #31, #32, #33, intégration, puis vérifie le workflow
 « Déploiement de la base ». Ensuite : corriger l'export de la sauvegarde (3 défauts), lots P3 et P4 (voir § 5).
 Le plan DWG est archivé dans data-private/archives/ : migration 2 après confirmation du système de coordonnées.

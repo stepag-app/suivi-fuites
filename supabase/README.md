@@ -26,9 +26,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261005120000_logos_marche.sql` | lot F : logos du marché (compartiment privé `logos`, PNG ou JPEG, 2 Mo ; `<marche_id>/titulaire\|maitre_ouvrage.png\|jpg` dans `marches.logo_titulaire` / `logo_maitre_ouvrage` ; lecture « exports / lire » ou « paramètres / lire », écriture « paramètres / modifier ») ; non copiés par `copier_marche` |
 | `migrations/20261005120100_marche_inactif.sql` | lot J : marché désactivé en lecture seule (`peut` et `marches_autorises` exigent un marché actif pour toute action autre que « lire ») ; l'administrateur garde la main |
 | `migrations/20261006100000_droits_verrous.sql` | lot Q : verrous de sécurité de l'administrateur (`verrous_admin`, journalisés) pris en compte par `private.peut` et `private.marches_autorises` ; contrôle explicite des actions sensibles (supprimer une fuite, arrêter / rouvrir un lot, refacturation forcée, désactiver / copier un marché, révoquer un compte) ; fiche du marché et journal soumis aux verrous ; révocation par l'administrateur connecté seulement (service_role : blocage de connexion d'un profil déjà révoqué) ; `enregistrer_droits` (matrice d'un marché en une transaction) |
-| `migrations/20261006100100_controles_attachement.sql` | lot R : pièces « ajoutées au bureau » (`reparation_pieces.ajoutee_bureau`, `_par`, `_le`, posés par déclencheur ; ajout sur la réparation d'un autre : droit « interventions / modifier »), motif obligatoire de toute modification d'une ligne de quantités (`motif_modification` → `motif_correction`, `corrigee_par`, `corrigee_le`), article d'origine d'une ligne requalifiée (`prix_initial_id`, jamais reproposé), une unité par prix et par fuite pour les lignes manuelles, vues `v_controles_attachement` et `v_hors_bordereau` |
+| `migrations/20261006100100_controles_attachement.sql` | lot R : pièces posées avec provenance (`terrain` : saisie par l'auteur de la réparation, sans délai ; `correction` : autre compte, droit « interventions / modifier » sur la réparation d'un autre), nature de la correction (`remplacement` avec `remplace_piece_id`, `oubli`), état (`posee`, `remplacee`, `retiree`, jamais supprimées) et motif obligatoire, posés ou contrôlés par déclencheur ; vue `v_pieces_reelles` (inventaire réel) ; motif obligatoire de toute modification d'une ligne de quantités (`motif_modification` → `motif_correction`, `corrigee_par`, `corrigee_le`), article d'origine d'une ligne requalifiée (`prix_initial_id`, jamais reproposé), une unité par prix et par fuite pour les lignes manuelles ; `marches.longueur_pe_max_m` (seuil du polyéthylène, 2 m par défaut) ; vues `v_controles_attachement` et `v_hors_bordereau` ; `v_pieces_posees` et `v_fuites_export` sans les pièces remplacées ou retirées ; `v_anomalies` suit le seuil du marché |
 | `migrations/20261006100200_nomenclature_dolibarr.sql` | lot P1 : `produits_dolibarr` (nomenclature Dolibarr de l'entreprise, sans prix ; lecture admin et « paramètres / lire »), `imports_dolibarr`, `importer_produits_dolibarr` (admin, idempotent, absents rendus inactifs), lien `catalogue_pieces.produit_dolibarr_id` (unique par marché, désignation Dolibarr imposée, admin seulement), `hors_nomenclature`, `designation_initiale`, `rapprocher_pieces` (admin, en lot), `copier_marche` reprend les liens |
-| `migrations/20261006100300_reconciliation_copier_marche.sql` | `copier_marche` redéfinie par les lots Q et P1 : garde le verrou « créer un marché par copie » et la reprise des liens Dolibarr |
+| `migrations/20261006100300_reconciliation_copier_marche.sql` | `copier_marche` redéfinie par les lots Q et P1 : garde le verrou « créer un marché par copie », la reprise des liens Dolibarr et copie le seuil du polyéthylène du marché source |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) ; depuis le lot R, la correction de quantité du responsable porte un motif |
@@ -40,7 +40,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/07_logos.test.sql` | 37 tests du lot F (droits, noms imposés, isolation, agents de terrain refusés, copie sans logos) |
 | `tests/database/08_marche_inactif.test.sql` | 9 tests du lot J (écritures refusées sur un marché désactivé sauf administrateur, lecture conservée, réactivation) |
 | `tests/database/09_droits_verrous.test.sql` | 68 tests du lot Q (accès refusé aux non-administrateurs, matrice, chaque verrou bloque puis le retrait rétablit, service_role, journal) |
-| `tests/database/10_controles_attachement.test.sql` | 67 tests du lot R (pièces ajoutées au bureau, motif et journal, requalification, une unité par prix, lot arrêté figé, chaque contrôle, travaux hors bordereau, droits) |
+| `tests/database/10_controles_attachement.test.sql` | 110 tests du lot R (corrections des pièces : remplacement, oubli, retrait, motif, saisie d'origine gardée, pas de délai, inventaire réel, droits ; motif et journal des lignes, requalification, une unité par prix, lot arrêté figé, chaque contrôle, travaux hors bordereau, seuil du polyéthylène par marché) |
 | `tests/database/11_nomenclature_dolibarr.test.sql` | 43 tests du lot P1 (droits, aucun prix, import idempotent, lien et unicité, désactivation sans perte d'historique, journal, copie) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
@@ -194,16 +194,27 @@ n'est pas sauvegardé.
   motif obligatoire).
 - **Réouverture** : administrateur, dernier lot arrêté seulement, motif obligatoire.
 - **Récapitulatif** : quantité du marché, antérieur (lots arrêtés précédents), ce lot, cumul, %.
-- **Contrôles et corrections (lot R)** : le réparateur fait foi pour les pièces posées ; une pièce ajoutée après coup par
-  le bureau est marquée « ajoutée au bureau » (jamais payée à part : fournitures comprises dans les prix). Toute
-  modification d'une ligne de quantités par un utilisateur (ajout, article, quantité, suppression) exige un motif, gardé
-  avec son auteur et sa date (ancienne valeur au journal) ; l'article remplacé n'est plus reproposé par la règle
-  automatique ; une unité par prix et par fuite, lignes manuelles comprises (deux joints sur un même élément de conduite =
-  un seul prix 11 à 13). `v_controles_attachement` : 10 contrôles non bloquants (robinet / collier PEC posé sans la case
-  ou l'inverse, fouille sans volume, réparation sans prix de réparation, réfection en retard, ligne incohérente sans
-  motif, polyéthylène au-delà de 2 m, réparation sans article) ; `v_hors_bordereau` : travaux à faire valoir (excédent
-  de PE au-delà des 2 m des prix 6 et 9, réparation sans article, pièces non couvertes), à présenter à la SRM pour un prix
-  nouveau. Réservées aux droits « attachements / lire » et « quantités / lire ».
+- **Pièces posées : terrain et corrections (lot R)** : l'inventaire des fournitures posées reflète le réel du terrain.
+  Une pièce saisie par l'auteur de la réparation (auteur terrain, ou compte qui l'a saisie) est « terrain », à tout
+  moment et quel que soit le canal. Tout autre compte corrige selon son intention, avec un motif obligatoire contrôlé en
+  base et le droit « interventions / modifier » sur la réparation d'un autre : **remplacement** d'une pièce erronée
+  (nouvelle pièce avec `remplace_piece_id` ; l'ancienne reste en base, marquée « remplacée »), **oubli** (pièce
+  ajoutée), **retrait** d'une pièce non posée (marquée « retirée »). La saisie d'origine n'est jamais modifiée ni
+  supprimée par un autre compte ; une correction ne se modifie pas, elle se remplace ou se retire. Les pièces ne
+  changent jamais le montant (fournitures comprises dans les prix, CPS art. II-15) : la facture passe uniquement par les
+  lignes de prix et leur requalification avec motif. `v_pieces_reelles` : inventaire réel (ni remplacées ni retirées)
+  avec provenance, nature, motif et pièce remplacée, base du futur inventaire et du rapprochement avec Dolibarr ;
+  `v_pieces_posees`, l'export des fuites et le rapport PDF par fuite en sont tirés.
+- **Contrôles et corrections (lot R)** : toute modification d'une ligne de quantités par un utilisateur (ajout,
+  article, quantité, suppression) exige un motif, gardé avec son auteur et sa date (ancienne valeur au journal) ;
+  l'article remplacé n'est plus reproposé par la règle automatique ; une unité par prix et par fuite, lignes manuelles
+  comprises (deux joints sur un même élément de conduite = un seul prix 11 à 13). `v_controles_attachement` : 10
+  contrôles non bloquants (robinet / collier PEC posé sans la case ou l'inverse, fouille sans volume, réparation sans
+  prix de réparation, réfection en retard, ligne incohérente sans motif, polyéthylène au-delà du seuil du marché,
+  réparation sans article) ; `v_hors_bordereau` : travaux à faire valoir (excédent de PE au-delà du seuil des prix 6
+  et 9, réparation sans article, pièces non couvertes de l'inventaire réel), à présenter à la SRM pour un prix nouveau.
+  Réservées aux droits « attachements / lire » et « quantités / lire ». Seuil du polyéthylène :
+  `marches.longueur_pe_max_m` (Paramètres > Marché, 2 m par défaut, copié avec le marché), aussi suivi par `v_anomalies`.
 
 ## Nomenclature Dolibarr (lot P1)
 

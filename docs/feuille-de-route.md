@@ -43,6 +43,16 @@ Lots F à J fusionnés le 2026-10-05 (session 6). Session 6, lots en parallèle,
 | M. Fiche hors ligne | fiche déjà vue consultable sans réseau (données et photos en cache, lecture seule) | #29 |
 | N. Photos sur R2 | **non lancé** : secrets R2 absents de GitHub | — |
 
+Lots K, L, M fusionnés le 2026-10-05. Suite de la session 6, PR **en brouillon** :
+
+| Lot | Contenu | PR |
+|---|---|---|
+| Q. Matrice des droits | utilisateurs en colonnes, droits en lignes ; verrous de sécurité de l'admin | #31 |
+| R. Contrôles à l'attachement | pièces ajoutées au bureau, requalification avec motif, oublis probables, travaux hors bordereau | #32 |
+| P1. Nomenclature Dolibarr | import `produits.csv`, rapprochement par identifiant produit, validation ; désignation seule pour le réparateur | #33 |
+| P3. Inventaire des fournitures posées | tableau croisé et filtres rapides (fuite, période, secteur, équipe, famille, terrain / bureau) | à lancer après P1 |
+| P4. Rapprochement posé / transféré | mouvements Dolibarr de l'entrepôt 76 (CSV, puis envoi depuis le serveur) comparés aux pièces posées, période × article | à lancer après P1 |
+
 ## 3. Photos sur Cloudflare R2 (lot E, après A et D)
 
 **À faire par Issam maintenant** (aucune valeur secrète dans le chat ni le dépôt) :

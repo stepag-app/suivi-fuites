@@ -1,7 +1,8 @@
 -- Réconciliation des lots Q (verrous de l'administrateur) et P1 (nomenclature Dolibarr) :
 -- les deux ont redéfini public.copier_marche. Cette version garde le contrôle du verrou
 -- « Marchés : créer un marché par copie » (lot Q) et la reprise des liens Dolibarr du
--- catalogue (lot P1). create or replace : privilèges d'exécution inchangés.
+-- catalogue (lot P1), et reprend le seuil du polyéthylène du marché source
+-- (`longueur_pe_max_m`, lot R). create or replace : privilèges d'exécution inchangés.
 
 create or replace function public.copier_marche(
   p_source uuid,
@@ -41,6 +42,7 @@ begin
           coalesce(nullif(btrim(p_ville), ''), _source.ville));
 
   perform private.copier_parametres_marche(p_source, _cible);
+  update public.marches set longueur_pe_max_m = _source.longueur_pe_max_m where id = _cible;
 
   -- Identifiants des copies : md5(nouveau marché || ':' || identifiant source) (copier_parametres_marche).
   -- Une pièce dont le libellé n'a pas pu suivre Dolibarr (conflit à l'import) est copiée sans lien.

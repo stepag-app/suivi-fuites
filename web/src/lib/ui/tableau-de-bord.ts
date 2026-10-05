@@ -270,7 +270,7 @@ export function graduations(max: number, cible = 4, entiers = true): number[] {
 export const LIBELLES_ANOMALIES: Record<string, string> = {
   prix_hors_bordereau: 'Réparation sans prix au bordereau',
   fouille_superieure_2m: 'Fouille > 2 m sans remplacement',
-  longueur_pe_superieure_2m: 'Polyéthylène > 2 m',
+  longueur_pe_superieure_2m: 'Polyéthylène au-delà du seuil du marché',
   reparation_avant_detection: 'Réparation avant détection',
   terrassement_sans_avis_srm: 'Terrassement sans avis préalable',
   refection_avant_reparation: 'Réfection avant réparation',

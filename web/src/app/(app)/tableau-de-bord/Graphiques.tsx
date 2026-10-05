@@ -7,6 +7,8 @@ import {
   ORDRE_STATUTS, graduations, jourCourt, parGroupe, trierGroupes,
   type ColonneGroupe, type FuiteTdb, type LigneGroupe, type Periode, type Regroupement, type Semaine,
 } from '@/lib/ui/tableau-de-bord';
+import type { FiltresListe } from '../fuites/filtres';
+import { ChiffreLien, nombreFuites, surPeriode } from './LienListe';
 import styles from './tableau-de-bord.module.css';
 
 export const pluriel = (n: number, mot: string, motPluriel = `${mot}s`) => `${n.toLocaleString('fr-FR')} ${n > 1 ? motPluriel : mot}`;
@@ -46,11 +48,14 @@ function Pile({ repartition, libelle }: { repartition: Record<StatutFuite, numbe
   );
 }
 
-export function RepartitionStatuts({ periode, tout, libellePeriode }: {
-  periode: Record<StatutFuite, number>; tout: Record<StatutFuite, number>; libellePeriode: string;
+// Chiffres cliquables : statut actuel (et période de détection pour la colonne « Période »).
+export function RepartitionStatuts({ periode, tout, libellePeriode, bornes }: {
+  periode: Record<StatutFuite, number>; tout: Record<StatutFuite, number>; libellePeriode: string; bornes: Periode;
 }) {
   const totalPeriode = ORDRE_STATUTS.reduce((s, k) => s + periode[k], 0);
   const totalTout = ORDRE_STATUTS.reduce((s, k) => s + tout[k], 0);
+  const surLaPeriode = surPeriode(libellePeriode);
+  const statut = (k: StatutFuite) => `au statut « ${STATUTS[k].libelle} »`;
   return (
     <>
       <Pile repartition={periode} libelle={`Détectées sur la période (${libellePeriode})`} />
@@ -63,13 +68,27 @@ export function RepartitionStatuts({ periode, tout, libellePeriode }: {
           {ORDRE_STATUTS.map((k) => (
             <tr key={k}>
               <td><span className={`${styles.puce} ${styles[k]}`} aria-hidden="true" />{STATUTS[k].libelle}</td>
-              <td className="num">{periode[k]} <span className="discret">({pourcent(periode[k], totalPeriode)})</span></td>
-              <td className="num">{tout[k]} <span className="discret">({pourcent(tout[k], totalTout)})</span></td>
+              <td className="num">
+                <ChiffreLien n={periode[k]} filtres={{ statut: k, du: bornes.du, au: bornes.au }}
+                  description={`${nombreFuites(periode[k], 'détectée')} ${surLaPeriode}, ${statut(k)}`} />
+                {' '}<span className="discret">({pourcent(periode[k], totalPeriode)})</span>
+              </td>
+              <td className="num">
+                <ChiffreLien n={tout[k]} filtres={{ statut: k }} description={`${nombreFuites(tout[k])} du marché ${statut(k)}`} />
+                {' '}<span className="discret">({pourcent(tout[k], totalTout)})</span>
+              </td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr><td>Total</td><td className="num">{totalPeriode}</td><td className="num">{totalTout}</td></tr>
+          <tr>
+            <td>Total</td>
+            <td className="num">
+              <ChiffreLien n={totalPeriode} filtres={{ du: bornes.du, au: bornes.au }}
+                description={`${nombreFuites(totalPeriode, 'détectée')} ${surLaPeriode}`} />
+            </td>
+            <td className="num"><ChiffreLien n={totalTout} filtres={{}} description={`${nombreFuites(totalTout)} du marché`} /></td>
+          </tr>
         </tfoot>
       </table>
     </>
@@ -79,6 +98,9 @@ export function RepartitionStatuts({ periode, tout, libellePeriode }: {
 // ---------------------------------------------------------------------------
 // Évolution par semaine : détectées et réparées, colonnes groupées sur un seul axe
 // ---------------------------------------------------------------------------
+const detecteesSemaine = (s: Semaine) =>
+  `${nombreFuites(s.detectees, 'détectée')} la semaine ${s.numero}, du ${jourCourt(s.lundi)} au ${jourCourt(s.dimanche)}`;
+
 export function EvolutionSemaines({ semaines }: { semaines: Semaine[] }) {
   const [choisie, setChoisie] = useState<number | null>(null);
   const max = Math.max(0, ...semaines.flatMap((s) => [s.detectees, s.reparees]));
@@ -96,7 +118,12 @@ export function EvolutionSemaines({ semaines }: { semaines: Semaine[] }) {
         <li><span className={`${styles.puce} ${styles.serieReparees}`} aria-hidden="true" />Réparées ({total('reparees')})</li>
       </ul>
       <p className={styles.detail} aria-live="polite">
-        Semaine {s.numero} (du {jourCourt(s.lundi)} au {jourCourt(s.dimanche)}) : <b>{pluriel(s.detectees, 'détectée')}</b>,{' '}
+        Semaine {s.numero} (du {jourCourt(s.lundi)} au {jourCourt(s.dimanche)}) :{' '}
+        <b>
+          <ChiffreLien n={s.detectees} filtres={{ du: s.lundi, au: s.dimanche }} description={detecteesSemaine(s)}>
+            {pluriel(s.detectees, 'détectée')}
+          </ChiffreLien>
+        </b>,{' '}
         <b>{pluriel(s.reparees, 'réparée')}</b>
         {s.delaiMoyenH != null && <>, délai moyen <b>{Math.round(s.delaiMoyenH)} h</b></>}
       </p>
@@ -136,7 +163,9 @@ export function EvolutionSemaines({ semaines }: { semaines: Semaine[] }) {
                 <tr key={x.lundi}>
                   <td>S{x.numero}</td>
                   <td>{jourCourt(x.lundi)} – {jourCourt(x.dimanche)}</td>
-                  <td className="num">{x.detectees}</td>
+                  <td className="num">
+                    <ChiffreLien n={x.detectees} filtres={{ du: x.lundi, au: x.dimanche }} description={detecteesSemaine(x)} />
+                  </td>
                   <td className="num">{x.reparees}</td>
                   <td className="num">{x.delaiMoyenH == null ? '—' : `${Math.round(x.delaiMoyenH)} h`}</td>
                 </tr>
@@ -153,14 +182,25 @@ export function EvolutionSemaines({ semaines }: { semaines: Semaine[] }) {
 // Par secteur ou par zone : tableau trié, petites barres
 // ---------------------------------------------------------------------------
 type ColonneChiffre = Exclude<ColonneGroupe, 'libelle'>;
-const COLONNES: { cle: ColonneChiffre; titre: string; aide: string; serie: string }[] = [
-  { cle: 'detectees', titre: 'Détectées', aide: 'détectées sur la période', serie: styles.serieDetectees },
+// `lien` : filtre exact de la liste des fuites (ligne d'un secteur ou total), sinon pas de lien. « Réparées » (date
+// de réparation), « En attente » (deux statuts) et les zones n'ont pas d'équivalent dans la liste.
+type Lien = { filtres: Partial<FiltresListe>; description: (n: number) => string };
+const COLONNES: {
+  cle: ColonneChiffre; titre: string; aide: string; serie: string; lien?: (p: Periode, titrePeriode: string) => Lien;
+}[] = [
+  {
+    cle: 'detectees', titre: 'Détectées', aide: 'détectées sur la période', serie: styles.serieDetectees,
+    lien: (p, t) => ({ filtres: { du: p.du, au: p.au }, description: (n) => `${nombreFuites(n, 'détectée')} ${surPeriode(t)}` }),
+  },
   { cle: 'reparees', titre: 'Réparées', aide: 'réparées sur la période', serie: styles.serieReparees },
   { cle: 'enAttente', titre: 'En attente', aide: 'non réparées à ce jour (détectées ou réparation en cours)', serie: styles.serieAttente },
-  { cle: 'alertes', titre: 'Alertes', aide: 'fuites en alerte à ce jour (mêmes alertes que la liste des fuites)', serie: styles.serieAlertes },
+  {
+    cle: 'alertes', titre: 'Alertes', aide: 'fuites en alerte à ce jour (mêmes alertes que la liste des fuites)', serie: styles.serieAlertes,
+    lien: () => ({ filtres: { alertes: true }, description: (n) => `${nombreFuites(n)} en alerte à ce jour` }),
+  },
 ];
 
-export function TableauGroupes({ fuites, periode }: { fuites: FuiteTdb[]; periode: Periode }) {
+export function TableauGroupes({ fuites, periode, titrePeriode }: { fuites: FuiteTdb[]; periode: Periode; titrePeriode: string }) {
   const [regroupement, setRegroupement] = useState<Regroupement>('secteur');
   const [tri, setTri] = useState<{ colonne: ColonneGroupe; decroissant: boolean }>({ colonne: 'detectees', decroissant: true });
   const lignes = useMemo(
@@ -182,6 +222,16 @@ export function TableauGroupes({ fuites, periode }: { fuites: FuiteTdb[]; period
     </th>
   );
   const somme = (cle: ColonneChiffre) => lignes.reduce((s, l) => s + l[cle], 0);
+  // Ligne d'un secteur : filtre du secteur en plus ; total : tout le marché. Zone ou « Non renseigné » : pas de lien.
+  const chiffre = (c: (typeof COLONNES)[number], n: number, portee: LigneGroupe | 'total' | null) => {
+    const lien = portee && c.lien?.(periode, titrePeriode);
+    if (!lien) return n;
+    const secteur = portee === 'total' ? null : portee;
+    return (
+      <ChiffreLien n={n} filtres={secteur ? { ...lien.filtres, secteur: secteur.cle } : lien.filtres}
+        description={(secteur ? `${secteur.libelle} : ` : '') + lien.description(n)} />
+    );
+  };
 
   return (
     <section className="carte">
@@ -206,7 +256,7 @@ export function TableauGroupes({ fuites, periode }: { fuites: FuiteTdb[]; period
                   {COLONNES.map((c) => (
                     <td key={c.cle}>
                       <span className={styles.valeurBarre}>
-                        <span>{l[c.cle]}</span>
+                        <span>{chiffre(c, l[c.cle], regroupement === 'secteur' && l.cle ? l : null)}</span>
                         <span className={`${styles.jauge} ${c.serie}`} aria-hidden="true">
                           {l[c.cle] > 0 && <span style={{ width: `${(100 * l[c.cle]) / maxima[c.cle]}%` }} />}
                         </span>
@@ -219,7 +269,9 @@ export function TableauGroupes({ fuites, periode }: { fuites: FuiteTdb[]; period
             <tfoot>
               <tr>
                 <td>Total</td>
-                {COLONNES.map((c) => <td key={c.cle}><span className={styles.valeurBarre}><span>{somme(c.cle)}</span><span /></span></td>)}
+                {COLONNES.map((c) => (
+                  <td key={c.cle}><span className={styles.valeurBarre}><span>{chiffre(c, somme(c.cle), 'total')}</span><span /></span></td>
+                ))}
               </tr>
             </tfoot>
           </table>

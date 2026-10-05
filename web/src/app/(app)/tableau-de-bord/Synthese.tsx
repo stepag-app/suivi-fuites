@@ -8,6 +8,7 @@ import {
   type FuiteTdb, type Periode,
 } from '@/lib/ui/tableau-de-bord';
 import { EvolutionSemaines, RepartitionStatuts, TableauGroupes, pluriel } from './Graphiques';
+import { IndicateurLien, nombreFuites, surPeriode } from './LienListe';
 import styles from './tableau-de-bord.module.css';
 
 export type Anomalie = { fuite_id: string; anomalie: string };
@@ -41,7 +42,9 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
         <span className="discret">{titrePeriode}</span>
       </div>
       <div className="indicateurs">
-        <Indicateur libelle="Fuites détectées" valeur={act.detectees}
+        <IndicateurLien libelle="Fuites détectées" valeur={act.detectees}
+          filtres={{ du: periode.du, au: periode.au }}
+          description={`${nombreFuites(act.detectees, 'détectée')} ${surPeriode(titrePeriode)}`}
           commentaire={!act.detectees ? 'aucune sur la période'
             : act.detecteesEnAttente ? `dont ${pluriel(act.detecteesEnAttente, 'encore non réparée', 'encore non réparées')}`
               : 'toutes réparées ou closes'}
@@ -64,7 +67,9 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
       <div className="indicateurs">
         <Indicateur libelle={`Non réparées > ${seuilH} h`} valeur={c.retard.valeur} commentaire={c.retard.commentaire}
           serie={c.retard.serie} ton="negatif" titreCourbe="Fuites en retard à chaque fin de journée, 14 derniers jours" />
-        <Indicateur libelle="Réfections à faire" valeur={c.refections.valeur} commentaire={c.refections.commentaire}
+        <IndicateurLien libelle="Réfections à faire" valeur={c.refections.valeur} commentaire={c.refections.commentaire}
+          filtres={{ statut: 'reparee' }}
+          description={`${nombreFuites(c.refections.valeur ?? 0)} au statut « Réparée, réfection à faire »`}
           serie={c.refections.serie} ton="critique" titreCourbe="Réfections en attente à chaque fin de journée, 14 derniers jours" />
         <Indicateur libelle="Réfections chaussée hors délai" valeur={sit.refectionsHorsDelai} ton="negatif"
           commentaire={sit.refectionsTrottoirAlerte
@@ -83,7 +88,7 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
       <div className={styles.deuxColonnes}>
         <section className="carte">
           <h2>Répartition par statut</h2>
-          <RepartitionStatuts periode={c.statutsPeriode} tout={c.statutsTout} libellePeriode={titrePeriode} />
+          <RepartitionStatuts periode={c.statutsPeriode} tout={c.statutsTout} libellePeriode={titrePeriode} bornes={periode} />
         </section>
         <section className="carte">
           <h2>
@@ -94,7 +99,7 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
         </section>
       </div>
 
-      <TableauGroupes fuites={fuites} periode={periode} />
+      <TableauGroupes fuites={fuites} periode={periode} titrePeriode={titrePeriode} />
     </>
   );
 }

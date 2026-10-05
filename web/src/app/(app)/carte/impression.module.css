@@ -1,0 +1,27 @@
+/* Panneau « Imprimer la carte » (même cadre que le panneau d'export) : commandes de 44 px au moins. */
+.choix button {
+  min-height: var(--h-cmd-gros);
+  min-width: 7rem;
+}
+
+.case {
+  min-height: var(--h-cmd-gros);
+  margin: 0.4rem 0 0.6rem;
+}
+
+.case input[type='checkbox'] {
+  width: 26px;
+  height: 26px;
+}
+
+.resume {
+  margin: 0 0 0.9rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--zebre);
+  border: 1px solid var(--bord-doux);
+  border-radius: var(--rayon-petit);
+}
+
+.resume p {
+  margin: 0.15rem 0;
+}

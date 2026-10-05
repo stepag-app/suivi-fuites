@@ -4,63 +4,21 @@
 // servi depuis public/maplibre/ (voir scripts/copier-maplibre.mjs) : les autres pages n'en portent
 // pas le poids et le « worker » de MapLibre se trouve à côté de son module.
 import 'maplibre-gl/dist/maplibre-gl.css';
-import type { Feature, FeatureCollection, Geometry, Point } from 'geojson';
+import type { Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, StyleSpecification } from 'maplibre-gl';
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
-import type { StatutFuite } from '@/lib/types';
+import type { EtatCarte } from './capture';
 import {
-  ALERTES, CENTRE_DEFAUT, COULEURS, STYLE_FOND, ZOOM_DEFAUT, aUneAlerte, geometrieValide,
+  ALERTES, CENTRE_DEFAUT, MODULE_MAPLIBRE, STYLE_FOND, ZOOM_DEFAUT, geometrieValide,
   type Contour, type FuiteCarte,
 } from './commun';
+import { STYLE_SECOURS, ajouterCouches, contours, pointsFuites, sommets } from './couches';
 
 type Libelles = ReturnType<typeof libellesMarche>;
-export type CarteRef = { recentrer: () => void };
-
-// Fond de secours (hors ligne, fournisseur injoignable) : les fuites restent visibles sur fond uni.
-const STYLE_SECOURS: StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: 'fond', type: 'background', paint: { 'background-color': '#eef2f5' } }],
-};
-
-const MODULE_MAPLIBRE = '/maplibre/maplibre-gl.mjs';
-
-const vide = (): FeatureCollection => ({ type: 'FeatureCollection', features: [] });
-
-function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {
-  return {
-    type: 'FeatureCollection',
-    features: fuites
-      .filter((f) => f.latitude != null && f.longitude != null)
-      .map((f): Feature<Point> => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [f.longitude as number, f.latitude as number] },
-        properties: { id: f.id, statut: f.statut, alerte: aUneAlerte(f) },
-      })),
-  };
-}
-
-function contours(liste: Contour[]): FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: liste
-      .filter((c) => geometrieValide(c.geom))
-      .map((c) => ({ type: 'Feature', geometry: c.geom!, properties: { id: c.id, libelle: c.libelle || c.code } })),
-  };
-}
-
-// Tous les sommets d'un contour (Polygon ou MultiPolygon).
-const sommets = (g: Geometry): number[][] =>
-  g.type === 'Polygon' ? g.coordinates.flat() : g.type === 'MultiPolygon' ? g.coordinates.flat(2) : [];
-
-// Couleur par statut, lue dans COULEURS (une seule source pour la carte et la légende).
-const parStatut = (cle: 'fond' | 'contour') =>
-  ['match', ['get', 'statut'],
-    ...(Object.keys(COULEURS) as StatutFuite[]).flatMap((s) => [s, COULEURS[s][cle]]),
-    '#555'] as unknown as string;
+export type CarteRef = { recentrer: () => void; etatImpression: () => EtatCarte | null };
 
 interface Props {
   fuites: FuiteCarte[];
@@ -113,7 +71,24 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   };
   const recentrerRef = useRef(recentrer);
   recentrerRef.current = recentrer;
-  useImperativeHandle(ref, () => ({ recentrer: () => recentrerRef.current() }), []);
+
+  // Fond et vue affichée, pour la carte imprimée (capture.ts) ; rempli une fois la carte chargée.
+  const impression = useRef<Pick<EtatCarte, 'style' | 'avecTextes' | 'fondIndisponible'> | null>(null);
+  const etatImpression = (): EtatCarte | null => {
+    const m = carte.current;
+    if (!m || !impression.current) return null;
+    const b = m.getBounds();
+    const c = m.getCenter();
+    return {
+      ...impression.current,
+      bornes: [[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]],
+      centre: [c.lng, c.lat],
+      zoom: m.getZoom(),
+      largeurPx: m.getContainer().clientWidth,
+      hauteurPx: m.getContainer().clientHeight,
+    };
+  };
+  useImperativeHandle(ref, () => ({ recentrer: () => recentrerRef.current(), etatImpression }), []);
 
   // Création de la carte (une fois).
   useEffect(() => {
@@ -130,7 +105,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       if (annule || !conteneur.current) return;
 
       // Le fond n'est demandé qu'une fois ; sans réponse en 8 s, fond uni.
-      let style: string | StyleSpecification = STYLE_SECOURS;
+      let style: StyleSpecification = STYLE_SECOURS;
       let avecTextes = false;
       try {
         const c = new AbortController();
@@ -139,10 +114,12 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         clearTimeout(minuterie);
         if (!r.ok) throw new Error(String(r.status));
         style = (await r.json()) as StyleSpecification;
-        avecTextes = !!(style as StyleSpecification).glyphs;
+        avecTextes = !!style.glyphs;
       } catch {
         if (!annule) setFondIndisponible(true);
       }
+      // Copie intacte du style (MapLibre peut modifier l'objet qu'il reçoit).
+      const styleImpression = structuredClone(style);
       if (annule || !conteneur.current) return;
 
       try {
@@ -170,46 +147,9 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
 
       m.on('load', () => {
         if (annule) return;
-        // Zones et secteurs (seulement ceux dont le contour est dessiné).
-        m.addSource('zones', { type: 'geojson', data: vide() });
-        m.addSource('secteurs', { type: 'geojson', data: vide() });
-        m.addLayer({ id: 'zones-fond', type: 'fill', source: 'zones', paint: { 'fill-color': '#0b5d8a', 'fill-opacity': 0.06 } });
-        m.addLayer({ id: 'zones-trait', type: 'line', source: 'zones', paint: { 'line-color': '#0b5d8a', 'line-width': 2.5 } });
-        m.addLayer({
-          id: 'secteurs-trait', type: 'line', source: 'secteurs',
-          paint: { 'line-color': '#0b5d8a', 'line-width': 1.2, 'line-dasharray': [3, 2] },
-        });
-
-        // Fuites, regroupées tant qu'elles sont serrées.
-        m.addSource('fuites', { type: 'geojson', data: vide(), cluster: true, clusterRadius: 45, clusterMaxZoom: 15 });
-        m.addLayer({
-          id: 'groupes', type: 'circle', source: 'fuites', filter: ['has', 'point_count'],
-          paint: {
-            'circle-color': '#0b5d8a', 'circle-opacity': 0.85,
-            'circle-radius': ['step', ['get', 'point_count'], 18, 10, 23, 50, 30],
-            'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff',
-          },
-        });
-        if (avecTextes) {
-          m.addLayer({
-            id: 'groupes-nombre', type: 'symbol', source: 'fuites', filter: ['has', 'point_count'],
-            layout: { 'text-field': ['get', 'point_count_abbreviated'], 'text-size': 14, 'text-font': ['Noto Sans Bold'] },
-            paint: { 'text-color': '#ffffff' },
-          });
-        }
-        // Halo rouge sous les fuites en alerte.
-        m.addLayer({
-          id: 'fuites-alerte', type: 'circle', source: 'fuites',
-          filter: ['all', ['!', ['has', 'point_count']], ['==', ['get', 'alerte'], true]],
-          paint: { 'circle-radius': 15, 'circle-color': '#b3261e', 'circle-opacity': 0.25, 'circle-stroke-width': 2, 'circle-stroke-color': '#b3261e' },
-        });
-        m.addLayer({
-          id: 'fuites-points', type: 'circle', source: 'fuites', filter: ['!', ['has', 'point_count']],
-          paint: {
-            'circle-radius': 9, 'circle-color': parStatut('fond'),
-            'circle-stroke-width': 2.5, 'circle-stroke-color': parStatut('contour'),
-          },
-        });
+        // Zones et secteurs (seulement ceux dont le contour est dessiné), fuites regroupées tant qu'elles sont serrées.
+        ajouterCouches(m, { avecTextes });
+        impression.current = { style: styleImpression, avecTextes, fondIndisponible: style === STYLE_SECOURS };
         setPret(true);
         recentrerRef.current();
       });

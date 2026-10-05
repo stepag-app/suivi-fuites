@@ -36,12 +36,19 @@ export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = 
   sans_reparation: { fond: '#a3b0bd', contour: '#556b82' },
 };
 
+// Halo des fuites en alerte et contours des zones / secteurs (carte et légende du PDF).
+export const COULEUR_ALERTE = '#b3261e';
+export const COULEUR_CONTOURS = '#0b5d8a';
+
 // Oujda, quand aucune fuite n'est géolocalisée.
 export const CENTRE_DEFAUT: [number, number] = [-1.9086, 34.6814];
 export const ZOOM_DEFAUT = 12;
 
 // Fond minimal OpenStreetMap (OpenFreeMap : sans compte ni clé).
 export const STYLE_FOND = 'https://tiles.openfreemap.org/styles/positron';
+
+// MapLibre servi depuis public/maplibre/ (voir scripts/copier-maplibre.mjs), importé à la demande.
+export const MODULE_MAPLIBRE = '/maplibre/maplibre-gl.mjs';
 
 // Contour d'une zone ou d'un secteur : GeoJSON (PostGIS 3 sérialise la géométrie ainsi) ou rien.
 export type Contour = { id: string; code: string; libelle: string; geom: Geometry | null };

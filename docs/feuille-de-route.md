@@ -76,11 +76,24 @@ PDF archivés.
 7. **Tableau de bord** (à concevoir avec Issam) : fuites par statut et par secteur, délais, alertes,
    avancement du balayage, quantités attachées / reste à attacher, contrôle tracking / cochage.
 8. **Google Maps intégré** : décision après avoir vu la carte du lot B.
-9. **Passe d'interface** (après stabilisation des fonctions) : Claude Code avec les serveurs MCP
-   **21st.dev** (composants) et **Higgsfield** (visuels) et la skill « UI/UX Pro Max » (GitHub), pour
-   des composants réactifs et responsives sans « AI slop ». À cadrer : choix d'un socle (Tailwind /
-   shadcn ou CSS actuel), poids des pages, grands boutons et lisibilité sur la tablette, mode hors
-   ligne, clés d'API et coûts de ces services.
+9. **Passe d'interface** : **faite pour le panneau web** (2026-10-05, PR #19) : style SAP Fiori en CSS
+   maison, widgets d'indicateurs, fiche d'une fuite au format de la maquette. Reste : reporter les mêmes
+   couleurs et la même typographie sur l'APK.
+10. **Sauvegarde complète et restaurable** (demande d'Issam du 2026-10-05) :
+    - **D'abord** : activer la sauvegarde nocturne existante (secret `SAUVEGARDE_PASSPHRASE`, voir
+      `docs/etat-avancement.md` § 2) ; elle échoue chaque nuit tant que le secret manque (constaté le
+      2026-10-05 à 02 h 30).
+    - **Ensuite** : envoyer aussi la sauvegarde **hors de GitHub** (une boîte Gmail dédiée, par exemple),
+      sous un format restaurable à tout moment (SQL ou archive), **photos comprises**.
+    - Contraintes à trancher avec Issam (**stockage et destination décidés plus tard**) :
+      - une pièce jointe Gmail est limitée à **25 Mo** : la base (SQL compressé et chiffré, quelques Mo)
+        y tient ; les photos (2 à 7 Go sur 12 mois) **non** : il faudra un lien vers une archive
+        déposée ailleurs (R2, Google Drive du compte `stepag.app`) ou des envois incrémentaux
+        (seulement les photos du jour) ;
+      - envoi d'e-mail depuis GitHub Actions : compte Gmail avec mot de passe d'application ou
+        API Gmail (secret GitHub) ; le fichier reste **chiffré** (la phrase secrète ne part jamais
+        avec le fichier) ;
+      - **procédure de restauration écrite et testée** (base + photos) sur une pile Supabase locale.
 
 ## 5. Questions ouvertes pour Issam
 
@@ -88,3 +101,5 @@ PDF archivés.
 - Suivi GPS : heures de suivi, information des agents, CNDP ; seuil de contrôle tronçon / tracé.
 - Plan du réseau : DWG (→ DXF) ou planches PDF vectorielles, et le système de coordonnées.
 - Logos : fichiers du titulaire (STEPAG) et du maître d'ouvrage (SRM), droit d'usage du logo client.
+- Sauvegarde complète : destination (Gmail dédié, Drive, R2), fréquence (nuit ? semaine pour les photos ?),
+  durée de conservation, qui détient la phrase secrète.

@@ -49,7 +49,13 @@ PR #10 fusionnée et déployée ; marché de démonstration DEMO).
 1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
 2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
 3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
-4. **Secret GitHub `SAUVEGARDE_PASSPHRASE`** (phrase secrète, gestionnaire de mots de passe), puis lancer « Sauvegarde de la base » à la main et vérifier l'artefact.
+4. **À FAIRE EN PRIORITÉ : sauvegarde nocturne.** Elle **échoue chaque nuit** (constaté le 2026-10-05 à
+   02 h 30 : « Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub »), donc **aucune sauvegarde n'existe**.
+   Créer le secret GitHub `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le gestionnaire de mots de
+   passe ; Settings > Secrets and variables > Actions), puis lancer « Sauvegarde de la base » à la main et
+   vérifier l'artefact. **Ensuite** (demande d'Issam du 2026-10-05) : copie de la sauvegarde hors de GitHub
+   (Gmail ou autre), restaurable à tout moment, **photos comprises** ; stockage et destination à décider
+   (voir `docs/feuille-de-route.md` § 4, point 10).
 5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** : **créé le 2026-10-04** ; la compilation APK n° 13 sur `main`
    (run 37241834456) l'a bien prise, artefact `suivi-fuites-apk` disponible jusqu'au 18/10/2026 : APK connectable.
    Reste : l'installer sur la tablette (sources inconnues autorisées, batterie « Non restreinte ») et le tester

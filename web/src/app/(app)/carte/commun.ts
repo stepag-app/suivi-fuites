@@ -27,13 +27,13 @@ export const ALERTES: { cle: keyof FuiteCarte; texte: (l: Libelles) => string }[
 
 export const aUneAlerte = (f: FuiteCarte) => ALERTES.some((a) => f[a.cle] === true);
 
-// Couleurs des points : bordure (remplissage) et texte (contour) des badges de statut (globals.css).
+// Couleurs des points : mêmes teintes que les statuts Fiori de globals.css et les classes .pt-*.
 export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = {
-  detectee: { fond: '#e0b400', contour: '#6b4e00' },
-  en_reparation: { fond: '#60a5fa', contour: '#1e3a8a' },
-  reparee: { fond: '#8cc56a', contour: '#2c5a12' },
-  achevee: { fond: '#38a05a', contour: '#14532d' },
-  sans_reparation: { fond: '#9ca3af', contour: '#374151' },
+  detectee: { fond: '#e26060', contour: '#aa0808' },
+  en_reparation: { fond: '#f0a050', contour: '#b44f00' },
+  reparee: { fond: '#5c9ff0', contour: '#0064d9' },
+  achevee: { fond: '#4fa36a', contour: '#256f3a' },
+  sans_reparation: { fond: '#a3b0bd', contour: '#556b82' },
 };
 
 // Oujda, quand aucune fuite n'est géolocalisée.

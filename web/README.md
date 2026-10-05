@@ -9,6 +9,23 @@ Une seule application, utilisable sur ordinateur (bureau, responsable) et sur la
 C'est la **version rapide de test** : mode hors ligne léger pour la création de fuites (voir plus bas),
 pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.
 
+## Style de l'interface (SAP Fiori + indicateurs)
+
+Choix d'Issam du 2026-10-05, après comparaison de 5 maquettes : apparence **SAP Fiori** reproduite dans notre
+propre CSS (`src/app/globals.css`, jetons en tête de fichier), **sans** la bibliothèque SAP UI5 (trop lourde
+pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP compact ».
+
+- Barre d'application sombre (logo, organisation, marché, utilisateur), onglets des modules selon les droits.
+- Pages blanches sur fond gris clair, tableaux sobres (en-têtes gris, survol bleu pâle, chiffres alignés).
+- Statuts en texte coloré précédé d'un point (couleurs sémantiques Fiori : rouge, orange, bleu, vert, gris),
+  les mêmes sur la carte (`carte/commun.ts`).
+- Boutons « fantômes » par défaut, bouton principal bleu, bouton de suppression rouge.
+- Densité bureau 14 px ; sur écran tactile ou étroit, 16 px et commandes de 44 px au moins.
+- Liste des fuites : 4 indicateurs (`src/lib/ui/Indicateur.tsx`, calculs dans `src/lib/ui/indicateurs.ts`) :
+  fuites du mois (courbe : par jour sur 14 jours), non réparées au-delà du seuil (courbe : situation à chaque
+  fin de jour), délai moyen de réparation (courbe : par semaine sur 8 semaines), réfections à faire ; puis
+  tableau sur bureau, cartes sur tablette en portrait et téléphone.
+
 ## Écrans
 
 | Écran | Qui | Contenu |

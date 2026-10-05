@@ -51,6 +51,7 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
       {/* Onglets des modules, selon les droits */}
       <nav className="onglets-modules" aria-label="Modules">
         {lien('/fuites', 'Fuites')}
+        {peut('fuites', 'lire') && lien('/tableau-de-bord', 'Tableau de bord')}
         {peut('fuites', 'lire') && lien('/carte', 'Carte')}
         {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
         {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&

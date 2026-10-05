@@ -7,7 +7,7 @@ import { synchroniser } from './src/file-attente';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { configurationManquante } from './src/supabase';
-import { s } from './src/ui';
+import { BarreApp, COULEURS, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'fiche'; id: string }
@@ -47,12 +47,17 @@ function Racine() {
     };
   }, [session]);
 
-  if (configurationManquante) {
-    return <View style={[s.ecran, s.contenu, { paddingTop: 80 }]}><Text style={s.erreur}>Application non configurée (adresse du serveur absente).</Text></View>;
+  if (configurationManquante) return <Message texte="Application non configurée (adresse du serveur absente)." />;
+  if (chargement) {
+    return (
+      <View style={s.ecran}>
+        <BarreApp titre="Suivi des fuites" />
+        <View style={[s.contenu, { flex: 1, justifyContent: 'center' }]}><ActivityIndicator size="large" color={COULEURS.principal} /></View>
+      </View>
+    );
   }
-  if (chargement) return <View style={[s.ecran, { justifyContent: 'center' }]}><ActivityIndicator size="large" /></View>;
   if (!session) return <Connexion />;
-  if (!marche) return <View style={[s.ecran, s.contenu, { paddingTop: 80 }]}><Text style={s.erreur}>Aucun marché n&apos;est affecté à votre compte. Contactez l&apos;administrateur.</Text></View>;
+  if (!marche) return <Message texte="Aucun marché n'est affecté à votre compte. Contactez l'administrateur." />;
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {
     case 'nouvelle':
@@ -70,10 +75,19 @@ function Racine() {
   }
 }
 
+function Message({ texte }: { texte: string }) {
+  return (
+    <View style={s.ecran}>
+      <BarreApp titre="Suivi des fuites" />
+      <View style={s.contenu}><Text style={s.erreur}>{texte}</Text></View>
+    </View>
+  );
+}
+
 export default function App() {
   return (
     <SessionProvider>
-      <StatusBar style="dark" />
+      <StatusBar style="light" />
       <Racine />
     </SessionProvider>
   );

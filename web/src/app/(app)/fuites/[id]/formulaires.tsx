@@ -34,7 +34,7 @@ export function FormReparation({
   const [emplacement, setEmplacement] = useState('');
   const [representant, setRepresentant] = useState('');
   const [observation, setObservation] = useState('');
-  const [lignes, setLignes] = useState<{ piece_id: string | null; designation: string; quantite: number }[]>([]);
+  const [lignes, setLignes] = useState<{ produit_id: number | null; designation: string; quantite: number }[]>([]);
   const [pieceTexte, setPieceTexte] = useState('');
   const [pieceQte, setPieceQte] = useState('1');
   const [saisiPour, setSaisiPour] = useState('');
@@ -59,7 +59,7 @@ export function FormReparation({
     const q = nombreOuNul(pieceQte);
     if (!texte || !q || q <= 0) return;
     const piece = pieces.find((p) => p.designation.toLowerCase() === texte.toLowerCase());
-    setLignes([...lignes, { piece_id: piece?.id ?? null, designation: piece?.designation ?? texte, quantite: q }]);
+    setLignes([...lignes, { produit_id: piece?.id ?? null, designation: piece?.designation ?? texte, quantite: q }]);
     setPieceTexte('');
     setPieceQte('1');
   }
@@ -103,8 +103,8 @@ export function FormReparation({
       if (lignes.length) {
         const rp = await sb.from('reparation_pieces').insert(
           lignes.map((l) => ({
-            marche_id: marcheId, reparation_id: id, piece_id: l.piece_id,
-            designation_libre: l.piece_id ? null : l.designation, quantite: l.quantite,
+            marche_id: marcheId, reparation_id: id, produit_id: l.produit_id,
+            designation_libre: l.produit_id ? null : l.designation, quantite: l.quantite,
           })),
         );
         if (rp.error) throw rp.error;
@@ -211,14 +211,14 @@ export function FormReparation({
         <ul className="simple">
           {lignes.map((l, i) => (
             <li key={i}>
-              {l.quantite} × {l.designation}{' '}
+              {l.quantite} × {l.designation}{l.produit_id ? '' : ' (libre)'}{' '}
               <button type="button" onClick={() => setLignes(lignes.filter((_, j) => j !== i))}>Retirer</button>
             </li>
           ))}
         </ul>
         <div className="ligne-pieces">
-          <input list="catalogue" placeholder="Rechercher une pièce" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
-          <datalist id="catalogue">
+          <input list="articles" placeholder="Rechercher un article" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
+          <datalist id="articles">
             {pieces.map((p) => (<option key={p.id} value={p.designation} />))}
           </datalist>
           <input className="court" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />

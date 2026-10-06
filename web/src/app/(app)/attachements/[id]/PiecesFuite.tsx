@@ -20,7 +20,8 @@ export interface RepPieces {
   saisi_par: string | null;
 }
 
-export interface PieceCatalogue { id: string; designation: string; unite: string; actif: boolean }
+/** Article Dolibarr ; `actif` : proposé à la saisie (activé et toujours dans Dolibarr). */
+export interface PieceCatalogue { id: number; designation: string; unite: string | null; actif: boolean }
 
 type Formulaire = { type: 'oubli' } | { type: 'remplacer'; piece: PieceLue } | { type: 'retirer'; piece: PieceLue } | null;
 
@@ -35,9 +36,9 @@ export function PiecesFuite({
 }) {
   const [formulaire, setFormulaire] = useState<Formulaire>(null);
   const repDefaut = reps[reps.length - 1]?.id ?? '';
-  const nomPiece = (p: Pick<PieceLue, 'piece_id' | 'designation_libre'>) =>
-    catalogue.find((c) => c.id === p.piece_id)?.designation ?? p.designation_libre ?? '?';
-  const unitePiece = (p: Pick<PieceLue, 'piece_id'>) => catalogue.find((c) => c.id === p.piece_id)?.unite ?? 'u';
+  const nomPiece = (p: Pick<PieceLue, 'produit_id' | 'designation_libre'>) =>
+    catalogue.find((c) => c.id === p.produit_id)?.designation ?? p.designation_libre ?? '?';
+  const unitePiece = (p: Pick<PieceLue, 'produit_id'>) => catalogue.find((c) => c.id === p.produit_id)?.unite || 'u';
   const affichees = decrirePieces(pieces, (p) => `${nomPiece(p)} : ${nombre(p.quantite)} ${unitePiece(p)}`);
   const lues = new Map(pieces.map((p) => [p.id, p]));
   const dateRep = new Map(reps.map((r) => [r.id, dateSeule(r.realisee_le)]));
@@ -52,9 +53,9 @@ export function PiecesFuite({
     return ok;
   });
 
-  const ajouterOubli = (reparationId: string, pieceId: string, quantite: number, motif: string) => envoyer(async () => {
+  const ajouterOubli = (reparationId: string, pieceId: number, quantite: number, motif: string) => envoyer(async () => {
     const { error } = await getSupabase().from('reparation_pieces').insert({
-      marche_id: marcheId, reparation_id: reparationId, piece_id: pieceId, quantite, motif_modification: motif,
+      marche_id: marcheId, reparation_id: reparationId, produit_id: pieceId, quantite, motif_modification: motif,
     });
     if (error) throw error;
     return estAuteur(reparationId)
@@ -62,9 +63,9 @@ export function PiecesFuite({
       : 'Oubli ajouté à l\'inventaire réel, motif gardé.';
   });
 
-  const remplacer = (ancienne: PieceLue, pieceId: string, quantite: number, motif: string) => envoyer(async () => {
+  const remplacer = (ancienne: PieceLue, pieceId: number, quantite: number, motif: string) => envoyer(async () => {
     const { error } = await getSupabase().from('reparation_pieces').insert({
-      marche_id: marcheId, reparation_id: ancienne.reparation_id, piece_id: pieceId, quantite,
+      marche_id: marcheId, reparation_id: ancienne.reparation_id, produit_id: pieceId, quantite,
       remplace_piece_id: ancienne.id, motif_modification: motif,
     });
     if (error) throw error;
@@ -155,7 +156,7 @@ function ChampMotif({ valeur, maj, exemple }: { valeur: string; maj: (v: string)
 function ChoixPiece({ catalogue, texte, maj, idListe }: { catalogue: PieceCatalogue[]; texte: string; maj: (v: string) => void; idListe: string }) {
   return (
     <label>
-      Pièce du catalogue
+      Article
       <input value={texte} onChange={(e) => maj(e.target.value)} list={idListe} required placeholder="Rechercher…" />
       <datalist id={idListe}>
         {catalogue.map((c) => <option key={c.id} value={c.designation} />)}
@@ -175,13 +176,13 @@ function FormRemplacer({
   piece, nom, catalogue, auteur, occupe, envoyer, annuler,
 }: {
   piece: PieceLue; nom: string; catalogue: PieceCatalogue[]; auteur: boolean; occupe: boolean;
-  envoyer: (ancienne: PieceLue, pieceId: string, quantite: number, motif: string) => Promise<boolean>; annuler: () => void;
+  envoyer: (ancienne: PieceLue, pieceId: number, quantite: number, motif: string) => Promise<boolean>; annuler: () => void;
 }) {
-  const [texte, setTexte] = useState(catalogue.some((c) => c.id === piece.piece_id) ? nom : '');
+  const [texte, setTexte] = useState(catalogue.some((c) => c.id === piece.produit_id) ? nom : '');
   const [qte, setQte] = useState(String(piece.quantite).replace('.', ','));
   const [motif, setMotif] = useState('');
   const choisie = trouver(catalogue, texte);
-  const change = !!choisie && (choisie.id !== piece.piece_id || enNombre(qte) !== Number(piece.quantite));
+  const change = !!choisie && (choisie.id !== piece.produit_id || enNombre(qte) !== Number(piece.quantite));
   const soumettre = (e: FormEvent) => {
     e.preventDefault();
     if (choisie) envoyer(piece, choisie.id, enNombre(qte), motif.trim());
@@ -192,9 +193,9 @@ function FormRemplacer({
       <p className="discret">La pièce saisie reste visible, barrée « remplacée » ; la nouvelle compte dans l&apos;inventaire réel.</p>
       <div className="deux">
         <ChoixPiece catalogue={catalogue} texte={texte} maj={setTexte} idListe={`remplacer-${piece.id}`} />
-        <label>Quantité{choisie ? ` (${choisie.unite})` : ''}<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
+        <label>Quantité{choisie ? ` (${choisie.unite || 'u'})` : ''}<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
       </div>
-      {texte.trim() && !choisie && <p className="discret">Choisissez une pièce de la liste (catalogue du marché).</p>}
+      {texte.trim() && !choisie && <p className="discret">Choisissez un article de la liste (articles activés, Paramètres &gt; Articles).</p>}
       <ChampMotif valeur={motif} maj={setMotif} exemple="Ex. un seul manchon posé (constat du 05/10)" />
       <NoteAuteur auteur={auteur} />
       <div className="actions">
@@ -230,7 +231,7 @@ function FormOubli({
   catalogue, reps, repDefaut, estAuteur, occupe, envoyer, annuler,
 }: {
   catalogue: PieceCatalogue[]; reps: RepPieces[]; repDefaut: string; estAuteur: (reparationId: string) => boolean; occupe: boolean;
-  envoyer: (reparationId: string, pieceId: string, quantite: number, motif: string) => Promise<boolean>; annuler: () => void;
+  envoyer: (reparationId: string, pieceId: number, quantite: number, motif: string) => Promise<boolean>; annuler: () => void;
 }) {
   const [texte, setTexte] = useState('');
   const [qte, setQte] = useState('1');
@@ -246,7 +247,7 @@ function FormOubli({
       <strong>Ajouter un oubli (pièce posée, non déclarée)</strong>
       <div className="deux">
         <ChoixPiece catalogue={catalogue} texte={texte} maj={setTexte} idListe={`oubli-${repDefaut}`} />
-        <label>Quantité{piece ? ` (${piece.unite})` : ''}<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
+        <label>Quantité{piece ? ` (${piece.unite || 'u'})` : ''}<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
       </div>
       {reps.length > 1 && (
         <label>
@@ -256,7 +257,7 @@ function FormOubli({
           </select>
         </label>
       )}
-      {texte.trim() && !piece && <p className="discret">Choisissez une pièce de la liste (catalogue du marché).</p>}
+      {texte.trim() && !piece && <p className="discret">Choisissez un article de la liste (articles activés, Paramètres &gt; Articles).</p>}
       <ChampMotif valeur={motif} maj={setMotif} exemple="Ex. robinet PEC posé, visible sur la photo du 05/10" />
       <NoteAuteur auteur={estAuteur(repId)} />
       <div className="actions">

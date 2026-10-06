@@ -58,26 +58,23 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 - Le tableau de bord fabrique ses liens avec `lienFuites` (`src/app/(app)/fuites/filtres.ts`) : la liste ouverte
   compte exactement le chiffre cliqué. Vérification : `node scripts/verifier-filtres-fuites.mjs`.
 
-## Nomenclature Dolibarr (Paramètres, administrateur)
+## Articles Dolibarr (Paramètres > Articles, administrateur)
 
-Les pièces posables viennent de la nomenclature de l'ERP Dolibarr (`produits_dolibarr`, sans aucun prix). Une pièce du
-catalogue d'un marché est rapprochée d'un produit Dolibarr (`catalogue_pieces.produit_dolibarr_id`, un produit au plus une
-fois par marché) et prend alors son libellé : le réparateur ne voit que cette désignation (tablette, fiche, rapports,
-exports) ; la référence Dolibarr n'apparaît que dans Paramètres > Nomenclature Dolibarr.
+Les pièces posées sont des **articles Dolibarr** (`produits_dolibarr`, sans aucun prix), communs à tous les marchés. Seuls
+les articles **activés** (et toujours présents dans Dolibarr) s'affichent dans la liste des pièces (tablette, fiche d'une
+fuite, corrections à l'attachement) ; une pièce déjà saisie garde son article s'il est désactivé ensuite. La pièce libre
+(désignation saisie) reste possible pour les cas exceptionnels. Le réparateur ne voit que la désignation ; la référence
+Dolibarr n'apparaît que dans Paramètres > Articles.
 
-- **Importer** : Paramètres > Nomenclature Dolibarr > « Importer produits.csv ». Le fichier est lu dans le navigateur ;
-  seules les colonnes identifiant, référence, libellé, unité, famille (préfixe de la référence) et en vente / en achat sont
-  envoyées (jamais un prix, un PMP ou un stock). Familles cochées par défaut : RAC, CND, ROB, AEP, VRI (CNS en option).
-  Réimport à volonté : nouveaux produits ajoutés, libellés modifiés repris (y compris par les pièces rapprochées), produits
-  absents rendus inactifs, jamais supprimés ; un produit ni en vente ni en achat est inactif.
-- **Rapprocher** : proposition automatique (même type de pièce, mêmes diamètres et filetages, matière compatible),
-  « sûre », « probable » ou « aucune » ; validation en lot des sûres ; autre produit par recherche ; une pièce sans
-  correspondance est désactivée ou gardée hors nomenclature (historique des réparations conservé). Retirer le lien rend à
-  la pièce sa désignation d'origine. Premier essai sur l'export du 2026-10-05 : 261 pièces, 113 sûres, 58 probables,
-  90 sans correspondance.
-- **Ajouter** des produits Dolibarr au catalogue du marché (famille, recherche).
-- Logique : `src/lib/nomenclature/` (`csv.ts`, `rapprochement.ts`, `donnees.ts`) ; vérification :
-  `node scripts/verifier-nomenclature.mjs`.
+- **Importer** : « Importer produits.csv ». Le fichier est lu dans le navigateur ; seules les colonnes identifiant,
+  référence, libellé, unité, famille (préfixe de la référence) et en vente / en achat sont envoyées (jamais un prix, un
+  PMP ou un stock). Familles cochées par défaut : RAC, CND, ROB, AEP, VRI (CNS en option). Nouveaux produits désactivés,
+  libellés modifiés repris, produits absents retirés (jamais supprimés). Unité : celle de Dolibarr.
+- **Activer** : liste avec recherche (désignation, référence), famille et état (activés, non activés, nouveaux du dernier
+  import, retirés) ; activation ligne par ligne ou par sélection (`activer_produits_dolibarr`).
+- **Article suggéré** (par marché) : Paramètres > Bordereau, règle par article ou par famille (`SuggestionsArticles.tsx`).
+- Logique : `src/lib/articles.ts` (liste déroulante, noms des pièces saisies), `src/lib/nomenclature/` (`csv.ts`,
+  `donnees.ts`) ; vérification : `node scripts/verifier-nomenclature.mjs`.
 
 ## Exports (panneau « Exporter »)
 

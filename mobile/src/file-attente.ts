@@ -14,7 +14,8 @@ import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './ph
 import { supabase } from './supabase';
 
 export { effacerPhotos, type PhotoAttente };
-export interface PieceAttente { id: string; piece_id: string | null; designation: string; quantite: number }
+// produit_id : article Dolibarr ; absent (envoi gardé par une version précédente) ou nul : désignation libre.
+export interface PieceAttente { id: string; produit_id: number | null; designation: string; quantite: number }
 
 interface Commun {
   id: string; marche_id: string; photos: PhotoAttente[]; creee_le: string; erreur: string | null;
@@ -147,8 +148,8 @@ async function envoyerPhotos(e: Envoi, liens: { reparation_id?: string | null; r
 const noter = (id: string, f: NonNullable<Commun['fait']>) => majEnvoi(id, (x) => ({ ...x, fait: { ...x.fait, ...f } }));
 
 const insererPiece = (marcheId: string, reparationId: string, p: PieceAttente) => verifier(supabase.from('reparation_pieces').insert({
-  id: p.id, marche_id: marcheId, reparation_id: reparationId, piece_id: p.piece_id,
-  designation_libre: p.piece_id ? null : p.designation, quantite: p.quantite,
+  id: p.id, marche_id: marcheId, reparation_id: reparationId, produit_id: p.produit_id ?? null,
+  designation_libre: p.produit_id != null ? null : p.designation, quantite: p.quantite,
 }));
 const insererOuvrier = (marcheId: string, reparationId: string, ouvrierId: string) =>
   verifier(supabase.from('reparation_ouvriers').insert({ marche_id: marcheId, reparation_id: reparationId, ouvrier_id: ouvrierId }));

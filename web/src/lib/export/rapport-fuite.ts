@@ -5,6 +5,7 @@
 // Fabriqué dans le navigateur comme les autres exports (jsPDF + autotable chargés à la
 // demande). Les photos sont réduites en JPEG avant insertion : le PDF reste léger et sert
 // d'archive (les anciennes photos pourront être purgées du stockage, CLAUDE.md § 7).
+import { lireArticles, uniteArticle } from '@/lib/articles';
 import type { ReglesAttachement } from '@/lib/attachements';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO, libellesMarche } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
@@ -112,10 +113,9 @@ const paquets = <T,>(t: T[], n: number) => Array.from({ length: Math.ceil(t.leng
 // Charge toutes les données des fuites demandées (par paquets, pour de longues sélections).
 export async function chargerFiches(ids: string[], marcheId: string, peutMontants: boolean): Promise<FicheRapport[]> {
   const sb = getSupabase();
-  const [eq, ou, pc, mo, na, pr] = await Promise.all([
+  const [eq, ou, mo, na, pr] = await Promise.all([
     sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
     sb.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId),
-    sb.from('catalogue_pieces').select('id, designation, unite').eq('marche_id', marcheId),
     sb.from('motifs').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
     sb.from('natures_refection').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
     sb.from('profils').select('id, nom_complet'),
@@ -123,7 +123,6 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
   const index = <T extends { id: string }>(r: { data: unknown }) => new Map(((r.data as T[] | null) ?? []).map((x) => [x.id, x]));
   const equipes = index<{ id: string; libelle: string }>(eq);
   const ouvriers = index<{ id: string; nom_complet: string }>(ou);
-  const pieces = index<{ id: string; designation: string; unite: string }>(pc);
   const motifs = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(mo);
   const natures = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(na);
   const profils = index<{ id: string; nom_complet: string }>(pr);
@@ -148,11 +147,12 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
     const [ro, rpi] = repIds.length
       ? await Promise.all([
         sb.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', repIds),
-        sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', repIds).is('supprime_le', null).eq('etat', 'posee'),
+        sb.from('reparation_pieces').select('reparation_id, produit_id, designation_libre, quantite').in('reparation_id', repIds).is('supprime_le', null).eq('etat', 'posee'),
       ])
       : [{ data: [] }, { data: [] }];
     const lignesOuvriers = (ro.data as { reparation_id: string; ouvrier_id: string }[] | null) ?? [];
-    const lignesPieces = (rpi.data as { reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number }[] | null) ?? [];
+    const lignesPieces = (rpi.data as { reparation_id: string; produit_id: number | null; designation_libre: string | null; quantite: number }[] | null) ?? [];
+    const pieces = await lireArticles(lignesPieces.map((p) => p.produit_id));
     const extra = new Map(((fx.data as { id: string; precision_gps_m: number | null; methode_detection: string | null }[] | null) ?? []).map((x) => [x.id, x]));
     const lignesFuites = new Map(((f.data as VFuite[] | null) ?? []).map((x) => [x.id, x]));
 
@@ -171,9 +171,9 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
           revetement: natures.get(String(r.nature_revetement_id))?.libelle_fr ?? null,
           ouvriers: lignesOuvriers.filter((o) => o.reparation_id === r.id).map((o) => ouvriers.get(o.ouvrier_id)?.nom_complet ?? '?'),
           pieces: lignesPieces.filter((p) => p.reparation_id === r.id).map((p) => ({
-            designation: (p.piece_id ? pieces.get(p.piece_id)?.designation : null) ?? p.designation_libre ?? '?',
+            designation: (p.produit_id != null ? pieces.get(p.produit_id)?.designation : null) ?? p.designation_libre ?? '?',
             quantite: Number(p.quantite),
-            unite: (p.piece_id ? pieces.get(p.piece_id)?.unite : null) ?? 'u',
+            unite: p.produit_id != null ? uniteArticle(pieces.get(p.produit_id)) : 'u',
           })),
         })),
         refections: ((rf.data as (Refection & Record<string, unknown>)[] | null) ?? []).filter((r) => r.fuite_id === id).map((r) => ({

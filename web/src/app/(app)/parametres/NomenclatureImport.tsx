@@ -5,9 +5,8 @@ import {
   FAMILLES_PAR_DEFAUT, comparerImport, decoderTexte, extraireProduits, filtrerFamilles, lireCsv, resumerFamilles,
   type LectureProduits,
 } from '@/lib/nomenclature/csv';
-import { importerProduits, messageNomenclature, type ResultatImport } from '@/lib/nomenclature/donnees';
-import type { ProduitNomenclature } from '@/lib/nomenclature/rapprochement';
-import styles from './Nomenclature.module.css';
+import { importerProduits, messageNomenclature, type ProduitNomenclature, type ResultatImport } from '@/lib/nomenclature/donnees';
+import styles from './Articles.module.css';
 
 const TAILLE_MAX = 20 * 1024 * 1024;
 
@@ -67,11 +66,12 @@ export function NomenclatureImport({ produits, recharger }: { produits: ProduitN
 
   return (
     <section className="carte">
-      <h2>Importer la nomenclature (produits.csv)</h2>
+      <h2>Importer les articles (produits.csv)</h2>
       <p className="discret">
-        Export des produits de Dolibarr (séparateur « ; », UTF-8). On peut réimporter à tout moment : les nouveaux
-        produits sont ajoutés, les libellés modifiés suivent (y compris dans le catalogue des marchés), les produits
-        absents deviennent inactifs ; rien n&apos;est supprimé et les rapprochements sont gardés.
+        Export des produits de Dolibarr (séparateur « ; », UTF-8). À refaire chaque fois que Dolibarr reçoit de
+        nouveaux produits : les nouveaux arrivent <strong>désactivés</strong> (à activer dans la liste), les libellés
+        modifiés suivent, les produits absents sont retirés de la liste déroulante ; rien n&apos;est supprimé et les
+        pièces déjà posées gardent leur article.
       </p>
       <div className={styles.fichier}>
         <input type="file" accept=".csv,text/csv" onChange={choisirFichier} aria-label="Fichier produits.csv" disabled={occupe} />
@@ -126,8 +126,7 @@ export function NomenclatureImport({ produits, recharger }: { produits: ProduitN
       {resultat && (
         <p className="info" role="status">
           Import terminé : {resultat.nouveaux} nouveau(x), {resultat.modifies} modifié(s) dont {resultat.designations_modifiees} libellé(s),{' '}
-          {resultat.desactives} rendu(s) inactif(s) ; {resultat.pieces_renommees} pièce(s) du catalogue renommée(s)
-          {resultat.conflits_designation > 0 ? `, ${resultat.conflits_designation} non renommée(s) (une autre pièce porte déjà ce libellé)` : ''}.
+          {resultat.desactives} retiré(s) de Dolibarr.{resultat.nouveaux > 0 ? ' Les nouveaux articles sont désactivés : activez ceux qui servent sur les chantiers.' : ''}
         </p>
       )}
     </section>

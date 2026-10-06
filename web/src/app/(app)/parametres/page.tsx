@@ -7,21 +7,20 @@ import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { TypeDonnee } from '@/lib/types';
 import { OngletAttachement } from './OngletAttachement';
-import { OngletCatalogue } from './OngletCatalogue';
 import { OngletBordereau } from './OngletBordereau';
 import { OngletEvenements } from './OngletEvenements';
 import { OngletMarche } from './OngletMarche';
 import { OngletNatures } from './OngletNatures';
 import { OngletSecteurs } from './OngletSecteurs';
 
-// Écran d'administration (import CSV, rapprochement) : chargé seulement à l'ouverture de l'onglet.
-const OngletNomenclature = dynamic(() => import('./OngletNomenclature').then((m) => m.OngletNomenclature), {
+// Articles Dolibarr (import CSV, activation ; administrateur) : chargé seulement à l'ouverture de l'onglet.
+const OngletArticles = dynamic(() => import('./OngletArticles').then((m) => m.OngletArticles), {
   ssr: false,
   loading: () => <p className="carte discret">Chargement…</p>,
 });
 
 type Onglet = 'marche' | 'bordereau' | 'attachement' | 'evenements' | 'ouvriers' | 'equipes' | 'motifs'
-  | 'secteurs' | 'natures' | 'catalogue' | 'nomenclature';
+  | 'secteurs' | 'natures' | 'articles';
 
 interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
@@ -107,8 +106,7 @@ export default function Parametres() {
     ['motifs', 'Motifs', accesParametres],
     ['secteurs', 'Secteurs', accesParametres],
     ['natures', 'Natures de réfection', accesParametres],
-    ['catalogue', 'Catalogue des pièces', accesParametres],
-    ['nomenclature', 'Nomenclature Dolibarr', !!profil?.est_admin],
+    ['articles', 'Articles (tous marchés)', !!profil?.est_admin],
   ] as [Onglet, string, boolean][]).filter(([, , visible]) => visible);
 
   return (
@@ -131,8 +129,7 @@ export default function Parametres() {
       {onglet === 'evenements' && <OngletEvenements marcheId={marche.id} />}
       {onglet === 'secteurs' && <OngletSecteurs key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'natures' && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
-      {onglet === 'catalogue' && <OngletCatalogue key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
-      {onglet === 'nomenclature' && profil?.est_admin && <OngletNomenclature key={marche.id} marcheId={marche.id} marcheCode={marche.code} />}
+      {onglet === 'articles' && profil?.est_admin && <OngletArticles />}
 
       {onglet === 'ouvriers' && (
         <section className="carte">

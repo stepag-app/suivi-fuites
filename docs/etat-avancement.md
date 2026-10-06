@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droits, verrous), R (corrections à l'attachement, inventaire réel), P1 (nomenclature Dolibarr) **fusionnés et déployés** (PR #31 à #35, migrations `20261006100000` à `20261006100300`) ; défaut des droits « auteur inconnu » corrigé ; export Dolibarr reçu ; plan DWG retrouvé ; trois défauts de l'export de la sauvegarde toujours à corriger).
+Dernière mise à jour : 2026-10-06 (nuit : **lot T, articles Dolibarr** sur la branche `claude/lot-articles-dolibarr`, non poussée : remplace le catalogue et le rapprochement P1 ; lots P3 et P4 arrêtés en cours, à relancer sur le nouveau modèle) ; session 6, suite : lots Q (matrice des droits, verrous), R (corrections à l'attachement, inventaire réel), P1 (nomenclature Dolibarr) **fusionnés et déployés** (PR #31 à #35, migrations `20261006100000` à `20261006100300`) ; défaut des droits « auteur inconnu » corrigé ; export Dolibarr reçu ; plan DWG retrouvé ; trois défauts de l'export de la sauvegarde toujours à corriger).
 
 ## 1. Fait
 
@@ -50,6 +50,7 @@ Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droi
 | **Lot Q : matrice des droits et verrous de l'administrateur** : Utilisateurs > Droits, utilisateurs en colonnes et droits en lignes (une ligne = une colonne de `droits`), modèles par colonne, enregistrement journalisé ; l'admin a tout (colonne grisée) et peut se poser des **verrous** refusés par la base (arrêter / rouvrir un lot, refacturation forcée, supprimer une fuite, désactiver / copier un marché, révoquer un compte, et toute ligne de la matrice), sans refermeture automatique ; révocation : la base d'abord, puis la fonction serveur | migration `20261006100000_droits_verrous.sql` ; `web/src/app/(app)/utilisateurs/` ; 68 tests pgTAP (`09`) ; `web/scripts/verifier-matrice-droits.mjs` | PR [#31](https://github.com/stepag-app/suivi-fuites/pull/31) **fusionnée** le 2026-10-06, migration **déployée** ; à fusionner avec le panneau web (le circuit de révocation change) ; APK : boutons sans connaissance des verrous (la base refuse) |
 | **Lot R : contrôles et corrections à l'attachement** : les pièces du réparateur font foi (« terrain », sans délai) ; corrections du bureau selon leur nature, avec **motif obligatoire** : **remplacement** d'une pièce erronée, **oubli**, **retrait** d'une pièce non posée (saisie d'origine gardée, barrée) ; vue **`v_pieces_reelles`** (inventaire réel) ; requalification et ajout de lignes de prix avec motif (article d'origine gardé, jamais reproposé), une unité par prix et par fuite y compris en manuel ; **seuil du PE réglable par marché** (2 m par défaut) ; 10 contrôles ; page **Travaux hors bordereau à faire valoir** | migration `20261006100100_controles_attachement.sql` ; `web/src/app/(app)/attachements/` (`controles.ts`, `hors-bordereau/`, `[id]/CorrectionsFuite.tsx`, `[id]/PiecesFuite.tsx`) ; Paramètres > Marché ; 110 tests pgTAP (`10`) | PR [#32](https://github.com/stepag-app/suivi-fuites/pull/32) **fusionnée** le 2026-10-06, migration **déployée** ; écrans non vus connectés : **à essayer sur l'aperçu** (DEMO : fuites N° 9, 10, 18) ; APK : pièces remplacées ou retirées encore affichées comme normales (lot APK à prévoir) |
 | **Lot P1 : nomenclature Dolibarr** : `produits_dolibarr` (sans prix), import de `produits.csv` dans le navigateur (familles RAC, CND, ROB, AEP, VRI par défaut), rapprochement des pièces du catalogue par l'**identifiant produit** (référence en option ; diamètres et filetages identiques obligatoires), écran de validation, ajout de produits ; **le réparateur ne voit que la désignation** (APK inchangée) | migration `20261006100200_nomenclature_dolibarr.sql` ; Paramètres > Nomenclature Dolibarr ; `web/src/lib/nomenclature/` ; 43 tests pgTAP (`11`) | PR [#33](https://github.com/stepag-app/suivi-fuites/pull/33) **fusionnée** le 2026-10-06, migration **déployée** ; sur l'export du 2026-10-05 : 113 sûres, 58 probables, 90 sans correspondance ; **après fusion : importer `produits.csv` et rapprocher** |
+| **Lot T : articles Dolibarr, référentiel unique des pièces** (décision d'Issam du 2026-10-06) : les produits Dolibarr importés sont **les** pièces, communs à tous les marchés ; activation **globale** par l'administrateur (nouveaux produits désactivés) ; pièce posée = `produit_id` (article activé exigé à la saisie, ligne ancienne gardée, pièce libre conservée) ; unité de Dolibarr ; article suggéré par **règles du marché** (produit, sinon famille) ; catalogue par marché et rapprochement **supprimés** ; produits rapprochés pré-activés, articles suggérés repris en règles ; pièces posées **purgées** (rien en production) ; Paramètres > Articles (import, activation en masse), Paramètres > Bordereau (règles) ; APK : liste des articles activés | contrat `docs/lots/lot-articles-dolibarr.md` ; migration `20261006140000_articles_dolibarr.sql` ; 47 tests pgTAP (`11`, remplace P1) ; **510 tests pgTAP** verts (PostgreSQL 17 local), tsc et build web, tsc APK, scripts | branche `claude/lot-articles-dolibarr`, **ni poussée ni déployée** ; simulation sur un état DEMO (158 rapprochées) : 158 articles pré-activés, 90 règles reprises |
 | Intégration des PR #31, #32, #33 : fusion sans conflit de fichiers ; `copier_marche` redéfinie par Q et P1, réconciliée par la migration `20261006100300` (verrou, liens Dolibarr, seuil du PE copié) ; boutons de l'admin (rouvrir, refacturation forcée, désactiver, copier) grisés « verrouillé par vous » ; rapport PDF par fuite sans les pièces remplacées ou retirées ; libellé neutre au tableau de bord ; **497 tests pgTAP**, tsc, build et 7 scripts verts | PR [#35](https://github.com/stepag-app/suivi-fuites/pull/35) | **fusionnée** le 2026-10-06, migration `20261006100300` **déployée** |
 | Archivage : dossier du marché 4500004453 (documents, rapports, plans, **`Reseau aep oujda.dwg`**) et ancien dossier `Suivi-fuites-ancien` | `data-private/archives/` (ignoré par git, 359 Mo) | fait le 2026-10-05 |
 | Export Dolibarr (lecture seule, sans prix) : produits, entrepôts, mouvements du chantier | `data-private/dolibarr/` (ignoré par git ; `RAPPORT.md`) | reçu le 2026-10-05 ; entrepôt du chantier **76**, projet **40**, sorties par **bons de transfert** depuis le dépôt 1 ; aucune consommation saisie |
@@ -57,8 +58,11 @@ Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droi
 ## 2. En attente d'Issam
 
 **Priorité (session 6, suite)** :
-- **Fusionné et déployé le 2026-10-06** (PR #31 à #35). **À faire maintenant** : Paramètres > Nomenclature Dolibarr >
-  importer `produits.csv` (dans `data-private/dolibarr/`), puis « Rapprochement du catalogue » de chaque marché ; essais
+- **Lot T (articles Dolibarr)** : relire puis autoriser push, PR et déploiement de la migration `20261006140000` (purge des
+  pièces posées, suppression du catalogue). Ensuite : Paramètres > Articles, activer les articles utiles (les produits
+  rapprochés sont déjà activés), puis Paramètres > Bordereau, compléter les règles d'article suggéré (robinet et collier PEC).
+- **Fusionné et déployé le 2026-10-06** (PR #31 à #35). ~~Importer `produits.csv` puis rapprocher le catalogue~~
+  (remplacé par le lot T) ; essais
   sur DEMO : matrice des droits et verrous (Utilisateurs > Droits), corrections à l'attachement (fuites N° 9, 10, 18),
   travaux hors bordereau, seuil du PE (Paramètres > Marché).
 - **Lot R, réponses d'Issam du 2026-10-06 appliquées** : corrections du bureau selon leur nature (remplacement, oubli,
@@ -117,7 +121,8 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 
 - **Pièces et facturation** (2026-10-05) : toutes les fournitures sont comprises dans les prix unitaires de
   réparation (CPS art. II-15) : pas d'étiquette « facturable / non facturable ». La liste des pièces posables est la
-  **nomenclature de Dolibarr**, rapprochée par l'**identifiant produit** (référence en option) ; le réparateur ne voit
+  **liste des produits Dolibarr importés**, commune à tous les marchés (lot T, 2026-10-06 : plus de catalogue par marché
+  ni de rapprochement ; réimport à chaque nouveau produit, activation globale de ceux qui s'affichent) ; le réparateur ne voit
   **jamais de code**, seulement la désignation. **Le réparateur fait foi** pour ce qu'il a posé (fiche et inventaire).
   À l'attachement, le responsable et l'admin corrigent les pièces selon leur **intention** (remplacement d'une pièce
   erronée, oubli, retrait d'une pièce non posée ; l'inventaire reflète le réel, la saisie d'origine reste visible),
@@ -217,7 +222,9 @@ J (marché désactivé en lecture seule) ; **fusionnés et déployés en session
 M (fiche déjà vue sans réseau), **fusionnés** (PR #27 à #30) ; puis lots Q (matrice des droits), R (contrôles à
 l'attachement), P1 (nomenclature Dolibarr) en brouillon (PR #31 à #33) avec la branche d'intégration.
 
-**Suite prévue (pièces et Dolibarr)** : P3 **inventaire des fournitures posées** (tableau croisé, filtres rapides : fuite,
+**Suite prévue (pièces et Dolibarr)**, à relancer **après le lot T** (copies de travail arrêtées : `.claude/worktrees/agent-a717…`
+pour P3, `agent-a3be…` pour P4, à reprendre comme référence puis supprimer ; voir `docs/lots/lot-articles-dolibarr.md` § 7) :
+P3 **inventaire des fournitures posées** (tableau croisé, filtres rapides : fuite,
 période, secteur, équipe, famille, terrain / bureau ; widget au tableau de bord) ; P4 **rapprochement posé / transféré**
 (mouvements de l'entrepôt 76 par CSV puis par envoi depuis le serveur ; période × article ; écart et seuil d'alerte) ;
 saisie web des pièces par mots séparés ; distinction terrain / bureau dans le rapport PDF et l'APK. Points ouverts du lot L : « Non réparées > seuil » et
@@ -251,9 +258,10 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
 Contexte : tout jusqu'à la PR #35 (lots Q, R, P1, intégration) est fusionné et déployé, plus le correctif des droits
-« auteur inconnu ». Vérifie que l'import de produits.csv et le rapprochement du catalogue ont été faits (Paramètres >
-Nomenclature Dolibarr) ; sinon, guide Issam. Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis les
-lots P3 (inventaire des fournitures posées) et P4 (rapprochement posé / transféré), voir § 5 et docs/feuille-de-route.md.
+« auteur inconnu ». Le lot T (articles Dolibarr, docs/lots/lot-articles-dolibarr.md) remplace le catalogue et le
+rapprochement : vérifie qu'il est fusionné et déployé, puis guide Issam (Paramètres > Articles, règles d'article suggéré).
+Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis relancer les lots P3 (inventaire des fournitures
+posées) et P4 (rapprochement posé / transféré) sur le modèle du lot T, voir § 5 et docs/feuille-de-route.md.
 Le plan DWG est archivé dans data-private/archives/ : migration 2 après confirmation du système de coordonnées.
 Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
 fonctionnalité].

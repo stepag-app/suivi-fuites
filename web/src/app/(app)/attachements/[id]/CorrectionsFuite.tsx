@@ -7,7 +7,8 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { MATERIAUX, dateSeule, messageErreur, nombre } from '@/lib/format';
 import { useSession } from '@/lib/session';
-import { getSupabase, lireTout } from '@/lib/supabase';
+import { lireArticles, lireArticlesProposes } from '@/lib/articles';
+import { getSupabase } from '@/lib/supabase';
 import { COLONNES_PIECES, GRAVITES, type Controle, type PieceLue } from '../controles';
 import styles from '../controles.module.css';
 import type { ArticleChoix } from './FormsLignes';
@@ -92,8 +93,7 @@ export function CorrectionsFuite({
           .eq('fuite_id', fuiteId).is('supprime_le', null).order('realisee_le'),
         sb.from('v_quantites').select('id, prix_id, prix_numero, prix_designation, unite, quantite, origine_ligne, motif_correction, reparation_id')
           .eq('fuite_id', fuiteId).order('prix_ordre').order('id'),
-        lireTout<PieceCatalogue>((de, a) => sb.from('catalogue_pieces').select('id, designation, unite, actif')
-          .eq('marche_id', marcheId).order('designation').order('id').range(de, a)),
+        lireArticlesProposes(),
       ]);
       const rs = (r.data as RepFuite[] | null) ?? [];
       const p = rs.length
@@ -105,8 +105,12 @@ export function CorrectionsFuite({
       setVerrouillee(!!(f.data as { verrouillee_le: string | null } | null)?.verrouillee_le);
       setReps(rs);
       setLignes((l.data as LigneFuite[] | null) ?? []);
-      setPieces((p.data as PieceLue[] | null) ?? []);
-      setCatalogue(c);
+      const lues = (p.data as PieceLue[] | null) ?? [];
+      // Articles proposés, plus ceux des pièces déjà saisies (désactivés depuis) pour l'affichage
+      const proposes = new Set(c.map((a) => a.id));
+      const autres = await lireArticles(lues.map((x) => x.produit_id).filter((id) => id != null && !proposes.has(id)));
+      setPieces(lues);
+      setCatalogue([...c.map((a) => ({ ...a, actif: true })), ...[...autres.values()].map((a) => ({ ...a, actif: false }))]);
     } catch (e) {
       setErreur(messageErreur(e));
     }

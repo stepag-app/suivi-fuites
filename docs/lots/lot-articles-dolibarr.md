@@ -32,6 +32,9 @@ produits réels, bien renseignés et sans doublons.
 | Article du bordereau suggéré par une pièce | **Règles par marché** : le produit reste global ; chaque marché associe une **famille** ou un **produit** à un article de **son** bordereau (le produit l'emporte sur la famille) |
 | Ancien catalogue (261 pièces) et pièces déjà posées | **Purge** : rien n'est en production. On supprime l'ancien catalogue et on remet à zéro les pièces posées (DEMO compris) |
 | Périmètre de l'import | Familles **RAC, CND, ROB, AEP, VRI** (préfixe de la référence), comme l'import actuel |
+| Pièce libre (texte hors Dolibarr) | **Gardée** pour les cas exceptionnels |
+| Unité | **Celle de Dolibarr**, telle quelle (U, m, Barre, kg…), sans conversion |
+| Activation de départ | **Pré-activation** : tout produit rapproché d'une pièce du catalogue (lot P1) devient activé, calculé par la migration (158 sur DEMO) |
 
 Inchangé : aucun prix Dolibarr dans l'application, le réparateur ne voit que la **désignation** (jamais la
 référence ni l'identifiant), import lu dans le navigateur (l'API Dolibarr n'est pas joignable depuis Internet).
@@ -46,9 +49,9 @@ référence ni l'identifiant), import lu dans le navigateur (l'API Dolibarr n'es
 - Ajouter :
   - `utilisable boolean not null default false` : **activé pour la liste déroulante**. Seul l'administrateur le
     modifie (fonction dédiée ou déclencheur, journalisé). Un nouveau produit importé arrive à `false`.
-  - `unite_terrain` : unité de saisie (`u`, `ml`, `m2`, `m3`, `kg`), déduite de l'unité Dolibarr à l'import
-    (`U`/`Uni` → `u`, mètre → `ml`…) et corrigeable par l'administrateur. Une unité Dolibarr inconnue donne `u`
-    et figure dans le compte rendu de l'import.
+  - `utilisable_le`, `utilisable_par` (trace de l'activation) et `cree_le` (arrivée du produit, pour le filtre
+    « nouveaux du dernier import »).
+  - Unité : `unite` de Dolibarr telle quelle (décision du 2026-10-06), « u » pour une pièce libre.
 - Produit qui disparaît de Dolibarr ou n'est plus ni en vente ni en achat : `actif = false`. Il **sort de la
   liste déroulante** (la liste lit `actif and utilisable`) mais reste lisible dans l'historique.
 - Liste déroulante : `utilisable and actif`, triée par désignation, avec recherche. La famille sert de filtre
@@ -56,18 +59,16 @@ référence ni l'identifiant), import lu dans le navigateur (l'API Dolibarr n'es
 
 ### 2.2 Lecture par le terrain
 
-Aujourd'hui, `produits_dolibarr` n'est lisible qu'avec « paramètres / lire ». Ajouter une vue
-`v_articles` (`security_invoker`) qui n'expose que `dolibarr_id`, `designation`, `unite_terrain`, `famille`,
-`utilisable`, `actif`, **sans la référence**. Elle est lisible par tout utilisateur affecté à au moins un marché
-(mêmes conditions que la saisie d'une réparation). Privilèges explicites, rien pour `anon`.
+`produits_dolibarr` devient lisible par tout compte affecté à au moins un marché (et l'administrateur) : la table ne
+contient aucun prix, la référence n'est qu'un code que l'interface ne montre que dans Paramètres > Articles. Pas de
+vue intermédiaire (plus simple ; les vues du lot R lisent la table directement).
 
 ### 2.3 Pièces posées : `reparation_pieces`
 
 - Remplacer `piece_id uuid → catalogue_pieces` par `produit_id integer references produits_dolibarr (dolibarr_id)`.
 - Contrôle à l'écriture : un produit **nouvellement** choisi doit être `utilisable and actif`. Une ligne déjà saisie
   garde son produit même s'il est désactivé ensuite.
-- `designation_libre` : **à confirmer avec Issam** (§ 8, question 1). Par défaut, on la garde pour les cas
-  exceptionnels, signalés au contrôle de l'attachement.
+- `designation_libre` : **gardée** (décision du 2026-10-06), pour les cas exceptionnels.
 - Même traitement pour les corrections du bureau (lot R : pièce oubliée, remplacée ou retirée) et pour
   `v_pieces_reelles`.
 
@@ -119,11 +120,11 @@ résolution remplace `catalogue_pieces.prix_suggere_id` partout, notamment dans 
 
 ## 4. APK
 
-- `mobile/src/parametres.ts` : lire `v_articles` (`utilisable and actif`) au lieu de `catalogue_pieces` filtré par
-  marché. La liste est la même pour tous les marchés : un seul cache hors ligne.
+- `mobile/src/parametres.ts` : lire `produits_dolibarr` (`utilisable and actif`, par pages) au lieu de
+  `catalogue_pieces` filtré par marché ; clé de cache `v2` (l'ancienne copie n'est plus lue).
 - `saisie.tsx`, `fiche.tsx`, `fiche-donnees.ts`, `types.ts`, `file-attente.ts` : `piece_id` devient `produit_id`
-  (entier). File d'attente : une saisie hors ligne déjà en file avec l'ancien `piece_id` est rejetée avec un
-  message clair (rien n'est en production : aucune migration de file d'attente).
+  (entier). File d'attente : un envoi gardé par une version précédente (avec `piece_id`) part en pièce libre
+  (désignation conservée), sans blocage.
 - Liste déroulante : recherche par mots (la liste peut compter plusieurs centaines d'articles), filtre par famille.
 
 ## 5. Purge (rien n'est en production)
@@ -135,7 +136,7 @@ posées. Il pourra en recréer plus tard à partir de produits Dolibarr activés
 
 ## 6. Tests
 
-- pgTAP (`supabase/tests/database/14_articles_dolibarr.test.sql`) : import (nouveau produit à `false`, produit
+- pgTAP (`supabase/tests/database/11_articles_dolibarr.test.sql`, remplace le fichier du lot P1) : import (nouveau produit à `false`, produit
   retiré passe `actif = false` sans perdre l'historique), activation réservée à l'administrateur, `v_articles` sans
   référence et lisible par un réparateur affecté, refus d'un produit non activé ou retiré à la saisie, ligne
   ancienne conservée, résolution produit > famille > aucune, copie des règles par `copier_marche`, RLS de
@@ -152,14 +153,9 @@ posées. Il pourra en recréer plus tard à partir de produits Dolibarr activés
   de travail P4 restent valables.
 - Les deux copies de travail arrêtées sont supprimées une fois P3 et P4 relancés.
 
-## 8. Questions ouvertes (à poser à Issam, ne pas supposer)
+## 8. Questions tranchées (2026-10-06)
 
-1. **Pièce libre** (texte saisi à la main, hors Dolibarr) : la garder pour les cas exceptionnels, ou l'interdire et
-   obliger à demander l'ajout du produit dans Dolibarr ?
-2. **Unités** : la liste de correspondance unité Dolibarr → unité terrain (U, ML, M, KG…) est à valider sur
-   `produits.csv`.
-3. **Activation initiale** : partir de zéro produit activé, ou pré-activer ceux qui figuraient parmi les 113
-   correspondances sûres du rapprochement P1 (simple aide au démarrage, sans lien gardé) ?
+1. Pièce libre : gardée. 2. Unités : celles de Dolibarr. 3. Activation initiale : pré-activation des produits rapprochés.
 
 ## 9. Coordination
 

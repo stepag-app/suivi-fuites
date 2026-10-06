@@ -19,15 +19,15 @@ select appliquer_modele_role('00000000-0000-0000-0000-00000000000d', 'aaaaaaaa-0
 insert into prix (marche_id, numero, ordre, designation, unite, pu_ht, famille, materiaux, diametre_max_mm) values
   ('aaaaaaaa-0000-0000-0000-000000000001', '3', 3, 'Terrassement', 'm3', 50, 'terrassement', null, null),
   ('aaaaaaaa-0000-0000-0000-000000000001', '6', 6, 'PE DE < 40', 'u', 400, 'reparation_tuyau', array['polyethylene'], 39);
-insert into catalogue_pieces (id, marche_id, designation) values
-  ('cccccccc-0000-0000-0000-000000000009', 'aaaaaaaa-0000-0000-0000-000000000001', 'Manchon droit 32/32');
+insert into produits_dolibarr (dolibarr_id, ref, designation, unite, famille, utilisable) values
+  (9009, 'ESS09009', 'Manchon droit 32/32', 'U', 'ESS', true);
 insert into fuites (id, marche_id, reference_srm) values
   ('aaaaaaaa-1111-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', '302-684-001');
 insert into reparations (id, marche_id, fuite_id, materiau, diametre_mm, tuyau_repare, fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m) values
   ('aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-000000000001',
    'polyethylene', 32, true, 1.2, 0.6, 0.8);
-insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'cccccccc-0000-0000-0000-000000000009', 2);
+insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 9009, 2);
 
 select results_eq($$ select nom, jeu, format from modeles_export where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001' order by ordre $$,
   $$ values ('État journalier'::text, 'fuites'::text, 'pdf'::text), ('Pièces posées par secteur', 'pieces', 'xlsx'),

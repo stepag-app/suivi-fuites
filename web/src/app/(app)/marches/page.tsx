@@ -198,7 +198,7 @@ function FormMarche({
           </label>
           <p className="discret">
             Copiés : fiche (maître d&apos;ouvrage, titulaire, taux, alertes, libellés du client), bordereau et règles de
-            proposition, zones et secteurs, équipes, natures de réfection, motifs, catalogue des pièces, règles d&apos;attachement,
+            proposition, zones et secteurs, équipes, natures de réfection, motifs, articles suggérés pour les pièces, règles d&apos;attachement,
             catégories d&apos;événements et modèles d&apos;export. Jamais copiés : fuites, interventions, photos, lots
             d&apos;attachement, ordres de service, avenants, ouvriers ; ni les dates, l&apos;OS de commencement et le montant.
           </p>

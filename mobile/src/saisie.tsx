@@ -194,14 +194,14 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     return parametres.pieces.filter((p) => mots.every((x) => sansAccents(p.designation).includes(x))).slice(0, 8);
   }, [recherche, parametres.pieces]);
 
-  function ajouterPiece(pieceId: string | null, designation: string) {
+  function ajouterPiece(pieceId: number | null, designation: string) {
     const q = nombreOuNul(quantite);
     if (!q || q <= 0) {
       setErreur('Quantité de la pièce : un nombre supérieur à 0.');
       return;
     }
     setErreur('');
-    setPieces([...pieces, { id: Crypto.randomUUID(), piece_id: pieceId, designation, quantite: q, texte: enTexte(q) }]);
+    setPieces([...pieces, { id: Crypto.randomUUID(), produit_id: pieceId, designation, quantite: q, texte: enTexte(q) }]);
     setRecherche('');
     setQuantite('1');
   }
@@ -236,7 +236,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     for (const p of pieces) {
       const q = nombreOuNul(p.texte);
       if (!q || q <= 0) return setErreur(`Quantité de « ${p.designation} » : un nombre supérieur à 0.`);
-      posees.push({ id: p.id, piece_id: p.piece_id, designation: p.designation, quantite: q });
+      posees.push({ id: p.id, produit_id: p.produit_id, designation: p.designation, quantite: q });
     }
     const travaux = !nonReparee;
     const ligne: Record<string, unknown> = {
@@ -348,7 +348,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                 editable={peutRequantifier(p.id)}
                 accessibilityLabel={`Quantité : ${p.designation}`}
               />
-              <Text style={[s.texte, { flex: 1, minWidth: 160 }]}>× {p.designation}{p.piece_id ? '' : ' (libre)'}</Text>
+              <Text style={[s.texte, { flex: 1, minWidth: 160 }]}>× {p.designation}{p.produit_id != null ? '' : ' (libre)'}</Text>
               {peutRetirer(p.id)
                 ? <Bouton titre="Retirer" danger onPress={() => setPieces(pieces.filter((x) => x.id !== p.id))} />
                 : <Text style={s.discret}>Retrait : responsable</Text>}
@@ -358,7 +358,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
             <>
               <View style={s.ligne}>
                 <View style={{ flexGrow: 3, flexBasis: 220 }}>
-                  <Champ libelle="Rechercher dans le catalogue" valeur={recherche} onChange={setRecherche} indication="ex. collier 63" />
+                  <Champ libelle="Rechercher un article" valeur={recherche} onChange={setRecherche} indication="ex. collier 63" />
                 </View>
                 <View style={{ flexGrow: 1, flexBasis: 90 }}>
                   <Champ libelle="Quantité" valeur={quantite} onChange={setQuantite} nombre />
@@ -372,7 +372,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                   accessibilityRole="button"
                 >
                   <Text style={[s.texte, { flex: 1 }]}>+ {p.designation}</Text>
-                  <Text style={s.discret}>{p.unite}</Text>
+                  <Text style={s.discret}>{p.unite || 'u'}</Text>
                 </Pressable>
               ))}
               {!!recherche.trim() && (

@@ -242,7 +242,7 @@ export type EtatPiece = 'posee' | 'remplacee' | 'retiree';
 export interface PieceLue {
   id: string;
   reparation_id: string;
-  piece_id: string | null;
+  produit_id: number | null;
   designation_libre: string | null;
   quantite: number;
   provenance: ProvenancePiece;
@@ -256,7 +256,7 @@ export interface PieceLue {
 }
 
 export const COLONNES_PIECES =
-  'id, reparation_id, piece_id, designation_libre, quantite, provenance, nature_correction, remplace_piece_id, motif_correction, etat, etat_le, motif_retrait, cree_le';
+  'id, reparation_id, produit_id, designation_libre, quantite, provenance, nature_correction, remplace_piece_id, motif_correction, etat, etat_le, motif_retrait, cree_le';
 
 export const PHRASE_PIECE_AJOUTEE = 'Une pièce ajoutée doit avoir été posée ; pour changer le prix, requalifier la ligne de prix.';
 

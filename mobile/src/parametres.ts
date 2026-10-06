@@ -1,5 +1,5 @@
-// Paramètres du marché utiles à la saisie (natures de réfection, motifs, catalogue des pièces,
-// équipes, ouvriers) : lus au serveur quand le réseau est là, sinon dernière copie gardée.
+// Paramètres utiles à la saisie (natures de réfection, motifs, équipes, ouvriers du marché ; articles
+// Dolibarr activés, communs à tous les marchés) : lus au serveur quand le réseau est là, sinon dernière copie gardée.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
@@ -7,14 +7,28 @@ import type { Equipe, Motif, Nature, Ouvrier, Piece } from './types';
 
 export interface Parametres { natures: Nature[]; motifs: Motif[]; pieces: Piece[]; equipes: Equipe[]; ouvriers: Ouvrier[] }
 const VIDE: Parametres = { natures: [], motifs: [], pieces: [], equipes: [], ouvriers: [] };
-const cle = (marcheId: string) => `suivi-fuites:parametres:${marcheId}`;
+// v2 : les pièces sont des articles Dolibarr (identifiant entier) ; l'ancienne copie (catalogue) n'est plus lue.
+const cle = (marcheId: string) => `suivi-fuites:parametres:v2:${marcheId}`;
+
+// L'API renvoie au plus 1 000 lignes par requête : articles lus par pages.
+async function lireArticles(): Promise<{ data: Piece[] | null; error: unknown }> {
+  const tout: Piece[] = [];
+  for (let de = 0; de < 20000; de += 1000) {
+    const { data, error } = await supabase.from('produits_dolibarr').select('id:dolibarr_id, designation, unite')
+      .eq('utilisable', true).eq('actif', true).order('designation').order('dolibarr_id').range(de, de + 999);
+    if (error) return { data: null, error };
+    tout.push(...((data ?? []) as Piece[]));
+    if (!data || data.length < 1000) break;
+  }
+  return { data: tout, error: null };
+}
 
 export async function chargerParametres(marcheId: string): Promise<Parametres> {
   const [n, m, p, e, o] = await Promise.all([
     supabase.from('natures_refection').select('id, code, libelle_fr, emplacement, necessite_refection')
       .eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     supabase.from('motifs').select('id, categorie, libelle_fr').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
-    supabase.from('catalogue_pieces').select('id, designation, unite').eq('marche_id', marcheId).eq('actif', true).order('designation'),
+    lireArticles(),
     supabase.from('equipes').select('id, type, numero, libelle').eq('marche_id', marcheId).eq('actif', true).order('type').order('numero'),
     supabase.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId).eq('actif', true).order('nom_complet'),
   ]);

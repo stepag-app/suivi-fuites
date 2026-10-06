@@ -311,6 +311,22 @@ function CarteDesFuites() {
     carte.current?.recentrer();
   }, [cleFiltres]);
 
+  // « Enregistrer… » : ouvre le panneau Réseau et amène le formulaire du balayage (équipe, date, méthode) à l'écran,
+  // même si le panneau était déjà ouvert (sur la tablette, il est en bas d'une longue liste de secteurs).
+  const allerAuFormulaire = () => {
+    setReseauOuvert(true);
+    const montrer = (essais: number) => {
+      const el = document.getElementById('formulaire-balayage');
+      if (el) {
+        el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        el.querySelector('select')?.focus({ preventScroll: true });
+      } else if (essais > 0) {
+        requestAnimationFrame(() => montrer(essais - 1));
+      }
+    };
+    requestAnimationFrame(() => montrer(10));
+  };
+
   return (
     <div className="page-carte">
       <div className="barre">
@@ -410,7 +426,7 @@ function CarteDesFuites() {
             <button type="button" aria-pressed={outilBalayage === 'lasso'} onClick={() => setOutilBalayage('lasso')}>Lasso</button>
             <button type="button" disabled={selection.size === 0} onClick={prolonger}>Prolonger</button>
             <button type="button" disabled={selection.size === 0} onClick={() => setSelection(new Set())}>Désélectionner tout</button>
-            <button type="button" className="primaire" disabled={selection.size === 0 || occupe} onClick={() => setReseauOuvert(true)}>Enregistrer…</button>
+            <button type="button" className="primaire" disabled={selection.size === 0 || occupe} onClick={allerAuFormulaire}>Enregistrer…</button>
           </div>
         )}
         {reseauOuvert && <PanneauReseau reseau={reseau} balayage={balayage} fermer={() => setReseauOuvert(false)} />}

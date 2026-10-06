@@ -215,7 +215,7 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
           <p>
             <span className={styles.chiffre}>{nombre(n, 0)}</span> tronçon{n > 1 ? 's' : ''} · <span className={styles.chiffre}>{formaterLineaire(balayage.lineaire)}</span>
           </p>
-          <label>
+          <label id="formulaire-balayage">
             Équipe
             <select value={equipe} onChange={(e) => choisirEquipe(e.target.value)}>
               <option value="">— sans équipe —</option>

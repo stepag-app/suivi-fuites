@@ -113,7 +113,7 @@ export function Fiche({ id, retour, saisir }: {
   }
 
   const libelle = libelleFuite(fuite);
-  const designation = (pieceId: string | null, libre: string | null) =>
+  const designation = (pieceId: number | null, libre: string | null) =>
     parametres.pieces.find((p) => p.id === pieceId)?.designation ?? libre ?? 'Pièce';
   const creations = locaux.filter((e): e is EnvoiReparation => e.type === 'reparation');
   const modifs = locaux.filter((e): e is EnvoiModification => e.type === 'modification');
@@ -126,7 +126,7 @@ export function Fiche({ id, retour, saisir }: {
   const depuisServeur = (r: Reparation): EtatReparation => ({
     ligne: r as unknown as Record<string, unknown>,
     pieces: piecesServeur.filter((p) => p.reparation_id === r.id).map((p) => ({
-      id: p.id, piece_id: p.piece_id, designation: designation(p.piece_id, p.designation_libre), quantite: Number(p.quantite),
+      id: p.id, produit_id: p.produit_id, designation: p.produit?.designation ?? designation(p.produit_id, p.designation_libre), quantite: Number(p.quantite),
     })),
     ouvriers: (donnees?.ouvriers ?? []).filter((o) => o.reparation_id === r.id).map((o) => o.ouvrier_id),
   });

@@ -29,6 +29,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261006100100_controles_attachement.sql` | lot R : pièces posées avec provenance (`terrain` : saisie par l'auteur de la réparation, sans délai ; `correction` : autre compte, droit « interventions / modifier » sur la réparation d'un autre), nature de la correction (`remplacement` avec `remplace_piece_id`, `oubli`), état (`posee`, `remplacee`, `retiree`, jamais supprimées) et motif obligatoire, posés ou contrôlés par déclencheur ; vue `v_pieces_reelles` (inventaire réel) ; motif obligatoire de toute modification d'une ligne de quantités (`motif_modification` → `motif_correction`, `corrigee_par`, `corrigee_le`), article d'origine d'une ligne requalifiée (`prix_initial_id`, jamais reproposé), une unité par prix et par fuite pour les lignes manuelles ; `marches.longueur_pe_max_m` (seuil du polyéthylène, 2 m par défaut) ; vues `v_controles_attachement` et `v_hors_bordereau` ; `v_pieces_posees` et `v_fuites_export` sans les pièces remplacées ou retirées ; `v_anomalies` suit le seuil du marché |
 | `migrations/20261006100200_nomenclature_dolibarr.sql` | lot P1 : `produits_dolibarr` (nomenclature Dolibarr de l'entreprise, sans prix ; lecture admin et « paramètres / lire »), `imports_dolibarr`, `importer_produits_dolibarr` (admin, idempotent, absents rendus inactifs), lien `catalogue_pieces.produit_dolibarr_id` (unique par marché, désignation Dolibarr imposée, admin seulement), `hors_nomenclature`, `designation_initiale`, `rapprocher_pieces` (admin, en lot), `copier_marche` reprend les liens |
 | `migrations/20261006100300_reconciliation_copier_marche.sql` | `copier_marche` redéfinie par les lots Q et P1 : garde le verrou « créer un marché par copie », la reprise des liens Dolibarr et copie le seuil du polyéthylène du marché source |
+| `migrations/20261006140000_articles_dolibarr.sql` | lot T : les produits Dolibarr deviennent le **référentiel unique des pièces**, commun à tous les marchés ; `produits_dolibarr.utilisable` (activation globale, `activer_produits_dolibarr`, administrateur ; nouveau produit importé désactivé ; `cree_le`), lecture par tout compte affecté ; `reparation_pieces.produit_id` remplace `piece_id` (article activé et présent dans Dolibarr exigé à la saisie, ligne ancienne gardée ; pièce libre conservée) ; `suggestions_articles` (article du bordereau suggéré par marché : produit, sinon famille ; `private.article_suggere`), copiées par `copier_marche` ; vues du lot R relues sur Dolibarr ; **suppression** de `catalogue_pieces`, du rapprochement et des compteurs P1 d'`imports_dolibarr` ; reprise : produits rapprochés pré-activés, articles suggérés des pièces rapprochées convertis en règles ; **purge** des pièces posées (rien en production) |
 | `migrations/20261006110000_droits_auteur_inconnu.sql` | correctif : `private.peut` renvoie `false` (et non `null`) pour une portée « siennes » quand la saisie n'a ni auteur terrain ni `saisi_par` ; `avant_modification_saisie` bloque donc bien les saisies sans auteur (importées, de démonstration, générées) |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
@@ -37,12 +38,12 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) ; correction avec motif depuis le lot R |
 | `tests/database/04_exports.test.sql` | 10 tests de l'étape C (modèles par défaut, droits, vue enrichie) |
 | `tests/database/05_marche_demo.test.sql` | 30 tests : marché DEMO, droits des agents de terrain (ni attachements, ni prix, ni paramètres, ni exports), isolation, lot N° 02 de bout en bout |
-| `tests/database/06_copie_marche_parametres.test.sql` | 36 tests du lot C : copie réservée à l'admin, contenu copié, isolation, paramètres édités par le responsable, règles de proposition sans nouvelle version, refus des agents, journal |
+| `tests/database/06_copie_marche_parametres.test.sql` | 36 tests du lot C : copie réservée à l'admin, contenu copié (dont les articles suggérés, lot T), isolation, paramètres édités par le responsable, règles de proposition sans nouvelle version, refus des agents, journal |
 | `tests/database/07_logos.test.sql` | 37 tests du lot F (droits, noms imposés, isolation, agents de terrain refusés, copie sans logos) |
 | `tests/database/08_marche_inactif.test.sql` | 9 tests du lot J (écritures refusées sur un marché désactivé sauf administrateur, lecture conservée, réactivation) |
 | `tests/database/09_droits_verrous.test.sql` | 68 tests du lot Q (accès refusé aux non-administrateurs, matrice, chaque verrou bloque puis le retrait rétablit, service_role, journal) |
 | `tests/database/10_controles_attachement.test.sql` | 110 tests du lot R (corrections des pièces : remplacement, oubli, retrait, motif, saisie d'origine gardée, pas de délai, inventaire réel, droits ; motif et journal des lignes, requalification, une unité par prix, lot arrêté figé, chaque contrôle, travaux hors bordereau, seuil du polyéthylène par marché) |
-| `tests/database/11_nomenclature_dolibarr.test.sql` | 43 tests du lot P1 (droits, aucun prix, import idempotent, lien et unicité, désactivation sans perte d'historique, journal, copie) |
+| `tests/database/11_articles_dolibarr.test.sql` | 47 tests du lot T (plus de catalogue ni de rapprochement, aucun prix, import idempotent, nouveaux désactivés, activation globale par l'administrateur, lecture par les comptes affectés, saisie limitée aux articles activés, ligne ancienne gardée, pièce libre, article suggéré produit > famille, droits et journal des règles) ; remplace les 43 tests du lot P1 |
 | `tests/database/12_droits_auteur_inconnu.test.sql` | 9 tests du correctif (saisie sans auteur refusée à la détection et au chef, propre saisie et saisie d'un autre chef, responsable « toutes », administrateur) |
 | `migrations/20261006130000_reseau_balayage.sql` | lot S2 : tronçons, nœuds et balayages (RLS, marché désactivé en lecture seule), import, GeoJSON par secteur, état de balayage, zonage (liste, polygone, contours), vues des linéaires et du journal ; droit « balayage » de la détection (voir, cocher, annuler les siens) |
 | `tests/database/15_reseau_balayage.test.sql` | 115 tests du lot S2 (droits par rôle, isolation, import idempotent, longueur, zonage automatique et manuel, contours, premier passage et annulation, statut du secteur, vues, marché désactivé, `copier_marche` inchangée) |
@@ -220,26 +221,27 @@ n'est pas sauvegardé.
   Réservées aux droits « attachements / lire » et « quantités / lire ». Seuil du polyéthylène :
   `marches.longueur_pe_max_m` (Paramètres > Marché, 2 m par défaut, copié avec le marché), aussi suivi par `v_anomalies`.
 
-## Nomenclature Dolibarr (lot P1)
+## Articles Dolibarr (lot T, remplace le catalogue et le rapprochement du lot P1)
 
-Réimporter `produits.csv` (export des produits de Dolibarr, `;`, UTF-8) :
+Les produits Dolibarr sont le seul référentiel des pièces posées, commun à tous les marchés (contrat :
+`docs/lots/lot-articles-dolibarr.md`). Chaque fois que Dolibarr reçoit de nouveaux produits :
 1. Sur le serveur, relancer `C:\xampp\php\php.exe export.php` dans le dossier `export-fuites` du Bureau (lecture seule,
    aucun prix), puis copier le fichier sur le Mac, **hors du dépôt** (`data-private/dolibarr/`).
-2. Panneau web, compte administrateur : Paramètres > Nomenclature Dolibarr > « Importer produits.csv », choisir le
-   fichier, vérifier les familles cochées et l'aperçu (nouveaux, modifiés, rendus inactifs), puis « Importer ».
-3. L'import (`importer_produits_dolibarr`) est idempotent : un même fichier réimporté ne change rien. Les pièces
-   rapprochées prennent le nouveau libellé (si une autre pièce du marché porte déjà ce libellé, elle garde l'ancien :
-   compté dans `imports_dolibarr.conflits_designation`). Chaque import est tracé dans `imports_dolibarr`.
-4. Puis « Rapprochement du catalogue » de chaque marché : valider les sûres, vérifier les probables.
+2. Panneau web, compte administrateur : Paramètres > Articles > « Importer produits.csv », choisir le fichier, vérifier
+   les familles cochées (RAC, CND, ROB, AEP, VRI) et l'aperçu (nouveaux, modifiés, retirés), puis « Importer ».
+3. L'import (`importer_produits_dolibarr`) est idempotent ; les **nouveaux produits arrivent désactivés** ; un produit absent
+   du fichier devient inactif (retiré de la liste déroulante, historique gardé). Chaque import est tracé dans `imports_dolibarr`.
+4. Paramètres > Articles > filtre « Nouveaux du dernier import » : activer ceux qui servent sur les chantiers (ligne par
+   ligne ou sélection). L'activation vaut pour tous les marchés.
 
-Rapprochement par l'**identifiant produit** Dolibarr (`rowid`), la référence en option ; le réparateur ne voit jamais
-de code. L'API REST de Dolibarr n'accepte que les adresses du réseau local (`API_RESTRICT_ON_IP`) : pas d'appel
+Article du bordereau suggéré pour une pièce (contrôles de l'attachement) : Paramètres > Bordereau > « Article suggéré pour
+les pièces posées », règle par article ou par famille, propre à chaque marché. Le réparateur ne voit jamais de code. L'API REST de Dolibarr n'accepte que les adresses du réseau local (`API_RESTRICT_ON_IP`) : pas d'appel
 depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par envoi depuis le serveur.
 
 ## Marché de démonstration `DEMO` (données fictives)
 
 Créé par `20261004230000_marche_demo.sql` pour les essais, sans rien écrire dans le marché SRM :
-copie des paramètres SRM (fiche, bordereau, zones, secteurs, équipes, natures, motifs, catalogue,
+copie des paramètres SRM (fiche, bordereau, zones, secteurs, équipes, natures, motifs, catalogue (supprimé par le lot T),
 règles d'attachement, modèles d'export), décalée au 3 août 2026, puis 25 fuites d'août à octobre
 (tous les statuts, origine SRM ou STEPAG, avec ou sans réfection, sondage négatif, réparation en deux
 temps, re-détection, gros diamètre, alertes et anomalies), le lot N° 01 d'août arrêté, puis une

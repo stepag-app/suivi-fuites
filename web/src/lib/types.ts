@@ -51,7 +51,8 @@ export interface Droit {
 export interface Secteur { id: string; zone_id: string; code: string; libelle: string }
 export interface Nature { id: string; code: string; libelle_fr: string; emplacement: string; necessite_refection: boolean }
 export interface Motif { id: string; categorie: 'sans_reparation' | 'sans_refection'; code: string; libelle_fr: string }
-export interface Piece { id: string; designation: string; unite: string }
+/** Article Dolibarr (id : identifiant du produit dans Dolibarr), commun à tous les marchés. */
+export interface Piece { id: number; designation: string; unite: string | null }
 
 export interface VFuite {
   id: string;

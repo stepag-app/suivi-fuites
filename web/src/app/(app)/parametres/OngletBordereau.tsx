@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { dateSeule, libellesMarche, MATERIAUX, messageErreur, montant, nombre } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
+import { SuggestionsArticles } from './SuggestionsArticles';
 
 interface Avenant {
   id: string; numero: string; date_avenant: string; objet: string; prolongation_jours: number;
@@ -162,6 +163,8 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
             <button onClick={() => setAjout('hors_bordereau')}>+ Ajouter un article hors bordereau</button>
           ))}
       </section>
+
+      <SuggestionsArticles marcheId={marcheId} prix={articles} peutCreer={peutCreer} />
     </>
   );
 }

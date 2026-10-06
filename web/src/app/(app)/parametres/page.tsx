@@ -7,15 +7,14 @@ import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { TypeDonnee } from '@/lib/types';
 import { OngletAttachement } from './OngletAttachement';
-import { OngletCatalogue } from './OngletCatalogue';
 import { OngletBordereau } from './OngletBordereau';
 import { OngletEvenements } from './OngletEvenements';
 import { OngletMarche } from './OngletMarche';
 import { OngletNatures } from './OngletNatures';
 import { OngletSecteurs } from './OngletSecteurs';
 
-// Écran d'administration (import CSV, rapprochement) : chargé seulement à l'ouverture de l'onglet.
-const OngletNomenclature = dynamic(() => import('./OngletNomenclature').then((m) => m.OngletNomenclature), {
+// Articles Dolibarr (import CSV : administrateur ; activation : administrateur et responsable) : chargé à l'ouverture de l'onglet.
+const OngletArticles = dynamic(() => import('./OngletArticles').then((m) => m.OngletArticles), {
   ssr: false,
   loading: () => <p className="carte discret">Chargement…</p>,
 });
@@ -26,7 +25,7 @@ const OngletReseau = dynamic(() => import('./OngletReseau').then((m) => m.Onglet
 });
 
 type Onglet = 'marche' | 'bordereau' | 'attachement' | 'evenements' | 'ouvriers' | 'equipes' | 'motifs'
-  | 'secteurs' | 'reseau' | 'natures' | 'catalogue' | 'nomenclature';
+  | 'secteurs' | 'reseau' | 'natures' | 'articles';
 
 interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
@@ -113,8 +112,7 @@ export default function Parametres() {
     ['secteurs', 'Secteurs', accesParametres],
     ['reseau', 'Réseau', !!profil?.est_admin || peut('parametres', 'modifier')],
     ['natures', 'Natures de réfection', accesParametres],
-    ['catalogue', 'Catalogue des pièces', accesParametres],
-    ['nomenclature', 'Nomenclature Dolibarr', !!profil?.est_admin],
+    ['articles', 'Articles (tous marchés)', !!profil?.est_admin || peut('parametres', 'modifier')],
   ] as [Onglet, string, boolean][]).filter(([, , visible]) => visible);
 
   return (
@@ -140,8 +138,7 @@ export default function Parametres() {
         <OngletReseau key={marche.id} marcheId={marche.id} peutImporter={!!profil?.est_admin} />
       )}
       {onglet === 'natures' && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
-      {onglet === 'catalogue' && <OngletCatalogue key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
-      {onglet === 'nomenclature' && profil?.est_admin && <OngletNomenclature key={marche.id} marcheId={marche.id} marcheCode={marche.code} />}
+      {onglet === 'articles' && <OngletArticles importer={!!profil?.est_admin} />}
 
       {onglet === 'ouvriers' && (
         <section className="carte">

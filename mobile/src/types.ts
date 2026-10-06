@@ -78,15 +78,18 @@ export interface Refection {
   longueur_m: number | null; largeur_m: number | null; equipe_id: string | null; observation: string | null;
 }
 export interface PiecePosee {
-  id: string; reparation_id: string; piece_id: string | null; designation_libre: string | null; quantite: number;
+  id: string; reparation_id: string; produit_id: number | null; designation_libre: string | null; quantite: number;
   saisi_par?: string | null;
+  /** Article Dolibarr de la pièce (désignation, même s'il a été désactivé depuis). */
+  produit?: { designation: string } | null;
 }
 export interface OuvrierPresent { reparation_id: string; ouvrier_id: string }
 
 // Paramètres du marché (gardés sur la tablette pour la saisie hors ligne)
 export interface Nature { id: string; code: string; libelle_fr: string; emplacement: string; necessite_refection: boolean }
 export interface Motif { id: string; categorie: 'sans_reparation' | 'sans_refection'; libelle_fr: string }
-export interface Piece { id: string; designation: string; unite: string }
+/** Article Dolibarr activé (id : identifiant du produit dans Dolibarr), commun à tous les marchés. */
+export interface Piece { id: number; designation: string; unite: string | null }
 export interface Equipe { id: string; type: string; numero: number; libelle: string }
 export interface Ouvrier { id: string; nom_complet: string }
 export interface Proche {

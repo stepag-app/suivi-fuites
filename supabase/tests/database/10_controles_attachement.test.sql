@@ -59,12 +59,18 @@ insert into natures_refection (id, marche_id, code, libelle_fr, emplacement, pri
   ('cccccccc-0000-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'beton', 'Béton', 'trottoir', 'aaaaaaaa-4444-0000-0000-000000000004'),
   ('cccccccc-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'enrobe', 'Enrobé', 'chaussee', 'aaaaaaaa-4444-0000-0000-000000000005');
 
-insert into catalogue_pieces (id, marche_id, designation, unite, prix_suggere_id) values
-  ('aaaaaaaa-5555-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001', 'Robinet PEC 20/25', 'u', 'aaaaaaaa-4444-0000-0000-000000000007'),
-  ('aaaaaaaa-5555-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'Collier PEC 63/20', 'u', 'aaaaaaaa-4444-0000-0000-000000000008'),
-  ('aaaaaaaa-5555-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', 'Manchon droit 25/25', 'u', 'aaaaaaaa-4444-0000-0000-000000000006'),
-  ('aaaaaaaa-5555-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001', 'Robinet vanne 400', 'u', null),
-  ('aaaaaaaa-5555-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000001', 'Té fonte (hors bordereau)', 'u', 'aaaaaaaa-4444-0000-0000-0000000000b1');
+-- Articles Dolibarr (activés) et article suggéré par règle « produit » du marché
+insert into produits_dolibarr (dolibarr_id, ref, designation, unite, famille, utilisable) values
+  (55001, 'ESS55001', 'Robinet PEC 20/25', 'u', 'ESS', true),
+  (55002, 'ESS55002', 'Collier PEC 63/20', 'u', 'ESS', true),
+  (55003, 'ESS55003', 'Manchon droit 25/25', 'u', 'ESS', true),
+  (55004, 'ESS55004', 'Robinet vanne 400', 'u', 'ESS', true),
+  (55005, 'ESS55005', 'Té fonte (hors bordereau)', 'u', 'ESS', true);
+insert into suggestions_articles (marche_id, produit_id, prix_id) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 55001, 'aaaaaaaa-4444-0000-0000-000000000007'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', 55002, 'aaaaaaaa-4444-0000-0000-000000000008'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', 55003, 'aaaaaaaa-4444-0000-0000-000000000006'),
+  ('aaaaaaaa-0000-0000-0000-000000000001', 55005, 'aaaaaaaa-4444-0000-0000-0000000000b1');
 
 insert into ordres_service (id, marche_id, numero, date_os, objet, nature) values
   ('eeeeeeee-0000-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', '02', '2026-09-25', 'Commencement', 'commencement');
@@ -92,13 +98,13 @@ $$, 'chef : saisit sa réparation (PE DE 25)');
 
 -- Insertion telle que l'envoie la tablette (valeurs par défaut), puis une tentative de falsification
 select lives_ok($$
-  insert into reparation_pieces (id, marche_id, reparation_id, piece_id, designation_libre, quantite) values
+  insert into reparation_pieces (id, marche_id, reparation_id, produit_id, designation_libre, quantite) values
     ('aaaaaaaa-6666-0000-0000-000000000001', 'aaaaaaaa-0000-0000-0000-000000000001',
-     'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', null, 2);
-  insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite, provenance, nature_correction,
+     'aaaaaaaa-2222-0000-0000-000000000001', 55003, null, 2);
+  insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite, provenance, nature_correction,
                                  motif_correction, etat, etat_le, motif_retrait) values
     ('aaaaaaaa-6666-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001',
-     'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1,
+     'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1,
      'correction', 'oubli', 'x', 'retiree', now(), 'x');
 $$, 'chef : déclare ses pièces posées (tablette : valeurs par défaut)');
 
@@ -108,12 +114,12 @@ select results_eq($$ select provenance, nature_correction, etat, etat_le is null
   'pièces du réparateur : terrain et posées ; provenance, nature et état non falsifiables par le client');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000e", "role": "authenticated"}', true);
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1, 'Oubli') $$,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1, 'Oubli') $$,
   '42501', 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)',
   'second chef : n''ajoute pas de pièce à la réparation d''un autre');
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1,
    'aaaaaaaa-6666-0000-0000-000000000001', 'Remplacement') $$,
   '42501', 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)',
   'second chef : ne remplace pas la pièce d''un autre');
@@ -126,8 +132,8 @@ select throws_ok($$ update reparation_pieces set quantite = 1 where id = 'aaaaaa
   'second chef : ne modifie pas la pièce d''un autre');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1, 'Oubli') $$,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1, 'Oubli') $$,
   '42501', null, 'détection : n''ajoute pas de pièce');
 select lives_ok($$ update reparation_pieces set etat = 'retiree', motif_modification = 'Non posée'
                     where id = 'aaaaaaaa-6666-0000-0000-000000000001' $$,
@@ -136,13 +142,13 @@ select is((select etat from reparation_pieces where id = 'aaaaaaaa-6666-0000-000
   'chef et détection : la pièce du réparateur reste posée');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000001', 1) $$,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55001, 1) $$,
   '23514', 'Motif obligatoire pour corriger les pièces posées (remplacement, oubli ou retrait)',
   'responsable : oubli sans motif refusé');
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite, motif_modification) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite, motif_modification) values
   ('aaaaaaaa-6666-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000001', 1, 'Robinet PEC posé (photo du 05/10)') $$,
+   'aaaaaaaa-2222-0000-0000-000000000001', 55001, 1, 'Robinet PEC posé (photo du 05/10)') $$,
   'responsable : ajoute un oubli, avec motif');
 select results_eq($$ select provenance, nature_correction, motif_correction, saisi_par::text, etat, motif_modification is null
                       from reparation_pieces where id = 'aaaaaaaa-6666-0000-0000-000000000003' $$,
@@ -155,14 +161,14 @@ select throws_ok($$ update reparation_pieces set quantite = 1, motif_modificatio
 select throws_ok($$ update reparation_pieces set supprime_le = now() where id = 'aaaaaaaa-6666-0000-0000-000000000001' $$,
   '23514', 'Pièce déclarée par le réparateur ou corrigée par le bureau : la remplacer ou la retirer, avec motif (jamais la modifier ni la supprimer)',
   'responsable : ne supprime pas la pièce du réparateur');
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1,
    'aaaaaaaa-6666-0000-0000-000000000001') $$,
   '23514', 'Motif obligatoire pour corriger les pièces posées (remplacement, oubli ou retrait)',
   'responsable : remplacement sans motif refusé');
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
   ('aaaaaaaa-6666-0000-0000-000000000007', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001',
-   'aaaaaaaa-5555-0000-0000-000000000003', 1, 'aaaaaaaa-6666-0000-0000-000000000001', 'Un seul manchon posé (constat du 05/10)') $$,
+   55003, 1, 'aaaaaaaa-6666-0000-0000-000000000001', 'Un seul manchon posé (constat du 05/10)') $$,
   'responsable : remplace une pièce erronée, avec motif');
 select results_eq($$ select id::text, provenance, nature_correction, etat, quantite, remplace_piece_id::text, etat_par::text
                       from reparation_pieces
@@ -171,8 +177,8 @@ select results_eq($$ select id::text, provenance, nature_correction, etat, quant
              '00000000-0000-0000-0000-00000000000d'::text),
             ('aaaaaaaa-6666-0000-0000-000000000007', 'correction', 'remplacement', 'posee', 1.00, 'aaaaaaaa-6666-0000-0000-000000000001', null) $$,
   'remplacement : la pièce du réparateur reste en base telle que saisie, marquée « remplacée », liée à la nouvelle');
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1,
    'aaaaaaaa-6666-0000-0000-000000000001', 'Encore') $$,
   '23514', 'Pièce déjà remplacée ou retirée', 'une pièce remplacée ne se remplace pas deux fois');
 select throws_ok($$ update reparation_pieces set etat = 'retiree' where id = 'aaaaaaaa-6666-0000-0000-000000000002' $$,
@@ -207,8 +213,8 @@ select throws_ok($$ update reparation_pieces set quantite = 3 where id = 'aaaaaa
 select throws_ok($$ update reparation_pieces set etat = 'retiree', motif_modification = 'Pas posé'
                      where id = 'aaaaaaaa-6666-0000-0000-000000000003' $$,
   '42501', null, 'réparateur : ne retire pas une correction du bureau');
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000002', 1,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55002, 1,
    'aaaaaaaa-6666-0000-0000-000000000003', 'Collier et non robinet') $$,
   '42501', 'Correction refusée : pièce saisie par un autre compte', 'réparateur : ne remplace pas une correction du bureau');
 
@@ -219,9 +225,9 @@ select lives_ok($$
   values ('aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001',
           'aaaaaaaa-1111-0000-0000-000000000002', '00000000-0000-0000-0000-00000000000e', 'papier',
           'polyethylene', 25, true, 1.0, 0.5, 0.6);
-  insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite) values
+  insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values
     ('aaaaaaaa-6666-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001',
-     'aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-5555-0000-0000-000000000003', 2);
+     'aaaaaaaa-2222-0000-0000-000000000002', 55003, 2);
 $$, 'responsable : recopie la fiche papier du second chef (réparation et pièces)');
 reset role;
 
@@ -231,28 +237,28 @@ update reparations set cree_le = now() - interval '1 day'
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values
   ('aaaaaaaa-6666-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-5555-0000-0000-000000000002', 1) $$,
+   'aaaaaaaa-2222-0000-0000-000000000002', 55002, 1) $$,
   'responsable : complète le lendemain la réparation qu''il a saisie (sans motif)');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000e", "role": "authenticated"}', true);
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, designation_libre, quantite) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, designation_libre, quantite) values
   ('aaaaaaaa-6666-0000-0000-000000000008', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000002', null, 'Joint plat 25', 1) $$,
+   'aaaaaaaa-2222-0000-0000-000000000002', 55004, null, 1) $$,
   'second chef : complète le lendemain, depuis la tablette, la réparation faite par lui');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values
   ('aaaaaaaa-6666-0000-0000-000000000006', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000003', 1) $$,
+   'aaaaaaaa-2222-0000-0000-000000000001', 55003, 1) $$,
   'chef : complète sa propre réparation le lendemain');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated"}', true);
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-5555-0000-0000-000000000003', 1) $$,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000002', 55003, 1) $$,
   '23514', 'Motif obligatoire pour corriger les pièces posées (remplacement, oubli ou retrait)',
   'administrateur (autre compte) : oubli sans motif refusé');
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite, motif_modification) values
+select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite, motif_modification) values
   ('aaaaaaaa-6666-0000-0000-000000000009', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-5555-0000-0000-000000000003', 1, 'Manchon oublié sur la fiche papier') $$,
+   'aaaaaaaa-2222-0000-0000-000000000002', 55003, 1, 'Manchon oublié sur la fiche papier') $$,
   'administrateur : ajoute un oubli, avec motif');
 select results_eq($$ select id::text, provenance, nature_correction from reparation_pieces
                       where id in ('aaaaaaaa-6666-0000-0000-000000000004', 'aaaaaaaa-6666-0000-0000-000000000005',
@@ -429,8 +435,8 @@ select throws_ok($$ update attachement_lignes set quantite = 2 where attachement
   '23514', 'Lot arrêté : ses lignes sont figées', 'lot arrêté : lignes figées');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
-select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000003', 'aaaaaaaa-5555-0000-0000-000000000003', 1) $$,
+select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000003', 55003, 1) $$,
   '42501', 'Fuite verrouillée : modification réservée au responsable', 'chef : fuite attachée, plus de pièce ajoutée');
 reset role;
 
@@ -464,11 +470,11 @@ select ('aaaaaaaa-2222-0000-0000-0000000000' || lpad(v.n::text, 2, '0'))::uuid, 
     (14,  0, 'polyethylene',    25, true,  false, false, null, 1.0, 0.5, 0.6, null, null)
   ) v (n, jours, materiau, dn, tuyau, robinet, collier, pe, l, lg, p, emplacement, nature);
 
-insert into reparation_pieces (id, marche_id, reparation_id, piece_id, quantite) values
-  ('aaaaaaaa-6666-0000-0000-000000000014', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000004', 'aaaaaaaa-5555-0000-0000-000000000001', 1),
-  ('aaaaaaaa-6666-0000-0000-000000000016', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000006', 'aaaaaaaa-5555-0000-0000-000000000002', 1),
-  ('aaaaaaaa-6666-0000-0000-000000000013', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000013', 'aaaaaaaa-5555-0000-0000-000000000004', 2),
-  ('aaaaaaaa-6666-0000-0000-000000000015', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000014', 'aaaaaaaa-5555-0000-0000-000000000005', 1);
+insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values
+  ('aaaaaaaa-6666-0000-0000-000000000014', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000004', 55001, 1),
+  ('aaaaaaaa-6666-0000-0000-000000000016', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000006', 55002, 1),
+  ('aaaaaaaa-6666-0000-0000-000000000013', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000013', 55004, 2),
+  ('aaaaaaaa-6666-0000-0000-000000000015', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000014', 55005, 1);
 
 -- Ligne corrigée à la main avant le lot R (sans motif) : prix 13 au lieu du prix 6 proposé
 update lignes_quantites set prix_id = 'aaaaaaaa-4444-0000-0000-000000000013', origine = 'manuel'
@@ -525,8 +531,8 @@ select results_eq($$ select nature, designation, quantite, piece_provenance from
   $$ values ('piece_non_couverte'::text, 'Robinet vanne 400'::text, 2::numeric, 'terrain'::text),
             ('reparation_sans_article'::text, 'Réparation amiante-ciment, diamètre 400 mm'::text, 1::numeric, null::text) $$,
   'hors bordereau : réparation AC DN 400 et ses pièces (déclarées sur le terrain)');
-select lives_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
-  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000013', 'aaaaaaaa-5555-0000-0000-000000000004', 1,
+select lives_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000013', 55004, 1,
    'aaaaaaaa-6666-0000-0000-000000000013', 'Un seul robinet vanne posé (constat contradictoire)') $$,
   'responsable : remplace la pièce erronée de la fuite N° 13 (2 robinets vanne déclarés, 1 posé)');
 select results_eq($$ select designation, quantite, piece_provenance, piece_nature_correction from v_hors_bordereau

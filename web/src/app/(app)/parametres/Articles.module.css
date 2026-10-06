@@ -1,4 +1,4 @@
-/* Paramètres > Nomenclature Dolibarr (administrateur) : import, rapprochement, ajout au catalogue. */
+/* Paramètres > Articles (administrateur) : import de produits.csv, activation des articles. */
 
 .etapes {
   display: flex;
@@ -91,88 +91,12 @@
   color: var(--discret);
 }
 
-/* Tableau de rapprochement */
-.tableau td {
-  vertical-align: top;
-}
-
-.tableau tr.ouverte > td {
-  background: var(--principal-clair);
-}
-
-.piece {
-  min-width: 13rem;
-}
-
-.produit {
-  min-width: 16rem;
-}
-
+/* Liste des articles */
 .ref {
   font-family: var(--police-chiffres);
   font-size: 0.8rem;
   color: var(--discret);
   white-space: nowrap;
-}
-
-.motif {
-  display: block;
-  font-size: 0.82rem;
-  color: var(--discret);
-}
-
-.avertissement {
-  display: block;
-  font-size: 0.82rem;
-  color: var(--st-critique);
-}
-
-.score {
-  font-variant-numeric: tabular-nums;
-  font-size: 0.8rem;
-  color: var(--discret);
-}
-
-.choix {
-  margin: 0.2rem 0 0.4rem;
-  padding: 0.6rem 0.7rem;
-  border: 1px solid var(--bord);
-  border-radius: var(--rayon);
-  background: var(--carte);
-}
-
-.choix h4 {
-  margin: 0 0 0.35rem;
-  font-size: 0.9rem;
-}
-
-.candidats {
-  list-style: none;
-  margin: 0 0 0.6rem;
-  padding: 0;
-}
-
-.candidats li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.6rem;
-  padding: 0.3rem 0;
-  border-bottom: 1px solid var(--bord-doux);
-}
-
-.candidats li:last-child {
-  border-bottom: 0;
-}
-
-.candidats .texte {
-  flex: 1;
-  min-width: 14rem;
-}
-
-.ecart {
-  font-size: 0.78rem;
-  color: var(--st-critique);
 }
 
 .barreLot {
@@ -181,9 +105,15 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  margin-bottom: 0.6rem;
+  margin: 0.4rem 0 0.6rem;
 }
 
-.ajout td:first-child {
+.selection {
   width: 2.2rem;
+}
+
+.active {
+  color: var(--st-positif);
+  font-weight: 600;
+  white-space: nowrap;
 }

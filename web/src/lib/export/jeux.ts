@@ -2,6 +2,7 @@
 // regroupements, puis construction du document neutre (modele.ts).
 import { titreLot, type LigneLot, type Lot, type Recap, type ReglesAttachement } from '@/lib/attachements';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/lib/format';
+import { LIBELLES_FAMILLES } from '@/lib/nomenclature/csv';
 import { getSupabase, lireTout, NOM_ORGANISATION } from '@/lib/supabase';
 import type { Marche } from '@/lib/types';
 import { construireSection, type Colonne, type DocumentExport, type EnteteDoc, type Ligne, type LogoEntete, type SectionDoc } from './modele';
@@ -273,7 +274,9 @@ export const JEU_PIECES: Jeu = {
   },
   charger: (marcheId, f) =>
     toutLire(() => filtrer(getSupabase().from('v_pieces_posees').select('*').eq('marche_id', marcheId), f, 'jour',
-      { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('jour').order('fuite_numero').order('id')),
+      { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('jour').order('fuite_numero').order('id'))
+      // Famille Dolibarr (préfixe de la référence) : son libellé, jamais le code
+      .then((lignes) => lignes.map((l) => ({ ...l, famille: LIBELLES_FAMILLES[String(l.famille)] ?? l.famille }))),
 };
 
 export const JEU_EVENEMENTS: Jeu = {

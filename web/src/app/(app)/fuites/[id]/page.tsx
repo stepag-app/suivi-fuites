@@ -82,9 +82,16 @@ function Info({ libelle, valeur, large }: { libelle: string; valeur: React.React
 export default function DetailFuite() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { marche, peut, session } = useSession();
+  const { marche, marches, choisirMarche, peut, session } = useSession();
   const libelles = libellesMarche(marche);
   const [fuite, setFuite] = useState<VFuite | null>(null);
+  // Fiche d'un autre marché (lien direct, nouvel onglet) : le marché de la fuite devient le marché ouvert,
+  // pour que droits, paramètres et saisies suivent la fuite.
+  useEffect(() => {
+    if (fuite && marche && fuite.marche_id !== marche.id && marches.some((m) => m.id === fuite.marche_id)) {
+      choisirMarche(fuite.marche_id);
+    }
+  }, [fuite, marche, marches, choisirMarche]);
   const [photos, setPhotos] = useState<(PhotoLigne & { url?: string })[]>([]);
   const [reparations, setReparations] = useState<Reparation[]>([]);
   const [refections, setRefections] = useState<Refection[]>([]);

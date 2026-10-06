@@ -260,6 +260,12 @@ function CarteDesFuites() {
   // puis reprend son état à la sortie du mode.
   const { open: menuOuvert, setOpen: ouvrirMenu } = useSidebar();
   const menuAvantBalayage = useRef<boolean | null>(null);
+  const ouvrirMenuRef = useRef(ouvrirMenu);
+  ouvrirMenuRef.current = ouvrirMenu;
+  // Page quittée en plein balayage : le menu reprend aussi son état.
+  useEffect(() => () => {
+    if (menuAvantBalayage.current) ouvrirMenuRef.current(true);
+  }, []);
   useEffect(() => {
     if (modeBalayage && menuAvantBalayage.current === null) {
       menuAvantBalayage.current = menuOuvert;

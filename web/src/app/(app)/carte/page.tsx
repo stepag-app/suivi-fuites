@@ -10,7 +10,7 @@ import {
   appliquerSelection, construireAdjacence, formaterLineaire, idsIndexDansAnneau, lineaireSelection, prolongerSelection, type ModeSelection,
 } from '@/lib/reseau/selection';
 import { useSession } from '@/lib/session';
-import { getSupabase, lireTout } from '@/lib/supabase';
+import { estContexteApk, getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 import { Carte, type CarteRef, type ReseauCarteProps } from './Carte';
 import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from './commun';
@@ -214,7 +214,8 @@ function CarteDesFuites() {
     setOccupe(true);
     setMessageBalayage('');
     try {
-      const lignes = preparerBalayages(selection, { ...choix, marcheId, sourceSaisie: 'web' });
+      // Saisi dans l'APK (WebView) : sur la tablette ; sinon dans le panneau web.
+      const lignes = preparerBalayages(selection, { ...choix, marcheId, sourceSaisie: estContexteApk() ? 'tablette' : 'web' });
       const { restants } = await enregistrerBalayages(lignes);
       setSelection(new Set());
       setMessageBalayage(restants === 0

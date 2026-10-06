@@ -307,7 +307,9 @@ def main() -> None:
     # Périmètre du marché : zones SIG retenues + secteurs du marché + emprises des planches, tampon 50 m.
     perimetre_parts = [pg for nom, pg in sig_zones if (nom or "").upper() in {z.upper() for z in cfg["zones_sig_marche"]}]
     perimetre_parts += [g for _, g in secteurs_marche]
-    if a.planches and os.path.exists(a.planches):
+    # Les rectangles des planches débordent largement des secteurs (A3) : ils n'élargissent le périmètre que
+    # sans zonage (premier passage) ; avec un zonage, le périmètre = zones du marché + secteurs identifiés.
+    if a.planches and os.path.exists(a.planches) and not a.zonage:
         with open(a.planches, encoding="utf-8") as f:
             pl = json.load(f)
         vers_lambert = Transformer.from_crs("EPSG:4326", "EPSG:26191", always_xy=True)

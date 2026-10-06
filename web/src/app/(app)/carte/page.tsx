@@ -447,7 +447,8 @@ function CarteDesFuites() {
             </div>
             <div className="hidden min-h-0 border-t lg:block">
               <BarreCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur} recentrer={() => carte.current?.recentrer()} actualiser={actualiser} />
-              {!modeBalayage && <div className="h-60 overflow-hidden">{details}</div>}
+              {/* Hauteur du cadre : la fiche d'une fuite s'y lit entière, sans défilement */}
+              {!modeBalayage && <div className="h-72 overflow-hidden">{details}</div>}
             </div>
           </div>
         </div>

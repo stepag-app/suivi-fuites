@@ -15,9 +15,11 @@ function ScrollArea({
       className={cn("relative", className)}
       {...props}
     >
+      {/* Radix pose `display: table` sur l'enveloppe du contenu : le contenu prend alors sa largeur maximale
+          (un texte tronqué ne l'est plus) et déborde de la colonne. En bloc, il garde la largeur de la zone. */}
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1 [&>div]:block!"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>

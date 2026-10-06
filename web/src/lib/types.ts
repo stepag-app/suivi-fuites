@@ -148,3 +148,120 @@ export interface Quantite {
   montant_ht_bordereau: number | null;
   origine_ligne: 'auto' | 'manuel';
 }
+
+// ---- Lot S : plan du réseau, zonage, balayage par tronçon (docs/lots/lot-s-reseau.md § 2 et 3) ----
+
+export type StatutBalayage = 'a_balayer' | 'en_cours' | 'balayee';
+export type CategorieTroncon = 'conduite' | 'branchement' | 'adduction' | 'autre';
+export type TypeNoeud =
+  | 'jonction' | 'extremite' | 'vanne' | 'bouche_incendie' | 'ventouse' | 'vidange' | 'compteur' | 'reservoir' | 'autre';
+export type MethodeBalayage = 'ecoute' | 'correlation' | 'prelocalisation' | 'enregistreurs';
+
+export interface Troncon {
+  id: string;
+  marche_id: string;
+  reference: string;
+  calque: string | null;
+  categorie: CategorieTroncon;
+  diametre_mm: number | null;
+  materiau: string | null;
+  zone_id: string | null;
+  secteur_id: string | null;
+  longueur_m: number;
+  actif: boolean;
+  modifie_le: string;
+}
+
+export interface Noeud {
+  id: string;
+  marche_id: string;
+  reference: string;
+  type: TypeNoeud;
+  calque: string | null;
+  zone_id: string | null;
+  secteur_id: string | null;
+  actif: boolean;
+}
+
+export interface Balayage {
+  id: string;
+  marche_id: string;
+  troncon_id: string;
+  date_balayage: string;
+  balaye_le: string;
+  equipe_id: string | null;
+  agent_id: string | null;
+  saisi_par: string | null;
+  source_saisie: string;
+  methode: MethodeBalayage | null;
+  premier_passage: boolean;
+  observation: string | null;
+  annule_le: string | null;
+  annule_par: string | null;
+  motif_annulation: string | null;
+}
+
+/** Ligne de la fonction `etat_balayage` (balayages non annulés, un tronçon par ligne). */
+export interface EtatBalayageTroncon {
+  troncon_id: string;
+  premier_le: string;
+  dernier_le: string;
+  nb_passages: number;
+  equipe_id: string | null;
+  agent_id: string | null;
+}
+
+export interface LigneLineaireSecteur {
+  marche_id: string;
+  zone_id: string;
+  secteur_id: string;
+  code: string;
+  libelle: string;
+  statut_balayage: StatutBalayage;
+  nb_troncons: number;
+  lineaire_m: number;
+  nb_balayes: number;
+  lineaire_balaye_m: number;
+  pct_balaye: number;
+  nb_noeuds: number;
+  lineaire_contrat_m: number | null;
+  modifie_le: string | null;
+}
+
+export interface LigneLineaireZone {
+  marche_id: string;
+  zone_id: string;
+  numero: number;
+  code: string;
+  libelle: string;
+  nb_secteurs: number;
+  nb_troncons: number;
+  lineaire_m: number;
+  lineaire_balaye_m: number;
+  pct_balaye: number;
+  lineaire_contrat_m: number | null;
+}
+
+export interface LigneBalayageJournalier {
+  marche_id: string;
+  date_balayage: string;
+  equipe_id: string | null;
+  equipe: string | null;
+  agent_id: string | null;
+  agent: string | null;
+  zone_id: string | null;
+  zone: string | null;
+  secteur_id: string | null;
+  secteur: string | null;
+  nb_troncons: number;
+  lineaire_m: number;
+  lineaire_repasse_m: number;
+  nb_noeuds: number;
+  nb_fuites: number;
+}
+
+export interface TronconsSansSecteur {
+  marche_id: string;
+  nb_troncons: number;
+  lineaire_m: number;
+}

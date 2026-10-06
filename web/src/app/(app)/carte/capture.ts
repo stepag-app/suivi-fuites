@@ -3,8 +3,19 @@
 // capture après l'événement « idle » (tuiles et données chargées), toile gardée par preserveDrawingBuffer.
 import type { Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
 import type { ImageCarte } from '@/lib/export/carte-pdf';
+import type { PaletteReseau } from '@/lib/reseau/palette';
+import type { Coloration, EtatFeature } from '@/lib/reseau/types';
 import { MODULE_MAPLIBRE, type Contour, type FuiteCarte } from './commun';
 import { ajouterCouches, contours, pointsFuites } from './couches';
+import { creerGestionReseau, type SecteurAffiche } from './reseau-carte';
+
+/** Réseau tel qu'il est affiché à l'écran, repris sur la carte imprimée. */
+export interface ReseauImpression {
+  secteurs: SecteurAffiche[];
+  coloration: Coloration;
+  palette: PaletteReseau;
+  etats: Map<string, EtatFeature>;
+}
 
 export interface EtatCarte {
   style: string | StyleSpecification;
@@ -37,7 +48,7 @@ const attendre = (m: CarteMapLibre, evenement: 'load' | 'idle', ms: number) =>
 
 export async function capturerCarte(
   etat: EtatCarte,
-  donnees: { fuites: FuiteCarte[]; zones: Contour[]; secteurs: Contour[] },
+  donnees: { fuites: FuiteCarte[]; zones: Contour[]; secteurs: Contour[]; reseau?: ReseauImpression | null },
   largeurMm: number,
   hauteurMm: number,
 ): Promise<ImageCarte> {
@@ -80,6 +91,12 @@ export async function capturerCarte(
     source('fuites').setData(pointsFuites(donnees.fuites));
     source('zones').setData(contours(donnees.zones));
     source('secteurs').setData(contours(donnees.secteurs));
+    // Réseau d'eau : mêmes secteurs, même coloration et même état de balayage qu'à l'écran.
+    if (donnees.reseau && donnees.reseau.secteurs.some((s) => s.data)) {
+      const g = creerGestionReseau(m, true);
+      g.synchroniser(donnees.reseau.secteurs, donnees.reseau.coloration, donnees.reseau.palette);
+      g.appliquerEtats(donnees.reseau.etats);
+    }
     const complet = await attendre(m, 'idle', DELAI_TUILES_MS);
 
     const b = m.getBounds();

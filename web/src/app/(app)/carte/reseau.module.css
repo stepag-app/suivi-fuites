@@ -1,0 +1,284 @@
+/* Panneau « Réseau » de la carte : superposé à gauche de la carte, repliable, commandes de 44 px au moins. */
+.ensemble {
+  position: relative;
+}
+
+.panneau {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 4;
+  width: min(340px, 92vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--carte);
+  border-right: 1px solid var(--bord);
+  box-shadow: 8px 0 24px rgba(20, 35, 46, 0.14);
+  overflow-y: auto;
+  padding: 0.7rem 0.8rem 1rem;
+}
+
+.panneau h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.entete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.interrupteur {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: var(--h-cmd-gros);
+  margin: 0 0 0.4rem;
+  font-weight: 600;
+}
+
+.interrupteur input[type='checkbox'] {
+  width: 26px;
+  height: 26px;
+}
+
+.choix button {
+  min-height: var(--h-cmd);
+  flex: 1;
+  padding-inline: 0.4rem;
+}
+
+.outils {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.2rem 0 0.5rem;
+}
+
+.outils button {
+  min-height: 36px;
+  padding: 0.2rem 0.7rem;
+  font-size: 0.9rem;
+}
+
+.arbre {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0;
+}
+
+.zone {
+  border-top: 1px solid var(--bord-doux);
+  padding: 0.25rem 0;
+}
+
+.ligne {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--h-cmd-gros);
+  margin: 0;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ligne input[type='checkbox'] {
+  width: 24px;
+  height: 24px;
+}
+
+.secteurs {
+  list-style: none;
+  margin: 0 0 0.2rem 1.6rem;
+  padding: 0;
+}
+
+.secteurs .ligne {
+  min-height: 40px;
+  font-weight: 400;
+}
+
+.pastille {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex: none;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+.trait {
+  width: 22px;
+  height: 0;
+  border-top: 4px solid;
+  border-radius: 2px;
+  flex: none;
+}
+
+.trait.pointille {
+  border-top-style: dashed;
+}
+
+.texte {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compteur {
+  color: var(--discret);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.jauge {
+  width: 46px;
+  height: 6px;
+  flex: none;
+  border-radius: 3px;
+  background: var(--bord-doux);
+  overflow: hidden;
+}
+
+.jauge > span {
+  display: block;
+  height: 100%;
+  background: #256f3a;
+}
+
+.legende {
+  list-style: none;
+  margin: 0 0 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--bord-doux);
+  border-radius: var(--rayon-petit);
+  background: var(--zebre);
+  font-size: 0.88rem;
+}
+
+.legende li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.6rem;
+}
+
+.balayage {
+  border-top: 2px solid var(--principal);
+  margin-top: 0.4rem;
+  padding-top: 0.6rem;
+}
+
+.balayage label {
+  margin-bottom: 0.5rem;
+}
+
+.chiffre {
+  font-size: 1.3rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.attente {
+  margin: 0.4rem 0;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--rayon-petit);
+  background: #e0effa;
+  color: #0b3d5c;
+  font-size: 0.9rem;
+}
+
+.bouton-panneau[aria-pressed='true'] {
+  background: var(--principal);
+  color: #fff;
+  border-color: var(--principal);
+}
+
+.vide {
+  color: var(--discret);
+  font-size: 0.9rem;
+  margin: 0.3rem 0;
+}
+
+/* Barre du mode balayage : toujours visible sur la carte (compteur, outils, enregistrement). */
+.barreBalayage {
+  position: absolute;
+  top: 0.6rem;
+  right: 3.6rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  max-width: calc(100% - 4.4rem);
+  padding: 0.4rem 0.6rem;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid var(--bord);
+  border-radius: 10px;
+  box-shadow: var(--ombre);
+}
+
+/* Panneau ouvert : la barre se range à droite du panneau. */
+.barreBalayage.avecPanneau {
+  left: calc(min(340px, 92vw) + 0.6rem);
+  max-width: none;
+}
+
+.barreBalayage .compte {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 0 0.3rem;
+  white-space: nowrap;
+}
+
+.barreBalayage button {
+  min-height: var(--h-cmd-gros);
+  padding-inline: 0.7rem;
+}
+
+.barreBalayage button[aria-pressed='true'] {
+  background: var(--principal);
+  color: #fff;
+  border-color: var(--principal);
+}
+
+@media (max-width: 640px) {
+  .barreBalayage {
+    left: 0.6rem;
+    right: 3.6rem;
+    max-width: none;
+  }
+}
+
+/* Bulle d'un tronçon (DOM construit par Carte.tsx) */
+.bulleTroncon {
+  display: grid;
+  gap: 0.2rem;
+  padding-right: 1.2rem;
+  min-width: 200px;
+}
+
+.bulleTroncon .etat {
+  font-weight: 600;
+}
+
+.bulleTroncon .etat.balaye {
+  color: #256f3a;
+}
+
+.bulleTroncon .etat.non {
+  color: #556b82;
+}
+
+@media (max-width: 640px) {
+  .panneau {
+    width: 100%;
+    border-right: 0;
+  }
+}

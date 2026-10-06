@@ -16,6 +16,17 @@ export const configurationManquante = () =>
 
 let client: SupabaseClient | null = null;
 
+/**
+ * Page ouverte dans la WebView de l'APK (route /session, lot S) : l'application de la tablette et cette
+ * page partagent le même jeton de rafraîchissement ; seul l'APK le renouvelle (un jeton réutilisé hors de
+ * la fenêtre de 10 s de Supabase révoquerait toute la session). L'APK se signale par `window.ReactNativeWebView`
+ * et par le suffixe « SuiviFuitesAPK » de son User-Agent.
+ */
+export const estContexteApk = (
+  userAgent: string | null | undefined = typeof navigator !== 'undefined' ? navigator.userAgent : '',
+  aReactNativeWebView: boolean = typeof window !== 'undefined' && 'ReactNativeWebView' in window,
+) => aReactNativeWebView || /SuiviFuitesAPK/.test(userAgent ?? '');
+
 export function getSupabase(): SupabaseClient {
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -24,7 +35,8 @@ export function getSupabase(): SupabaseClient {
       throw new Error('Configuration Supabase manquante (NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY).');
     }
     client = createClient(url, cle, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+      // Dans l'APK, le rafraîchissement du jeton revient à l'application de la tablette (voir estContexteApk).
+      auth: { persistSession: true, autoRefreshToken: !estContexteApk(), detectSessionInUrl: false },
     });
   }
   return client;

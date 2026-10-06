@@ -3,9 +3,10 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-05 (session 6 : PR #21 à #26 des lots F, G, H, I, J **fusionnées**, migrations des
-lots F et J **déployées** à 16 h 51 UTC ; lots K, L, M menés en parallèle, PR #27 à #29 **en brouillon** ; le test de
-restauration (K) révèle trois défauts de l'export de la sauvegarde, à corriger en priorité).
+Dernière mise à jour : 2026-10-06 (session 6, suite : lots K, L, M et documentation **fusionnés** (PR #27 à #30) ;
+lots Q (matrice des droits, verrous de l'admin), R (contrôles à l'attachement) et P1 (nomenclature Dolibarr) en PR
+**brouillon** #31, #32, #33, intégration vérifiée (454 tests pgTAP) ; export Dolibarr reçu ; plan DWG retrouvé dans les
+archives ; trois défauts de l'export de la sauvegarde toujours à corriger).
 
 ## 1. Fait
 
@@ -44,19 +45,39 @@ restauration (K) révèle trois défauts de l'export de la sauvegarde, à corrig
 | **Lot I : tableau de bord v1** (`/tableau-de-bord`) : période, indicateurs de la période et à ce jour, statuts, 12 semaines, secteurs / zones, attachements (selon les droits) ; chiffres cliquables vers `/fuites` : lot L | `web/src/app/(app)/tableau-de-bord/`, `web/src/lib/ui/tableau-de-bord.ts`, `web/scripts/verifier-tableau-de-bord.mjs` | PR [#23](https://github.com/stepag-app/suivi-fuites/pull/23) **fusionnée** le 2026-10-05 ; 15 vérifications de calcul ; **à essayer sur l'aperçu Vercel** (DEMO, admin puis agent de détection) |
 | **Lot J : marché désactivé en lecture seule** (écritures refusées en base sauf administrateur, lecture conservée) | migration `20261005120100_marche_inactif.sql` ; 9 tests pgTAP (`08_marche_inactif`) | PR [#21](https://github.com/stepag-app/suivi-fuites/pull/21) **fusionnée** le 2026-10-05, migration **déployée** à 16 h 51 UTC (après celle du lot F) |
 | Intégration des PR web #21, #22, #23, #25 : fusion ensemble sans conflit sur `main`, tsc, build et les 3 scripts de vérification verts ; la carte imprimée reçoit les logos du lot F | — | vérifié le 2026-10-05 |
-| **Lot K : test de restauration de la sauvegarde** : chaque lundi 04:07 UTC et à la demande ; dernière sauvegarde réussie de `main`, déchiffrée, restaurée dans une base Supabase vierge de la CI (`supabase start`, jamais la production), lignes comparées table par table, alerte si la sauvegarde a plus de 48 h | `.github/workflows/test-restauration.yml` ; `supabase/README.md` § Sauvegarde et restauration | PR [#27](https://github.com/stepag-app/suivi-fuites/pull/27) **en brouillon**, CI verte (65 tables, 91 comparaisons égales) ; **3 défauts de l'export** relevés, voir § 2 |
-| **Lot L : filtres de la liste dans l'adresse** (`?statut=…&secteur=…&du=…&au=…&alertes=1&texte=…`, filtre de période ajouté, « Effacer les filtres ») et chiffres du tableau de bord cliquables vers la liste filtrée à l'identique | `web/src/app/(app)/fuites/{filtres.ts,useFiltresAdresse.ts}`, `web/src/app/(app)/tableau-de-bord/` ; `web/scripts/verifier-filtres-fuites.mjs` (15 vérifications) | PR [#28](https://github.com/stepag-app/suivi-fuites/pull/28) **en brouillon**, CI verte ; essai navigateur avec données fictives (26 liens = chiffres) ; **à essayer sur l'aperçu Vercel** |
-| **Lot M : fiche déjà vue consultable sans réseau** (copie IndexedDB, photos 1 024 px par identifiant, 50 fiches / 400 photos, effacées à la déconnexion, lecture seule hors ligne ; page « coquille » du service worker pour `/fuites/<uuid>`) | `web/src/app/(app)/fuites/[id]/` (page découpée : `donnees.ts`, `copie.ts`, `fiche-hors-ligne.ts`, `formulaires.tsx`), `web/src/lib/hors-ligne.ts`, `web/public/sw.js` ; `web/scripts/verifier-fiche-hors-ligne.mjs` (20 vérifications) | PR [#29](https://github.com/stepag-app/suivi-fuites/pull/29) **en brouillon** ; tsc et build verts en local ; CI GitHub bloquée par un incident Actions le 2026-10-05 (relancée) ; **service worker et photos hors ligne non vérifiés dans un navigateur : à essayer en mode avion** |
+| **Lot K : test de restauration de la sauvegarde** : chaque lundi 04:07 UTC et à la demande ; dernière sauvegarde réussie de `main`, déchiffrée, restaurée dans une base Supabase vierge de la CI (`supabase start`, jamais la production), lignes comparées table par table, alerte si la sauvegarde a plus de 48 h | `.github/workflows/test-restauration.yml` ; `supabase/README.md` § Sauvegarde et restauration | PR [#27](https://github.com/stepag-app/suivi-fuites/pull/27) **fusionnée** le 2026-10-05, CI verte (65 tables, 91 comparaisons égales) ; **3 défauts de l'export** relevés, voir § 2 |
+| **Lot L : filtres de la liste dans l'adresse** (`?statut=…&secteur=…&du=…&au=…&alertes=1&texte=…`, filtre de période ajouté, « Effacer les filtres ») et chiffres du tableau de bord cliquables vers la liste filtrée à l'identique | `web/src/app/(app)/fuites/{filtres.ts,useFiltresAdresse.ts}`, `web/src/app/(app)/tableau-de-bord/` ; `web/scripts/verifier-filtres-fuites.mjs` (15 vérifications) | PR [#28](https://github.com/stepag-app/suivi-fuites/pull/28) **fusionnée** le 2026-10-05, CI verte ; essai navigateur avec données fictives (26 liens = chiffres) ; **à essayer sur l'aperçu Vercel** |
+| **Lot M : fiche déjà vue consultable sans réseau** (copie IndexedDB, photos 1 024 px par identifiant, 50 fiches / 400 photos, effacées à la déconnexion, lecture seule hors ligne ; page « coquille » du service worker pour `/fuites/<uuid>`) | `web/src/app/(app)/fuites/[id]/` (page découpée : `donnees.ts`, `copie.ts`, `fiche-hors-ligne.ts`, `formulaires.tsx`), `web/src/lib/hors-ligne.ts`, `web/public/sw.js` ; `web/scripts/verifier-fiche-hors-ligne.mjs` (20 vérifications) | PR [#29](https://github.com/stepag-app/suivi-fuites/pull/29) **fusionnée** le 2026-10-05 ; tsc et build verts en local ; CI GitHub bloquée par un incident Actions le 2026-10-05 (relancée) ; **service worker et photos hors ligne non vérifiés dans un navigateur : à essayer en mode avion** |
 | Intégration des PR #27, #28, #29 : fusion ensemble sans conflit, tsc, build et les 3 scripts web verts (15 + 20 + 15) | — | vérifié le 2026-10-05 |
+| **Lot Q : matrice des droits et verrous de l'administrateur** : Utilisateurs > Droits, utilisateurs en colonnes et droits en lignes (une ligne = une colonne de `droits`), modèles par colonne, enregistrement journalisé ; l'admin a tout (colonne grisée) et peut se poser des **verrous** refusés par la base (arrêter / rouvrir un lot, refacturation forcée, supprimer une fuite, désactiver / copier un marché, révoquer un compte, et toute ligne de la matrice), sans refermeture automatique ; révocation : la base d'abord, puis la fonction serveur | migration `20261006100000_droits_verrous.sql` ; `web/src/app/(app)/utilisateurs/` ; 68 tests pgTAP (`09`) ; `web/scripts/verifier-matrice-droits.mjs` | PR [#31](https://github.com/stepag-app/suivi-fuites/pull/31) **en brouillon**, CI verte ; à fusionner avec le panneau web (le circuit de révocation change) ; APK : boutons sans connaissance des verrous (la base refuse) |
+| **Lot R : contrôles et corrections à l'attachement** : les pièces du réparateur font foi (« terrain », sans délai) ; corrections du bureau selon leur nature, avec **motif obligatoire** : **remplacement** d'une pièce erronée, **oubli**, **retrait** d'une pièce non posée (saisie d'origine gardée, barrée) ; vue **`v_pieces_reelles`** (inventaire réel) ; requalification et ajout de lignes de prix avec motif (article d'origine gardé, jamais reproposé), une unité par prix et par fuite y compris en manuel ; **seuil du PE réglable par marché** (2 m par défaut) ; 10 contrôles ; page **Travaux hors bordereau à faire valoir** | migration `20261006100100_controles_attachement.sql` ; `web/src/app/(app)/attachements/` (`controles.ts`, `hors-bordereau/`, `[id]/CorrectionsFuite.tsx`, `[id]/PiecesFuite.tsx`) ; Paramètres > Marché ; 110 tests pgTAP (`10`) | PR [#32](https://github.com/stepag-app/suivi-fuites/pull/32) **en brouillon**, CI verte ; écrans non vus connectés : **à essayer sur l'aperçu** (DEMO : fuites N° 9, 10, 18) ; APK : pièces remplacées ou retirées encore affichées comme normales (lot APK à prévoir) |
+| **Lot P1 : nomenclature Dolibarr** : `produits_dolibarr` (sans prix), import de `produits.csv` dans le navigateur (familles RAC, CND, ROB, AEP, VRI par défaut), rapprochement des pièces du catalogue par l'**identifiant produit** (référence en option ; diamètres et filetages identiques obligatoires), écran de validation, ajout de produits ; **le réparateur ne voit que la désignation** (APK inchangée) | migration `20261006100200_nomenclature_dolibarr.sql` ; Paramètres > Nomenclature Dolibarr ; `web/src/lib/nomenclature/` ; 43 tests pgTAP (`11`) | PR [#33](https://github.com/stepag-app/suivi-fuites/pull/33) **en brouillon**, CI verte ; sur l'export du 2026-10-05 : 113 sûres, 58 probables, 90 sans correspondance ; **après fusion : importer `produits.csv` et rapprocher** |
+| Intégration des PR #31, #32, #33 : fusion sans conflit de fichiers ; `copier_marche` redéfinie par Q et P1, réconciliée par la migration `20261006100300` (verrou, liens Dolibarr, seuil du PE copié) ; boutons de l'admin (rouvrir, refacturation forcée, désactiver, copier) grisés « verrouillé par vous » ; rapport PDF par fuite sans les pièces remplacées ou retirées ; libellé neutre au tableau de bord ; **497 tests pgTAP**, tsc, build et 7 scripts verts | PR [#35](https://github.com/stepag-app/suivi-fuites/pull/35) | vérifié le 2026-10-06 ; à fusionner **après** #31, #32, #33 |
+| Archivage : dossier du marché 4500004453 (documents, rapports, plans, **`Reseau aep oujda.dwg`**) et ancien dossier `Suivi-fuites-ancien` | `data-private/archives/` (ignoré par git, 359 Mo) | fait le 2026-10-05 |
+| Export Dolibarr (lecture seule, sans prix) : produits, entrepôts, mouvements du chantier | `data-private/dolibarr/` (ignoré par git ; `RAPPORT.md`) | reçu le 2026-10-05 ; entrepôt du chantier **76**, projet **40**, sorties par **bons de transfert** depuis le dépôt 1 ; aucune consommation saisie |
 
 ## 2. En attente d'Issam
 
-**Priorité (session 6)** :
+**Priorité (session 6, suite)** :
+- **Essais des PR #31, #32, #33** (aperçus Vercel ; DEMO), réponses aux questions ci-dessous, puis dire « fusionner » :
+  ordre **#31 → #32 → #33 → intégration** (le déploiement refuse une migration plus ancienne que la dernière appliquée).
+  Après fusion : Paramètres > Nomenclature Dolibarr > importer `produits.csv`, puis rapprocher le catalogue de chaque marché.
+- **Lot R, réponses d'Issam du 2026-10-06 appliquées** : corrections du bureau selon leur nature (remplacement, oubli,
+  retrait), pas de délai, seuil du PE réglable par marché. Reste à confirmer : le responsable qui recopie une fiche papier
+  est l'auteur de la réparation, ses pièces restent « terrain » même plus tard.
+- **Défaut antérieur à corriger** (migration ultérieure) : `private.peut(…)` renvoie `null` et non `false` quand l'auteur
+  d'une saisie est inconnu ; `avant_modification_saisie` ne bloque donc pas un chef qui modifie la saisie d'un autre
+  (le lot R le couvre pour les pièces seulement).
+- **Questions du lot P1** : « BU » = « BIYOU » ? « ASTOR » traité comme une marque ? 6 libellés en double dans les
+  familles RAC à VRI à corriger dans Dolibarr.
+- **Dans Dolibarr** (relevé par l'export) : bons 6804 et 6814 arrivés dans l'entrepôt 76 mais rattachés au projet 30
+  (entretien) ; bon 6796 du 2026-10-02 resté en brouillon (8 produits) ; la pose n'est pas saisie (aucune
+  « consommation pour le projet » sur l'entrepôt 76) : à décider avec le magasinier.
 - **Corriger l'export de la sauvegarde** (lot à lancer, `sauvegarde-base.yml` + `supabase/README.md`) : exclure
   `storage.buckets_vectors` et `storage.vector_indexes`, supprimer le doublon `donnees_auth.sql`, sauvegarder aussi le
   déclencheur `creer_profil_apres_inscription` et les règles de `storage.objects` ; le test du lot K doit alors passer
   sans contournement. D'ici là, la restauration se fait à la main (`supabase/README.md` § Sauvegarde et restauration).
-- **Essais des PR en brouillon #27 à #29** (aperçus Vercel ; lot M en mode avion sur la tablette), puis dire « fusionner ».
+- **Essais des lots K, L, M** (fusionnés) : lot M en mode avion sur la tablette (fiche déjà vue, photos).
 - **Essais en production des lots F à J**, fusionnés : logos (Paramètres > Marché), carte imprimée, tableau de bord,
   marché désactivé ; APK du lot H (artefact de la compilation sur `main`).
 - **Photos sur R2** (lot E / N) : non lancé, les secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`
@@ -93,6 +114,25 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
 
 ## 3. Décisions prises (à respecter)
+
+- **Pièces et facturation** (2026-10-05) : toutes les fournitures sont comprises dans les prix unitaires de
+  réparation (CPS art. II-15) : pas d'étiquette « facturable / non facturable ». La liste des pièces posables est la
+  **nomenclature de Dolibarr**, rapprochée par l'**identifiant produit** (référence en option) ; le réparateur ne voit
+  **jamais de code**, seulement la désignation. **Le réparateur fait foi** pour ce qu'il a posé (fiche et inventaire).
+  À l'attachement, le responsable et l'admin corrigent les pièces selon leur **intention** (remplacement d'une pièce
+  erronée, oubli, retrait d'une pièce non posée ; l'inventaire reflète le réel, la saisie d'origine reste visible),
+  ajoutent des lignes et requalifient une ligne de prix, **motif obligatoire** ; pas de délai : la pièce saisie par
+  l'auteur de la réparation est « terrain ». Une réparation = une unité par prix (deux joints sur un
+  même élément = un seul prix 11 à 13) ; aucune facturation artificielle ; cumul légitime de prix différents
+  (6 ou 9 + 7 ou 8 + terrassement + réfection) quand les travaux ont eu lieu ; deux ruptures distinctes = deux fuites liées.
+- **Polyéthylène au-delà du seuil** (2 m par défaut, **réglable par marché**) : pas de prix au bordereau ; l'excédent est listé dans
+  « Travaux hors bordereau à faire valoir », pour demander un prix nouveau à la SRM ; rien n'est facturé automatiquement.
+- **Droits** : réglés par utilisateur dans la matrice (Utilisateurs > Droits) ; l'admin a tout et se pose lui-même des
+  verrous de sécurité, **sans refermeture automatique**.
+- **Dolibarr** : lecture seule, **jamais de prix ni de PMP**, seulement des quantités. L'API REST n'accepte que le réseau
+  local (`API_RESTRICT_ON_IP`) : ne pas l'ouvrir sur Internet ; import par fichier CSV d'abord, puis envoi automatique
+  depuis le serveur vers une fonction Supabase protégée (lot P4). Rapprochement posé / transféré : Dolibarr connaît
+  l'envoi au chantier (entrepôt 76), pas la pose ; l'écart = reste théorique au chantier, à contrôler physiquement.
 
 - **Lots en parallèle** (2026-10-05) : lots indépendants menés en même temps dans des copies isolées (worktrees), avec
   des périmètres de fichiers disjoints ; docs, README et `globals.css` réservés à la session principale, qui reporte la
@@ -144,7 +184,9 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 
 ## 4. Emplacement réservé : plan du réseau (DWG → DXF → tronçons)
 
-**Statut : en attente du fichier.** Ne pas démarrer la migration 2 sans lui.
+**Statut : fichier retrouvé** le 2026-10-05 dans le dossier du marché, archivé dans
+`data-private/archives/MARCHE N° 4500004453 …/Reseau aep oujda.dwg` (hors dépôt). Reste à confirmer le système de
+coordonnées avant la migration 2.
 
 Ce qu'il faut obtenir d'Issam :
 - `Reseau aep oujda.dwg` exporté en **DXF** (AutoCAD « Enregistrer sous » ou ODA File Converter) ;
@@ -172,7 +214,13 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 J (marché désactivé en lecture seule) ; **fusionnés et déployés en session 6**.
 
 **Fait en session 6** : lots K (test de restauration), L (filtres dans l'adresse, tableau de bord cliquable),
-M (fiche déjà vue sans réseau), en brouillon (PR #27 à #29). Points ouverts du lot L : « Non réparées > seuil » et
+M (fiche déjà vue sans réseau), **fusionnés** (PR #27 à #30) ; puis lots Q (matrice des droits), R (contrôles à
+l'attachement), P1 (nomenclature Dolibarr) en brouillon (PR #31 à #33) avec la branche d'intégration.
+
+**Suite prévue (pièces et Dolibarr)** : P3 **inventaire des fournitures posées** (tableau croisé, filtres rapides : fuite,
+période, secteur, équipe, famille, terrain / bureau ; widget au tableau de bord) ; P4 **rapprochement posé / transféré**
+(mouvements de l'entrepôt 76 par CSV puis par envoi depuis le serveur ; période × article ; écart et seuil d'alerte) ;
+saisie web des pièces par mots séparés ; distinction terrain / bureau dans le rapport PDF et l'APK. Points ouverts du lot L : « Non réparées > seuil » et
 « En attente » non cliquables (il faudrait un filtre par type d'alerte et un filtre multi-statuts), pas de filtre
 par zone, période du tableau de bord absente de son adresse. Lot M : pas encore de liste « Fiches disponibles hors ligne ».
 
@@ -202,10 +250,11 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : tout jusqu'à la PR #26 est fusionné et déployé (lots F à J). Session 6 : lots K, L, M en PR brouillon
-#27 à #29, plus la PR de documentation : vérifie leur état et la CI ; fusionne celles qu'Issam a validées (CI verte).
-Priorité : corriger l'export de la sauvegarde (3 défauts, docs/etat-avancement.md § 2), puis les retours de test.
-Le plan DWG du réseau n'est pas encore disponible : ne commence pas la migration 2.
+Contexte : tout jusqu'à la PR #30 est fusionné et déployé. Lots Q, R, P1 en PR brouillon #31 à #33, plus la PR #35
+(intégration : réconciliation de copier_marche, boutons verrouillés, correctifs) et la PR de documentation #34 : vérifie leur
+état et la CI ; fusionne celles qu'Issam a validées, dans l'ordre #31, #32, #33, intégration, puis vérifie le workflow
+« Déploiement de la base ». Ensuite : corriger l'export de la sauvegarde (3 défauts), lots P3 et P4 (voir § 5).
+Le plan DWG est archivé dans data-private/archives/ : migration 2 après confirmation du système de coordonnées.
 Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
 fonctionnalité].
 Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne touche pas au projet

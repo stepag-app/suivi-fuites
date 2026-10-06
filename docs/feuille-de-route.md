@@ -41,7 +41,7 @@ Lots F à J fusionnés le 2026-10-05 (session 6). Session 6, lots en parallèle,
 | K. Test de restauration | restauration hebdomadaire de la dernière sauvegarde dans une base vierge de la CI, lignes comparées | #27 |
 | L. Filtres dans l'adresse | filtres de `/fuites` dans l'URL (dont la période), chiffres du tableau de bord cliquables | #28 |
 | M. Fiche hors ligne | fiche déjà vue consultable sans réseau (données et photos en cache, lecture seule) | #29 |
-| N. Photos sur R2 | **non lancé** : secrets R2 absents de GitHub | — |
+| N. Photos sur R2 | code prêt (fonction serveur, dépôt et lecture web / APK, repli Supabase) ; **secrets R2 à créer par Issam** (§ 3) | PR lot N |
 
 Lots K, L, M fusionnés le 2026-10-05 ; Q, R, P1 et intégration fusionnés et déployés le 2026-10-06 :
 
@@ -54,29 +54,49 @@ Lots K, L, M fusionnés le 2026-10-05 ; Q, R, P1 et intégration fusionnés et d
 | P4. Rapprochement posé / transféré | mouvements Dolibarr de l'entrepôt 76 (CSV, puis envoi depuis le serveur) comparés aux pièces posées, période × article | à lancer après P1 |
 | APK. Pièces corrigées | afficher sur la tablette les pièces remplacées ou retirées (barrées), nature et motif des corrections ; la réparation d'un autre se corrige depuis « Corriger » sur le web | à lancer |
 
-## 3. Photos sur Cloudflare R2 (lot E, après A et D)
+## 3. Photos sur Cloudflare R2 (lot N, code prêt : PR du 2026-10-06)
 
-**À faire par Issam maintenant** (aucune valeur secrète dans le chat ni le dépôt) :
-1. Cloudflare → **R2 Object Storage** → **Create bucket** : nom `suivi-fuites-photos`, emplacement
-   automatique avec l'indication **Western Europe (WEUR)**, classe Standard. **Accès public : désactivé**
-   (ni r2.dev ni domaine public : les photos restent privées).
-2. Le compartiment → **Settings → CORS policy** : origine `https://suivi-fuites-web.vercel.app`
-   (plus tard `https://fuites.stepag.ma`), méthodes `GET`, `PUT`, `HEAD`, en-tête `Content-Type`,
-   durée 3600 s. Le lot E ajustera si besoin.
-3. R2 → **Manage API tokens** → **Create API token** : permission **Object Read & Write**, limité au
-   seul compartiment `suivi-fuites-photos`. Noter tout de suite, dans le gestionnaire de mots de passe :
-   l'**Account ID**, l'**Access Key ID** et la **Secret Access Key** (affichée une seule fois).
-4. GitHub → dépôt → Settings → Secrets and variables → Actions : créer `R2_ACCOUNT_ID`,
-   `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`. Le lot E les fera passer à la fonction serveur
-   Supabase par le workflow de déploiement ; **jamais** dans l'APK ni dans le panneau.
+**Côté application (fait)** : fonction serveur `photos-r2` (URL signées S3 de courte durée : dépôt `PUT` 15 min,
+lecture `GET` 1 h), fonction SQL `marches_photos` (mêmes droits que la RLS de `photos`), dépôt et lecture dans
+`web/src/lib/photo.ts` (`deposerPhoto`, `urlsPhotos`) et `mobile/src/photos.ts` ; la ligne `photos` porte
+`stockage = 'r2'`. **Tant que les secrets R2 manquent, rien ne change** : la fonction répond « non configuré »
+et les photos vont sur Supabase Storage. Les anciennes photos restent lisibles (deux stockages cohabitent).
 
-**Ce que fera le lot E** : fonction serveur (Supabase Edge Function) qui vérifie le compte et ses droits
-sur la fuite, puis délivre des URL signées S3 (dépôt `PUT`, lecture `GET`, durée courte) ; la tablette
-et le panneau compressent toujours avant envoi (1 600 px, qualité 70, déjà en place) puis envoient
-directement dans R2 ; la ligne `photos` porte `stockage = 'r2'` (colonne prévue dès la migration 1) ;
-les anciennes photos Supabase restent lisibles (transfert éventuel par script) ; tests des droits ;
-plus tard, purge des photos de plus de 6 à 7 mois (règle de cycle de vie R2), une fois les rapports
-PDF archivés.
+**À faire par Issam** (aucune valeur secrète dans le chat ni le dépôt) :
+1. Cloudflare → **R2 Object Storage** → **Create bucket** : nom `suivi-fuites-photos`, emplacement automatique
+   avec l'indication **Western Europe (WEUR)**, classe Standard. **Accès public : désactivé** (ni r2.dev ni
+   domaine public : les photos restent privées, servies seulement par URL signée).
+2. Le compartiment → **Settings → CORS policy → Edit** (le panneau dépose directement dans R2 depuis le
+   navigateur ; la tablette n'en a pas besoin) :
+   ```json
+   [
+     {
+       "AllowedOrigins": ["https://suivi-fuites-web.vercel.app", "http://localhost:3000"],
+       "AllowedMethods": ["GET", "PUT", "HEAD"],
+       "AllowedHeaders": ["Content-Type"],
+       "ExposeHeaders": ["ETag"],
+       "MaxAgeSeconds": 3600
+     }
+   ]
+   ```
+   Ajouter `https://fuites.stepag.ma` le jour du sous-domaine. (Un aperçu Vercel, non listé, retombe sur
+   Supabase Storage : c'est voulu.)
+3. R2 → **Manage API tokens** → **Create API token** : permission **Object Read & Write**, limité au seul
+   compartiment `suivi-fuites-photos`, sans date d'expiration. Noter tout de suite, dans le gestionnaire de mots
+   de passe : l'**Account ID**, l'**Access Key ID** et la **Secret Access Key** (affichée une seule fois).
+4. Essai avec vos clés, depuis `web/` (rien n'est écrit dans le dépôt, aucune clé affichée) :
+   `R2_ACCOUNT_ID=… R2_ACCESS_KEY_ID=… R2_SECRET_ACCESS_KEY=… node scripts/essai-r2.mjs`
+   (dépose un fichier texte sous `essai/`, le relit par URL signée, vérifie que le compartiment est privé, le supprime).
+5. GitHub → dépôt → Settings → Secrets and variables → Actions : secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+   `R2_SECRET_ACCESS_KEY` (et la variable `R2_BUCKET` seulement si le nom diffère). Puis Actions →
+   « Déploiement de la base » → **Run workflow** : le workflow passe les secrets à la fonction `photos-r2`
+   (`supabase secrets set`) et la redéploie. Dès lors, les nouvelles photos vont dans R2.
+6. Contrôle : prendre une photo depuis la tablette ou la fiche web, puis vérifier dans Supabase (table `photos`,
+   colonne `stockage` = `r2`) et dans le compartiment (objet `<marche>/<fuite>/<photo>.jpg`).
+
+**Plus tard** : transfert des anciennes photos Supabase vers R2 par script (facultatif, elles restent lisibles) ;
+règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF archivés ; sauvegarde des photos
+(§ 4, point 10).
 
 ## 4. À faire ensuite (ordre proposé)
 

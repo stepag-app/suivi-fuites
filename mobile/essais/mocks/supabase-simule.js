@@ -119,6 +119,14 @@ class Requete {
 export const supabase = {
   from: (table) => new Requete(table),
   auth: { getSession: async () => ({ data: { session: { user: { id: simulation.utilisateur } } } }) },
+  // Fonction serveur photos-r2 absente de l'essai : « non configuré », la tablette retombe sur Supabase Storage.
+  functions: {
+    invoke: async () => {
+      if (!reseauOk()) return coupure();
+      simulation.journal.push('fonction:photos-r2');
+      return { data: null, error: { message: 'non configuré', context: { json: async () => ({ erreur: 'Stockage R2 non configuré', code: 'r2_non_configure' }) } } };
+    },
+  },
   storage: {
     from: () => ({
       upload: async (chemin) => {

@@ -7,3 +7,6 @@ major_version = 17
 
 [functions.gerer-utilisateurs]
 verify_jwt = true
+
+[functions.photos-r2]
+verify_jwt = true

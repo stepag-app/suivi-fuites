@@ -2,6 +2,7 @@
 // photos déjà compressées) puis envoyées au retour du réseau. Les identifiants (uuid) sont
 // créés sur l'appareil : renvoyer deux fois la même fuite est sans effet (clé déjà présente).
 // Plus bas : copies des fiches déjà ouvertes, pour les consulter sans réseau (base séparée).
+import { deposerPhoto } from './photo';
 import { configurationManquante, getSupabase } from './supabase';
 
 export interface FuiteEnAttente {
@@ -273,11 +274,9 @@ async function executerSynchro() {
 
   const envoyerPhoto = async (p: PhotoEnAttente): Promise<'ok' | 'reseau' | string> => {
     try {
-      const chemin = `${p.marche_id}/${p.fuite_id}/${p.id}.jpg`;
-      const tele = await sb.storage.from('photos').upload(chemin, p.blob, { contentType: 'image/jpeg' });
-      if (tele.error && !estDejaEnvoye(tele.error as ErreurApi)) throw tele.error;
+      const { stockage, chemin } = await deposerPhoto(p.blob, { marche_id: p.marche_id, fuite_id: p.fuite_id, id: p.id });
       const ligne = await sb.from('photos').insert({
-        id: p.id, marche_id: p.marche_id, fuite_id: p.fuite_id, type: 'detection', chemin,
+        id: p.id, marche_id: p.marche_id, fuite_id: p.fuite_id, type: 'detection', stockage, chemin,
         position: p.position, prise_le: p.prise_le,
         largeur_px: p.largeur, hauteur_px: p.hauteur, taille_octets: p.blob.size,
       });

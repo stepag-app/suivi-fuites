@@ -62,7 +62,9 @@ export interface FicheFuite {
   motif_sans_reparation: string | null; fuite_liee_id: string | null; verrouillee_le: string | null;
   observation: string | null; nb_photos: number; alerte_non_reparee: boolean;
 }
-export interface PhotoLigne { id: string; type: TypePhoto; chemin: string; prise_le: string; reparation_id: string | null; refection_id: string | null }
+export interface PhotoLigne {
+  id: string; type: TypePhoto; chemin: string; stockage?: string | null; prise_le: string; reparation_id: string | null; refection_id: string | null;
+}
 export interface Reparation {
   id: string; resultat: ResultatReparation; motif_id: string | null; realisee_le: string; equipe_id: string | null;
   ouvrage: string | null; materiau: string | null; diametre_mm: number | null; representant_srm: string | null;

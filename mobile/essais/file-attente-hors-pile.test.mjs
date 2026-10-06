@@ -71,7 +71,7 @@ sim.reseau = false;
 let reste = await synchroniser();
 verifier(reste === 5 && (await lireAttente()).every((e) => !e.erreur), 'sans réseau : 5 envois gardés, aucune erreur');
 sim.reseau = true;
-sim.coupureDans = 9; // la 10e requête (pièce ajoutée par la modification) tombe
+sim.coupureDans = 11; // la 12e requête (pièce ajoutée par la modification) tombe ; l'appel à photos-r2 d'une photo compte
 reste = await synchroniser();
 const coupe = await lireAttente();
 verifier(reste === 3 && coupe[0].type === 'modification' && coupe[0].fait?.ligne === true && coupe.every((e) => !e.erreur),

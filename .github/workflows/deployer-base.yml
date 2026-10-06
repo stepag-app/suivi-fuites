@@ -7,6 +7,9 @@ name: Déploiement de la base
 # Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
 #  * SUPABASE_ACCESS_TOKEN : jeton personnel Supabase (Account > Access Tokens)
 #  * SUPABASE_DB_PASSWORD : mot de passe de la base du projet
+#  * R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY (facultatifs) : clés du compartiment privé
+#    Cloudflare R2 des photos, passées à la fonction photos-r2 ; absentes, les photos restent sur
+#    Supabase Storage. Variable R2_BUCKET (facultative, défaut suivi-fuites-photos).
 
 on:
   push:
@@ -90,3 +93,19 @@ jobs:
           version: latest
       - name: Déployer gerer-utilisateurs
         run: supabase functions deploy gerer-utilisateurs --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Secrets R2 de photos-r2
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET }}
+        run: |
+          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ]; then
+            echo "Secrets R2 absents : photos-r2 répondra « non configuré » (photos sur Supabase Storage)."
+            exit 0
+          fi
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" \
+            R2_ACCOUNT_ID="$R2_ACCOUNT_ID" R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
+            R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
+      - name: Déployer photos-r2
+        run: supabase functions deploy photos-r2 --project-ref "$SUPABASE_PROJECT_ID"

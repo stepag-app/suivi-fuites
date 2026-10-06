@@ -11,7 +11,7 @@ import {
 } from './file-attente';
 import { appliquer, type EtatReparation } from './modification';
 import { useParametres, type Parametres } from './parametres';
-import { prendrePhoto } from './photos';
+import { prendrePhoto, urlsPhotos } from './photos';
 import { useSession } from './session';
 import { supabase } from './supabase';
 import {
@@ -65,15 +65,7 @@ export function Fiche({ id, retour, saisir }: {
       setHorsLigne(false);
       setDonnees(serveur);
       AsyncStorage.setItem(cleFiche(id), JSON.stringify(serveur)).catch(() => undefined);
-      if (serveur.photos.length) {
-        const signees = await supabase.storage.from('photos').createSignedUrls(serveur.photos.map((p) => p.chemin), 3600);
-        const table: Record<string, string> = {};
-        for (const p of serveur.photos) {
-          const u = signees.data?.find((x) => x.path === p.chemin)?.signedUrl;
-          if (u) table[p.id] = u;
-        }
-        setUrls(table);
-      }
+      if (serveur.photos.length) setUrls(await urlsPhotos(serveur.photos).catch(() => ({})));
     } else {
       setHorsLigne(true);
       const copie = await AsyncStorage.getItem(cleFiche(id)).catch(() => null);

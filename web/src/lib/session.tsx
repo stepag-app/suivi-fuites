@@ -4,6 +4,8 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { Session } from '@supabase/supabase-js';
 import { configurationManquante, getSupabase } from './supabase';
 import type { Action, Droit, Marche, Profil, TypeDonnee } from './types';
+// Règle d'affichage partagée avec la matrice des droits (calcul pur, vérifié par scripts/verifier-matrice-droits.mjs).
+import { peutSelonDroits, verrouPose, type Verrou } from '@/app/(app)/utilisateurs/matrice';
 
 interface Etat {
   chargement: boolean;
@@ -14,6 +16,10 @@ interface Etat {
   choisirMarche: (id: string) => void;
   recharger: () => void;
   peut: (type: TypeDonnee, action: Action) => boolean;
+  /** Verrous de sécurité que l'administrateur a posés sur lui-même (vide pour les autres comptes). */
+  verrous: Verrou[];
+  /** L'administrateur a verrouillé cette action pour lui-même (bouton à masquer ou à désactiver). */
+  verrouille: (objet: string, action: string) => boolean;
   deconnecter: () => Promise<void>;
 }
 
@@ -28,6 +34,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profil, setProfil] = useState<Profil | null>(null);
   const [marches, setMarches] = useState<Marche[]>([]);
   const [droits, setDroits] = useState<Droit[]>([]);
+  const [verrous, setVerrous] = useState<Verrou[]>([]);
   const [marcheId, setMarcheId] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
 
@@ -47,6 +54,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setProfil(null);
         setMarches([]);
         setDroits([]);
+        setVerrous([]);
         setChargement(false);
       }
     });
@@ -59,10 +67,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let annule = false;
     (async () => {
       const sb = getSupabase();
-      const [p, mComplet, d] = await Promise.all([
+      const [p, mComplet, d, v] = await Promise.all([
         sb.from('profils').select('*').eq('id', utilisateurId).maybeSingle(),
         sb.from('marches').select(`${COLONNES_MARCHE}, ${COLONNES_MARCHE_CLIENT}`).order('date_commencement', { ascending: false, nullsFirst: false }).order('code'),
         sb.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', utilisateurId),
+        sb.from('verrous_admin').select('objet, action').eq('profil_id', utilisateurId),
       ]);
       // Base pas encore à jour (colonne inconnue) : colonnes d'origine, libellés par défaut.
       const m = mComplet.error?.code === '42703'
@@ -78,6 +87,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
             setProfil(copie.profil);
             setMarches(copie.marches);
             setDroits(copie.droits);
+            setVerrous(copie.verrous ?? []);
             setMarcheId(copie.marches.find((x: Marche) => x.id === window.localStorage.getItem(CLE_MARCHE))?.id ?? copie.marches[0]?.id ?? null);
             setChargement(false);
             return;
@@ -96,8 +106,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       const liste = ((m.data as Marche[] | null) ?? []).filter((x) => profilCharge?.est_admin || x.actif !== false);
       setMarches(liste);
       setDroits((d.data as Droit[] | null) ?? []);
+      // Table absente (base pas encore à jour) : aucun verrou. La base reste juge dans tous les cas.
+      const verrousCharges = v.error ? [] : ((v.data as Verrou[] | null) ?? []);
+      setVerrous(verrousCharges);
       try {
-        window.localStorage.setItem(cleCache, JSON.stringify({ profil: profilCharge, marches: liste, droits: d.data ?? [] }));
+        window.localStorage.setItem(cleCache, JSON.stringify({ profil: profilCharge, marches: liste, droits: d.data ?? [], verrous: verrousCharges }));
       } catch {
         /* stockage indisponible */
       }
@@ -124,16 +137,17 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const marche = useMemo(() => marches.find((x) => x.id === marcheId) ?? null, [marches, marcheId]);
 
-  // L'affichage s'adapte aux droits ; la vraie protection reste la RLS côté base.
+  // L'affichage s'adapte aux droits (l'administrateur : tout, sauf ce qu'il a verrouillé pour lui-même) ;
+  // la vraie protection reste la RLS côté base.
   const peut = useCallback(
-    (type: TypeDonnee, action: Action) => {
-      if (profil?.est_admin) return true;
-      const d = droits.find((x) => x.marche_id === marcheId && x.type_donnee === type);
-      if (!d) return false;
-      if (action === 'modifier' || action === 'supprimer') return d[action] !== 'non';
-      return d[action];
-    },
-    [profil, droits, marcheId],
+    (type: TypeDonnee, action: Action) =>
+      peutSelonDroits({ estAdmin: profil?.est_admin === true, verrous, droits, marcheId }, type, action),
+    [profil, verrous, droits, marcheId],
+  );
+
+  const verrouille = useCallback(
+    (objet: string, action: string) => profil?.est_admin === true && verrouPose(verrous, objet, action),
+    [profil, verrous],
   );
 
   const deconnecter = useCallback(async () => {
@@ -148,8 +162,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const valeur = useMemo(
-    () => ({ chargement, session, profil, marches, marche, choisirMarche, recharger, peut, deconnecter }),
-    [chargement, session, profil, marches, marche, choisirMarche, recharger, peut, deconnecter],
+    () => ({ chargement, session, profil, marches, marche, choisirMarche, recharger, peut, verrous, verrouille, deconnecter }),
+    [chargement, session, profil, marches, marche, choisirMarche, recharger, peut, verrous, verrouille, deconnecter],
   );
 
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;

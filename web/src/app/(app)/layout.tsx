@@ -8,7 +8,7 @@ import { StatutReseau } from '@/lib/StatutReseau';
 import { NOM_ORGANISATION } from '@/lib/supabase';
 
 export default function MiseEnPage({ children }: { children: ReactNode }) {
-  const { chargement, session, profil, marches, marche, choisirMarche, peut, deconnecter } = useSession();
+  const { chargement, session, profil, marches, marche, choisirMarche, peut, verrous, deconnecter } = useSession();
   const router = useRouter();
   const chemin = usePathname();
 
@@ -48,21 +48,23 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
           <button onClick={deconnecter}>Quitter</button>
         </div>
       </header>
-      {/* Onglets des modules, selon les droits */}
+      {/* Onglets des modules, selon les droits (Utilisateurs et Marchés : administrateur seulement) */}
       <nav className="onglets-modules" aria-label="Modules">
-        {lien('/fuites', 'Fuites')}
+        {peut('fuites', 'lire') && lien('/fuites', 'Fuites')}
         {peut('fuites', 'lire') && lien('/tableau-de-bord', 'Tableau de bord')}
         {peut('fuites', 'lire') && lien('/carte', 'Carte')}
         {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
-        {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('evenements', 'lire')) &&
-          lien('/parametres', 'Paramètres')}
-        {profil?.est_admin && lien('/utilisateurs', 'Utilisateurs')}
+        {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('ouvriers', 'modifier')
+          || peut('evenements', 'lire')) && lien('/parametres', 'Paramètres')}
+        {/* Rappel des verrous de sécurité posés par l'administrateur sur lui-même */}
+        {profil?.est_admin && lien('/utilisateurs', verrous.length
+          ? `Utilisateurs (${verrous.length} verrou${verrous.length > 1 ? 's' : ''})` : 'Utilisateurs')}
         {profil?.est_admin && lien('/marches', 'Marchés')}
-        {lien('/fuites/nouvelle', '+ Nouvelle fuite', 'action')}
+        {peut('fuites', 'creer') && lien('/fuites/nouvelle', '+ Nouvelle fuite', 'action')}
       </nav>
       <StatutReseau />
-      {/* Écrans de bureau (attachements) et carte : plus larges */}
-      <main className={chemin.startsWith('/attachements') || chemin.startsWith('/carte') ? 'contenu large' : 'contenu'}>
+      {/* Écrans de bureau (attachements, matrice des droits) et carte : plus larges */}
+      <main className={['/attachements', '/carte', '/utilisateurs'].some((p) => chemin.startsWith(p)) ? 'contenu large' : 'contenu'}>
         {/* La page Marchés reste accessible à l'administrateur sans marché (création du premier). */}
         {marche || (profil?.est_admin && chemin.startsWith('/marches')) ? (
           children

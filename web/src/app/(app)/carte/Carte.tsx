@@ -8,28 +8,55 @@ import type { Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, StyleSpecification } from 'maplibre-gl';
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { STATUTS, dateHeure, libellesMarche } from '@/lib/format';
+import { STATUTS, dateHeure, libellesMarche, nombre } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
+import { texteEtatTroncon } from '@/lib/reseau/etat';
+import type { PaletteReseau } from '@/lib/reseau/palette';
+import { formaterLineaire, type ModeSelection } from '@/lib/reseau/selection';
+import type { Coloration, EtatFeature, ProprietesTroncon } from '@/lib/reseau/types';
 import type { EtatCarte } from './capture';
 import {
   ALERTES, CENTRE_DEFAUT, MODULE_MAPLIBRE, STYLE_FOND, ZOOM_DEFAUT, geometrieValide,
   type Contour, type FuiteCarte,
 } from './commun';
-import { STYLE_SECOURS, ajouterCouches, contours, pointsFuites, sommets } from './couches';
+import { STYLE_SECOURS, ajouterCouches, contours, couchesTraitReseau, pointsFuites, sommets } from './couches';
+import { installerTrace } from './lasso';
+import { creerGestionReseau, type GestionReseau, type SecteurAffiche } from './reseau-carte';
+import styles from './reseau.module.css';
 
 type Libelles = ReturnType<typeof libellesMarche>;
 export type CarteRef = { recentrer: () => void; etatImpression: () => EtatCarte | null };
+
+/** Réseau d'eau affiché sur la carte (lot S) ; absent : aucune couche du réseau. */
+export interface ReseauCarteProps {
+  secteurs: SecteurAffiche[];
+  coloration: Coloration;
+  palette: PaletteReseau;
+  etats: Map<string, EtatFeature>;
+  libelles: Map<string, { secteur: string; zone: string }>;
+  modeBalayage: boolean;
+  /** Outil du mode balayage : toucher les tronçons un par un, ou lasso au doigt (la carte ne bouge pas pendant le tracé). */
+  outil: 'toucher' | 'lasso';
+  selection: Set<string>;
+  surSelection: (ids: string[], mode: ModeSelection) => void;
+  surLasso: (anneau: number[][]) => void;
+  peutAnnuler: boolean;
+  annuler: (tronconId: string) => void;
+  surZoom: (zoom: number) => void;
+}
 
 interface Props {
   fuites: FuiteCarte[];
   zones: Contour[];
   secteurs: Contour[];
   libelles: Libelles;
+  reseau?: ReseauCarteProps;
 }
 
-export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles }, ref) {
+export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau }, ref) {
   const conteneur = useRef<HTMLDivElement>(null);
   const carte = useRef<CarteMapLibre | null>(null);
+  const gestion = useRef<GestionReseau | null>(null);
   const [pret, setPret] = useState(false);
   const [fondIndisponible, setFondIndisponible] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -38,6 +65,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   // Données lues par les gestionnaires de la carte (créés une seule fois).
   const fuitesRef = useRef(fuites);
   fuitesRef.current = fuites;
+  const reseauRef = useRef(reseau);
+  reseauRef.current = reseau;
   const libellesRef = useRef(libelles);
   libellesRef.current = libelles;
   const zonesRef = useRef(zones);
@@ -149,16 +178,30 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         if (annule) return;
         // Zones et secteurs (seulement ceux dont le contour est dessiné), fuites regroupées tant qu'elles sont serrées.
         ajouterCouches(m, { avecTextes });
+        gestion.current = creerGestionReseau(m);
+        // Lasso du mode balayage (souris ou doigt) : la sélection se fait sur les données, par le milieu des tronçons.
+        installerTrace(m, {
+          outil: () => (reseauRef.current?.modeBalayage && reseauRef.current.outil === 'lasso' ? 'lasso' : null),
+          surFin: (anneau) => reseauRef.current?.surLasso(anneau),
+        });
         impression.current = { style: styleImpression, avecTextes, fondIndisponible: style === STYLE_SECOURS };
         setPret(true);
         recentrerRef.current();
       });
+      m.on('zoomend', () => reseauRef.current?.surZoom(m.getZoom()));
 
       // Au doigt, on touche rarement le point exact : on cherche dans un carré de ±14 px.
       const autour = (x: number, y: number, couches: string[]): MapGeoJSONFeature[] =>
         m.queryRenderedFeatures([[x - 14, y - 14], [x + 14, y + 14]], { layers: couches.filter((c) => m.getLayer(c)) });
 
       m.on('click', async (e) => {
+        const r = reseauRef.current;
+        // Mode balayage : un appui sur un tronçon le sélectionne (ou le retire), rien d'autre ne réagit.
+        if (r?.modeBalayage) {
+          const troncon = autour(e.point.x, e.point.y, couchesTraitReseau(m))[0];
+          if (troncon?.properties?.id) r.surSelection([String(troncon.properties.id)], 'basculer');
+          return;
+        }
         const groupe = autour(e.point.x, e.point.y, ['groupes'])[0];
         if (groupe) {
           const source = m.getSource('fuites') as GeoJSONSource;
@@ -167,7 +210,18 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
           return;
         }
         const point = autour(e.point.x, e.point.y, ['fuites-points'])[0];
-        if (!point) return;
+        if (!point) {
+          // Pas de fuite sous le doigt : un tronçon du réseau ?
+          const troncon = r ? autour(e.point.x, e.point.y, couchesTraitReseau(m))[0] : undefined;
+          if (!troncon?.properties?.id || !r) return;
+          const p = troncon.properties as unknown as ProprietesTroncon;
+          // Sans ancre imposée : MapLibre place la bulle du côté où elle tient entière (tronçon au bord de la carte).
+          new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, offset: 10 })
+            .setLngLat(e.lngLat)
+            .setDOMContent(bulleTroncon(p, r.libelles.get(p.s ?? ''), r.etats.get(p.id), r.peutAnnuler ? () => r.annuler(p.id) : null))
+            .addTo(m);
+          return;
+        }
         const f = fuitesRef.current.find((x) => x.id === point.properties.id);
         if (!f) return;
         // Bulle au-dessus du point, placé dans le quart bas de la carte : elle reste entière à l'écran.
@@ -201,6 +255,39 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     (carte.current.getSource('zones') as GeoJSONSource | undefined)?.setData(contours(zones));
     (carte.current.getSource('secteurs') as GeoJSONSource | undefined)?.setData(contours(secteurs));
   }, [pret, zones, secteurs]);
+
+  // Réseau : sources par secteur, coloration, état de balayage et sélection (feature-state).
+  const secteursReseau = reseau?.secteurs;
+  const coloration = reseau?.coloration ?? 'secteur';
+  const palette = reseau?.palette;
+  useEffect(() => {
+    const g = gestion.current;
+    if (!pret || !g) return;
+    g.synchroniser(secteursReseau ?? [], coloration, palette ?? { secteurs: new Map(), zones: new Map() });
+  }, [pret, secteursReseau, coloration, palette]);
+  useEffect(() => {
+    const g = gestion.current;
+    if (!pret || !g || !palette) return;
+    g.colorer(coloration, palette);
+  }, [pret, coloration, palette]);
+  const etats = reseau?.etats;
+  useEffect(() => {
+    const g = gestion.current;
+    if (!pret || !g || !etats) return;
+    g.appliquerEtats(etats);
+  }, [pret, etats, secteursReseau]);
+  const selection = reseau?.selection;
+  useEffect(() => {
+    const g = gestion.current;
+    if (!pret || !g) return;
+    g.appliquerSelection(selection ?? new Set());
+  }, [pret, selection, secteursReseau]);
+  const modeBalayage = reseau?.modeBalayage ?? false;
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m) return;
+    m.getCanvas().style.cursor = modeBalayage ? 'crosshair' : '';
+  }, [pret, modeBalayage]);
 
   return (
     <div className="carte-cadre">
@@ -255,5 +342,33 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTML
     boutons.append(aller);
   }
   racine.append(boutons);
+  return racine;
+}
+
+const CATEGORIES_TRONCON: Record<string, string> = { conduite: 'Conduite', branchement: 'Branchement', adduction: 'Adduction', autre: 'Autre' };
+
+// Bulle d'un tronçon du réseau : secteur, zone, diamètre, matériau, longueur, état de balayage, annulation.
+function bulleTroncon(
+  p: ProprietesTroncon, noms: { secteur: string; zone: string } | undefined, etat: EtatFeature | undefined, annuler: (() => void) | null,
+): HTMLElement {
+  const el = (tag: string, classe?: string, texte?: string) => {
+    const n = document.createElement(tag);
+    if (classe) n.className = classe;
+    if (texte != null) n.textContent = texte;
+    return n;
+  };
+  const racine = el('div', styles.bulleTroncon);
+  racine.append(el('strong', undefined, `${CATEGORIES_TRONCON[p.c] ?? 'Tronçon'}${p.d ? ` DN ${nombre(p.d, 0)}` : ''}${p.m ? ` · ${p.m}` : ''}`));
+  racine.append(el('div', undefined, noms ? `${noms.zone} · ${noms.secteur}` : 'Non zoné'));
+  racine.append(el('div', 'discret', `Longueur ${formaterLineaire(p.l)}${p.d ? '' : ' · diamètre inconnu'}`));
+  racine.append(el('div', `${styles.etat} ${etat?.balaye ? styles.balaye : styles.non}`, texteEtatTroncon(etat)));
+  if (annuler && etat?.balaye) {
+    const b = el('button', 'danger', 'Annuler le balayage') as HTMLButtonElement;
+    b.type = 'button';
+    b.addEventListener('click', annuler);
+    const boutons = el('div', 'bulle-boutons');
+    boutons.append(b);
+    racine.append(boutons);
+  }
   return racine;
 }

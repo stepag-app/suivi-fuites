@@ -23,18 +23,35 @@ export interface PhotoEnAttente {
   prise_le: string;
 }
 
+/** Balayage d'un tronçon saisi sur la carte (lot S) : même mécanique que les fuites, sans photo. */
+export interface BalayageEnAttente {
+  id: string;
+  marche_id: string;
+  ligne: Record<string, unknown>; // colonnes de la table `balayages`
+  creee_le: string;
+  erreur: string | null;
+}
+
+/** Types d'envois gardés dans la file d'attente. */
+export type TypeEnvoi = 'fuite' | 'photo' | 'balayage';
+
 const BASE = 'suivi-fuites';
+// Version 2 : magasin « balayages » (lot S). La mise à niveau ne touche pas aux magasins existants.
+const VERSION = 2;
 const EVENEMENT = 'attente-change';
 
 function ouvrir(): Promise<IDBDatabase> {
   return new Promise((ok, ko) => {
-    const requete = indexedDB.open(BASE, 1);
+    const requete = indexedDB.open(BASE, VERSION);
     requete.onupgradeneeded = () => {
       const db = requete.result;
-      db.createObjectStore('fuites', { keyPath: 'id' });
-      const photos = db.createObjectStore('photos', { keyPath: 'id' });
-      photos.createIndex('fuite_id', 'fuite_id');
-      db.createObjectStore('cache', { keyPath: 'cle' });
+      if (!db.objectStoreNames.contains('fuites')) db.createObjectStore('fuites', { keyPath: 'id' });
+      if (!db.objectStoreNames.contains('photos')) {
+        const photos = db.createObjectStore('photos', { keyPath: 'id' });
+        photos.createIndex('fuite_id', 'fuite_id');
+      }
+      if (!db.objectStoreNames.contains('cache')) db.createObjectStore('cache', { keyPath: 'cle' });
+      if (!db.objectStoreNames.contains('balayages')) db.createObjectStore('balayages', { keyPath: 'id' });
     };
     requete.onsuccess = () => ok(requete.result);
     requete.onerror = () => ko(requete.error);
@@ -148,6 +165,50 @@ export async function abandonnerFuite(id: string) {
   prevenir();
 }
 
+// ---- Balayages en attente (lot S) ------------------------------------------------------------------
+// Les balayages cochés sur la carte sont gardés ici avant l'envoi : sans réseau, ils partent avec la
+// synchronisation suivante. Comptés à part des fuites (le bandeau de l'en-tête parle de fuites).
+
+export async function mettreBalayagesEnAttente(lignes: { id: string; marche_id: string; ligne: Record<string, unknown> }[]) {
+  if (!lignes.length) return;
+  const quand = new Date().toISOString();
+  await transaction(['balayages'], 'readwrite', (t) => {
+    const store = t.objectStore('balayages');
+    for (const b of lignes) store.put({ ...b, creee_le: quand, erreur: null } satisfies BalayageEnAttente);
+  });
+  prevenir();
+}
+
+export async function listerBalayagesEnAttente(): Promise<BalayageEnAttente[]> {
+  try {
+    const lignes = (await transaction(['balayages'], 'readonly', (t) => t.objectStore('balayages').getAll())) as BalayageEnAttente[] | undefined;
+    return [...(lignes ?? [])].sort((a, b) => a.creee_le.localeCompare(b.creee_le));
+  } catch {
+    return [];
+  }
+}
+
+export const compterBalayagesEnAttente = async () => (await listerBalayagesEnAttente()).length;
+
+export async function abandonnerBalayage(id: string) {
+  await transaction(['balayages'], 'readwrite', (t) => t.objectStore('balayages').delete(id));
+  prevenir();
+}
+
+async function marquerErreurBalayage(id: string, message: string) {
+  try {
+    await transaction(['balayages'], 'readwrite', (t) => {
+      const store = t.objectStore('balayages');
+      const r = store.get(id);
+      r.onsuccess = () => {
+        if (r.result) store.put({ ...r.result, erreur: message });
+      };
+    });
+  } catch {
+    /* sans conséquence : réessayé plus tard */
+  }
+}
+
 // ---- Synchronisation -------------------------------------------------------------------------------
 
 interface ErreurApi { code?: string; message?: string; statusCode?: string | number; status?: number }
@@ -255,6 +316,17 @@ async function executerSynchro() {
   for (const p of orphelines) {
     const r = await envoyerPhoto(p);
     if (r === 'reseau') break;
+  }
+  // Balayages (lot S) : une ligne par tronçon, identifiant créé sur l'appareil ; un doublon vaut succès.
+  for (const b of await listerBalayagesEnAttente()) {
+    try {
+      const { error } = await sb.from('balayages').insert({ ...b.ligne, id: b.id, marche_id: b.marche_id });
+      if (error && !estDejaEnvoye(error)) throw error;
+      await transaction(['balayages'], 'readwrite', (t) => t.objectStore('balayages').delete(b.id));
+    } catch (e) {
+      if (estErreurReseau(e)) break;
+      await marquerErreurBalayage(b.id, String((e as ErreurApi)?.message ?? e));
+    }
   }
   return { envoyees, restantes: await compterAttente() };
 }

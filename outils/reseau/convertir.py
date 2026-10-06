@@ -323,6 +323,15 @@ def main() -> None:
                 return secteurs_marche[int(j)][0]
         return None
 
+    arbre_sig = STRtree([pg for _, pg in sig_secteurs])
+
+    def nom_sig(p: Point):
+        for j in arbre_sig.query(p):
+            if sig_secteurs[int(j)][1].contains(p):
+                return sig_secteurs[int(j)][0] or "(secteur SIG sans nom)"
+        return "(hors secteurs SIG)"
+
+    non_zones_sig: Counter = Counter()
     features, hors = [], []
     refs: Counter = Counter()
     lin_secteur: Counter = Counter()
@@ -344,6 +353,8 @@ def main() -> None:
             continue
         features.append({"type": "Feature", "geometry": geom, "properties": props})
         lin_secteur[code or "(non zoné)"] += ligne.length
+        if code is None:
+            non_zones_sig[nom_sig(milieu)] += ligne.length
         nb_secteur[code or "(non zoné)"] += 1
         if dm:
             lin_diam += ligne.length
@@ -398,6 +409,10 @@ def main() -> None:
           "## Linéaire par secteur du marché", "", "| Secteur | Tronçons | Linéaire (km) |", "|---|---:|---:|"]
     for code, l in sorted(lin_secteur.items(), key=lambda kv: -kv[1]):
         r.append(f"| {code} | {nb_secteur[code]} | {l / 1000:.1f} |")
+    r += ["", "## Tronçons non zonés, par secteur du SIG (à affecter dans Paramètres > Réseau)", "",
+          "| Secteur du SIG | Linéaire (km) |", "|---|---:|"]
+    for n, l in non_zones_sig.most_common():
+        r.append(f"| {n} | {l / 1000:.1f} |")
     r += ["", "## Calques retenus", ""] + [f"- {c} : {k}" for c, k in calques.most_common()]
     with open(os.path.join(a.sortie, "rapport-conversion.md"), "w", encoding="utf-8") as f:
         f.write("\n".join(r) + "\n")

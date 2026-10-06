@@ -309,6 +309,56 @@ def caler(nom: str, chemin: str, centre: tuple[float, float] | None, depart):
     return nom, (alpha, beta, part, med), methode
 
 
+def features_planche(nom: str, chemin: str, res, methode: str):
+    """Emprise, limites magenta épaisses et noms d'une planche calée (WGS84), et sa ligne de rapport.
+
+    Seuls les textes en capitales sont des noms de secteur dans la carte ; le titre en pied de page (casse
+    mixte, hors du cadre) est marqué `titre` pour ne pas être pris pour un nom placé sur le plan.
+    """
+    alpha, beta, part, med = res
+    fiable = part >= 0.75 and med <= 1.5
+    page = fitz.open(chemin)[0]
+    page.remove_rotation()
+
+    def vers(x, y):
+        z = alpha * complex(x, -y) + beta
+        return z.real, z.imag
+
+    features = []
+    r = page.rect
+    coins = [vers(x, y) for x, y in ((r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1))]
+    anneau = [list(VERS_WGS84.transform(*c)) for c in coins]
+    anneau.append(anneau[0])
+    props = {"planche": nom, "methode": methode, "echelle_m_par_pt": round(abs(alpha), 4),
+             "rotation_deg": round(math.degrees(math.atan2(alpha.imag, alpha.real)), 2),
+             "superposition": round(part, 3), "ecart_median_m": round(med, 2), "fiable": fiable,
+             "alpha": [alpha.real, alpha.imag], "beta": [beta.real, beta.imag]}
+    features.append({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [anneau]}, "properties": {**props, "type": "emprise"}})
+    for dr in page.get_drawings():
+        c = dr.get("color")
+        if not c or not (c[0] > 0.6 and c[2] > 0.6 and c[1] < 0.45) or (dr.get("width") or 0) < 1.5:
+            continue
+        for it in dr["items"]:
+            if it[0] == "l":
+                c1 = VERS_WGS84.transform(*vers(it[1].x, it[1].y))
+                c2 = VERS_WGS84.transform(*vers(it[2].x, it[2].y))
+                features.append({"type": "Feature", "geometry": {"type": "LineString", "coordinates": [list(c1), list(c2)]},
+                                 "properties": {"planche": nom, "type": "limite_magenta", "fiable": fiable}})
+    for b in page.get_text("dict")["blocks"]:
+        for l in b.get("lines", []):
+            for s in l.get("spans", []):
+                t = s["text"].strip()
+                if s["size"] >= 14 and t:
+                    x0, y0, x1, y1 = s["bbox"]
+                    lon, lat = VERS_WGS84.transform(*vers((x0 + x1) / 2, (y0 + y1) / 2))
+                    features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                                     "properties": {"planche": nom, "type": "nom" if t == t.upper() else "titre", "texte": t,
+                                                    "taille": round(s["size"]), "fiable": fiable}})
+    ligne = (f"| {nom} | {methode} | {props['rotation_deg']}° | {props['echelle_m_par_pt']:.3f} | "
+             f"{100 * part:.0f} % | {med:.2f} | {'fiable' if fiable else 'à vérifier'} |")
+    return features, ligne
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--extrait", required=True)
@@ -366,44 +416,9 @@ def main() -> None:
         if not res:
             rapport.append(f"| {nom} | {methodes.get(nom)} | — | — | — | — | échec |")
             continue
-        alpha, beta, part, med = res
-        fiable = part >= 0.75 and med <= 1.5
-        page = fitz.open(chemin)[0]
-        page.remove_rotation()
-
-        def vers(x, y):
-            z = alpha * complex(x, -y) + beta
-            return z.real, z.imag
-
-        r = page.rect
-        coins = [vers(x, y) for x, y in ((r.x0, r.y0), (r.x1, r.y0), (r.x1, r.y1), (r.x0, r.y1))]
-        anneau = [list(VERS_WGS84.transform(*c)) for c in coins]
-        anneau.append(anneau[0])
-        props = {"planche": nom, "methode": methodes[nom], "echelle_m_par_pt": round(abs(alpha), 4),
-                 "rotation_deg": round(math.degrees(math.atan2(alpha.imag, alpha.real)), 2),
-                 "superposition": round(part, 3), "ecart_median_m": round(med, 2), "fiable": fiable}
-        features.append({"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [anneau]}, "properties": {**props, "type": "emprise"}})
-        for dr in page.get_drawings():
-            c = dr.get("color")
-            if not c or not (c[0] > 0.6 and c[2] > 0.6 and c[1] < 0.45) or (dr.get("width") or 0) < 1.5:
-                continue
-            for it in dr["items"]:
-                if it[0] == "l":
-                    c1 = VERS_WGS84.transform(*vers(it[1].x, it[1].y))
-                    c2 = VERS_WGS84.transform(*vers(it[2].x, it[2].y))
-                    features.append({"type": "Feature", "geometry": {"type": "LineString", "coordinates": [list(c1), list(c2)]},
-                                     "properties": {"planche": nom, "type": "limite_magenta", "fiable": fiable}})
-        for b in page.get_text("dict")["blocks"]:
-            for l in b.get("lines", []):
-                for s in l.get("spans", []):
-                    if s["size"] >= 14 and s["text"].strip():
-                        x0, y0, x1, y1 = s["bbox"]
-                        lon, lat = VERS_WGS84.transform(*vers((x0 + x1) / 2, (y0 + y1) / 2))
-                        features.append({"type": "Feature", "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                                         "properties": {"planche": nom, "type": "nom", "texte": s["text"].strip(),
-                                                        "taille": round(s["size"]), "fiable": fiable}})
-        rapport.append(f"| {nom} | {methodes[nom]} | {props['rotation_deg']}° | {props['echelle_m_par_pt']:.3f} | "
-                       f"{100 * part:.0f} % | {med:.2f} | {'fiable' if fiable else 'à vérifier'} |")
+        feats, ligne = features_planche(nom, chemin, res, methodes[nom])
+        features += feats
+        rapport.append(ligne)
     with open(os.path.join(a.sortie, "planches.geojson"), "w", encoding="utf-8") as f:
         json.dump({"type": "FeatureCollection", "features": features}, f, ensure_ascii=False, separators=(",", ":"))
     with open(os.path.join(a.sortie, "calage-planches.md"), "w", encoding="utf-8") as f:

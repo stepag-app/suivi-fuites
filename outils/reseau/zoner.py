@@ -94,21 +94,37 @@ def main() -> None:
     perimetre_sig = unary_union([pg for n, pg in zones if (n or "").upper() in zones_marche] +
                                 [pg for n, pg in sig if corr_sig.get((n or "").upper())])
 
-    # Planches fiables : emprises, frontières magenta, noms
+    # Planches retenues : calage « fiable » (≥ 75 % des conduites superposées), ou calage confirmé par les noms :
+    # un nom de secteur de la planche à moins de 80 m du même nom placé par une planche fiable, ou à l'intérieur du
+    # secteur SIG de même code. (Une planche imprimée d'une autre version du dessin peut avoir peu de conduites
+    # superposées et être pourtant bien calée.)
+    def code_nom(f):
+        return NOMS_PLANCHES.get(normaliser(f["properties"]["texte"]))
+
+    noms_tous = [(code_nom(f), Point(*VERS_LAMBERT.transform(*f["geometry"]["coordinates"])), f["properties"]["planche"])
+                 for f in pl if f["properties"]["type"] == "nom" and code_nom(f)]
     fiables = {f["properties"]["planche"] for f in pl if f["properties"]["type"] == "emprise" and f["properties"].get("fiable")}
-    emprises = [Polygon(lambert(f["geometry"]["coordinates"][0])) for f in pl
-                if f["properties"]["type"] == "emprise" and f["properties"]["planche"] in fiables]
-    magenta = [LineString(lambert(f["geometry"]["coordinates"])) for f in pl
-               if f["properties"]["type"] == "limite_magenta" and f["properties"]["planche"] in fiables]
-    noms = []
-    for f in pl:
-        p = f["properties"]
-        if p["type"] != "nom" or p["planche"] not in fiables or p.get("taille", 0) < 20:
+    sig_par_code: dict[str, list[Polygon]] = defaultdict(list)
+    for n, pg in sig:
+        c = corr_sig.get((n or "").upper())
+        if c:
+            sig_par_code[c].append(pg)
+    retenues = set(fiables)
+    confirmations = {}
+    for code, pt, planche in noms_tous:
+        if planche in fiables:
             continue
-        code = NOMS_PLANCHES.get(normaliser(p["texte"]))
-        if code:
-            x, y = VERS_LAMBERT.transform(*f["geometry"]["coordinates"])
-            noms.append((code, Point(x, y), p["planche"], p["texte"]))
+        par_fiable = any(c2 == code and pt.distance(p2) <= 80 for c2, p2, pl2 in noms_tous if pl2 in fiables)
+        par_sig = any(pg.contains(pt) for pg in sig_par_code.get(code, []))
+        if par_fiable or par_sig:
+            retenues.add(planche)
+            confirmations.setdefault(planche, []).append(f"{code} ({'planche fiable' if par_fiable else 'secteur SIG'})")
+    emprises = [Polygon(lambert(f["geometry"]["coordinates"][0])) for f in pl
+                if f["properties"]["type"] == "emprise" and f["properties"]["planche"] in retenues]
+    magenta = [LineString(lambert(f["geometry"]["coordinates"])) for f in pl
+               if f["properties"]["type"] == "limite_magenta" and f["properties"]["planche"] in retenues]
+    noms = [(code, pt, planche, "") for code, pt, planche in noms_tous if planche in retenues]
+    ecartees = sorted({f["properties"]["planche"] for f in pl if f["properties"]["type"] == "emprise"} - retenues)
 
     perimetre = unary_union([perimetre_sig] + emprises).buffer(30)
     frontieres = unary_union([l.buffer(LARGEUR_FRONTIERE) for l in magenta] +
@@ -165,7 +181,8 @@ def main() -> None:
     with open(os.path.splitext(a.sortie)[0] + ".geojson", "w", encoding="utf-8") as f:
         json.dump({"type": "FeatureCollection", "features": feats}, f, ensure_ascii=False, separators=(",", ":"))
 
-    print(f"Planches fiables : {len(fiables)} ({', '.join(sorted(fiables))})")
+    print(f"Planches retenues : {len(retenues)} (fiables {len(fiables)}, confirmées par les noms : {confirmations})")
+    print(f"Planches écartées (calage non confirmé) : {ecartees}")
     print(f"Noms de secteur repérés : {len(noms)} ; régions : {len(regions)} ; non zonées : {len(non_zonees)}")
     for code in sorted(contours, key=lambda c: -contours[c].area):
         print(f"  {code:36} {contours[code].area / 1e6:6.2f} km²  sources {dict(sources[code])}")

@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { messageErreur } from '@/lib/format';
 import { useSession } from '@/lib/session';
@@ -13,8 +14,14 @@ import { OngletMarche } from './OngletMarche';
 import { OngletNatures } from './OngletNatures';
 import { OngletSecteurs } from './OngletSecteurs';
 
+// Écran d'administration (import CSV, rapprochement) : chargé seulement à l'ouverture de l'onglet.
+const OngletNomenclature = dynamic(() => import('./OngletNomenclature').then((m) => m.OngletNomenclature), {
+  ssr: false,
+  loading: () => <p className="carte discret">Chargement…</p>,
+});
+
 type Onglet = 'marche' | 'bordereau' | 'attachement' | 'evenements' | 'ouvriers' | 'equipes' | 'motifs'
-  | 'secteurs' | 'natures' | 'catalogue';
+  | 'secteurs' | 'natures' | 'catalogue' | 'nomenclature';
 
 interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
@@ -30,7 +37,7 @@ const codeDepuis = (texte: string) =>
   texte.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);
 
 export default function Parametres() {
-  const { marche, peut } = useSession();
+  const { marche, peut, profil } = useSession();
   const accesParametres = peut('parametres', 'creer') || peut('parametres', 'modifier');
   const [onglet, setOnglet] = useState<Onglet>(() => (accesParametres ? 'marche' : peut('evenements', 'lire') ? 'evenements' : 'ouvriers'));
   const droitDe = (o: Onglet): TypeDonnee => (o === 'ouvriers' ? 'ouvriers' : o === 'evenements' ? 'evenements' : 'parametres');
@@ -101,6 +108,7 @@ export default function Parametres() {
     ['secteurs', 'Secteurs', accesParametres],
     ['natures', 'Natures de réfection', accesParametres],
     ['catalogue', 'Catalogue des pièces', accesParametres],
+    ['nomenclature', 'Nomenclature Dolibarr', !!profil?.est_admin],
   ] as [Onglet, string, boolean][]).filter(([, , visible]) => visible);
 
   return (
@@ -124,6 +132,7 @@ export default function Parametres() {
       {onglet === 'secteurs' && <OngletSecteurs key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'natures' && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'catalogue' && <OngletCatalogue key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
+      {onglet === 'nomenclature' && profil?.est_admin && <OngletNomenclature key={marche.id} marcheId={marche.id} marcheCode={marche.code} />}
 
       {onglet === 'ouvriers' && (
         <section className="carte">

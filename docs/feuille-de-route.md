@@ -43,7 +43,7 @@ Lots F à J fusionnés le 2026-10-05 (session 6). Session 6, lots en parallèle,
 | M. Fiche hors ligne | fiche déjà vue consultable sans réseau (données et photos en cache, lecture seule) | #29 |
 | N. Photos sur R2 | **non lancé** : secrets R2 absents de GitHub | — |
 
-Lots K, L, M fusionnés le 2026-10-05. Suite de la session 6, PR **en brouillon** :
+Lots K, L, M fusionnés le 2026-10-05 ; Q, R, P1 et intégration fusionnés et déployés le 2026-10-06 :
 
 | Lot | Contenu | PR |
 |---|---|---|
@@ -52,6 +52,7 @@ Lots K, L, M fusionnés le 2026-10-05. Suite de la session 6, PR **en brouillon*
 | P1. Nomenclature Dolibarr | import `produits.csv`, rapprochement par identifiant produit, validation ; désignation seule pour le réparateur | #33 |
 | P3. Inventaire des fournitures posées | tableau croisé et filtres rapides (fuite, période, secteur, équipe, famille, terrain / bureau) | à lancer après P1 |
 | P4. Rapprochement posé / transféré | mouvements Dolibarr de l'entrepôt 76 (CSV, puis envoi depuis le serveur) comparés aux pièces posées, période × article | à lancer après P1 |
+| APK. Pièces corrigées | afficher sur la tablette les pièces remplacées ou retirées (barrées), nature et motif des corrections ; la réparation d'un autre se corrige depuis « Corriger » sur le web | à lancer |
 
 ## 3. Photos sur Cloudflare R2 (lot E, après A et D)
 

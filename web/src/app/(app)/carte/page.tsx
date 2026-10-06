@@ -21,7 +21,7 @@ import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Carte, type CarteRef, type ReseauCarteProps } from "./Carte";
 import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
-import { ApercuFuite, BarreCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
+import { ApercuFuite, CommandesCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
 import type { ChoixImpression } from "./impression";
 import { ListeCarte } from "./liste-carte";
 import { PanneauImpression } from "./PanneauImpression";
@@ -380,12 +380,12 @@ function CarteDesFuites() {
 
   const details = (
     <OngletsCarte onglet={onglet} changerOnglet={setOnglet} impression={peut("exports", "lire")}>
-      <TabsContent className="min-h-0 overflow-auto p-4" value="fuite"><ApercuFuite fuite={choisie} libelles={libelles} /></TabsContent>
-      <TabsContent className="min-h-0 overflow-auto p-4" value="filtres">
+      <TabsContent className="min-h-0 overflow-auto px-4 py-3" value="fuite"><ApercuFuite fuite={choisie} libelles={libelles} /></TabsContent>
+      <TabsContent className="min-h-0 overflow-auto px-4 py-3" value="filtres">
         <FiltresCarteForm filtres={filtres} changer={(f) => setFiltres((x) => ({ ...x, ...f }))} secteurs={secteurs} />
       </TabsContent>
       {peut("exports", "lire") && (
-        <TabsContent className="min-h-0 overflow-auto p-4" value="impression">
+        <TabsContent className="min-h-0 overflow-auto px-4 py-3" value="impression">
           <PanneauImpression titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ""}`} nombreSurCarte={placees.length}
             nombreListe={filtrees.length} filtres={filtresImpression} imprimer={imprimer} />
         </TabsContent>
@@ -441,15 +441,14 @@ function CarteDesFuites() {
                   <PanneauReseau reseau={reseau} balayage={balayage} fermer={() => setReseauOuvert(false)} />
                 </div>
               )}
+              <CommandesCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur}
+                recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert} />
               {chargement && fuites.length === 0 && (
                 <div className="absolute inset-0 grid place-items-center bg-background/60 text-muted-foreground text-sm"><span className="flex items-center gap-2"><Spinner />Chargement des fuites…</span></div>
               )}
             </div>
-            <div className="hidden min-h-0 border-t lg:block">
-              <BarreCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur} recentrer={() => carte.current?.recentrer()} actualiser={actualiser} />
-              {/* Hauteur du cadre : la fiche d'une fuite s'y lit entière, sans défilement */}
-              {!modeBalayage && <div className="h-72 overflow-hidden">{details}</div>}
-            </div>
+            {/* Cadre sous la carte : hauteur réglée pour que la fiche d'une fuite s'y lise entière, sans défilement */}
+            {!modeBalayage && <div className="hidden h-[12.5rem] min-h-0 overflow-hidden border-t lg:block">{details}</div>}
           </div>
         </div>
       </div>
@@ -460,7 +459,6 @@ function CarteDesFuites() {
             <SheetTitle>{choisie ? `Fuite N° ${choisie.numero}` : "Détails"}</SheetTitle>
             <SheetDescription>Détails de la fuite choisie, filtres et impression.</SheetDescription>
           </SheetHeader>
-          <BarreCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur} recentrer={() => carte.current?.recentrer()} actualiser={actualiser} />
           <div className="min-h-0 flex-1 overflow-hidden">{details}</div>
         </SheetContent>
       </Sheet>

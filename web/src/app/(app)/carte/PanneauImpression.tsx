@@ -50,8 +50,8 @@ export function PanneauImpression({ titreDefaut, nombreSurCarte, nombreListe, fi
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="flex flex-col gap-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Field className="gap-1.5">
           <FieldLabel>Format</FieldLabel>
           <ToggleGroup type="single" variant="outline" spacing={0} value={format} onValueChange={(v) => v && setFormat(v as FormatPapier)} className="w-full *:flex-1">
@@ -71,21 +71,21 @@ export function PanneauImpression({ titreDefaut, nombreSurCarte, nombreListe, fi
           <Input id="titre-carte" value={titre} maxLength={120} disabled={occupe} onChange={(e) => { setTitre(e.target.value); setTitreRetouche(true); }} />
         </Field>
       </div>
-      <Field orientation="horizontal">
-        <Checkbox id="liste-carte" checked={avecListe} disabled={occupe || nombreListe === 0} onCheckedChange={(v) => setAvecListe(v === true)} />
-        <FieldLabel htmlFor="liste-carte" className="font-normal">Ajouter la liste des fuites affichées ({nombreListe})</FieldLabel>
-      </Field>
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <Field orientation="horizontal" className="w-auto">
+          <Checkbox id="liste-carte" checked={avecListe} disabled={occupe || nombreListe === 0} onCheckedChange={(v) => setAvecListe(v === true)} />
+          <FieldLabel htmlFor="liste-carte" className="font-normal">Ajouter la liste des fuites affichées ({nombreListe})</FieldLabel>
+        </Field>
+        <Button size="sm" disabled={occupe} onClick={lancer}>
+          {occupe ? <Spinner /> : <Printer data-icon="inline-start" />}{occupe ? etape : "Télécharger le PDF"}
+        </Button>
+      </div>
       <p className="text-muted-foreground text-xs">
         {nombreSurCarte} fuite{nombreSurCarte > 1 ? "s" : ""} sur la carte. {filtres}. La carte est imprimée comme elle est cadrée à l&apos;écran,
         en haute définition, avec légende, échelle, nord et coordonnées GPS.
       </p>
       {erreur && <Alert variant="destructive"><AlertDescription>{erreur}</AlertDescription></Alert>}
       {info && <Alert role="status"><AlertDescription>{info}</AlertDescription></Alert>}
-      <div>
-        <Button disabled={occupe} onClick={lancer}>
-          {occupe ? <Spinner /> : <Printer data-icon="inline-start" />}{occupe ? etape : "Télécharger le PDF"}
-        </Button>
-      </div>
     </div>
   );
 }

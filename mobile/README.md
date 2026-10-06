@@ -13,6 +13,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée hors ligne ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
 | Saisir une réparation | résultat (réparée, en cours, non réparée + motif), date et heure, équipe, ouvrage, matériau, diamètre, travaux (cases), longueur PE, fouille L × l × p (alerte > 2 m), revêtement à refaire, emplacement, représentant du maître d'ouvrage, pièces posées (recherche dans le catalogue ou désignation libre, quantité), ouvriers, observation, photos avant / pendant / après ; même écran, pré-rempli, pour **modifier** une réparation envoyée (quantités modifiables ; retrait d'une pièce déjà envoyée seulement avec « interventions / supprimer », que le chef n'a pas) |
 | Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date, équipe, photos de réfection |
+| Balayage | bouton « Balayage » de la liste (droit « balayage / lire ») : carte du réseau du panneau web dans une **WebView** (`react-native-webview` 13.16.1), ouverte avec la session de la tablette par `/session#access_token=…&refresh_token=…` (jetons dans le fragment, jamais en paramètre ni journalisés), directement en **mode balayage** (toucher, lasso, prolonger, enregistrer ; file d'attente hors ligne du panneau) ; position GPS autorisée ; seuls les liens du panneau restent dans la WebView (itinéraire Google Maps : application de cartes) ; retour Android : historique de la WebView puis liste ; sans réseau : « La carte du réseau a besoin de la connexion » et « Réessayer » ; la tablette renouvelle elle-même la session 5 min avant l'échéance et recharge la carte (environ une fois par heure). Adresse du panneau : `EXPO_PUBLIC_WEB_URL` (défaut `https://suivi-fuites-web.vercel.app`) |
 | Envois en attente | toutes les saisies gardées sur la tablette, dans l'ordre ; envoi manuel ; erreurs en clair (ex. fuite verrouillée) ; suppression avec confirmation (une fuite emporte ses réparations et réfections) |
 
 **Droits** : boutons de saisie affichés selon les droits du marché. Le chef de réparation (fuites, interventions,
@@ -50,7 +51,8 @@ coupures, renvoi sans doublon, droits, verrou, abandon).
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
 photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications
-push, mise à jour intégrée de l'APK.
+push, mise à jour intégrée de l'APK, carte native hors ligne (le balayage passe par la WebView et a besoin du réseau ;
+les cochages sans réseau attendent dans la file du panneau).
 
 ## Développement
 

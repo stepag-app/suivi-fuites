@@ -241,3 +241,13 @@ sur données fictives (MapLibre réel, Supabase simulé) si possible.
 5. Vérification visuelle dans le navigateur (MapLibre, fond OpenFreeMap, GeoJSON local).
 
 L'import dans Supabase (production) ne se fait **qu'avec l'accord d'Issam**, via Paramètres > Réseau.
+
+## 8. Résultat (fin de session 7)
+
+- S1 à S5 faits et réunis sur `claude/lot-s-integration` ; chiffres et vérifications : `docs/etat-avancement.md` § 7.
+- Écarts au contrat : migration `20261006130000` et test `15` (collision avec P3 / P4) ; `importer_*` renvoie aussi
+  `inchanges` ; `reseau_geojson` : `p_secteurs = '{}'` = aucun secteur ; `etat_balayage` : équipe et agent du
+  **dernier** passage ; le chef de réparation n'a **pas** le droit « balayage » (test `05_marche_demo` inchangé) ;
+  import des contours de secteurs (`secteurs.geojson`, `definir_contour_secteur`) ajouté à Paramètres > Réseau ;
+  `hors-ligne.ts` et `supabase.ts` modifiés par S3 (type d'envoi `balayage`, APK) ; rapport journalier branché sur
+  `/balayage` à l'intégration ; matrice des droits complétée (lignes Balayage).

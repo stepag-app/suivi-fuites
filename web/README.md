@@ -36,6 +36,8 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 | `/fuites` | tous les affectés | liste, filtres (statut, secteur, période de détection du / au, texte, alertes) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée |
 | `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Chiffres cliquables vers la liste `/fuites` filtrée à l'identique, seulement quand la liste a le filtre exact (détectées sur la période, réfections à faire = statut « réparée », répartition par statut, détectées par semaine, détectées et alertes par secteur, totaux) ; les autres chiffres restent du texte. Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
 | `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, voir § Carte |
+| `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), équipe, secteur ; par jour, équipe, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport journalier de recherche de fuites** (droit « exports / lire ») : PDF A4 au gabarit STEPAG 2026 avec **extrait de plan A4** (conduites inspectées ce jour en vert, repassées en bleu, autres en gris, fuites numérotées) ou Excel, un rapport par jour ou un par équipe (décision Q-34) ; voir § Réseau et balayage |
+| `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée »), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
 | `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, **logos des documents** : PNG ou JPEG, 2 Mo au plus, réduits à 600 px, droit « paramètres / modifier » ; délai, OS, arrêts et reprises, libellés et alertes du client, longueur de polyéthylène couverte par l'article de réparation : 2 m par défaut), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Catalogue des pièces** (recherche, famille, unité, article suggéré, étiquette « Dolibarr » pour une pièce rapprochée, dont la désignation est alors en lecture seule), **Nomenclature Dolibarr** (administrateur : import de `produits.csv`, rapprochement, voir § Nomenclature Dolibarr) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
@@ -152,7 +154,41 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   bandeau si le fond est indisponible, liste paginée, « Page n / N ». Gabarit générique réglable (`GABARIT` en tête de
   `carte-pdf.ts`) en attendant le modèle de la SRM. Mesures : A4 paysage 1,8 s, 0,4 Mo ; A3 paysage 0,9 Mo.
   Vérification : `node scripts/verifier-carte-pdf.mjs`.
-- Hors périmètre pour l'instant : tracés GPS des agents, zones colorées selon le balayage (après le plan du réseau).
+- Réseau d'eau et balayage : voir § Réseau et balayage. Hors périmètre pour l'instant : tracés GPS des agents.
+
+## Réseau et balayage (lot S)
+
+- **Panneau « Réseau »** de `/carte` (tous ceux qui voient les fuites) : interrupteur général (mémorisé), arbre
+  **Zone → secteurs** avec cases (comme les calques d'AutoCAD), « Tout » / « Aucun », linéaire et % balayé par
+  secteur ; coloration **par secteur** (teinte par zone, nuances par secteur, légende), **par balayage** (balayé
+  vert, repassé bleu, non balayé gris) ou **par diamètre** ; nœuds à partir du zoom 15 ; bulle d'un tronçon
+  (secteur, zone, diamètre, matériau, longueur, « balayé le … par … »). Les mêmes couches passent sur la carte
+  imprimée.
+- **Léger, sans service payant** : GeoJSON par secteur (`reseau_geojson`), gardé dans IndexedDB
+  (`suivi-fuites-reseau`, invalidé quand `modifie_le` du secteur change) ; l'état de balayage est relu à chaque
+  ouverture et posé par `setFeatureState`, jamais mêlé à la géométrie en cache. Code : `src/lib/reseau/`,
+  `src/app/(app)/carte/{PanneauReseau.tsx,useReseau.ts,reseau-carte.ts,lasso.ts}`.
+- **Mode balayage** (droit « balayage / créer », `/carte?mode=balayage`, aussi dans l'APK) : **Toucher** un
+  tronçon, **Lasso** au doigt (milieu du tronçon dans la forme), **Prolonger** le long de la rue jusqu'à la
+  prochaine jonction (± 20°), « Désélectionner tout », compteur « n tronçons · x,xx km » ; « Enregistrer » : équipe
+  (la dernière est mémorisée), date, méthode ; identifiants créés sur l'appareil, **file d'attente hors ligne**
+  (type d'envoi `balayage`) ; annulation du dernier balayage d'un tronçon avec motif. Une sélection non enregistrée
+  survit au rechargement (`sessionStorage`).
+- **Paramètres > Réseau** (administrateur ou « paramètres / modifier » ; import : administrateur) : import en trois
+  étapes (contours `secteurs.geojson` → `definir_contour_secteur`, tronçons, nœuds ; paquets de 1 000, progression,
+  résumé) ; **carte de zonage** plein écran (tous les tronçons, non zonés en gris pointillé ; sélection clic,
+  Maj + clic, rectangle Maj + glisser, lasso ; « Affecter au secteur … », « Retirer du secteur », « Recalculer le
+  contour », « Dessiner le contour à la main ») ; tableau des secteurs (tronçons, linéaire, % balayé, linéaire du
+  contrat, écart) et ligne « Non zonés ».
+- **Rapport journalier** : `src/lib/export/rapport-journalier.ts` (générateur PDF / Excel, sans accès à la base),
+  appelé par `src/app/(app)/balayage/rapport.ts` (lecture de la journée, des fuites du jour, extrait de plan rendu
+  hors écran par `carte/capture.ts`). Visas : titulaire et sigle du client lus dans la fiche du marché.
+- **APK** : la route `/session` désactive le rafraîchissement automatique du jeton quand elle tourne dans la
+  WebView (`window.ReactNativeWebView` ou « SuiviFuitesAPK » dans l'User-Agent) : c'est la tablette qui renouvelle
+  la session (un jeton de rafraîchissement réutilisé déconnecterait les deux).
+- Vérifications : `node scripts/verifier-reseau.mjs` (30), `node scripts/verifier-rapport-journalier.mjs` (48).
+- Limites : légende du PDF de la carte en pastilles (pas en traits) ; rectangle et lasso essayés par événements
+  simulés seulement ; jamais essayé sur la tablette ni contre la base de production.
 
 ## Mode hors ligne léger
 

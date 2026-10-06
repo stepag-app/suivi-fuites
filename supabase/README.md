@@ -44,6 +44,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/10_controles_attachement.test.sql` | 110 tests du lot R (corrections des pièces : remplacement, oubli, retrait, motif, saisie d'origine gardée, pas de délai, inventaire réel, droits ; motif et journal des lignes, requalification, une unité par prix, lot arrêté figé, chaque contrôle, travaux hors bordereau, seuil du polyéthylène par marché) |
 | `tests/database/11_nomenclature_dolibarr.test.sql` | 43 tests du lot P1 (droits, aucun prix, import idempotent, lien et unicité, désactivation sans perte d'historique, journal, copie) |
 | `tests/database/12_droits_auteur_inconnu.test.sql` | 9 tests du correctif (saisie sans auteur refusée à la détection et au chef, propre saisie et saisie d'un autre chef, responsable « toutes », administrateur) |
+| `migrations/20261006130000_reseau_balayage.sql` | lot S2 : tronçons, nœuds et balayages (RLS, marché désactivé en lecture seule), import, GeoJSON par secteur, état de balayage, zonage (liste, polygone, contours), vues des linéaires et du journal ; droit « balayage » de la détection (voir, cocher, annuler les siens) |
+| `tests/database/15_reseau_balayage.test.sql` | 115 tests du lot S2 (droits par rôle, isolation, import idempotent, longueur, zonage automatique et manuel, contours, premier passage et annulation, statut du secteur, vues, marché désactivé, `copier_marche` inchangée) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -252,6 +254,34 @@ Pour tester le panneau sur une vraie pile Supabase (sans toucher à la productio
 applique toutes les migrations ; les comptes d'essai se créent avec la clé `service_role` **locale**
 affichée par la commande (jamais celle du projet).
 
+## Plan du réseau et balayage (lot S)
+
+Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README.md`.
+
+- **Tables** : `troncons` (LineString WGS84, référence stable du dessin, diamètre, matériau, secteur, zone,
+  `longueur_m` calculée), `noeuds` (jonction, extrémité, vanne, bouche d'incendie, ventouse, vidange, compteur,
+  réservoir, autre), `balayages` (un passage d'une équipe / d'un agent sur un tronçon, jour à l'heure du Maroc ;
+  `premier_passage` posé par la base ; annulation avec motif, jamais de suppression).
+- **Un tronçon n'est payé qu'une fois** (CPS art. II-15) : les linéaires « balayés » ne comptent que les premiers
+  passages ; les repassages sont à part (`lineaire_repasse_m`). Statut du secteur (`a_balayer`, `en_cours`,
+  `balayee`) recalculé par la base.
+- **Fonctions** : `importer_troncons`, `importer_noeuds` (administrateur, paquets de 2 000 au plus, idempotent par
+  référence), `reseau_geojson` / `noeuds_geojson` (par secteur : `null` = tous les zonés, `'{}'` + `p_sans_secteur`
+  = non zonés seuls), `etat_balayage`, `affecter_troncons_secteur`, `affecter_troncons_polygone`,
+  `recalculer_contour_secteur`, `definir_contour_secteur`.
+- **Vues** : `v_lineaire_secteurs`, `v_lineaire_zones`, `v_balayage_journalier` (jour, équipe, agent, zone, secteur :
+  tronçons, linéaire, repassé, nœuds, fuites du secteur ce jour, répétées sur chaque ligne du secteur),
+  `v_troncons_sans_secteur`.
+- **Volumes réels** (essai local du 2026-10-06, PostgreSQL 17 + PostGIS 3.6) : 44 044 tronçons et 30 820 nœuds
+  importés en 15 s ; GeoJSON d'un secteur de 4 500 tronçons 0,1 s (1,4 Mo), réseau entier 0,8 s ; état de balayage
+  12 ms. La CI GitHub tourne en PostgreSQL 16 : à confirmer au premier passage de la CI.
+- **Importer le réseau en production** (administrateur, **après accord d'Issam**) : Paramètres > Réseau > Import,
+  dans l'ordre : `secteurs.geojson` (contours), `troncons.geojson`, `noeuds.geojson` (fichiers produits dans
+  `data-private/reseau/`, jamais dans le dépôt).
+- **Droits** : lecture des tronçons et nœuds pour tout affecté au marché ; balayage selon le droit « balayage »
+  (modèle détection : voir, cocher, annuler les siens ; responsable : tout). Le chef de réparation n'a pas le
+  droit « balayage » (il voit le réseau sur la carte, pas le journal).
+
 ## Règles pour les migrations suivantes
 
 - `alter table … enable row level security` juste après chaque `create table`.
@@ -262,8 +292,8 @@ affichée par la commande (jamais celle du projet).
 
 ## Reste à faire (migrations suivantes)
 
-- **M2** : tronçons du réseau (DXF à fournir), balayage coché sur la carte, journées de
-  balayage, mesures de débit nocturne, τ1 / τ2 et pénalités de performance.
+- **M2** : ~~tronçons du réseau, balayage coché sur la carte, journées de balayage~~ (lot S, migration
+  `20261006130000`) ; reste : mesures de débit nocturne, τ1 / τ2 et pénalités de performance.
 - **M3** : attachements faits (étape B). Factures, majoration, retenue de garantie, pénalités et
   révision des prix **ne seront pas calculées** (décision d'Issam du 2026-10-04 : facture à la main
   sur Excel à partir des attachements).

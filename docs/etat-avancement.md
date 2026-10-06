@@ -3,7 +3,8 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droits, verrous), R (corrections à l'attachement, inventaire réel), P1 (nomenclature Dolibarr) **fusionnés et déployés** (PR #31 à #35, migrations `20261006100000` à `20261006100300`) ; défaut des droits « auteur inconnu » corrigé ; export Dolibarr reçu ; plan DWG retrouvé ; trois défauts de l'export de la sauvegarde toujours à corriger).
+Dernière mise à jour : 2026-10-06 (session 7 : lot S, plan du réseau DWG converti et calé, 34 secteurs zonés, balayage par tronçon,
+rapport journalier ; branche `claude/lot-s-integration`, voir § 7).
 
 ## 1. Fait
 
@@ -184,9 +185,8 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 
 ## 4. Emplacement réservé : plan du réseau (DWG → DXF → tronçons)
 
-**Statut : fichier retrouvé** le 2026-10-05 dans le dossier du marché, archivé dans
-`data-private/archives/MARCHE N° 4500004453 …/Reseau aep oujda.dwg` (hors dépôt). Reste à confirmer le système de
-coordonnées avant la migration 2.
+**Statut : fait (session 7, lot S)** : converti, calé (Lambert Nord Maroc / Merchich confirmé), zoné ; voir § 7 et
+`outils/reseau/README.md`. Le texte ci-dessous est l'ancien emplacement réservé, gardé pour l'historique.
 
 Ce qu'il faut obtenir d'Issam :
 - `Reseau aep oujda.dwg` exporté en **DXF** (AutoCAD « Enregistrer sous » ou ODA File Converter) ;
@@ -254,7 +254,8 @@ Contexte : tout jusqu'à la PR #35 (lots Q, R, P1, intégration) est fusionné e
 « auteur inconnu ». Vérifie que l'import de produits.csv et le rapprochement du catalogue ont été faits (Paramètres >
 Nomenclature Dolibarr) ; sinon, guide Issam. Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis les
 lots P3 (inventaire des fournitures posées) et P4 (rapprochement posé / transféré), voir § 5 et docs/feuille-de-route.md.
-Le plan DWG est archivé dans data-private/archives/ : migration 2 après confirmation du système de coordonnées.
+Lot S (plan du réseau DWG, zonage, balayage, rapport journalier) : branche claude/lot-s-integration (§ 7) ;
+fusionner P3 / P4 avant S si Issam les valide (numéros de migration).
 Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
 fonctionnalité].
 Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne touche pas au projet
@@ -262,23 +263,36 @@ Supabase de production sans mon accord explicite ; aucun secret dans le dépôt 
 Mets à jour docs/etat-avancement.md en fin de session.
 ```
 
-## 7. Session 7 (2026-10-06, nuit) : plan du réseau DWG, zonage, balayage par tronçon — INTERROMPUE (limite d'usage)
+## 7. Session 7 (2026-10-06) : plan du réseau DWG, zonage, balayage par tronçon (lot S)
 
-Contrat du lot : `docs/lots/lot-s-reseau.md`. Branches locales (non poussées) :
-- `claude/lot-s1-conversion-reseau` (ici) : chaîne `outils/reseau/` (voir son README). **Fait et vérifié** : DWG → DXF
-  (LibreDWG), extraction en flux (blocs orphelins 2012 et 2018 écartés), **Lambert Nord Maroc / Merchich EPSG:26191
-  confirmé** (conduites à 4 m médian des rues OSM, décalage moyen ≈ 1 m), 46 512 tronçons et 1 537 km dans le périmètre
-  (CPS : 1 466 km), 30 753 nœuds, diamètres sur 83 % du linéaire ; sorties dans `data-private/reseau/` (hors dépôt).
-  **Reste** : fin du calage des planches (`caler_planches.py`, méthode validée à 0,3 m sur Andalous et Maafa ; le
-  calcul tournait), puis `zoner.py` (secteurs STEPAG des planches + SIG ; 7 secteurs absents du SIG : Pam, Tazaghine,
-  Château Sidi Aissa, Maksam-Kharoub, Lt Belhoucine, Ballaoui-Irfane, Derfoufi), puis `convertir.py --zonage`.
-- `claude/lot-s2-base-reseau` (worktree `agent-a3c47fe…`) : migration `20261006130000_reseau_balayage.sql` + test
-  `15_reseau_balayage.test.sql`, **commit provisoire non vérifié** (tests pgTAP en cours sur PostgreSQL 17 local).
-- `claude/lot-s3-web-reseau` (worktree `agent-a3df74a…`) : panneau Réseau de la carte, mode balayage (lasso,
-  prolonger), Paramètres > Réseau (import, zonage), page `/balayage`, route `/session` ; **commit provisoire** ; 26
-  vérifications passaient, tsc / build non terminés.
-- `claude/lot-s4-apk-balayage` (worktree `agent-ab75b80…`) : écran Balayage de l'APK (WebView), **fini** (tsc et 28
-  vérifications verts).
-- Lot S5 (rapport journalier de recherche de fuites, générateur PDF/Excel) : agent arrêté en cours, worktree à vérifier.
-- Collision évitée : les numéros `20261006120000` et tests 13-14 sont pris par les lots P3/P4 d'une autre session.
-- Import en production (Paramètres > Réseau) : **seulement avec l'accord d'Issam**, après fusion de S2 puis S3.
+Contrat : `docs/lots/lot-s-reseau.md`. Tout est sur la branche **`claude/lot-s-integration`** (PR brouillon), qui
+réunit S1 (conversion), S2 (base), S3 (panneau web), S4 (APK), S5 (rapport journalier) et les retouches d'intégration.
+
+| Élément | Où | État |
+|---|---|---|
+| **Système de coordonnées** du DWG : Lambert Nord Maroc / Merchich (EPSG:26191) **confirmé** ; vers WGS84 par la transformation EPSG standard ; conduites à 4 m médian de l'axe des rues OSM, décalage moyen ≈ 1 m (aucun recalage) | `outils/reseau/README.md` | vérifié sur 4 000 points et à l'œil (aperçu) |
+| **Conversion** DWG → DXF (LibreDWG) → extraction en flux (blocs compris) → GeoJSON WGS84 : 44 044 tronçons, **1 541 km** dans le périmètre (CPS : 1 466 km), 30 820 nœuds (vannes, hydrants, ventouses…), diamètre connu sur 83 % du linéaire ; anciens exports 2012 / 2018 cachés dans le fichier et réseau projeté écartés | `outils/reseau/` ; sorties `data-private/reseau/` (hors dépôt) | fait |
+| **Calage des 21 planches PDF** (rotation, échelle, position retrouvées ; 0,3 à 1 m) : 20 retenues (11 par superposition des conduites, 9 confirmées par les noms de secteur) ; Ghar el Baroud écartée (calage non confirmé) | `outils/reseau/caler_planches.py`, `corriger_planches.py` | fait |
+| **Zonage initial** : les **34 secteurs du marché** identifiés (limites magenta STEPAG des planches + secteurs du SIG ; Pam, Tazaghine, Château Sidi Aissa, Maksam-Kharoub, Lt Belhoucine, Ballaoui-Irfane, Tennis 1 absents du SIG, retrouvés sur les planches) ; **1 312 km zonés**, 229 km « non zonés » à affecter par l'administrateur (surtout hors secteurs du SIG, et le secteur SIG « Saada ») | `outils/reseau/zoner.py`, `secteurs.json` | fait ; **à relire par Issam** |
+| Linéaire par zone (km) : Z1 331 (CPS 358), Z2 299 (362), Z3 238 (228), Z4 326 (399), Z5 118 (119) ; l'écart des zones 2 et 4 est dans les 229 km non zonés | `data-private/reseau/rapport-conversion.md` | — |
+| **Base (S2)** : migration `20261006130000_reseau_balayage.sql` (tronçons, nœuds, balayages, import, GeoJSON par secteur, état de balayage, zonage, contours, vues des linéaires et du journal) ; **621 tests pgTAP** (115 nouveaux) verts sur PostgreSQL 17 + PostGIS 3.6 ; import réel essayé en local (15 s), journée simulée (98 tronçons, 3,98 km, 96 nœuds) | `supabase/` ; `supabase/README.md` § Plan du réseau | à faire passer par la CI (PostgreSQL 16) |
+| **Panneau web (S3)** : réseau activable par zone et secteur sur `/carte`, coloration secteur / balayage / diamètre, légende, mode balayage (toucher, lasso, prolonger, hors ligne), Paramètres > Réseau (import, carte de zonage modifiable), `/balayage`, `/session` | `web/` ; `web/README.md` § Réseau et balayage | tsc, build et 10 scripts verts ; **jamais essayé contre une vraie base** |
+| **Rapport journalier de recherche de fuites (S5)** : PDF A4 au gabarit STEPAG 2026 avec extrait de plan A4, ou Excel ; par jour ou par équipe ; bouton dans `/balayage` | `web/src/lib/export/rapport-journalier.ts`, `web/src/app/(app)/balayage/rapport.ts` | 48 vérifications ; extrait de plan non essayé dans un navigateur |
+| **APK (S4)** : écran Balayage (WebView du panneau, session de la tablette, mode balayage) | `mobile/src/balayage.tsx` | tsc et 28 vérifications ; à essayer sur la tablette |
+| Matrice des droits : lignes Balayage (voir, cocher, annuler les siens, annuler ceux des autres) | `web/src/app/(app)/utilisateurs/matrice.ts` | vérifié |
+
+**À faire par Issam (lot S)** :
+1. Relire le zonage sur l'aperçu (`data-private/reseau/apercu.html`, `python3 -m http.server 8765` dans ce dossier)
+   et dire si les noms et contours des 34 secteurs sont justes (planches comprises).
+2. Laisser passer la CI, essayer l'aperçu Vercel, puis « fusionner ». Ensuite, **avec son accord**, importer le
+   réseau en production : Paramètres > Réseau > Import (`secteurs.geojson`, `troncons.geojson`, `noeuds.geojson`),
+   puis affecter les 229 km non zonés sur la carte de zonage.
+3. Essayer l'APK (artefact de la CI) : bouton Balayage, cocher quelques tronçons, rapport du jour.
+4. Questions : le chef de réparation doit-il voir le journal des balayages ? (non pour l'instant) ; le linéaire
+   payé par secteur doit-il venir du dessin (`v_lineaire_secteurs`) ou d'un relevé contradictoire ? ; la SRM
+   accepte-t-elle le rapport journalier au gabarit STEPAG 2026 ?
+
+**Notes techniques** : une autre session (lots P3, P4) a pris `20261006120000`, `20261006120100` et les tests 13-14 :
+le lot S utilise `20261006130000` et le test 15 ; fusionner P3/P4 avant S (le déploiement refuse une migration plus
+ancienne que la dernière appliquée). Le dessin contient aussi les **secteurs de relève** (269 polygones numérotés) :
+piste pour localiser une fuite par le premier bloc de sa référence SRM (à confirmer avec la SRM).

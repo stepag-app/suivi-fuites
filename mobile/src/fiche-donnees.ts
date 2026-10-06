@@ -28,7 +28,7 @@ export async function chargerServeur(id: string): Promise<Donnees | null> {
   const ids = reparations.map((r) => r.id);
   const [pc, ou] = ids.length
     ? await Promise.all([
-      supabase.from('reparation_pieces').select('id, reparation_id, piece_id, designation_libre, quantite, saisi_par').in('reparation_id', ids).is('supprime_le', null),
+      supabase.from('reparation_pieces').select('id, reparation_id, produit_id, designation_libre, quantite, saisi_par, produit:produits_dolibarr(designation)').in('reparation_id', ids).is('supprime_le', null),
       supabase.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', ids),
     ])
     : [{ data: [], error: null }, { data: [], error: null }];

@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Lot C : création d'un marché par copie (administrateur seul), paramètres
--- édités à l'écran (zones, secteurs, natures, catalogue, règles de proposition
--- des articles) par le responsable, refus pour les agents, isolation, journal.
+-- édités à l'écran (zones, secteurs, natures, articles suggérés pour les pièces, règles
+-- de proposition des articles) par le responsable, refus pour les agents, isolation, journal.
 -- =============================================================================
 begin;
 create extension if not exists pgtap with schema extensions;
@@ -20,6 +20,15 @@ select appliquer_modele_role('00000000-0000-0000-0000-00000000000d', (select id 
 create temporary table t_ids (cle text primary key, id uuid);
 grant select, insert on t_ids to authenticated;
 insert into t_ids values ('srm', (select id from marches where code = 'SRM-4500004453'));
+
+-- Articles Dolibarr (communs à tous les marchés) et deux règles de suggestion du marché SRM
+insert into produits_dolibarr (dolibarr_id, ref, designation, unite, famille, utilisable) values
+  (9601, 'ESS09601', 'COLLIER ESSAI 63 X 20', 'U', 'ESS', true),
+  (9602, 'ESS09602', 'MANCHON ESSAI 25', 'U', 'ESS', true);
+insert into suggestions_articles (marche_id, prix_id, produit_id, famille)
+select (select id from t_ids where cle = 'srm'), p.id, x.produit, x.famille
+  from prix p, (values (9601, null::text), (null::integer, 'ESS')) x (produit, famille)
+ where p.marche_id = (select id from t_ids where cle = 'srm') and p.numero = '8';
 
 -- -----------------------------------------------------------------------------
 -- 1. Fonction réservée à l'administrateur
@@ -82,18 +91,21 @@ select results_eq($$ select (select count(*)::int from zones z where z.marche_id
                             (select count(*)::int from equipes e where e.marche_id = t.id),
                             (select count(*)::int from natures_refection n where n.marche_id = t.id),
                             (select count(*)::int from motifs m where m.marche_id = t.id),
-                            (select count(*)::int from catalogue_pieces c where c.marche_id = t.id)
+                            (select count(*)::int from suggestions_articles c where c.marche_id = t.id)
                        from t_ids t where t.cle = 'copie' $$,
   $$ select (select count(*)::int from zones z where z.marche_id = t.id),
             (select count(*)::int from secteurs s where s.marche_id = t.id),
             (select count(*)::int from equipes e where e.marche_id = t.id),
             (select count(*)::int from natures_refection n where n.marche_id = t.id),
             (select count(*)::int from motifs m where m.marche_id = t.id),
-            (select count(*)::int from catalogue_pieces c where c.marche_id = t.id)
+            (select count(*)::int from suggestions_articles c where c.marche_id = t.id)
        from t_ids t where t.cle = 'srm' $$,
-  'référentiels copiés (zones, secteurs, équipes, natures, motifs, catalogue)');
-select is((select count(*)::int from catalogue_pieces where marche_id = (select id from t_ids where cle = 'copie')), 261,
-  'catalogue : 261 pièces');
+  'référentiels copiés (zones, secteurs, équipes, natures, motifs, articles suggérés)');
+select results_eq($$ select s.produit_id, s.famille, p.numero from suggestions_articles s join prix p on p.id = s.prix_id
+                      where s.marche_id = (select id from t_ids where cle = 'copie') and p.marche_id = s.marche_id
+                      order by s.produit_id nulls last $$,
+  $$ values (9601, null::text, '8'::text), (null, 'ESS', '8') $$,
+  'articles suggérés : règles copiées vers l''article du bordereau copié');
 select set_eq($$ select numero, designation, unite, quantite_marche, pu_ht, famille::text, materiaux,
                         diametre_min_mm, diametre_max_mm, hors_bordereau
                    from prix where marche_id = (select id from t_ids where cle = 'copie') $$,
@@ -130,8 +142,8 @@ select results_eq($$ select (select count(*)::int from fuites f where f.marche_i
   $$ values (0, 0, 0, 0) $$,
   'ni fuites, ni lots, ni ordres de service, ni ouvriers');
 select ok((select count(*) from journal where marche_id = (select id from t_ids where cle = 'copie')
-            and utilisateur_id = '00000000-0000-0000-0000-00000000000a' and table_nom = 'catalogue_pieces') = 261,
-  'journal : chaque pièce copiée tracée au nom de l''administrateur');
+            and utilisateur_id = '00000000-0000-0000-0000-00000000000a' and table_nom = 'suggestions_articles') = 2,
+  'journal : chaque règle copiée tracée au nom de l''administrateur');
 
 -- -----------------------------------------------------------------------------
 -- 3. Responsable : paramètres de son marché, rien du nouveau marché
@@ -153,9 +165,11 @@ select lives_ok($$
   update natures_refection set libelle_ar = 'تجربة', necessite_refection = false, ordre = 50
    where marche_id = (select id from t_ids where cle = 'srm') and code = (select min(code) from natures_refection
                        where marche_id = (select id from t_ids where cle = 'srm'));
-  insert into catalogue_pieces (marche_id, designation, famille, unite) values ((select id from t_ids where cle = 'srm'), 'Pièce essai lot C', 'Essai', 'u');
-  update catalogue_pieces set actif = false where designation = 'Pièce essai lot C';
-$$, 'responsable : modifie une nature, ajoute et désactive une pièce');
+  insert into suggestions_articles (marche_id, prix_id, produit_id)
+  select marche_id, id, 9602 from prix where marche_id = (select id from t_ids where cle = 'srm') and numero = '8';
+  update suggestions_articles set prix_id = (select id from prix where marche_id = (select id from t_ids where cle = 'srm') and numero = '9')
+   where marche_id = (select id from t_ids where cle = 'srm') and produit_id = 9602;
+$$, 'responsable : modifie une nature, ajoute et modifie une règle d''article suggéré');
 select lives_ok($$ update prix set materiaux = array['polyethylene', 'ppr'], diametre_max_mm = 50
                     where marche_id = (select id from t_ids where cle = 'srm') and numero = '6' $$,
   'responsable : modifie les règles de proposition d''un article du bordereau');
@@ -179,10 +193,10 @@ set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
 select throws_ok($$ insert into zones (marche_id, numero, code, libelle) values ((select id from t_ids where cle = 'srm'), 98, 'Z98', 'Pirate') $$,
   '42501', null, 'détection : ne crée pas de zone');
-select lives_ok($$ update catalogue_pieces set designation = 'Pirate' where marche_id = (select id from t_ids where cle = 'srm') $$,
-  'détection : modification du catalogue sans effet (aucune ligne en écriture)');
+select lives_ok($$ update suggestions_articles set famille = 'PIR' where marche_id = (select id from t_ids where cle = 'srm') and famille = 'ESS' $$,
+  'détection : modification des articles suggérés sans effet (aucune ligne en écriture)');
 reset role;
-select is((select count(*)::int from catalogue_pieces where designation = 'Pirate'), 0, 'détection : catalogue inchangé');
+select is((select count(*)::int from suggestions_articles where famille = 'PIR'), 0, 'détection : articles suggérés inchangés');
 
 select * from finish();
 rollback;

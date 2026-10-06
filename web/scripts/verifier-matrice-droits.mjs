@@ -40,11 +40,13 @@ const verrouAdmis = (cle) => {
 };
 
 // Modèles de rôles insérés par les migrations (rôle, type, lire, créer, modifier, supprimer, valider).
-const MODELES = [...sql.matchAll(
+// Une migration plus récente remplace le modèle d'un même (rôle, type) (« on conflict … do update ») : le dernier gagne.
+const MODELES_LUS = [...sql.matchAll(
   /\('(detection|chef_reparation|responsable)', '([a-z_]+)',\s+(true|false),\s+(true|false),\s+'(non|siennes|toutes)',\s+'(non|siennes|toutes)',\s+(true|false)\)/g,
 )].map((m) => ({
   role: m[1], type_donnee: m[2], lire: m[3] === 'true', creer: m[4] === 'true', modifier: m[5], supprimer: m[6], valider: m[7] === 'true',
 }));
+const MODELES = [...new Map(MODELES_LUS.map((m) => [`${m.role}|${m.type_donnee}`, m])).values()];
 
 // Couples type × colonne que la base contrôle aujourd'hui (règles RLS, déclencheurs, fonctions) : chacun a sa ligne.
 const CONTROLES_PAR_LA_BASE = [
@@ -52,6 +54,7 @@ const CONTROLES_PAR_LA_BASE = [
   'parametres.lire', 'parametres.creer', 'parametres.modifier', 'ouvriers.creer', 'ouvriers.modifier',
   'evenements.lire', 'evenements.creer', 'evenements.modifier', 'evenements.supprimer',
   'exports.lire', 'exports.creer', 'journal.lire',
+  'balayage.lire', 'balayage.creer', 'balayage.supprimer', 'balayage.valider',
 ];
 
 ok('les migrations sont lues (types, verrous admis, modèles de rôles)', () => {
@@ -190,7 +193,8 @@ ok('libellés : valeurs, cases sans écran, verrous', () => {
   assert.equal(texteValeur('non'), 'Non');
   assert.equal(texteValeur('siennes'), 'Les siennes');
   assert.equal(libelleDroit('fuites', 'supprimer'), 'Fuites : supprimer');
-  assert.equal(libelleDroit('balayage', 'creer'), 'Balayage : creer (sans écran)');
+  assert.equal(libelleDroit('balayage', 'creer'), 'Balayage : cocher les tronçons balayés');
+  assert.equal(libelleDroit('mesures_debit', 'creer'), 'Mesures de débit : creer (sans écran)');
   assert.equal(libelleVerrou('comptes.revoquer'), 'Comptes : révoquer un accès');
   assert.equal(Object.keys(ROLES).length, 3);
 });

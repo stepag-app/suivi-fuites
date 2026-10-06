@@ -1,0 +1,225 @@
+/* Paramètres > Réseau : import GeoJSON, tableau des secteurs, carte de zonage plein écran. */
+
+.etapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+}
+
+.etapes button[aria-pressed='true'] {
+  color: var(--primary-foreground);
+  background: var(--principal);
+  border-color: var(--principal);
+}
+
+.resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.9rem;
+}
+
+.chiffre {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--bord-doux);
+  border-radius: var(--rayon-petit);
+  background: var(--zebre);
+}
+
+.chiffre strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffre span {
+  color: var(--discret);
+  font-size: 0.86rem;
+}
+
+.fichier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fichier input[type='file'] {
+  width: auto;
+  min-height: 0;
+  padding: 0.3rem;
+}
+
+.listes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.6rem 1.2rem;
+  margin: 0.4rem 0 0.8rem;
+  font-size: 0.9rem;
+}
+
+.listes ul {
+  margin: 0.2rem 0 0;
+  padding-left: 1.1rem;
+  color: var(--discret);
+}
+
+.progression {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin: 0.6rem 0;
+}
+
+.progression progress {
+  flex: 1 1 14rem;
+  height: 1rem;
+  accent-color: var(--principal);
+}
+
+.ecart-negatif {
+  color: var(--st-critique);
+}
+
+.ecart-positif {
+  color: var(--st-positif);
+}
+
+.pastille {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  margin-right: 0.4rem;
+  vertical-align: -1px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+}
+
+/* Carte de zonage plein écran */
+.plein-ecran {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: minmax(300px, 360px) 1fr;
+  background: var(--carte);
+}
+
+.lateral {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-right: 1px solid var(--bord);
+  overflow-y: auto;
+}
+
+.lateral h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.lateral label {
+  margin-bottom: 0.4rem;
+}
+
+.lateral .groupe {
+  border-top: 1px solid var(--bord-doux);
+  padding-top: 0.5rem;
+}
+
+.lateral .groupe h3 {
+  margin: 0 0 0.35rem;
+  font-size: 0.9rem;
+  color: var(--discret);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modes {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.modes button {
+  flex: 1;
+  min-height: var(--h-cmd-gros);
+  padding-inline: 0.3rem;
+}
+
+.modes button[aria-pressed='true'] {
+  background: var(--principal);
+  color: var(--primary-foreground);
+  border-color: var(--principal);
+}
+
+.selection {
+  font-size: 1.1rem;
+}
+
+.selection strong {
+  font-size: 1.4rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions-verticales {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.actions-verticales button {
+  min-height: var(--h-cmd-gros);
+  width: 100%;
+}
+
+.carte {
+  position: relative;
+  min-width: 0;
+}
+
+/* Sélecteur à deux classes : l'emporte sur `.maplibregl-map { position: relative }` quel que soit l'ordre des feuilles. */
+.carte > .toile {
+  position: absolute;
+  inset: 0;
+}
+
+.message {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  right: 4rem;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--card) 95%, transparent);
+  border: 1px solid var(--bord);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.message.attention {
+  background: #fde8c8;
+  color: #7a3e00;
+}
+
+.aide {
+  font-size: 0.86rem;
+  color: var(--discret);
+  margin: 0;
+}
+
+@media (max-width: 820px) {
+  .plein-ecran {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
+  }
+
+  .lateral {
+    max-height: 45vh;
+    border-right: 0;
+    border-bottom: 1px solid var(--bord);
+  }
+}

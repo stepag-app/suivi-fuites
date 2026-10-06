@@ -206,24 +206,24 @@ ok('cohérence avec la migration : chaque contrôle a un libellé court et une g
 // Pièces posées : déclaration du terrain et corrections du bureau
 // ---------------------------------------------------------------------------
 const piece = (o) => ({
-  id: 'p1', reparation_id: 'r1', piece_id: 'c1', designation_libre: null, quantite: 1, provenance: 'terrain',
+  id: 'p1', reparation_id: 'r1', produit_id: 'c1', designation_libre: null, quantite: 1, provenance: 'terrain',
   nature_correction: null, remplace_piece_id: null, motif_correction: null, etat: 'posee', etat_le: null,
   motif_retrait: null, cree_le: '2026-10-01T08:00:00Z', ...o,
 });
 const PIECES = [
   // P7 remplace P1 (saisi avant), P9 remplace P7 : chaîne de remplacements
   piece({ id: 'p9', cree_le: '2026-10-06T10:00:00Z', provenance: 'correction', nature_correction: 'remplacement',
-    remplace_piece_id: 'p7', motif_correction: 'Diamètre 32', piece_id: 'c3' }),
+    remplace_piece_id: 'p7', motif_correction: 'Diamètre 32', produit_id: 'c3' }),
   piece({ id: 'p1', quantite: 2, etat: 'remplacee', etat_le: '2026-10-05T09:00:00Z' }),
   piece({ id: 'p2', cree_le: '2026-10-01T08:01:00Z', etat: 'retiree', etat_le: '2026-10-05T09:30:00Z', motif_retrait: 'Non posé' }),
   piece({ id: 'p7', cree_le: '2026-10-05T09:00:00Z', provenance: 'correction', nature_correction: 'remplacement',
     remplace_piece_id: 'p1', motif_correction: 'Un seul manchon', etat: 'remplacee', etat_le: '2026-10-06T10:00:00Z' }),
   piece({ id: 'p3', cree_le: '2026-10-05T08:00:00Z', provenance: 'correction', nature_correction: 'oubli',
-    motif_correction: 'Robinet sur la photo', piece_id: 'c2' }),
-  piece({ id: 'p4', reparation_id: 'r2', cree_le: '2026-10-02T08:00:00Z', piece_id: null, designation_libre: 'Joint plat' }),
+    motif_correction: 'Robinet sur la photo', produit_id: 'c2' }),
+  piece({ id: 'p4', reparation_id: 'r2', cree_le: '2026-10-02T08:00:00Z', produit_id: null, designation_libre: 'Joint plat' }),
 ];
 const NOMS = { c1: 'Manchon 25', c2: 'Robinet PEC', c3: 'Manchon 32' };
-const texte = (p) => `${NOMS[p.piece_id] ?? p.designation_libre} : ${p.quantite} u`;
+const texte = (p) => `${NOMS[p.produit_id] ?? p.designation_libre} : ${p.quantite} u`;
 
 ok('pièces : ordre de saisie, chaque remplacement juste après la pièce qu\'il remplace', () => {
   const d = decrirePieces(PIECES, texte);
@@ -266,7 +266,11 @@ ok('cohérence avec la migration : colonnes des pièces, des travaux hors border
   const base = fs.readFileSync(new URL('../../supabase/migrations/20261004090300_fuites_interventions.sql', import.meta.url), 'utf8');
   const table = base.slice(base.indexOf('create table public.reparation_pieces'), base.indexOf('alter table public.reparation_pieces enable'));
   const ajouts = sql.slice(sql.indexOf('alter table public.reparation_pieces'), sql.indexOf('comment on column public.reparation_pieces.provenance'));
-  COLONNES_PIECES.split(', ').forEach((c) => assert.ok(new RegExp(`\\b${c}\\b`).test(table + ajouts), `colonne absente : ${c}`));
+  // Lot T : le produit Dolibarr remplace la pièce du catalogue
+  const articles = fs.readFileSync(new URL('../../supabase/migrations/20261006140000_articles_dolibarr.sql', import.meta.url), 'utf8');
+  assert.match(articles, /alter table public\.reparation_pieces\s+add column produit_id integer/);
+  assert.match(articles, /alter table public\.reparation_pieces drop column piece_id/);
+  COLONNES_PIECES.split(', ').forEach((c) => assert.ok(c === 'produit_id' || new RegExp(`\\b${c}\\b`).test(table + ajouts), `colonne absente : ${c}`));
   const vueHb = sql.slice(sql.indexOf('create view public.v_hors_bordereau'), sql.indexOf('create or replace view public.v_quantites'));
   const selectHb = vueHb.slice(vueHb.lastIndexOf('select t.marche_id'));
   COLONNES_HORS_BORDEREAU.split(', ').forEach((c) => assert.ok(new RegExp(`\\b${c}\\b`).test(selectHb), `colonne de v_hors_bordereau absente : ${c}`));

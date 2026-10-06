@@ -109,7 +109,7 @@ export default function HorsBordereau() {
   if (!peut('attachements', 'lire')) return <p className="carte">Votre compte n&apos;a pas accès aux attachements.</p>;
 
   return (
-    <>
+    <div className="ancien">
       <p><Link href="/attachements">← Attachements</Link></p>
       <div className="barre">
         <h1>Travaux hors bordereau à faire valoir</h1>
@@ -207,6 +207,6 @@ export default function HorsBordereau() {
           </div>
         )}
       </section>
-    </>
+    </div>
   );
 }

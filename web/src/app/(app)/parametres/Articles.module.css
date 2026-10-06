@@ -1,0 +1,119 @@
+/* Paramètres > Articles (administrateur) : import de produits.csv, activation des articles. */
+
+.etapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0 0 0.9rem;
+}
+
+.etapes button[aria-pressed='true'] {
+  color: var(--primary-foreground);
+  background: var(--principal);
+  border-color: var(--principal);
+}
+
+.resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.9rem;
+}
+
+.chiffre {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--bord-doux);
+  border-radius: var(--rayon-petit);
+  background: var(--zebre);
+}
+
+.chiffre strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffre span {
+  color: var(--discret);
+  font-size: 0.86rem;
+}
+
+.familles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0.25rem 1rem;
+  margin: 0.4rem 0 0.8rem;
+}
+
+.familles label {
+  margin: 0;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--rayon-petit);
+}
+
+.familles label:hover {
+  background: var(--survol);
+}
+
+.familles small {
+  color: var(--discret);
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.fichier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fichier input[type='file'] {
+  width: auto;
+  min-height: 0;
+  padding: 0.3rem;
+}
+
+.confidentiel {
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--principal);
+  background: var(--principal-clair);
+  border-radius: var(--rayon-petit);
+  font-size: 0.9rem;
+}
+
+.rejets {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  color: var(--discret);
+}
+
+/* Liste des articles */
+.ref {
+  font-family: var(--police-chiffres);
+  font-size: 0.8rem;
+  color: var(--discret);
+  white-space: nowrap;
+}
+
+.barreLot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin: 0.4rem 0 0.6rem;
+}
+
+.selection {
+  width: 2.2rem;
+}
+
+.active {
+  color: var(--st-positif);
+  font-weight: 600;
+  white-space: nowrap;
+}

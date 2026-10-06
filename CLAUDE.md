@@ -157,8 +157,8 @@ Volume estimé : 30 à 48 photos/jour, lundi à samedi, ≈ 302 jours ouvrés �
 7. **Mise à jour des APK** sur les tablettes (manuelle ou mécanisme intégré).
 8. **Compilation APK via GitHub Actions** : valider avec un premier test.
 9. **Fond de carte** : fond **minimal, sans satellite** (rues et noms), basé sur OpenStreetMap, pour les tracés, les tirages et les coordonnées. Pistes : fournisseur de tuiles, ou fichier de tuiles PMTiles de la région hébergé sur R2 (à tester, permettrait aussi l'usage hors-ligne).
-10. **Système de coordonnées des plans AutoCAD** : probablement un Lambert marocain (à confirmer), à convertir en GPS (WGS84) à l'import.
-11. **Plans PDF existants** (planches A3 ou plus, probablement des captures de carte) : décider entre (a) simple fond de référence, avec zones dessinées directement dans l'appli, ou (b) **calibration** (géoréférencement) des planches avec 3 à 4 points de contrôle par planche, en superposition sur la carte. À tester sur 1 ou 2 planches, avec contrôle de précision sur le terrain. Si (b) est retenu, ajouter un outil de calibration dans le panneau web. Si le réseau est dessiné dans l'AutoCAD, privilégier l'export DWG/DXF vers GeoJSON.
+10. **Système de coordonnées des plans AutoCAD** : **tranché** (2026-10-06) : Lambert Nord Maroc / Merchich (EPSG:26191), vérifié contre OpenStreetMap ; converti en WGS84 à l'import (`outils/reseau/`).
+11. **Plans PDF existants** : **traité** (2026-10-06) : les planches sont calées automatiquement sur le dessin et leurs limites de secteur servent au zonage initial (`outils/reseau/`). Historique : décider entre (a) simple fond de référence, avec zones dessinées directement dans l'appli, ou (b) **calibration** (géoréférencement) des planches avec 3 à 4 points de contrôle par planche, en superposition sur la carte. À tester sur 1 ou 2 planches, avec contrôle de précision sur le terrain. Si (b) est retenu, ajouter un outil de calibration dans le panneau web. Si le réseau est dessiné dans l'AutoCAD, privilégier l'export DWG/DXF vers GeoJSON.
 12. **Gabarit d'impression** : contenu exact exigé par la SRM (échelle, légende, cartouche, coordonnées).
 13. **Isolation entre marchés** : bordereau des prix, rapports et agents séparés par marché ; règles de partage éventuelles.
 14. **Hébergement du panneau web** : **tranché** : Vercel Hobby pendant le développement, puis Vercel Pro (environ 20 USD/mois, à intégrer au budget) avant la mise en production. Pas d'aller-retour entre plateformes.
@@ -233,5 +233,5 @@ Règles pour Claude Code :
 
 - **Lire en début de session** : `docs/etat-avancement.md` (fait, en attente, décisions, prochaines étapes, prompt de reprise) et `supabase/README.md` (schéma, déploiement, règles des migrations).
 - **Règles du marché 4500004453** : `references/regles-marche-4500004453.md` (source unique ; les documents originaux ne sont pas dans le dépôt).
-- **Plan du réseau `Reseau aep oujda.dwg`** : **en attente**, transmis plus tard par Issam. Ne pas commencer la migration 2 (tronçons, balayage, débits) sans lui ; voir `docs/etat-avancement.md` § 4.
+- **Plan du réseau `Reseau aep oujda.dwg`** : reçu (archives du marché), converti par `outils/reseau/` (lot S, `docs/lots/lot-s-reseau.md`) ; mesures de débit et pénalités de performance restent à faire.
 - **Fin de session** : mettre à jour `docs/etat-avancement.md`.

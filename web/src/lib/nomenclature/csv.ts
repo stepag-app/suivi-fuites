@@ -217,13 +217,3 @@ export function appliquerImport(base: ProduitBase[], lus: ProduitLu[]): ProduitB
   for (const p of parId.values()) if (!presents.has(p.dolibarr_id)) p.actif = false;
   return [...parId.values()].sort((a, b) => a.dolibarr_id - b.dolibarr_id);
 }
-
-// Unité du catalogue des pièces (u, ml, m2, m3, kg) correspondant à l'unité de Dolibarr ; « u » par défaut.
-export function uniteCatalogue(unite: string | null | undefined): 'u' | 'ml' | 'm2' | 'm3' | 'kg' {
-  const u = (unite ?? '').trim().toLowerCase();
-  if (u === 'm' || u === 'ml' || u === 'mètre' || u === 'metre') return 'ml';
-  if (u === 'm2' || u === 'm²') return 'm2';
-  if (u === 'm3' || u === 'm³') return 'm3';
-  if (u === 'kg') return 'kg';
-  return 'u';
-}

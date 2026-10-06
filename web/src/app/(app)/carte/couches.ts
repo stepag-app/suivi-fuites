@@ -1,7 +1,11 @@
-// Sources et couches MapLibre des fuites, zones et secteurs : les mêmes pour la carte à l'écran
-// et pour la carte imprimée (capture.ts), afin que le PDF montre exactement les mêmes couleurs.
+// Sources et couches MapLibre des fuites, zones, secteurs et du réseau d'eau : les mêmes pour la carte
+// à l'écran et pour la carte imprimée (capture.ts), afin que le PDF montre exactement les mêmes couleurs.
 import type { Feature, FeatureCollection, Geometry, Point } from 'geojson';
-import type { Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
+import type { GeoJSONSource, Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
+import {
+  COULEUR_NOEUD, COULEUR_SELECTION, expressionCouleurReseau, expressionLargeur, type PaletteReseau,
+} from '@/lib/reseau/palette';
+import type { CollectionNoeuds, CollectionTroncons, Coloration } from '@/lib/reseau/types';
 import type { StatutFuite } from '@/lib/types';
 import { COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, aUneAlerte, geometrieValide, type Contour, type FuiteCarte } from './commun';
 
@@ -13,6 +17,92 @@ export const STYLE_SECOURS: StyleSpecification = {
 };
 
 export const vide = (): FeatureCollection => ({ type: 'FeatureCollection', features: [] });
+
+// ---- Réseau d'eau (lot S) : une source GeoJSON par secteur, insérée sous les fuites ---------------------
+
+/** Les couches du réseau s'insèrent sous cette couche : les fuites restent au-dessus des conduites. */
+export const ANCRE_RESEAU = 'fuites-alerte';
+export const idSourceReseau = (secteurId: string) => `reseau-${secteurId}`;
+export const idSourceNoeuds = (secteurId: string) => `noeuds-${secteurId}`;
+const ZOOM_MIN_NOEUDS = 15;
+
+export interface OptionsCoucheReseau {
+  coloration: Coloration;
+  palette: PaletteReseau;
+  /** Tronçons sans secteur : trait pointillé. */
+  nonZone?: boolean;
+  impression?: boolean;
+}
+
+/** Ajoute (ou met à jour) les tronçons d'un secteur : halo de sélection sous le trait, trait coloré. */
+export function ajouterSourceReseau(m: CarteMapLibre, secteurId: string, data: CollectionTroncons, o: OptionsCoucheReseau) {
+  const source = idSourceReseau(secteurId);
+  const existante = m.getSource(source) as GeoJSONSource | undefined;
+  if (existante) {
+    existante.setData(data);
+    return;
+  }
+  m.addSource(source, { type: 'geojson', data, promoteId: 'id' });
+  const avant = m.getLayer(ANCRE_RESEAU) ? ANCRE_RESEAU : undefined;
+  const facteur = o.impression ? 0.8 : 1;
+  m.addLayer({
+    id: `${source}-selection`, type: 'line', source,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': COULEUR_SELECTION,
+      'line-width': expressionLargeur(facteur, 7),
+      'line-opacity': ['case', ['boolean', ['feature-state', 'selection'], false], 0.9, 0],
+    },
+  }, avant);
+  m.addLayer({
+    id: `${source}-trait`, type: 'line', source,
+    layout: { 'line-cap': 'round', 'line-join': 'round' },
+    paint: {
+      'line-color': expressionCouleurReseau(o.coloration, o.palette),
+      'line-width': expressionLargeur(facteur),
+      'line-opacity': 0.95,
+      ...(o.nonZone ? { 'line-dasharray': [2, 2] } : {}),
+    },
+  }, avant);
+}
+
+export function retirerSourceReseau(m: CarteMapLibre, secteurId: string) {
+  const source = idSourceReseau(secteurId);
+  for (const suffixe of ['-trait', '-selection']) if (m.getLayer(`${source}${suffixe}`)) m.removeLayer(`${source}${suffixe}`);
+  if (m.getSource(source)) m.removeSource(source);
+  const noeuds = idSourceNoeuds(secteurId);
+  if (m.getLayer(`${noeuds}-points`)) m.removeLayer(`${noeuds}-points`);
+  if (m.getSource(noeuds)) m.removeSource(noeuds);
+}
+
+/** Change la couleur de toutes les couches du réseau présentes (sans recréer les sources). */
+export function colorerReseau(m: CarteMapLibre, coloration: Coloration, palette: PaletteReseau) {
+  const couleur = expressionCouleurReseau(coloration, palette);
+  for (const couche of couchesTraitReseau(m)) m.setPaintProperty(couche, 'line-color', couleur);
+}
+
+/** Identifiants des couches « trait » du réseau (pour queryRenderedFeatures). */
+export const couchesTraitReseau = (m: CarteMapLibre): string[] =>
+  (m.getStyle()?.layers ?? []).map((l) => l.id).filter((id) => id.startsWith('reseau-') && id.endsWith('-trait'));
+
+/** Nœuds d'un secteur (vannes, bouches…) : petits points, visibles à partir du zoom 15. */
+export function ajouterSourceNoeuds(m: CarteMapLibre, secteurId: string, data: CollectionNoeuds, impression = false) {
+  const source = idSourceNoeuds(secteurId);
+  const existante = m.getSource(source) as GeoJSONSource | undefined;
+  if (existante) {
+    existante.setData(data);
+    return;
+  }
+  m.addSource(source, { type: 'geojson', data, promoteId: 'id' });
+  const avant = m.getLayer(ANCRE_RESEAU) ? ANCRE_RESEAU : undefined;
+  m.addLayer({
+    id: `${source}-points`, type: 'circle', source, minzoom: impression ? ZOOM_MIN_NOEUDS - 1 : ZOOM_MIN_NOEUDS,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 2.5, 18, 4.5],
+      'circle-color': COULEUR_NOEUD, 'circle-stroke-width': 1.2, 'circle-stroke-color': '#ffffff',
+    },
+  }, avant);
+}
 
 export function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {
   return {

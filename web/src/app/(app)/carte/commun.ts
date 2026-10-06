@@ -27,13 +27,13 @@ export const ALERTES: { cle: keyof FuiteCarte; texte: (l: Libelles) => string }[
 
 export const aUneAlerte = (f: FuiteCarte) => ALERTES.some((a) => f[a.cle] === true);
 
-// Couleurs des points : mêmes teintes que les statuts Fiori de globals.css et les classes .pt-*.
+// Couleurs des points : mêmes teintes que les badges de statut (src/components/statut.tsx).
 export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = {
-  detectee: { fond: '#e26060', contour: '#aa0808' },
-  en_reparation: { fond: '#f0a050', contour: '#b44f00' },
-  reparee: { fond: '#5c9ff0', contour: '#0064d9' },
-  achevee: { fond: '#4fa36a', contour: '#256f3a' },
-  sans_reparation: { fond: '#a3b0bd', contour: '#556b82' },
+  detectee: { fond: '#ef4444', contour: '#b91c1c' },
+  en_reparation: { fond: '#f59e0b', contour: '#b45309' },
+  reparee: { fond: '#0ea5e9', contour: '#0369a1' },
+  achevee: { fond: '#22c55e', contour: '#15803d' },
+  sans_reparation: { fond: '#94a3b8', contour: '#475569' },
 };
 
 // Halo des fuites en alerte et contours des zones / secteurs (carte et légende du PDF).

@@ -64,7 +64,9 @@ export function Connexion() {
   );
 }
 
-export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; attente: () => void; ouvrir: (id: string) => void }) {
+export function Liste({ nouvelle, attente, balayage, ouvrir }: {
+  nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
+}) {
   const { marche, marches, choisirMarche, peut, profil, deconnecter } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [envois, setEnvois] = useState<Envoi[]>([]);
@@ -120,6 +122,9 @@ export function Liste({ nouvelle, attente, ouvrir }: { nouvelle: () => void; att
         <View style={s.ligne}>
           {peut('fuites', 'creer') && (
             <View style={{ flexGrow: 1, flexBasis: 220 }}><Bouton titre="+ Nouvelle fuite" primaire onPress={nouvelle} /></View>
+          )}
+          {peut('balayage', 'lire') && (
+            <View style={{ flexGrow: 1, flexBasis: 220 }}><Bouton titre="Balayage" onPress={balayage} /></View>
           )}
           {nbAttente > 0 && (
             <View style={{ flexGrow: 1, flexBasis: 220 }}><Bouton titre={`${nbAttente} envoi(s) en attente`} onPress={attente} /></View>

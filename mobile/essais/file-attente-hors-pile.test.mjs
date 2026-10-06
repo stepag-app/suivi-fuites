@@ -25,12 +25,12 @@ const VIDE = { ligne: {}, pieces_ajoutees: [], pieces_retirees: [], quantites: [
 console.log('1. Changements d\'une réparation (modification.ts)');
 const avant = {
   ligne: { resultat: 'reparee', realisee_le: '2026-10-05T08:30:00+00:00', fouille_longueur_m: 1.2, observation: null, equipe_id: 'e1' },
-  pieces: [{ id: 'p1', piece_id: 'c1', designation: 'Collier', quantite: 2 }],
+  pieces: [{ id: 'p1', produit_id: 101, designation: 'Collier', quantite: 2 }],
   ouvriers: ['o1'],
 };
 const apres = {
   ligne: { ...avant.ligne, realisee_le: '2026-10-05T08:30:00.000Z', fouille_longueur_m: 1.5, observation: '' },
-  pieces: [{ ...avant.pieces[0], quantite: 3 }, { id: 'p2', piece_id: null, designation: 'Raccord', quantite: 1 }],
+  pieces: [{ ...avant.pieces[0], quantite: 3 }, { id: 'p2', produit_id: null, designation: 'Raccord', quantite: 1 }],
   ouvriers: ['o2'],
 };
 const c = differences(avant, apres);
@@ -52,15 +52,15 @@ const F = uuid(), R = uuid(), P1 = uuid(), P2 = uuid();
 await mettreEnAttente({ id: F, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Essai' } });
 await ajouterEnvoi({
   type: 'reparation', id: R, marche_id: M, fuite_id: F, fuite_libelle: 'Fuite à envoyer', photos: [photo('avant')],
-  pieces: [{ id: P1, piece_id: 'c1', designation: 'Collier', quantite: 1 }], ouvriers: ['o1'],
+  pieces: [{ id: P1, produit_id: 101, designation: 'Collier', quantite: 1 }], ouvriers: ['o1'],
   ligne: { fuite_id: F, resultat: 'en_cours', realisee_le: new Date().toISOString(), fouille_longueur_m: 1 },
 });
-const etatR = { ligne: { resultat: 'en_cours', fouille_longueur_m: 1 }, pieces: [{ id: P1, piece_id: 'c1', designation: 'Collier', quantite: 1 }], ouvriers: ['o1'] };
+const etatR = { ligne: { resultat: 'en_cours', fouille_longueur_m: 1 }, pieces: [{ id: P1, produit_id: 101, designation: 'Collier', quantite: 1 }], ouvriers: ['o1'] };
 const modif = {
   type: 'modification', marche_id: M, fuite_id: F, fuite_libelle: 'Fuite à envoyer', reparation_id: R,
   changements: differences(etatR, {
     ligne: { resultat: 'reparee', fouille_longueur_m: 2.5 },
-    pieces: [{ id: P1, piece_id: 'c1', designation: 'Collier', quantite: 4 }, { id: P2, piece_id: null, designation: 'Raccord', quantite: 1 }],
+    pieces: [{ id: P1, produit_id: 101, designation: 'Collier', quantite: 4 }, { id: P2, produit_id: null, designation: 'Raccord', quantite: 1 }],
     ouvriers: ['o2'],
   }),
 };

@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, BackHandler, Text, View } from 'react-native';
+import { Balayage } from './src/balayage';
 import { Connexion, EnAttente, Liste, NouvelleFuite } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
@@ -10,7 +11,7 @@ import { configurationManquante } from './src/supabase';
 import { BarreApp, COULEURS, s } from './src/ui';
 
 type Vue =
-  | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'fiche'; id: string }
+  | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'balayage' } | { nom: 'fiche'; id: string }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -22,9 +23,10 @@ function Racine() {
   const precedente = (v: Vue): Vue => (v.nom === 'reparation' || v.nom === 'refection' ? { nom: 'fiche', id: v.contexte.fuiteId } : LISTE);
 
   // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
+  // L'écran Balayage le prend lui-même (historique de la WebView d'abord).
   useEffect(() => {
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (vue.nom === 'liste') return false;
+      if (vue.nom === 'liste' || vue.nom === 'balayage') return false;
       setVue(precedente(vue));
       return true;
     });
@@ -64,6 +66,8 @@ function Racine() {
       return <NouvelleFuite retour={retourListe} ouvrirFiche={ouvrir} />;
     case 'attente':
       return <EnAttente retour={retourListe} />;
+    case 'balayage':
+      return <Balayage retour={retourListe} />;
     case 'fiche':
       return <Fiche key={vue.id} id={vue.id} retour={retourListe} saisir={(nom, contexte) => setVue({ nom, contexte })} />;
     case 'reparation':
@@ -71,7 +75,14 @@ function Racine() {
     case 'refection':
       return <SaisieRefection contexte={vue.contexte} retour={() => setVue(precedente(vue))} />;
     default:
-      return <Liste nouvelle={() => setVue({ nom: 'nouvelle' })} attente={() => setVue({ nom: 'attente' })} ouvrir={ouvrir} />;
+      return (
+        <Liste
+          nouvelle={() => setVue({ nom: 'nouvelle' })}
+          attente={() => setVue({ nom: 'attente' })}
+          balayage={() => setVue({ nom: 'balayage' })}
+          ouvrir={ouvrir}
+        />
+      );
   }
 }
 

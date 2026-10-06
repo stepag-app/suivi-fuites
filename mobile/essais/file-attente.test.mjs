@@ -41,7 +41,11 @@ const chef = await compte(`chef${suffixe}`, 'chef_reparation');
 const det = await compte(`det${suffixe}`, 'detection');
 const connexion = async (email) => { await supabase.auth.signOut(); const r = await supabase.auth.signInWithPassword({ email, password: 'motdepasse1' }); if (r.error) throw r.error; };
 
-const p = await admin.from('catalogue_pieces').select('id').eq('marche_id', marche).limit(1).single();
+// Article Dolibarr d'essai, activé (référentiel commun à tous les marchés)
+const p = await admin.from('produits_dolibarr')
+  .upsert({ dolibarr_id: 990001, ref: 'ESS990001', designation: 'ARTICLE ESSAI TABLETTE', unite: 'U', famille: 'ESS', actif: true, utilisable: true })
+  .select('dolibarr_id').single();
+if (p.error) throw p.error;
 const o = await admin.from('ouvriers').select('id').eq('marche_id', marche).limit(1).maybeSingle();
 const n = await admin.from('natures_refection').select('id, necessite_refection').eq('marche_id', marche).eq('necessite_refection', true).limit(1).single();
 const verrouillee = await admin.from('fuites').select('id, numero').eq('marche_id', marche).not('verrouillee_le', 'is', null).limit(1).single();
@@ -60,7 +64,7 @@ console.log('2. Hors ligne : fuite → réparation (pièces, ouvrier, photos) �
 const fuite = uuid(), rep = uuid(), refe = uuid();
 await mettreEnAttente({ id: fuite, marche_id: marche, position: 'SRID=4326;POINT(-1.91 34.68)', photos: [photo()], ligne: { reference_srm: null, adresse: 'Essai tablette', position: 'SRID=4326;POINT(-1.91 34.68)', source_saisie: 'tablette' } });
 await ajouterEnvoi({ type: 'reparation', id: rep, marche_id: marche, fuite_id: fuite, fuite_libelle: 'Fuite à envoyer', photos: [photo('avant'), photo('pendant'), photo('apres')],
-  pieces: [{ id: uuid(), piece_id: p.data.id, designation: 'cat', quantite: 2 }, { id: uuid(), piece_id: null, designation: 'Raccord libre', quantite: 1 }],
+  pieces: [{ id: uuid(), produit_id: p.data.dolibarr_id, designation: 'cat', quantite: 2 }, { id: uuid(), produit_id: null, designation: 'Raccord libre', quantite: 1 }],
   ouvriers: o.data ? [o.data.id] : [],
   ligne: { fuite_id: fuite, resultat: 'reparee', motif_id: null, realisee_le: new Date().toISOString(), materiau: 'polyethylene', diametre_mm: 32, tuyau_repare: true,
     fouille_longueur_m: 1.2, fouille_largeur_m: 0.6, fouille_profondeur_m: 0.8, emplacement: 'trottoir', nature_revetement_id: n.data.id, representant_srm: 'M. Essai', source_saisie: 'tablette' } });
@@ -80,8 +84,8 @@ const f = await admin.from('fuites').select('statut, numero').eq('id', fuite).si
 verifier(f.data.statut === 'achevee', `statut avancé par le serveur : ${f.data.statut}`);
 const r = await admin.from('reparations').select('*').eq('id', rep).single();
 verifier(r.data && r.data.representant_srm === 'M. Essai' && r.data.tuyau_repare, 'réparation enregistrée');
-const pcs = await admin.from('reparation_pieces').select('piece_id, designation_libre, quantite').eq('reparation_id', rep);
-verifier(pcs.data.length === 2, `2 pièces posées (catalogue + libre)`);
+const pcs = await admin.from('reparation_pieces').select('produit_id, designation_libre, quantite').eq('reparation_id', rep);
+verifier(pcs.data.length === 2, `2 pièces posées (article Dolibarr + libre)`);
 const ouv = await admin.from('reparation_ouvriers').select('ouvrier_id').eq('reparation_id', rep);
 verifier(ouv.data.length === (o.data ? 1 : 0), 'ouvrier rattaché');
 const rf = await admin.from('refections').select('reparation_id, longueur_m, largeur_m, nature_id').eq('id', refe).single();

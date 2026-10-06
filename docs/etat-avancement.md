@@ -3,7 +3,10 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droits, verrous), R (corrections à l'attachement, inventaire réel), P1 (nomenclature Dolibarr) **fusionnés et déployés** (PR #31 à #35, migrations `20261006100000` à `20261006100300`) ; défaut des droits « auteur inconnu » corrigé ; export Dolibarr reçu ; plan DWG retrouvé ; trois défauts de l'export de la sauvegarde toujours à corriger).
+Dernière mise à jour : 2026-10-06 (session 8 : **nouvelle interface « Studio Admin » (shadcn/ui) adoptée**, **lot S** (réseau,
+balayage par tronçon, rapport journalier) et **lot T** (articles Dolibarr, ajusté : activation par l'admin ou le responsable,
+plus de pièce libre) réunis dans la PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39), fusionnée et déployée ;
+reste à faire par Issam : importer `produits.csv` et activer les articles, puis importer le réseau ; voir § 2 et § 7).
 
 ## 1. Fait
 
@@ -34,7 +37,7 @@ Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droi
 | **Lot A, tablette** : fiche d'une fuite (infos, statut, photos, réparations, réfections, sans prix), saisie d'une réparation (pièces du catalogue, ouvriers, photos avant / pendant / après) et d'une réfection, hors ligne (file d'attente ordonnée par fuite, reprise après coupure, erreurs claires dont fuite verrouillée), contrôle des doublons à la création (même fuite / nouvelle fuite liée), boutons de saisie selon les droits (détection en lecture), bouton « Y aller » (application de cartes externe ; carte intégrée reportée), photos regroupées dans `photos.ts` (prêt pour R2) | `mobile/src/` (`fiche.tsx`, `saisie.tsx`, `file-attente.ts`, `photos.ts`), `mobile/essais/` | PR [#13](https://github.com/stepag-app/suivi-fuites/pull/13) fusionnée ; types et bundle Android vérifiés, **25 vérifications** contre une pile Supabase locale (chef, détection, DEMO) ; **à essayer sur la tablette** |
 | **Lot D : rapport PDF par fuite** (fiche : bouton « Rapport PDF » ; liste : « Rapports PDF (n) », une fuite par page) : en-tête du marché, identification et GPS, réparations, réfections, prix si droit « quantités / lire », photos par type réduites, visas ; 6 photos → 2 pages, 393 Ko, < 1 s | `web/src/lib/export/rapport-fuite.ts`, `web/README.md` § Rapport PDF par fuite | PR `claude/lot-d-rapport-pdf` ; testé sur pile locale (Playwright, PDF rendus et relus) ; PR #15 **fusionnée** ; **à faire valider par Issam** (contenu exigé par la SRM ?) |
 | Lot D, ajouts : itinéraire vers la fuite (lien dans le rapport, bouton « Y aller » sur la fiche) ; lecture des photos par `urlsPhotos` (point unique pour le futur passage à R2) | `web/src/lib/itineraire.ts`, `web/src/lib/photo.ts` | PR #17 fusionnée |
-| **Interface au style SAP Fiori** (choix d'Issam du 2026-10-05 parmi 5 maquettes) : barre d'application sombre, onglets de modules, tableaux et statuts Fiori, densité bureau / tactile ; widgets d'indicateurs (modèle ERP) sur la liste des fuites ; liste en tableau sur bureau | `web/src/app/globals.css`, `web/src/app/(app)/layout.tsx`, `web/src/lib/ui/` ; `web/README.md` § Style | PR #19 fusionnée ; **à valider par Issam** ; APK : fait par le lot H (PR #24) |
+| **Interface au style SAP Fiori** (choix d'Issam du 2026-10-05 parmi 5 maquettes) : barre d'application sombre, onglets de modules, tableaux et statuts Fiori, densité bureau / tactile ; widgets d'indicateurs (modèle ERP) sur la liste des fuites ; liste en tableau sur bureau | `web/src/app/globals.css`, `web/src/app/(app)/layout.tsx`, `web/src/lib/ui/` ; `web/README.md` § Style | PR #19 fusionnée ; **remplacée le 2026-10-06** par l'interface « Studio Admin » (ligne suivante du lot T) ; APK : style du lot H (PR #24) inchangé |
 | **Lot C : paramètres à l'écran** : page `/marches` (admin : liste, activer / désactiver, créer vide ou par copie des paramètres d'un marché), Paramètres > Secteurs (zones et secteurs), Natures de réfection, Catalogue des pièces (recherche), règles de proposition des articles du bordereau (famille, matériaux, diamètres, sans nouvelle version) ; marché désactivé masqué aux agents | migration `20261005100000_copie_marche.sql` (`copier_marche`) ; `web/src/app/(app)/marches/`, `web/src/app/(app)/parametres/Onglet{Secteurs,Natures,Catalogue}.tsx` ; 36 tests pgTAP (`06_copie_marche_parametres`) | PR #14 fusionnée, migration **déployée** le 2026-10-04 à 23 h 40 UTC ; tests pgTAP, tsc et parcours Playwright sur pile Supabase locale verts |
 | **Lot F : logos** du titulaire et du maître d'ouvrage (Paramètres > Marché ; PNG ou JPEG, 2 Mo, réduits à 600 px), repris dans les en-têtes PDF (exports, lots, rapport par fuite, carte), Word et Excel | migration `20261005120000_logos_marche.sql` (compartiment privé `logos`) ; `web/src/lib/logos.ts`, `web/src/lib/export/` ; 37 tests pgTAP (`07_logos`), `web/scripts/essai-logos.mjs` | PR [#22](https://github.com/stepag-app/suivi-fuites/pull/22) **fusionnée** le 2026-10-05 (267 tests pgTAP) ; migration **déployée** le 2026-10-05 à 16 h 51 UTC ; écran non essayé connecté : **à essayer** (envoi des logos, en-têtes) |
 | **Lot G : impression de la carte** (« Imprimer la carte ») : PDF A4 / A3, portrait / paysage, en-tête du marché, filtres, carte à 200 dpi, légende, échelle, nord, coordonnées WGS84, © OSM, liste des fuites en option ; gabarit générique réglable (`GABARIT`) | `web/src/lib/export/carte-pdf.ts`, `web/src/app/(app)/carte/{capture,couches,impression}.ts`, `web/scripts/verifier-carte-pdf.mjs` | PR [#25](https://github.com/stepag-app/suivi-fuites/pull/25) **fusionnée** le 2026-10-05 ; essais Chromium sur le vrai fond (page d'essai) ; **à essayer sur l'aperçu Vercel** (DEMO) ; gabarit à confirmer avec la SRM (point ouvert 12) |
@@ -50,15 +53,25 @@ Dernière mise à jour : 2026-10-06 (session 6, suite : lots Q (matrice des droi
 | **Lot Q : matrice des droits et verrous de l'administrateur** : Utilisateurs > Droits, utilisateurs en colonnes et droits en lignes (une ligne = une colonne de `droits`), modèles par colonne, enregistrement journalisé ; l'admin a tout (colonne grisée) et peut se poser des **verrous** refusés par la base (arrêter / rouvrir un lot, refacturation forcée, supprimer une fuite, désactiver / copier un marché, révoquer un compte, et toute ligne de la matrice), sans refermeture automatique ; révocation : la base d'abord, puis la fonction serveur | migration `20261006100000_droits_verrous.sql` ; `web/src/app/(app)/utilisateurs/` ; 68 tests pgTAP (`09`) ; `web/scripts/verifier-matrice-droits.mjs` | PR [#31](https://github.com/stepag-app/suivi-fuites/pull/31) **fusionnée** le 2026-10-06, migration **déployée** ; à fusionner avec le panneau web (le circuit de révocation change) ; APK : boutons sans connaissance des verrous (la base refuse) |
 | **Lot R : contrôles et corrections à l'attachement** : les pièces du réparateur font foi (« terrain », sans délai) ; corrections du bureau selon leur nature, avec **motif obligatoire** : **remplacement** d'une pièce erronée, **oubli**, **retrait** d'une pièce non posée (saisie d'origine gardée, barrée) ; vue **`v_pieces_reelles`** (inventaire réel) ; requalification et ajout de lignes de prix avec motif (article d'origine gardé, jamais reproposé), une unité par prix et par fuite y compris en manuel ; **seuil du PE réglable par marché** (2 m par défaut) ; 10 contrôles ; page **Travaux hors bordereau à faire valoir** | migration `20261006100100_controles_attachement.sql` ; `web/src/app/(app)/attachements/` (`controles.ts`, `hors-bordereau/`, `[id]/CorrectionsFuite.tsx`, `[id]/PiecesFuite.tsx`) ; Paramètres > Marché ; 110 tests pgTAP (`10`) | PR [#32](https://github.com/stepag-app/suivi-fuites/pull/32) **fusionnée** le 2026-10-06, migration **déployée** ; écrans non vus connectés : **à essayer sur l'aperçu** (DEMO : fuites N° 9, 10, 18) ; APK : pièces remplacées ou retirées encore affichées comme normales (lot APK à prévoir) |
 | **Lot P1 : nomenclature Dolibarr** : `produits_dolibarr` (sans prix), import de `produits.csv` dans le navigateur (familles RAC, CND, ROB, AEP, VRI par défaut), rapprochement des pièces du catalogue par l'**identifiant produit** (référence en option ; diamètres et filetages identiques obligatoires), écran de validation, ajout de produits ; **le réparateur ne voit que la désignation** (APK inchangée) | migration `20261006100200_nomenclature_dolibarr.sql` ; Paramètres > Nomenclature Dolibarr ; `web/src/lib/nomenclature/` ; 43 tests pgTAP (`11`) | PR [#33](https://github.com/stepag-app/suivi-fuites/pull/33) **fusionnée** le 2026-10-06, migration **déployée** ; sur l'export du 2026-10-05 : 113 sûres, 58 probables, 90 sans correspondance ; **après fusion : importer `produits.csv` et rapprocher** |
+| **Lot T : articles Dolibarr, référentiel unique des pièces** (décisions d'Issam du 2026-10-06) : les produits Dolibarr importés sont **les** pièces, communs à tous les marchés ; activation **globale** par l'**administrateur ou un responsable** (droit « paramètres / modifier » ; nouveaux produits désactivés) ; import de `produits.csv` par l'administrateur ; pièce posée = `produit_id` (article activé exigé à la saisie, ligne ancienne gardée) ; **plus de pièce libre** (article absent : demande interne au gestionnaire de Dolibarr, qui le crée, puis réimport et activation ; le réparateur le note en observation) ; unité de Dolibarr ; article suggéré par **règles du marché** (produit, sinon famille) ; catalogue par marché et rapprochement **supprimés** ; produits rapprochés pré-activés, articles suggérés repris en règles ; pièces posées **purgées** (rien en production) ; Paramètres > Articles (import, activation en masse), Paramètres > Bordereau (règles) ; APK : liste des articles activés | contrat `docs/lots/lot-articles-dolibarr.md` ; migration `20261006140000_articles_dolibarr.sql` ; 48 tests pgTAP (`11`, remplace P1) | PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39), **fusionnée et déployée** le 2026-10-06 |
+| **Interface « Studio Admin » (shadcn/ui)** (maquette validée par Issam le 2026-10-06) : coque à barre latérale repliable selon les droits, recherche ⌘J, sélecteur de marché, mode sombre ; tableau de bord, liste (tableau, colonnes, Kanban), fiche à onglets, carte (liste + carte), attachements, lot, utilisateurs, marchés, nouvelles pages Alertes et À faire ; reprise des lots Q, R, S, T : onglet Droits, verrous, contrôles avant attachement, pièces barrées, Paramètres > Réseau et Articles, carte avec réseau et **mode balayage plein écran** (menu replié automatiquement) ; écrans anciens habillés par `ancien.css` (jetons rapportés aux jetons shadcn) ; fiche d'un autre marché : le marché ouvert suit la fuite | `web/src/app/(app)/_coque/`, `web/src/components/`, `web/src/styles/ancien.css` ; `web/MAQUETTE-SHADCN.md`, `web/README.md` § Style | PR #39 (remplace les brouillons #37 et #38) |
+| Vérification de l'intégration (PR #39) : **626 tests pgTAP** (PostgreSQL 17), tsc, build, 8 scripts web, APK (tsc, 28 vérifications) ; navigateur en mode démonstration (1366 et 800 px) ; **essai local de bout en bout** sur une copie de la base d'essai du lot S (vrai réseau, 44 044 tronçons) avec la migration du lot T : import du vrai `produits.csv` (858 articles des familles RAC, CND, ROB, AEP, VRI, tous désactivés à l'arrivée), activation en masse (39 colliers PEC), réparation enregistrée avec une pièce (`produit_id`), pièce absente refusée avec message, réseau affiché par zone sur la carte | `data-private/essai-web/` (hors dépôt) | fait le 2026-10-06 |
 | Intégration des PR #31, #32, #33 : fusion sans conflit de fichiers ; `copier_marche` redéfinie par Q et P1, réconciliée par la migration `20261006100300` (verrou, liens Dolibarr, seuil du PE copié) ; boutons de l'admin (rouvrir, refacturation forcée, désactiver, copier) grisés « verrouillé par vous » ; rapport PDF par fuite sans les pièces remplacées ou retirées ; libellé neutre au tableau de bord ; **497 tests pgTAP**, tsc, build et 7 scripts verts | PR [#35](https://github.com/stepag-app/suivi-fuites/pull/35) | **fusionnée** le 2026-10-06, migration `20261006100300` **déployée** |
 | Archivage : dossier du marché 4500004453 (documents, rapports, plans, **`Reseau aep oujda.dwg`**) et ancien dossier `Suivi-fuites-ancien` | `data-private/archives/` (ignoré par git, 359 Mo) | fait le 2026-10-05 |
 | Export Dolibarr (lecture seule, sans prix) : produits, entrepôts, mouvements du chantier | `data-private/dolibarr/` (ignoré par git ; `RAPPORT.md`) | reçu le 2026-10-05 ; entrepôt du chantier **76**, projet **40**, sorties par **bons de transfert** depuis le dépôt 1 ; aucune consommation saisie |
 
 ## 2. En attente d'Issam
 
-**Priorité (session 6, suite)** :
-- **Fusionné et déployé le 2026-10-06** (PR #31 à #35). **À faire maintenant** : Paramètres > Nomenclature Dolibarr >
-  importer `produits.csv` (dans `data-private/dolibarr/`), puis « Rapprochement du catalogue » de chaque marché ; essais
+**Priorité (session 8)** : la nouvelle interface, le lot S et le lot T sont en ligne (PR #39). À faire maintenant :
+1. **Paramètres > Articles** (administrateur) : « Importer produits.csv » (`data-private/dolibarr/produits.csv` ou un nouvel
+   export ; familles RAC, CND, ROB, AEP, VRI), puis **activer** les articles utiles (recherche + « Tout sélectionner » +
+   « Activer la sélection ») ; les produits déjà rapprochés en production (lot P1), s'il y en avait, sont déjà activés.
+   Le responsable peut aussi activer. Ensuite **Paramètres > Bordereau** : règles d'article suggéré (robinet et collier PEC).
+2. **Essayer la nouvelle interface** (ordinateur et tablette) : menu, carte, fiche, attachements, Utilisateurs > Droits.
+3. **Lot S** : relire le zonage, puis, avec accord, importer le réseau en production (§ 7).
+- Procédure courante (Issam) : exports Dolibarr fréquents → réimport de `produits.csv` → activation des nouveaux articles.
+- **Fusionné et déployé le 2026-10-06** (PR #31 à #35). ~~Importer `produits.csv` puis rapprocher le catalogue~~
+  (remplacé par le lot T) ; essais
   sur DEMO : matrice des droits et verrous (Utilisateurs > Droits), corrections à l'attachement (fuites N° 9, 10, 18),
   travaux hors bordereau, seuil du PE (Paramètres > Marché).
 - **Lot R, réponses d'Issam du 2026-10-06 appliquées** : corrections du bureau selon leur nature (remplacement, oubli,
@@ -117,7 +130,8 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 
 - **Pièces et facturation** (2026-10-05) : toutes les fournitures sont comprises dans les prix unitaires de
   réparation (CPS art. II-15) : pas d'étiquette « facturable / non facturable ». La liste des pièces posables est la
-  **nomenclature de Dolibarr**, rapprochée par l'**identifiant produit** (référence en option) ; le réparateur ne voit
+  **liste des produits Dolibarr importés**, commune à tous les marchés (lot T, 2026-10-06 : plus de catalogue par marché
+  ni de rapprochement ; réimport à chaque nouveau produit, activation globale de ceux qui s'affichent) ; le réparateur ne voit
   **jamais de code**, seulement la désignation. **Le réparateur fait foi** pour ce qu'il a posé (fiche et inventaire).
   À l'attachement, le responsable et l'admin corrigent les pièces selon leur **intention** (remplacement d'une pièce
   erronée, oubli, retrait d'une pièce non posée ; l'inventaire reflète le réel, la saisie d'origine reste visible),
@@ -141,9 +155,12 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 - **Façon de travailler** (2026-10-05) : travail courant **en local** sur le MacBook avec Claude Code
   (`docs/travail-local.md`) ; solde cloud (≈ 60 $, expire le 5 novembre) gardé pour les gros lots autonomes.
 
-- **Interface** (2026-10-05) : style **SAP Fiori** reproduit en CSS maison (pas de bibliothèque SAP UI5 :
-  poids), avec les widgets d'indicateurs du modèle ERP ; planches PDF du réseau **en attente** des DXF / DWG
-  (essai Qods Bas : extraction vectorielle fiable, attributs absents, calage à faire).
+- **Interface** (2026-10-06, remplace le style SAP Fiori du 2026-10-05) : interface **« Studio Admin »** (modèle
+  next-shadcn-admin-dashboard, shadcn/ui, Tailwind v4), validée par Issam sur la maquette ; les écrans anciens se
+  convertissent progressivement (habillage `ancien.css` en attendant).
+- **Articles** (2026-10-06) : plus de rapprochement ni de pièce libre ; la liste est celle des produits Dolibarr importés ;
+  l'administrateur ou le responsable **active** les articles ; un article absent = demande interne au gestionnaire de
+  Dolibarr, création, export, réimport (un article parti au chantier par bon de transfert existe forcément dans Dolibarr).
 
 - **Application standard** (2026-10-04) : rien de figé pour STEPAG ou la SRM. Libellé et format de la
   référence client, sigle, jalons du client, seuils, devise, titulaire et maître d'ouvrage sont des
@@ -184,9 +201,8 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
 
 ## 4. Emplacement réservé : plan du réseau (DWG → DXF → tronçons)
 
-**Statut : fichier retrouvé** le 2026-10-05 dans le dossier du marché, archivé dans
-`data-private/archives/MARCHE N° 4500004453 …/Reseau aep oujda.dwg` (hors dépôt). Reste à confirmer le système de
-coordonnées avant la migration 2.
+**Statut : fait (session 7, lot S)** : converti, calé (Lambert Nord Maroc / Merchich confirmé), zoné ; voir § 7 et
+`outils/reseau/README.md`. Le texte ci-dessous est l'ancien emplacement réservé, gardé pour l'historique.
 
 Ce qu'il faut obtenir d'Issam :
 - `Reseau aep oujda.dwg` exporté en **DXF** (AutoCAD « Enregistrer sous » ou ODA File Converter) ;
@@ -217,7 +233,11 @@ J (marché désactivé en lecture seule) ; **fusionnés et déployés en session
 M (fiche déjà vue sans réseau), **fusionnés** (PR #27 à #30) ; puis lots Q (matrice des droits), R (contrôles à
 l'attachement), P1 (nomenclature Dolibarr) en brouillon (PR #31 à #33) avec la branche d'intégration.
 
-**Suite prévue (pièces et Dolibarr)** : P3 **inventaire des fournitures posées** (tableau croisé, filtres rapides : fuite,
+**Suite prévue (pièces et Dolibarr)**, à relancer sur le modèle du lot T (en ligne depuis la PR #39 ; numéros de
+migration **après `20261006140000`**, les numéros `20261006120000` / `120100` pris par les copies arrêtées ne sont plus
+utilisables) (copies de travail arrêtées : `.claude/worktrees/agent-a717…`
+pour P3, `agent-a3be…` pour P4, à reprendre comme référence puis supprimer ; voir `docs/lots/lot-articles-dolibarr.md` § 7) :
+P3 **inventaire des fournitures posées** (tableau croisé, filtres rapides : fuite,
 période, secteur, équipe, famille, terrain / bureau ; widget au tableau de bord) ; P4 **rapprochement posé / transféré**
 (mouvements de l'entrepôt 76 par CSV puis par envoi depuis le serveur ; période × article ; écart et seuil d'alerte) ;
 saisie web des pièces par mots séparés ; distinction terrain / bureau dans le rapport PDF et l'APK. Points ouverts du lot L : « Non réparées > seuil » et
@@ -250,14 +270,53 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : tout jusqu'à la PR #35 (lots Q, R, P1, intégration) est fusionné et déployé, plus le correctif des droits
-« auteur inconnu ». Vérifie que l'import de produits.csv et le rapprochement du catalogue ont été faits (Paramètres >
-Nomenclature Dolibarr) ; sinon, guide Issam. Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis les
-lots P3 (inventaire des fournitures posées) et P4 (rapprochement posé / transféré), voir § 5 et docs/feuille-de-route.md.
-Le plan DWG est archivé dans data-private/archives/ : migration 2 après confirmation du système de coordonnées.
+Lis aussi web/MAQUETTE-SHADCN.md (interface Studio Admin) et docs/lots/lot-articles-dolibarr.md.
+Contexte : tout jusqu'à la PR #39 est fusionné et déployé : nouvelle interface « Studio Admin » (shadcn/ui), lot S
+(réseau, balayage, rapport journalier) et lot T (articles Dolibarr : activation par l'admin ou le responsable, plus de
+pièce libre). Vérifie qu'Issam a importé produits.csv et activé des articles (Paramètres > Articles), et où en est
+l'import du réseau en production (§ 7). Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis relancer
+les lots P3 et P4 sur le modèle du lot T (migrations après 20261006140000), voir § 5 et docs/feuille-de-route.md.
+Pour vérifier l'interface sans compte : NEXT_PUBLIC_MODE_DEMO=1 (mode démonstration, jamais sur Vercel).
 Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
 fonctionnalité].
 Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne touche pas au projet
 Supabase de production sans mon accord explicite ; aucun secret dans le dépôt ni dans le chat.
 Mets à jour docs/etat-avancement.md en fin de session.
 ```
+
+## 7. Session 7 (2026-10-06) : plan du réseau DWG, zonage, balayage par tronçon (lot S)
+
+Contrat : `docs/lots/lot-s-reseau.md`. Branche **`claude/lot-s-integration`** (S1 conversion, S2 base, S3 panneau web, S4 APK,
+S5 rapport journalier), **fusionnée dans `main` par la PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39)** le
+2026-10-06 avec la nouvelle interface et le lot T ; migration `20261006130000` déployée. **Aucune donnée du réseau n'est
+encore en production** : import par Paramètres > Réseau (administrateur), avec l'accord d'Issam.
+
+| Élément | Où | État |
+|---|---|---|
+| **Système de coordonnées** du DWG : Lambert Nord Maroc / Merchich (EPSG:26191) **confirmé** ; vers WGS84 par la transformation EPSG standard ; conduites à 4 m médian de l'axe des rues OSM, décalage moyen ≈ 1 m (aucun recalage) | `outils/reseau/README.md` | vérifié sur 4 000 points et à l'œil (aperçu) |
+| **Conversion** DWG → DXF (LibreDWG) → extraction en flux (blocs compris) → GeoJSON WGS84 : 44 044 tronçons, **1 541 km** dans le périmètre (CPS : 1 466 km), 30 820 nœuds (vannes, hydrants, ventouses…), diamètre connu sur 83 % du linéaire ; anciens exports 2012 / 2018 cachés dans le fichier et réseau projeté écartés | `outils/reseau/` ; sorties `data-private/reseau/` (hors dépôt) | fait |
+| **Calage des 21 planches PDF** (rotation, échelle, position retrouvées ; 0,3 à 1 m) : 20 retenues (11 par superposition des conduites, 9 confirmées par les noms de secteur) ; Ghar el Baroud écartée (calage non confirmé) | `outils/reseau/caler_planches.py`, `corriger_planches.py` | fait |
+| **Zonage initial** : les **34 secteurs du marché** identifiés (limites magenta STEPAG des planches + secteurs du SIG ; Pam, Tazaghine, Château Sidi Aissa, Maksam-Kharoub, Lt Belhoucine, Ballaoui-Irfane, Tennis 1 absents du SIG, retrouvés sur les planches) ; **1 312 km zonés**, 229 km « non zonés » à affecter par l'administrateur (surtout hors secteurs du SIG, et le secteur SIG « Saada ») | `outils/reseau/zoner.py`, `secteurs.json` | fait ; **à relire par Issam** |
+| Linéaire par zone (km) : Z1 331 (CPS 358), Z2 299 (362), Z3 238 (228), Z4 326 (399), Z5 118 (119) ; l'écart des zones 2 et 4 est dans les 229 km non zonés | `data-private/reseau/rapport-conversion.md` | — |
+| **Base (S2)** : migration `20261006130000_reseau_balayage.sql` (tronçons, nœuds, balayages, import, GeoJSON par secteur, état de balayage, zonage, contours, vues des linéaires et du journal) ; **621 tests pgTAP** (115 nouveaux) verts sur PostgreSQL 17 + PostGIS 3.6 ; import réel essayé en local (15 s), journée simulée (98 tronçons, 3,98 km, 96 nœuds) | `supabase/` ; `supabase/README.md` § Plan du réseau | à faire passer par la CI (PostgreSQL 16) |
+| **Panneau web (S3)** : réseau activable par zone et secteur sur `/carte`, coloration secteur / balayage / diamètre, légende, mode balayage (toucher, lasso, prolonger, hors ligne), Paramètres > Réseau (import, carte de zonage modifiable), `/balayage`, `/session` | `web/` ; `web/README.md` § Réseau et balayage | tsc, build et 10 scripts verts ; **jamais essayé contre une vraie base** |
+| **Rapport journalier de recherche de fuites (S5)** : PDF A4 au gabarit STEPAG 2026 avec extrait de plan A4, ou Excel ; par jour ou par équipe ; bouton dans `/balayage` | `web/src/lib/export/rapport-journalier.ts`, `web/src/app/(app)/balayage/rapport.ts` | 48 vérifications ; extrait de plan non essayé dans un navigateur |
+| **APK (S4)** : écran Balayage (WebView du panneau, session de la tablette, mode balayage) | `mobile/src/balayage.tsx` | tsc et 28 vérifications ; à essayer sur la tablette |
+| Matrice des droits : lignes Balayage (voir, cocher, annuler les siens, annuler ceux des autres) | `web/src/app/(app)/utilisateurs/matrice.ts` | vérifié |
+| **Essai de bout en bout en local** : vrai réseau importé dans une base PostgreSQL 17 servie par PostgREST, panneau web de la branche : carte et coloration, carte de zonage (8 862 tronçons affectés d'un coup), balayage enregistré depuis la carte, journal, rapport PDF de 2 pages avec extrait de plan ; correctif « Enregistrer… » | `data-private/essai-web/` (hors dépôt) | fait le 2026-10-06 ; reste l'essai sur l'aperçu Vercel avec la vraie base |
+
+**À faire par Issam (lot S)** :
+1. Relire le zonage sur l'aperçu (`data-private/reseau/apercu.html`, `python3 -m http.server 8765` dans ce dossier)
+   et dire si les noms et contours des 34 secteurs sont justes (planches comprises).
+2. Laisser passer la CI, essayer l'aperçu Vercel, puis « fusionner ». Ensuite, **avec son accord**, importer le
+   réseau en production : Paramètres > Réseau > Import (`secteurs.geojson`, `troncons.geojson`, `noeuds.geojson`),
+   puis affecter les 229 km non zonés sur la carte de zonage.
+3. Essayer l'APK (artefact de la CI) : bouton Balayage, cocher quelques tronçons, rapport du jour.
+4. Questions : le chef de réparation doit-il voir le journal des balayages ? (non pour l'instant) ; le linéaire
+   payé par secteur doit-il venir du dessin (`v_lineaire_secteurs`) ou d'un relevé contradictoire ? ; la SRM
+   accepte-t-elle le rapport journalier au gabarit STEPAG 2026 ?
+
+**Notes techniques** : une autre session (lots P3, P4) a pris `20261006120000`, `20261006120100` et les tests 13-14 :
+le lot S utilise `20261006130000` et le test 15 ; fusionner P3/P4 avant S (le déploiement refuse une migration plus
+ancienne que la dernière appliquée). Le dessin contient aussi les **secteurs de relève** (269 polygones numérotés) :
+piste pour localiser une fuite par le premier bloc de sa référence SRM (à confirmer avec la SRM).

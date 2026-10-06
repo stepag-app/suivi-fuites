@@ -246,7 +246,7 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
 
       {!pret && !erreur && <p className="discret">Chargement…</p>}
       {pret && agents.length === 0 && (
-        <p className="discret">Aucun utilisateur affecté à ce marché : affectez-en un dans l&apos;onglet Comptes.</p>
+        <p className="discret">Aucun utilisateur affecté à ce marché : affectez-en un dans l&apos;onglet Comptes (menu « Ajouter un rôle »).</p>
       )}
       {pret && masques > 0 && (
         <p className="discret">{masques} compte{masques > 1 ? 's' : ''} révoqué{masques > 1 ? 's' : ''} ou retiré{masques > 1 ? 's' : ''} de ce marché, non affiché{masques > 1 ? 's' : ''}.</p>

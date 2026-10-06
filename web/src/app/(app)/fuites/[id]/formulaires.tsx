@@ -34,7 +34,7 @@ export function FormReparation({
   const [emplacement, setEmplacement] = useState('');
   const [representant, setRepresentant] = useState('');
   const [observation, setObservation] = useState('');
-  const [lignes, setLignes] = useState<{ piece_id: string | null; designation: string; quantite: number }[]>([]);
+  const [lignes, setLignes] = useState<{ produit_id: number; designation: string; quantite: number }[]>([]);
   const [pieceTexte, setPieceTexte] = useState('');
   const [pieceQte, setPieceQte] = useState('1');
   const [saisiPour, setSaisiPour] = useState('');
@@ -59,7 +59,12 @@ export function FormReparation({
     const q = nombreOuNul(pieceQte);
     if (!texte || !q || q <= 0) return;
     const piece = pieces.find((p) => p.designation.toLowerCase() === texte.toLowerCase());
-    setLignes([...lignes, { piece_id: piece?.id ?? null, designation: piece?.designation ?? texte, quantite: q }]);
+    if (!piece) {
+      setErreur(`« ${texte} » n'est pas dans la liste des articles. Choisissez un article proposé ; s'il manque, demandez sa création dans Dolibarr (il sera proposé après le prochain import).`);
+      return;
+    }
+    setErreur('');
+    setLignes([...lignes, { produit_id: piece.id, designation: piece.designation, quantite: q }]);
     setPieceTexte('');
     setPieceQte('1');
   }
@@ -103,8 +108,7 @@ export function FormReparation({
       if (lignes.length) {
         const rp = await sb.from('reparation_pieces').insert(
           lignes.map((l) => ({
-            marche_id: marcheId, reparation_id: id, piece_id: l.piece_id,
-            designation_libre: l.piece_id ? null : l.designation, quantite: l.quantite,
+            marche_id: marcheId, reparation_id: id, produit_id: l.produit_id, quantite: l.quantite,
           })),
         );
         if (rp.error) throw rp.error;
@@ -217,13 +221,14 @@ export function FormReparation({
           ))}
         </ul>
         <div className="ligne-pieces">
-          <input list="catalogue" placeholder="Rechercher une pièce" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
-          <datalist id="catalogue">
+          <input list="articles" className="mt-0 min-w-0 flex-1" placeholder="Rechercher un article" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
+          <datalist id="articles">
             {pieces.map((p) => (<option key={p.id} value={p.designation} />))}
           </datalist>
-          <input className="court" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />
+          <input className="court mt-0 w-20 flex-none" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />
           <button type="button" onClick={ajouterPiece}>Ajouter</button>
         </div>
+        <p className="discret">Article absent de la liste : le noter en observation et demander sa création dans Dolibarr.</p>
       </fieldset>
 
       <label>

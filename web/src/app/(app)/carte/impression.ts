@@ -4,9 +4,38 @@ import type { Contexte } from '@/lib/export/jeux';
 import type { FormatPapier, OrientationPapier } from '@/lib/export/carte-pdf';
 import type { ImageTexte } from '@/lib/export/arabe';
 import { STATUTS } from '@/lib/format';
+import { compterEtats } from '@/lib/reseau/etat';
+import { classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import type { StatutFuite } from '@/lib/types';
-import { capturerCarte, type EtatCarte } from './capture';
+import { capturerCarte, type EtatCarte, type ReseauImpression } from './capture';
 import { COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, aUneAlerte, type Contour, type FuiteCarte } from './commun';
+
+// La légende du PDF (lib/export/carte-pdf.ts, hors lot S) dessine des pastilles : on y ajoute au plus
+// six entrées pour le réseau, pour que le cartouche garde sa place.
+const ENTREES_RESEAU_MAX = 6;
+
+/** Entrées de légende du réseau affiché : zones (par secteur), états (par balayage) ou classes (par diamètre). */
+export function legendeReseau(r: ReseauImpression | null | undefined, zones: { id: string; numero: number; libelle: string }[]) {
+  if (!r || !r.secteurs.some((s) => s.data)) return [];
+  const ids = r.secteurs.flatMap((s) => s.data?.features.map((f) => f.properties.id) ?? []);
+  const nombres = new Map<string, number>();
+  if (r.coloration === 'balayage') {
+    for (const [k, v] of compterEtats(ids, r.etats)) nombres.set(k, v);
+  } else if (r.coloration === 'diametre') {
+    for (const s of r.secteurs) for (const f of s.data?.features ?? []) {
+      const cle = String(classeDiametre(f.properties.d));
+      nombres.set(cle, (nombres.get(cle) ?? 0) + 1);
+    }
+  } else {
+    for (const s of r.secteurs) for (const f of s.data?.features ?? []) {
+      if (f.properties.z) nombres.set(f.properties.z, (nombres.get(f.properties.z) ?? 0) + 1);
+    }
+  }
+  const zonesAffichees = zones.filter((z) => r.coloration !== 'secteur' || (nombres.get(z.id) ?? 0) > 0);
+  return entreesLegendeReseau(r.coloration, r.palette, zonesAffichees, nombres)
+    .filter((e) => r.coloration === 'balayage' || e.nombre > 0)
+    .slice(0, ENTREES_RESEAU_MAX);
+}
 
 export interface ChoixImpression {
   format: FormatPapier;
@@ -22,6 +51,9 @@ export interface DonneesImpression {
   secteurs: Contour[];
   filtres: string;
   libelleReference: string;
+  /** Réseau affiché à l'écran (lot S) ; absent ou vide : carte des fuites seule. */
+  reseau?: ReseauImpression | null;
+  zonesReseau?: { id: string; numero: number; libelle: string }[];
 }
 
 export async function fabriquerPdfCarte(
@@ -51,9 +83,12 @@ export async function fabriquerPdfCarte(
     imagesEntete,
     imagesCellules,
     filtres: d.filtres,
-    legende: (Object.keys(STATUTS) as StatutFuite[]).map((s) => ({
-      libelle: STATUTS[s].libelle, ...COULEURS[s], nombre: placees.filter((f) => f.statut === s).length,
-    })),
+    legende: [
+      ...(Object.keys(STATUTS) as StatutFuite[]).map((s) => ({
+        libelle: STATUTS[s].libelle, ...COULEURS[s], nombre: placees.filter((f) => f.statut === s).length,
+      })),
+      ...legendeReseau(d.reseau, d.zonesReseau ?? []),
+    ],
     alertes: { nombre: placees.filter(aUneAlerte).length, couleur: COULEUR_ALERTE },
     contours: { zones: d.zones.length > 0, secteurs: d.secteurs.length > 0, couleur: COULEUR_CONTOURS },
     nombreSurCarte: placees.length,
@@ -66,7 +101,7 @@ export async function fabriquerPdfCarte(
     genereLe: new Date(),
     capturer: (largeurMm, hauteurMm) => {
       etape('Rendu de la carte en haute définition…');
-      return capturerCarte(d.etat, { fuites: placees, zones: d.zones, secteurs: d.secteurs }, largeurMm, hauteurMm);
+      return capturerCarte(d.etat, { fuites: placees, zones: d.zones, secteurs: d.secteurs, reseau: d.reseau ?? null }, largeurMm, hauteurMm);
     },
   });
   return new Blob([pdf], { type: 'application/pdf' });

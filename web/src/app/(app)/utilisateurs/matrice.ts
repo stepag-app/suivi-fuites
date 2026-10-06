@@ -125,6 +125,11 @@ export const LIGNES: readonly LigneMatrice[] = [
   reserve('Attachements', 'attachements', 'rouvrir', 'Attachements : rouvrir le dernier lot arrêté', 'administrateur seulement, motif obligatoire'),
   reserve('Attachements', 'attachements', 'forcer', 'Attachements : refacturation forcée', 'administrateur seulement, hors solde'),
 
+  droit('Balayage', 'balayage', 'lire', 'Balayage : voir les tronçons balayés et le journal', { aide: 'carte du réseau, journal des balayages, rapport journalier (avec « Exports : exporter »)' }),
+  droit('Balayage', 'balayage', 'creer', 'Balayage : cocher les tronçons balayés', { aide: 'carte en mode balayage, tablette' }),
+  droit('Balayage', 'balayage', 'supprimer', 'Balayage : annuler un balayage', { aide: 'les siens = balayés ou saisis par lui ; motif obligatoire' }),
+  droit('Balayage', 'balayage', 'valider', 'Balayage : annuler le balayage d\'un autre'),
+
   droit('Paramètres du marché', 'parametres', 'lire', 'Paramètres : voir', { aide: 'logos des documents ; l\'écran Paramètres demande « ajouter » ou « modifier »' }),
   droit('Paramètres du marché', 'parametres', 'creer', 'Paramètres : ajouter', { aide: 'secteurs, articles, natures, pièces, équipes, motifs, OS, avenants' }),
   droit('Paramètres du marché', 'parametres', 'modifier', 'Paramètres : modifier', { aide: 'fiche du marché, logos, bordereau, règles d\'attachement' }),
@@ -253,7 +258,7 @@ export function texteValeur(v: Valeur): string {
   return v === 'siennes' ? 'Les siennes' : 'Toutes';
 }
 
-/** Case de « droits » sans ligne dans la matrice : sans effet aujourd'hui (balayage, mesures de débit…). */
+/** Case de « droits » sans ligne dans la matrice : sans effet aujourd'hui (mesures de débit, balayage / modifier…). */
 export function sansEcran(type: TypeDonnee, colonne: string): boolean {
   return !LIGNES.some((l) => l.objet === type && l.action === colonne);
 }

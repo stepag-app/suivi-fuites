@@ -261,3 +261,24 @@ Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne t
 Supabase de production sans mon accord explicite ; aucun secret dans le dépôt ni dans le chat.
 Mets à jour docs/etat-avancement.md en fin de session.
 ```
+
+## 7. Session 7 (2026-10-06, nuit) : plan du réseau DWG, zonage, balayage par tronçon — INTERROMPUE (limite d'usage)
+
+Contrat du lot : `docs/lots/lot-s-reseau.md`. Branches locales (non poussées) :
+- `claude/lot-s1-conversion-reseau` (ici) : chaîne `outils/reseau/` (voir son README). **Fait et vérifié** : DWG → DXF
+  (LibreDWG), extraction en flux (blocs orphelins 2012 et 2018 écartés), **Lambert Nord Maroc / Merchich EPSG:26191
+  confirmé** (conduites à 4 m médian des rues OSM, décalage moyen ≈ 1 m), 46 512 tronçons et 1 537 km dans le périmètre
+  (CPS : 1 466 km), 30 753 nœuds, diamètres sur 83 % du linéaire ; sorties dans `data-private/reseau/` (hors dépôt).
+  **Reste** : fin du calage des planches (`caler_planches.py`, méthode validée à 0,3 m sur Andalous et Maafa ; le
+  calcul tournait), puis `zoner.py` (secteurs STEPAG des planches + SIG ; 7 secteurs absents du SIG : Pam, Tazaghine,
+  Château Sidi Aissa, Maksam-Kharoub, Lt Belhoucine, Ballaoui-Irfane, Derfoufi), puis `convertir.py --zonage`.
+- `claude/lot-s2-base-reseau` (worktree `agent-a3c47fe…`) : migration `20261006130000_reseau_balayage.sql` + test
+  `15_reseau_balayage.test.sql`, **commit provisoire non vérifié** (tests pgTAP en cours sur PostgreSQL 17 local).
+- `claude/lot-s3-web-reseau` (worktree `agent-a3df74a…`) : panneau Réseau de la carte, mode balayage (lasso,
+  prolonger), Paramètres > Réseau (import, zonage), page `/balayage`, route `/session` ; **commit provisoire** ; 26
+  vérifications passaient, tsc / build non terminés.
+- `claude/lot-s4-apk-balayage` (worktree `agent-ab75b80…`) : écran Balayage de l'APK (WebView), **fini** (tsc et 28
+  vérifications verts).
+- Lot S5 (rapport journalier de recherche de fuites, générateur PDF/Excel) : agent arrêté en cours, worktree à vérifier.
+- Collision évitée : les numéros `20261006120000` et tests 13-14 sont pris par les lots P3/P4 d'une autre session.
+- Import en production (Paramètres > Réseau) : **seulement avec l'accord d'Issam**, après fusion de S2 puis S3.

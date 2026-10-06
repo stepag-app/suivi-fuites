@@ -8,8 +8,11 @@
 --  * un interrupteur global « utilisable » (activé) décide de ce qui s'affiche dans la
 --    liste déroulante du réparateur ; un produit nouvellement importé arrive désactivé ;
 --  * la pièce posée référence directement le produit (reparation_pieces.produit_id) :
---    plus de catalogue par marché ni de rapprochement ; la pièce libre (texte) reste
---    possible pour les cas exceptionnels ;
+--    plus de catalogue par marché ni de rapprochement ; plus de pièce libre (texte) : un
+--    article absent fait l'objet d'une demande interne au gestionnaire de Dolibarr, qui le
+--    crée ; la liste est ensuite réimportée et l'article activé ;
+--  * activation par l'administrateur ou un responsable (droit « paramètres / modifier »
+--    sur au moins un marché) ; import de produits.csv réservé à l'administrateur ;
 --  * unité : celle de Dolibarr, telle quelle ;
 --  * article du bordereau suggéré : règles par marché (famille ou produit → article),
 --    le produit l'emporte sur la famille ;
@@ -127,7 +130,7 @@ alter table public.reparation_pieces
   add column produit_id integer references public.produits_dolibarr (dolibarr_id);
 
 comment on column public.reparation_pieces.produit_id is
-  'Produit Dolibarr posé (activé au moment de la saisie) ; sinon designation_libre (cas exceptionnel).';
+  'Produit Dolibarr posé (activé au moment de la saisie) ; obligatoire (plus de pièce libre).';
 
 -- Purge (aucune donnée en production) : pièces posées de tous les marchés, terrain et bureau.
 -- Exécutée par la migration (appel système) : ni verrou de fuite ni contrôle de correction.
@@ -562,8 +565,10 @@ drop view public.v_pieces_reelles;
 
 alter table public.reparation_pieces drop column piece_id;   -- emporte la clé étrangère, l'index et l'ancien contrôle
 alter table public.reparation_pieces
-  add constraint reparation_pieces_produit_ou_libre
-    check (produit_id is not null or nullif(btrim(designation_libre), '') is not null);
+  add constraint reparation_pieces_produit_obligatoire
+    check (produit_id is not null and designation_libre is null);
+comment on column public.reparation_pieces.designation_libre is
+  'Obsolète (lot T) : toujours vide ; un article absent de la liste est créé dans Dolibarr puis réimporté.';
 create index reparation_pieces_produit_idx on public.reparation_pieces (produit_id) where produit_id is not null;
 
 -- Inventaire réel des fournitures posées : pièces du terrain ni remplacées ni retirées, et
@@ -918,8 +923,8 @@ as $$
 declare
   _n integer;
 begin
-  if not private.est_admin() then
-    raise exception 'L''activation des articles est réservée à l''administrateur'
+  if not (private.est_admin() or cardinality(private.marches_autorises('parametres', 'modifier')) > 0) then
+    raise exception 'L''activation des articles est réservée à l''administrateur et aux responsables (droit « paramètres / modifier »)'
       using errcode = 'insufficient_privilege';
   end if;
   perform private.controler_verrou_admin('parametres', 'modifier');
@@ -941,7 +946,7 @@ end
 $$;
 
 comment on function public.activer_produits_dolibarr(integer[], boolean) is
-  'Administrateur : active (ou désactive) des articles Dolibarr dans la liste déroulante de tous les marchés ; rend le nombre modifié.';
+  'Administrateur ou responsable (paramètres / modifier) : active (ou désactive) des articles Dolibarr dans la liste déroulante de tous les marchés ; rend le nombre modifié.';
 
 -- La désignation et l'unité sont nécessaires à la saisie sur la tablette : lecture par tout
 -- compte affecté à un marché (aucun prix dans la table). La référence reste un code de

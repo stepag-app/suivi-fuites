@@ -16,10 +16,10 @@ const PAR_PAGE = 100;
 const sansAccent = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 const libelleFamille = (f: string) => (LIBELLES_FAMILLES[f] ? `${LIBELLES_FAMILLES[f]} (${f})` : f);
 
-// Paramètres > Articles (administrateur) : les produits Dolibarr importés sont le référentiel des pièces,
-// commun à tous les marchés ; seuls les articles activés s'affichent dans la liste déroulante du réparateur.
-// Seul écran où la référence Dolibarr apparaît.
-export function OngletArticles() {
+// Paramètres > Articles : les produits Dolibarr importés sont le référentiel des pièces, commun à tous les
+// marchés ; seuls les articles activés s'affichent dans la liste déroulante du réparateur. Import réservé à
+// l'administrateur, activation ouverte au responsable. Seul écran où la référence Dolibarr apparaît.
+export function OngletArticles({ importer }: { importer: boolean }) {
   const [produits, setProduits] = useState<ProduitNomenclature[]>([]);
   const [dernier, setDernier] = useState<DernierImport | null>(null);
   const [chargement, setChargement] = useState(true);
@@ -50,10 +50,10 @@ export function OngletArticles() {
     charger();
   }, [charger]);
 
-  // Sans article en base, on commence par l'import.
+  // Sans article en base, l'administrateur commence par l'import.
   useEffect(() => {
-    if (!chargement && produits.length === 0) setEtape('import');
-  }, [chargement, produits.length]);
+    if (!chargement && produits.length === 0 && importer) setEtape('import');
+  }, [chargement, produits.length, importer]);
 
   useEffect(() => {
     setLimite(PAR_PAGE);
@@ -117,18 +117,27 @@ export function OngletArticles() {
           la référence Dolibarr n&apos;apparaît que sur cet écran. {produits.length} article(s) importé(s), dont {actives} activé(s)
           {dernier ? `, dernier import le ${new Date(dernier.importe_le).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })} (${dernier.familles.join(', ') || 'familles non précisées'})` : ', jamais importés'}.
         </p>
-        <div className={styles.etapes} role="group" aria-label="Étapes">
-          <button type="button" aria-pressed={etape === 'liste'} onClick={() => setEtape('liste')} disabled={!produits.length}>
-            Liste et activation
-          </button>
-          <button type="button" aria-pressed={etape === 'import'} onClick={() => setEtape('import')}>
-            Importer produits.csv
-          </button>
-        </div>
+        <p className="discret">
+          Article absent de Dolibarr : demande interne au gestionnaire de Dolibarr, qui le crée ; l&apos;administrateur
+          exporte ensuite <code>produits.csv</code> et le réimporte ici, puis l&apos;article est activé. Il n&apos;y a pas de pièce libre.
+        </p>
+        {importer && (
+          <div className={styles.etapes} role="group" aria-label="Étapes">
+            <button type="button" aria-pressed={etape === 'liste'} onClick={() => setEtape('liste')} disabled={!produits.length}>
+              Liste et activation
+            </button>
+            <button type="button" aria-pressed={etape === 'import'} onClick={() => setEtape('import')}>
+              Importer produits.csv
+            </button>
+          </div>
+        )}
+        {!chargement && !produits.length && !importer && (
+          <p className="discret">Aucun article importé : l&apos;administrateur doit d&apos;abord importer <code>produits.csv</code>.</p>
+        )}
         {chargement && <p className="discret">Chargement…</p>}
       </section>
 
-      {!chargement && etape === 'import' && <NomenclatureImport produits={produits} recharger={charger} />}
+      {!chargement && importer && etape === 'import' && <NomenclatureImport produits={produits} recharger={charger} />}
 
       {!chargement && etape === 'liste' && produits.length > 0 && (
         <section className="carte">

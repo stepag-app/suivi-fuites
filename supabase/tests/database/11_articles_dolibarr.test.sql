@@ -1,15 +1,15 @@
 -- =============================================================================
 -- Lot T : articles Dolibarr, référentiel unique des pièces (données fictives, famille « ESS »).
 -- Structure (plus de catalogue ni de rapprochement), import idempotent sans prix, nouveaux
--- produits désactivés, activation globale par l'administrateur, lecture par tout compte
--- affecté, saisie limitée aux articles activés (ligne ancienne gardée), pièce libre,
+-- produits désactivés, activation globale par l'administrateur ou un responsable, lecture par tout compte
+-- affecté, saisie limitée aux articles activés (ligne ancienne gardée), pièce libre refusée,
 -- article suggéré par marché (produit, sinon famille), droits des règles.
 -- =============================================================================
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(47);
+select plan(48);
 
 -- a = admin, b = détection, c = chef de réparation, d = responsable, z = compte sans affectation
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -110,18 +110,21 @@ select throws_ok($$ select importer_produits_dolibarr((select valeur from t_json
   '22023', null, 'admin : produit sans référence refusé');
 
 -- -----------------------------------------------------------------------------
--- 3. Activation : globale, par l'administrateur seulement
+-- 3. Activation : globale, par l'administrateur ou un responsable (paramètres / modifier)
 -- -----------------------------------------------------------------------------
-select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
 select throws_ok($$ select activer_produits_dolibarr(array[9001], true) $$,
-  '42501', null, 'responsable : n''active pas d''article');
+  '42501', null, 'agent de détection : n''active pas d''article');
+
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
+select is(activer_produits_dolibarr(array[9001], true), 1, 'responsable : active un article');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated"}', true);
-select is(activer_produits_dolibarr(array[9001, 9002, 9003, 9004], true), 3,
-  'admin : active trois articles (le produit retiré de Dolibarr ne s''active pas)');
+select is(activer_produits_dolibarr(array[9001, 9002, 9003, 9004], true), 2,
+  'admin : active deux articles (déjà activé ou retiré de Dolibarr : inchangé)');
 select is(activer_produits_dolibarr(array[9001, 9002], true), 0, 'activer un article déjà activé ne change rien');
 select results_eq($$ select utilisable_par::text, utilisable_le is not null from produits_dolibarr where dolibarr_id = 9001 $$,
-  $$ values ('00000000-0000-0000-0000-00000000000a'::text, true) $$,
+  $$ values ('00000000-0000-0000-0000-00000000000d'::text, true) $$,
   'activation : auteur et date gardés');
 
 -- Réimport : libellé modifié, 9003 absent (retiré), 9005 nouveau (désactivé)
@@ -149,7 +152,7 @@ select is((select count(*)::int from produits_dolibarr), 0, 'compte sans affecta
 select is((select count(*)::int from imports_dolibarr), 0, 'compte sans affectation : aucun import');
 
 -- -----------------------------------------------------------------------------
--- 5. Saisie des pièces posées : article activé, ou désignation libre
+-- 5. Saisie des pièces posées : article activé seulement (plus de pièce libre)
 -- -----------------------------------------------------------------------------
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values
@@ -164,9 +167,9 @@ select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, pro
 select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 424242, 1) $$,
   '23514', null, 'chef : article inconnu refusé (message « article non proposé »)');
-select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, designation_libre, quantite) values
+select throws_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, designation_libre, quantite) values
   ('aaaaaaaa-3333-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'Joint plat (hors Dolibarr)', 1) $$,
-  'chef : pièce libre (cas exceptionnel)');
+  '23514', null, 'chef : pièce libre refusée (article à créer dans Dolibarr puis réimporter)');
 select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, quantite) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 1) $$,
   '23514', null, 'chef : ni article ni désignation libre refusé');
@@ -180,9 +183,8 @@ select throws_ok($$ update reparation_pieces set produit_id = 9005 where id = 'a
   '23514', null, 'chef : changer pour un article non activé est refusé');
 select results_eq($$ select produit_id, designation, famille, unite, quantite from v_pieces_reelles
                      where reparation_id = 'aaaaaaaa-2222-0000-0000-000000000001' order by designation $$,
-  $$ values (9002, 'COLLIER ESSAI 63 X 20'::text, 'ESS'::text, 'U'::text, 2.00::numeric),
-            (null, 'Joint plat (hors Dolibarr)', null, 'u', 1.00) $$,
-  'inventaire réel : désignation, famille et unité de Dolibarr ; pièce libre en « u »');
+  $$ values (9002, 'COLLIER ESSAI 63 X 20'::text, 'ESS'::text, 'U'::text, 2.00::numeric) $$,
+  'inventaire réel : désignation, famille et unité de Dolibarr');
 
 -- -----------------------------------------------------------------------------
 -- 6. Article suggéré par marché : règle du produit, sinon de la famille

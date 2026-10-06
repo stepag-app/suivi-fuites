@@ -13,7 +13,7 @@ import { OngletMarche } from './OngletMarche';
 import { OngletNatures } from './OngletNatures';
 import { OngletSecteurs } from './OngletSecteurs';
 
-// Articles Dolibarr (import CSV, activation ; administrateur) : chargé seulement à l'ouverture de l'onglet.
+// Articles Dolibarr (import CSV : administrateur ; activation : administrateur et responsable) : chargé à l'ouverture de l'onglet.
 const OngletArticles = dynamic(() => import('./OngletArticles').then((m) => m.OngletArticles), {
   ssr: false,
   loading: () => <p className="carte discret">Chargement…</p>,
@@ -106,7 +106,7 @@ export default function Parametres() {
     ['motifs', 'Motifs', accesParametres],
     ['secteurs', 'Secteurs', accesParametres],
     ['natures', 'Natures de réfection', accesParametres],
-    ['articles', 'Articles (tous marchés)', !!profil?.est_admin],
+    ['articles', 'Articles (tous marchés)', !!profil?.est_admin || peut('parametres', 'modifier')],
   ] as [Onglet, string, boolean][]).filter(([, , visible]) => visible);
 
   return (
@@ -129,7 +129,7 @@ export default function Parametres() {
       {onglet === 'evenements' && <OngletEvenements marcheId={marche.id} />}
       {onglet === 'secteurs' && <OngletSecteurs key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'natures' && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
-      {onglet === 'articles' && profil?.est_admin && <OngletArticles />}
+      {onglet === 'articles' && <OngletArticles importer={!!profil?.est_admin} />}
 
       {onglet === 'ouvriers' && (
         <section className="carte">

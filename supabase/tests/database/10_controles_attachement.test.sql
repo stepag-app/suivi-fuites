@@ -244,7 +244,7 @@ select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000e", "role": "authenticated"}', true);
 select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, designation_libre, quantite) values
   ('aaaaaaaa-6666-0000-0000-000000000008', 'aaaaaaaa-0000-0000-0000-000000000001',
-   'aaaaaaaa-2222-0000-0000-000000000002', null, 'Joint plat 25', 1) $$,
+   'aaaaaaaa-2222-0000-0000-000000000002', 55004, null, 1) $$,
   'second chef : complète le lendemain, depuis la tablette, la réparation faite par lui');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select lives_ok($$ insert into reparation_pieces (id, marche_id, reparation_id, produit_id, quantite) values

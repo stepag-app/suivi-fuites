@@ -28,11 +28,11 @@ produits réels, bien renseignés et sans doublons.
 
 | Sujet | Décision |
 |---|---|
-| Activation d'un produit | **Globale** : un seul interrupteur par produit, valable pour tous les marchés |
+| Activation d'un produit | **Globale** : un seul interrupteur par produit, valable pour tous les marchés ; par l'**administrateur ou un responsable** (droit « paramètres / modifier », précision d'Issam du 2026-10-06) ; import de `produits.csv` : administrateur |
 | Article du bordereau suggéré par une pièce | **Règles par marché** : le produit reste global ; chaque marché associe une **famille** ou un **produit** à un article de **son** bordereau (le produit l'emporte sur la famille) |
 | Ancien catalogue (261 pièces) et pièces déjà posées | **Purge** : rien n'est en production. On supprime l'ancien catalogue et on remet à zéro les pièces posées (DEMO compris) |
 | Périmètre de l'import | Familles **RAC, CND, ROB, AEP, VRI** (préfixe de la référence), comme l'import actuel |
-| Pièce libre (texte hors Dolibarr) | **Gardée** pour les cas exceptionnels |
+| Pièce libre (texte hors Dolibarr) | **Supprimée** (Issam, 2026-10-06, après la première version du lot) : un article absent fait l'objet d'une **demande interne** au gestionnaire de Dolibarr, qui le crée ; l'administrateur réimporte `produits.csv`, puis l'article est activé. Si un article envoyé au chantier par bon de transfert existe forcément dans Dolibarr, le réimport suffit |
 | Unité | **Celle de Dolibarr**, telle quelle (U, m, Barre, kg…), sans conversion |
 | Activation de départ | **Pré-activation** : tout produit rapproché d'une pièce du catalogue (lot P1) devient activé, calculé par la migration (158 sur DEMO) |
 
@@ -47,7 +47,7 @@ référence ni l'identifiant), import lu dans le navigateur (l'API Dolibarr n'es
   en vente ou en achat), `importe_le`, `modifie_le`, l'import `importer_produits_dolibarr` (idempotent par rowid)
   et le journal `imports_dolibarr`.
 - Ajouter :
-  - `utilisable boolean not null default false` : **activé pour la liste déroulante**. Seul l'administrateur le
+  - `utilisable boolean not null default false` : **activé pour la liste déroulante**. L'administrateur ou un responsable le
     modifie (fonction dédiée ou déclencheur, journalisé). Un nouveau produit importé arrive à `false`.
   - `utilisable_le`, `utilisable_par` (trace de l'activation) et `cree_le` (arrivée du produit, pour le filtre
     « nouveaux du dernier import »).
@@ -68,7 +68,7 @@ vue intermédiaire (plus simple ; les vues du lot R lisent la table directement)
 - Remplacer `piece_id uuid → catalogue_pieces` par `produit_id integer references produits_dolibarr (dolibarr_id)`.
 - Contrôle à l'écriture : un produit **nouvellement** choisi doit être `utilisable and actif`. Une ligne déjà saisie
   garde son produit même s'il est désactivé ensuite.
-- `designation_libre` : **gardée** (décision du 2026-10-06), pour les cas exceptionnels.
+- `designation_libre` : **plus de pièce libre** (2026-10-06) ; colonne gardée vide (contrainte `reparation_pieces_produit_obligatoire`), le réparateur note un article manquant en observation.
 - Même traitement pour les corrections du bureau (lot R : pièce oubliée, remplacée ou retirée) et pour
   `v_pieces_reelles`.
 
@@ -155,7 +155,7 @@ posées. Il pourra en recréer plus tard à partir de produits Dolibarr activés
 
 ## 8. Questions tranchées (2026-10-06)
 
-1. Pièce libre : gardée. 2. Unités : celles de Dolibarr. 3. Activation initiale : pré-activation des produits rapprochés.
+1. Pièce libre : supprimée (demande interne au gestionnaire de Dolibarr, puis réimport). 2. Unités : celles de Dolibarr. 3. Activation initiale : pré-activation des produits rapprochés.
 
 ## 9. Coordination
 

@@ -14,7 +14,8 @@ import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './ph
 import { supabase } from './supabase';
 
 export { effacerPhotos, type PhotoAttente };
-// produit_id : article Dolibarr ; absent (envoi gardé par une version précédente) ou nul : désignation libre.
+// produit_id : article Dolibarr ; absent ou nul (envoi gardé par une version précédente) : ancienne pièce libre,
+// refusée par le serveur (plus de pièce libre depuis le lot T).
 export interface PieceAttente { id: string; produit_id: number | null; designation: string; quantite: number }
 
 interface Commun {
@@ -115,6 +116,9 @@ export function messageClair(e: unknown): string {
     return 'Droit insuffisant sur ce marché pour cette saisie. Rien n\'est perdu : voyez avec l\'administrateur.';
   }
   if (err.code === '23503') return 'Fuite ou paramètre introuvable sur le serveur (supprimé entre-temps ?).';
+  if (/produit_obligatoire/.test(brut)) {
+    return 'Pièce sans article de la liste (ancienne désignation libre) refusée : retirez-la et choisissez un article proposé.';
+  }
   if (err.code === '23514') return `Saisie incomplète refusée par le serveur (${brut}).`;
   return brut;
 }

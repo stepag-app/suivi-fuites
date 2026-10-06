@@ -194,7 +194,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     return parametres.pieces.filter((p) => mots.every((x) => sansAccents(p.designation).includes(x))).slice(0, 8);
   }, [recherche, parametres.pieces]);
 
-  function ajouterPiece(pieceId: number | null, designation: string) {
+  function ajouterPiece(pieceId: number, designation: string) {
     const q = nombreOuNul(quantite);
     if (!q || q <= 0) {
       setErreur('Quantité de la pièce : un nombre supérieur à 0.');
@@ -375,10 +375,12 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                   <Text style={s.discret}>{p.unite || 'u'}</Text>
                 </Pressable>
               ))}
-              {!!recherche.trim() && (
-                <Bouton titre={`+ « ${recherche.trim()} » (désignation libre)`} onPress={() => ajouterPiece(null, recherche.trim())} />
+              {!!recherche.trim() && !correspondances.length && !!parametres.pieces.length && (
+                <Text style={s.discret}>
+                  Aucun article ne correspond. S&apos;il manque, notez-le en observation : le responsable demandera sa création dans Dolibarr.
+                </Text>
               )}
-              {!parametres.pieces.length && <Text style={s.discret}>Catalogue pas encore chargé sur cette tablette : désignation libre seulement.</Text>}
+              {!parametres.pieces.length && <Text style={s.discret}>Liste des articles pas encore chargée sur cette tablette : connectez-la au réseau.</Text>}
             </>
           )}
         </Carte>

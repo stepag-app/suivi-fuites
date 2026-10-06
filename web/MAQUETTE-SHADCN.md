@@ -1,12 +1,11 @@
-# Maquette « Studio Admin » (shadcn/ui) du panneau web
+# Interface « Studio Admin » (shadcn/ui) du panneau web
 
-> Branche `claude/maquette-shadcn`, créée le 2026-10-06 à partir de `main` (après la PR #30).
-> Copie de l'application avec l'interface du modèle
-> [next-shadcn-admin-dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard) (MIT, « Studio Admin »),
-> à ouvrir dans le navigateur pour juger l'apparence et l'usage, puis valider ou non. Les données, la base
-> Supabase, les droits (RLS), les exports et le mode hors ligne sont ceux de `main` : seule l'interface change.
+> **Adoptée par Issam le 2026-10-06** et fusionnée dans `main` avec les lots Q (droits), R (contrôles à l'attachement),
+> S (réseau, balayage) et T (articles Dolibarr). Interface du modèle
+> [next-shadcn-admin-dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard) (MIT, « Studio Admin »).
+> Les données, la base Supabase, les droits (RLS), les exports et le mode hors ligne ne changent pas : seule l'interface.
 
-## Lancer la maquette
+## Lancer le panneau en local
 
 ```bash
 cd web && npm install && npm run dev
@@ -40,10 +39,12 @@ cd web && npm install && npm run dev
 
 ## Ce qui reste à l'ancienne
 
-Les onglets des paramètres (Marché, Bordereau, Attachement, Événements, Secteurs, Natures, Catalogue), le panneau
-d'export, les formulaires de réparation / réfection et le bloc « À attacher » gardent leur code d'origine, habillé
-par `src/styles/ancien.css` (classes `.carte`, `.badge`, `.etiquette`, boutons, champs, tableaux) sous un conteneur
-`.ancien`. Ils ont l'apparence shadcn sans avoir été réécrits : à convertir si la maquette est retenue.
+Les onglets des paramètres (Marché, Bordereau, Attachement, Événements, Secteurs, Réseau, Natures, Articles), le panneau
+d'export, les formulaires de réparation / réfection, le bloc « À attacher », les corrections à l'attachement, la matrice
+des droits, le journal des balayages, les travaux hors bordereau et le panneau Réseau de la carte gardent leur code
+d'origine, habillé par `src/styles/ancien.css` (classes `.carte`, `.badge`, `.etiquette`, boutons, champs, tableaux)
+sous un conteneur `.ancien` ; les anciens jetons de couleur de leurs modules CSS sont rapportés aux jetons shadcn en
+tête de ce fichier. Ils ont l'apparence shadcn sans avoir été réécrits : conversion progressive, écran par écran.
 
 ## Technique
 

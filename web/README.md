@@ -9,24 +9,23 @@ Une seule application, utilisable sur ordinateur (bureau, responsable) et sur la
 C'est la **version rapide de test** : mode hors ligne léger pour la création de fuites (voir plus bas),
 pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.
 
-## Style de l'interface (SAP Fiori + indicateurs)
+## Style de l'interface (« Studio Admin », shadcn/ui)
 
-Choix d'Issam du 2026-10-05, après comparaison de 5 maquettes : apparence **SAP Fiori** reproduite dans notre
-propre CSS (`src/app/globals.css`, jetons en tête de fichier), **sans** la bibliothèque SAP UI5 (trop lourde
-pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP compact ».
+Choix d'Issam du 2026-10-06 : interface du modèle [next-shadcn-admin-dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard)
+(« Studio Admin », MIT), qui remplace le style SAP Fiori du 2026-10-05. Détail des rubriques reprises et de la
+technique : `MAQUETTE-SHADCN.md`.
 
-- Barre d'application sombre (logo, organisation, marché, utilisateur), onglets des modules selon les droits.
-- Pages blanches sur fond gris clair, tableaux sobres (en-têtes gris, survol bleu pâle, chiffres alignés).
-- Statuts en texte coloré précédé d'un point (couleurs sémantiques Fiori : rouge, orange, bleu, vert, gris),
-  les mêmes sur la carte (`carte/commun.ts`).
-- Boutons « fantômes » par défaut, bouton principal bleu, bouton de suppression rouge.
-- Densité bureau 14 px ; sur écran tactile ou étroit, 16 px et commandes de 44 px au moins.
-- Liste des fuites : 4 indicateurs (`src/lib/ui/Indicateur.tsx`, calculs dans `src/lib/ui/indicateurs.ts`) :
-  fuites du mois (courbe : par jour sur 14 jours), non réparées au-delà du seuil (courbe : situation à chaque
-  fin de jour), délai moyen de réparation (courbe : par semaine sur 8 semaines), réfections à faire ; puis
-  tableau sur bureau, cartes sur tablette en portrait et téléphone.
-- Graphiques du tableau de bord en CSS (barres empilées, colonnes groupées, petites barres dans les tableaux), sans
-  bibliothèque ; couleurs des statuts = teintes des points de la carte.
+- Tailwind v4 (`src/app/globals.css` : jetons et 3 préréglages de couleurs), composants shadcn dans `src/components/ui/`,
+  icônes `lucide-react`, graphiques Recharts, tableaux TanStack.
+- Coque (`src/app/(app)/_coque/`) : barre latérale repliable selon les droits (`elements-nav.ts` : menu, onglets visibles des
+  paramètres), recherche ⌘J, sélecteur de marché, préférences d'affichage (cookies), mode clair / sombre.
+- Écrans encore écrits avec les classes de l'ancienne version (onglets des paramètres, panneau d'export, formulaires de
+  réparation et de réfection, matrice des droits, corrections à l'attachement, réseau et balayage) : habillés par
+  `src/styles/ancien.css` sous un conteneur `.ancien`. Les modules CSS de ces écrans lisent les anciens jetons
+  (`--bord`, `--discret`, `--principal`…), rapportés aux jetons shadcn en tête de `ancien.css` (justes en mode sombre).
+- Statuts : `src/components/statut.tsx` (badges, points, couleurs reprises par la carte).
+- **Mode démonstration** (vérification sans compte, jamais sur Vercel) : `NEXT_PUBLIC_MODE_DEMO=1 npm run dev`,
+  identifiants quelconques, données fictives en mémoire (`src/lib/demo/`).
 
 ## Écrans
 
@@ -40,13 +39,13 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 | `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée »), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
-| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, **logos des documents** : PNG ou JPEG, 2 Mo au plus, réduits à 600 px, droit « paramètres / modifier » ; délai, OS, arrêts et reprises, libellés et alertes du client, longueur de polyéthylène couverte par l'article de réparation : 2 m par défaut), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Catalogue des pièces** (recherche, famille, unité, article suggéré, étiquette « Dolibarr » pour une pièce rapprochée, dont la désignation est alors en lecture seule), **Nomenclature Dolibarr** (administrateur : import de `produits.csv`, rapprochement, voir § Nomenclature Dolibarr) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
+| `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, **logos des documents** : PNG ou JPEG, 2 Mo au plus, réduits à 600 px, droit « paramètres / modifier » ; délai, OS, arrêts et reprises, libellés et alertes du client, longueur de polyéthylène couverte par l'article de réparation : 2 m par défaut), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Réseau** (plan du réseau : import, zonage ; administrateur ou « paramètres / modifier »), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Articles (tous marchés)** (articles Dolibarr : import de `produits.csv` par l'administrateur, activation par l'administrateur ou le responsable, voir § Articles Dolibarr) ; l'onglet ouvert est dans l'adresse (`/parametres?onglet=articles`) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
 | `/attachements` | droit « attachements » | lots d'attachement : reste à attacher, nouveau lot, liste (brouillons, arrêtés, acceptés, facturés) ; synthèse des contrôles en défaut (droit « quantités / lire ») et lien vers les travaux hors bordereau |
 | `/attachements/[id]` | droit « attachements » | en-tête et mentions du CPS (le titre suit la saisie ; numéro « prévu » d'un brouillon), récapitulatif par article (antérieur, lot, cumul, %), travaux du lot et sélection « À attacher » en listes compactes zébrées, une ligne par fuite (N° de fuite cliquable : fiche, photos dans un nouvel onglet ; filtres, cases par fuite et par article), ligne libre, réfection anticipée, refacturation forcée (admin), arrêt définitif, réouverture (admin), suivi (acceptation, facture) ; page élargie (écran de bureau). Colonne **Contrôles** (oublis probables, lignes incohérentes, travaux hors bordereau ; détail en infobulle) dans « Travaux du lot » et « À attacher », filtre « Contrôles en défaut seulement », bouton **Corriger** d'un brouillon : requalifier une ligne de prix (article, quantité, **motif obligatoire**), ajouter une ligne ; pièces posées : **Remplacer** une pièce erronée, **Retirer** une pièce non posée, **+ Ajouter un oubli**, chaque fois avec motif (la saisie d'origine reste visible, barrée « remplacée » ou « retirée » ; une pièce ne change jamais le prix) ; le nouvel article d'une unité du lot entre dans le lot |
 | `/attachements/hors-bordereau` | droit « attachements / lire » | travaux à faire valoir : polyéthylène au-delà du seuil du marché (excédent), réparations sans article (DN > 315, fonte, acier…), pièces non couvertes de l'inventaire réel (provenance : terrain ou correction du bureau) ; filtres période, secteur, nature ; export Excel, PDF, Word, CSV ; rien n'est facturé automatiquement. Calculs dans `src/app/(app)/attachements/controles.ts`, vérifiés par `node scripts/verifier-controles-attachement.mjs` |
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/marches` | administrateur | liste des marchés, activer / désactiver (un marché désactivé n'est plus proposé aux agents), créer un marché vide ou en copiant les paramètres d'un marché existant (`copier_marche`) |
-| `/utilisateurs` | administrateur | onglet **Comptes** : créer un agent, rôles par marché, mot de passe, révoquer (la base d'abord, verrou et journal, puis blocage de la connexion par la fonction serveur) / réactiver ; onglet **Droits** (`?onglet=droits&marche=<uuid>`) : matrice du marché, **utilisateurs en colonnes, droits en lignes** par rubrique (une ligne = une colonne de `droits`, portée Non / Les siennes / Toutes), « Modèle… » par colonne, enregistrement explicite après confirmation (`enregistrer_droits`, journalisé) ; colonne « Vous » grisée et **verrous de sécurité** de l'administrateur (tous les marchés, refusés par la base, à rouvrir soi-même, sans refermeture automatique) |
+| `/utilisateurs` | administrateur | onglet **Comptes** (`?onglet=affectations` : affectations et rôles) : créer un agent, rôles par marché, mot de passe, révoquer (la base d'abord, verrou et journal, puis blocage de la connexion par la fonction serveur) / réactiver ; onglet **Droits** (`?onglet=droits&marche=<uuid>`) : matrice du marché, **utilisateurs en colonnes, droits en lignes** par rubrique (une ligne = une colonne de `droits`, portée Non / Les siennes / Toutes), « Modèle… » par colonne, enregistrement explicite après confirmation (`enregistrer_droits`, journalisé) ; colonne « Vous » grisée et **verrous de sécurité** de l'administrateur (tous les marchés, refusés par la base, à rouvrir soi-même, sans refermeture automatique) |
 
 **Droits à l'écran** : `peut(type, action)` (`src/lib/session.tsx`) suit les droits du marché choisi ; pour l'administrateur, tout sauf ce qu'il a verrouillé (`verrous_admin`). `verrouille(objet, action)` sert aux boutons réservés à l'administrateur (rouvrir, refacturation forcée, désactiver, copier, révoquer) : bouton grisé « verrouillé par vous ». Le menu affiche « Utilisateurs (n verrous) ». Calculs purs dans `src/app/(app)/utilisateurs/matrice.ts`, vérifiés par `node scripts/verifier-matrice-droits.mjs`.
 
@@ -60,20 +59,23 @@ pour les tablettes en 4G), plus les **widgets d'indicateurs** du modèle « ERP 
 - Le tableau de bord fabrique ses liens avec `lienFuites` (`src/app/(app)/fuites/filtres.ts`) : la liste ouverte
   compte exactement le chiffre cliqué. Vérification : `node scripts/verifier-filtres-fuites.mjs`.
 
-## Articles Dolibarr (Paramètres > Articles, administrateur)
+## Articles Dolibarr (Paramètres > Articles)
 
 Les pièces posées sont des **articles Dolibarr** (`produits_dolibarr`, sans aucun prix), communs à tous les marchés. Seuls
 les articles **activés** (et toujours présents dans Dolibarr) s'affichent dans la liste des pièces (tablette, fiche d'une
-fuite, corrections à l'attachement) ; une pièce déjà saisie garde son article s'il est désactivé ensuite. La pièce libre
-(désignation saisie) reste possible pour les cas exceptionnels. Le réparateur ne voit que la désignation ; la référence
-Dolibarr n'apparaît que dans Paramètres > Articles.
+fuite, corrections à l'attachement) ; une pièce déjà saisie garde son article s'il est désactivé ensuite. **Plus de pièce
+libre** (décision d'Issam du 2026-10-06) : un article absent fait l'objet d'une demande interne au gestionnaire de
+Dolibarr, qui le crée ; l'administrateur exporte puis réimporte `produits.csv`, et l'article est activé (le réparateur
+note l'article manquant en observation ; le bureau l'ajoute ensuite comme « oubli » à l'attachement). Le réparateur ne
+voit que la désignation ; la référence Dolibarr n'apparaît que dans Paramètres > Articles.
 
-- **Importer** : « Importer produits.csv ». Le fichier est lu dans le navigateur ; seules les colonnes identifiant,
+- **Importer** (administrateur seulement) : « Importer produits.csv ». Le fichier est lu dans le navigateur ; seules les colonnes identifiant,
   référence, libellé, unité, famille (préfixe de la référence) et en vente / en achat sont envoyées (jamais un prix, un
   PMP ou un stock). Familles cochées par défaut : RAC, CND, ROB, AEP, VRI (CNS en option). Nouveaux produits désactivés,
   libellés modifiés repris, produits absents retirés (jamais supprimés). Unité : celle de Dolibarr.
 - **Activer** : liste avec recherche (désignation, référence), famille et état (activés, non activés, nouveaux du dernier
-  import, retirés) ; activation ligne par ligne ou par sélection (`activer_produits_dolibarr`).
+  import, retirés) ; activation ligne par ligne ou par sélection (`activer_produits_dolibarr`), par l'administrateur ou un
+  responsable (droit « paramètres / modifier »), pour tous les marchés.
 - **Article suggéré** (par marché) : Paramètres > Bordereau, règle par article ou par famille (`SuggestionsArticles.tsx`).
 - Logique : `src/lib/articles.ts` (liste déroulante, noms des pièces saisies), `src/lib/nomenclature/` (`csv.ts`,
   `donnees.ts`) ; vérification : `node scripts/verifier-nomenclature.mjs`.

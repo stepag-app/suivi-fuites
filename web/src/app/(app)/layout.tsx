@@ -53,6 +53,7 @@ export default function MiseEnPage({ children }: { children: ReactNode }) {
         {peut('fuites', 'lire') && lien('/fuites', 'Fuites')}
         {peut('fuites', 'lire') && lien('/tableau-de-bord', 'Tableau de bord')}
         {peut('fuites', 'lire') && lien('/carte', 'Carte')}
+        {peut('balayage', 'lire') && lien('/balayage', 'Balayage')}
         {peut('attachements', 'lire') && lien('/attachements', 'Attachements')}
         {(peut('parametres', 'creer') || peut('parametres', 'modifier') || peut('ouvriers', 'creer') || peut('ouvriers', 'modifier')
           || peut('evenements', 'lire')) && lien('/parametres', 'Paramètres')}

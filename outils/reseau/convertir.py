@@ -43,6 +43,7 @@ ETIQUETTE = re.compile(r"^\s*(?:%%C|Ø|DN)?\s*(\d{2,4})(?:\s*[xX]\s*(\d{2,3}))?\
 DIAMETRES_PVC = {63, 75, 90, 110, 125, 140, 160, 225, 250, 315}
 DIAMETRES_DN = {60, 80, 100, 150, 300, 350, 500, 600, 700, 800, 1000}
 LONGUEUR_MAX = 300.0
+LONGUEUR_MIN = 0.5          # m : en dessous, bruit de dessin
 DISTANCE_ETIQUETTE = 4.0
 TYPES_NOEUDS = {
     "EP_NOEUD": "jonction", "EP_VANNE": "vanne", "VANNE": "vanne", "VANNES": "vanne", "vz": "vanne", "v6": "vanne",
@@ -334,6 +335,7 @@ def main() -> None:
         return "(hors secteurs SIG)"
 
     non_zones_sig: Counter = Counter()
+    trop_courts = 0
     features, hors = [], []
     refs: Counter = Counter()
     lin_secteur: Counter = Counter()
@@ -349,7 +351,16 @@ def main() -> None:
         code = secteur_de(milieu)
         props = {"reference": ref, "calque": None, "categorie": "conduite",
                  "diametre_mm": dm[0] if dm else None, "materiau": dm[1] if dm else None, "secteur_code": code}
-        geom = {"type": "LineString", "coordinates": [wgs(p) for p in coords]}
+        # Coordonnées arrondies (0,1 m), sommets répétés retirés ; moins de 0,5 m ou un seul point : bruit de dessin.
+        points = []
+        for p in coords:
+            q = wgs(p)
+            if not points or q != points[-1]:
+                points.append(q)
+        if len(points) < 2 or ligne.length < LONGUEUR_MIN:
+            trop_courts += 1
+            continue
+        geom = {"type": "LineString", "coordinates": points}
         if code is None and not perimetre.contains(milieu):
             hors.append({"type": "Feature", "geometry": geom, "properties": props})
             continue
@@ -392,8 +403,26 @@ def main() -> None:
     ecrire("hors-marche.geojson", hors)
 
     def poly_wgs(g):
-        parts = [g] if isinstance(g, Polygon) else list(g.geoms)
-        return {"type": "MultiPolygon", "coordinates": [[[wgs(p) for p in p_.exterior.coords]] for p_ in parts]}
+        """Contour valide en WGS84 : simplifié à 1 m, trous ignorés, réparé après arrondi (auto-intersections)."""
+        from shapely.validation import make_valid
+        g = g.buffer(0).simplify(1.0, preserve_topology=True).buffer(0)
+        parts = [g] if isinstance(g, Polygon) else [p for p in getattr(g, "geoms", []) if isinstance(p, Polygon)]
+        sortie = []
+        for p_ in parts:
+            if p_.area < 50:
+                continue
+            q = Polygon([wgs(c) for c in p_.exterior.coords])
+            if not q.is_valid:
+                q = make_valid(q)
+            for r in ([q] if isinstance(q, Polygon) else [x for x in getattr(q, "geoms", []) if isinstance(x, Polygon)]):
+                anneau = [[round(x, DEC), round(y, DEC)] for x, y in r.exterior.coords]
+                if Polygon(anneau).is_valid:
+                    sortie.append([anneau])
+                else:
+                    r2 = Polygon(anneau).buffer(0)
+                    for r3 in ([r2] if isinstance(r2, Polygon) else list(getattr(r2, "geoms", []))):
+                        sortie.append([[[round(x, DEC), round(y, DEC)] for x, y in r3.exterior.coords]])
+        return {"type": "MultiPolygon", "coordinates": sortie}
 
     ecrire("secteurs.geojson", [{"type": "Feature", "geometry": poly_wgs(g), "properties": {"secteur_code": code}}
                                 for code, g in secteurs_marche])
@@ -404,6 +433,7 @@ def main() -> None:
     r = ["# Rapport de conversion du réseau d'Oujda", "",
          "- Source : `Reseau aep oujda.dwg` (AutoCAD 2013) → DXF (LibreDWG 0.14) → espace objet seulement.",
          "- Système : Merchich / Nord Maroc (EPSG:26191) → WGS84 (EPSG:4326), 6 décimales (≈ 0,1 m).", ""]
+    journal.append(f"Tronçons de moins de {LONGUEUR_MIN} m (bruit de dessin) écartés : {trop_courts}")
     r += [f"- {t}" for t in journal]
     r += [f"- Exportés : {len(features)} tronçons, {total / 1000:.1f} km ; diamètre connu sur {100 * lin_diam / max(total, 1):.0f} % du linéaire",
           f"- Hors périmètre du marché (non exportés) : {len(hors)} tronçons, {sum(LineString([VERS_WGS84.transform(*p, direction='INVERSE') for p in f_['geometry']['coordinates']]).length for f_ in hors) / 1000:.1f} km",

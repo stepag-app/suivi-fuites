@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { ETATS_PIECE, libelleProvenance, type PieceAffichee } from '@/app/(app)/attachements/controles';
 import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO,
   dateHeure, libellesMarche, messageErreur, montant, nombre,
@@ -24,6 +25,34 @@ import {
 import styles from './fiche.module.css';
 
 const nombreOuNul = (t: string) => (t.trim() === '' ? null : Number(t.replace(',', '.')));
+// Ligne de prix avec le motif de sa dernière correction (lot R)
+type QuantiteFiche = Quantite & { motif_correction?: string | null };
+
+// Pièces d'une réparation (lot R) : inventaire réel, avec les corrections du bureau (nature, motif) ;
+// la saisie d'origine corrigée reste visible, barrée « remplacée » ou « retirée ». Une copie gardée
+// avant le lot R ne contient que le texte de chaque pièce.
+function PiecesReparation({ pieces = [] }: { pieces?: (PieceAffichee | string)[] }) {
+  if (!pieces.length) return null;
+  return (
+    <>
+      <dt>Pièces posées</dt>
+      <dd className="large">
+        <ul className={styles.pieces}>
+          {pieces.map((p, i) => (typeof p === 'string' ? <li key={i}>{p}</li> : (
+            <li key={p.id} className={p.etat === 'posee' ? undefined : styles.pieceHors}>
+              <span className={p.etat === 'posee' ? undefined : styles.barre}>{p.texte}</span>
+              {p.etat !== 'posee' && <span className={styles.etatPiece}>{ETATS_PIECE[p.etat]}</span>}
+              {p.provenance === 'correction' && <span className={styles.correction}>{libelleProvenance(p.provenance, p.nature)}</span>}
+              {p.remplace && <span className="discret"> · remplace {p.remplace}</span>}
+              {p.remplaceePar && <span className="discret"> · remplacée par {p.remplaceePar}</span>}
+              {p.motif && <span className="discret"> · « {p.motif} »</span>}
+            </li>
+          )))}
+        </ul>
+      </dd>
+    </>
+  );
+}
 
 export default function DetailFuite() {
   const { id } = useParams<{ id: string }>();
@@ -397,7 +426,7 @@ export default function DetailFuite() {
                     ? <>{nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = <b>{nombre(r.volume_m3, 3)} m³</b></>
                     : '—'}</dd>
                   <dt>Emplacement</dt><dd>{r.emplacement ? EMPLACEMENTS[r.emplacement] : '—'}</dd>
-                  {liens.pieces[r.id]?.length ? (<><dt>Pièces posées</dt><dd className="large">{liens.pieces[r.id].join(' · ')}</dd></>) : null}
+                  <PiecesReparation pieces={liens.pieces[r.id]} />
                   {r.representant_srm && (<><dt>Représentant {libelles.sigle}</dt><dd className="large">{r.representant_srm}</dd></>)}
                   {r.motif_id && (<><dt>Motif</dt><dd className="large">{motifLibelle(r.motif_id)}</dd></>)}
                   {r.observation && (<><dt>Observation</dt><dd className="large">{r.observation}</dd></>)}
@@ -601,14 +630,20 @@ function Photos({
 
 function LigneQuantite({
   ligne, modifiable, onChange, onErreur,
-}: { ligne: Quantite; modifiable: boolean; onChange: () => void; onErreur: (m: string) => void }) {
+}: { ligne: QuantiteFiche; modifiable: boolean; onChange: () => void; onErreur: (m: string) => void }) {
   const [valeur, setValeur] = useState(String(ligne.quantite));
   useEffect(() => setValeur(String(ligne.quantite)), [ligne.quantite]);
 
+  // Toute correction d'une ligne exige un motif (contrôle en base, gardé dans le journal).
   async function enregistrer() {
     const q = nombreOuNul(valeur);
     if (q == null || Number.isNaN(q) || q < 0 || q === ligne.quantite) return;
-    const { error } = await getSupabase().from('lignes_quantites').update({ quantite: q }).eq('id', ligne.id);
+    const motif = window.prompt('Motif de la correction (obligatoire, gardé dans le journal) :');
+    if (!motif?.trim()) {
+      setValeur(String(ligne.quantite));
+      return;
+    }
+    const { error } = await getSupabase().from('lignes_quantites').update({ quantite: q, motif_modification: motif.trim() }).eq('id', ligne.id);
     if (error) onErreur(messageErreur(error));
     onChange();
   }
@@ -616,7 +651,10 @@ function LigneQuantite({
   return (
     <tr>
       <td>{ligne.prix_numero}</td>
-      <td title={ligne.prix_designation}>{ligne.prix_designation.slice(0, 60)}…{ligne.origine_ligne === 'manuel' ? ' ✎' : ''}</td>
+      <td title={ligne.prix_designation}>
+        {ligne.prix_designation.slice(0, 60)}…{ligne.origine_ligne === 'manuel' ? ' ✎' : ''}
+        {ligne.motif_correction && <><br /><span className="discret">Motif : {ligne.motif_correction}</span></>}
+      </td>
       <td>
         {modifiable ? (
           <input className="court" value={valeur} onChange={(e) => setValeur(e.target.value)} onBlur={enregistrer} inputMode="decimal" />

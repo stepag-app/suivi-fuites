@@ -80,6 +80,10 @@ const CHAMPS_SUIVI: Champ[] = [
   { cle: 'rayon_redetection_m', libelle: 'Rayon de re-détection (mètres)', type: 'nombre', obligatoire: true },
   { cle: 'jalons_client', libelle: 'Suivre les jalons du client (communication le jour même, avis avant terrassement, validation)', type: 'case' },
   { cle: 'une_unite_par_prix_et_fuite', libelle: 'Au plus une unité de chaque prix unitaire par fuite', type: 'case' },
+  {
+    cle: 'longueur_pe_max_m', libelle: 'Polyéthylène couvert par l\'article de réparation (mètres)', type: 'nombre', obligatoire: true,
+    aide: 'Au-delà : excédent hors bordereau, à faire valoir (contrôles d\'attachement, travaux hors bordereau, anomalies). 2 m par défaut.',
+  },
 ];
 
 export function OngletMarche({ marcheId, modifiable }: { marcheId: string; modifiable: boolean }) {

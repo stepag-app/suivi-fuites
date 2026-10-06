@@ -24,7 +24,7 @@
 | Sous-lot | Branche | Périmètre | Qui |
 |---|---|---|---|
 | S1 conversion DWG, zonage initial, fichiers d'import, documentation | `claude/lot-s1-conversion-reseau` | `outils/reseau/**`, `docs/**`, `supabase/README.md`, `web/README.md`, `mobile/README.md`, `data-private/reseau/**` (hors dépôt) | session principale |
-| S2 base de données | `claude/lot-s2-base-reseau` | `supabase/migrations/20261006120000_reseau_balayage.sql`, `supabase/tests/database/13_reseau_balayage.test.sql` | agent |
+| S2 base de données | `claude/lot-s2-base-reseau` | `supabase/migrations/20261006130000_reseau_balayage.sql`, `supabase/tests/database/15_reseau_balayage.test.sql` (numéros 20261006120000 et 13-14 pris par les lots P3 et P4 d'une autre session) | agent |
 | S3 panneau web | `claude/lot-s3-web-reseau` | `web/src/app/(app)/carte/**`, `web/src/app/(app)/parametres/OngletReseau*.tsx` (+ 1 onglet dans `parametres/page.tsx`), `web/src/app/(app)/balayage/**`, `web/src/app/session/**`, `web/src/lib/reseau/**`, `web/src/lib/types.ts` (ajouts), `web/scripts/verifier-reseau.mjs`, `web/public/sw.js` (si nécessaire) | agent |
 | S4 APK | `claude/lot-s4-apk-balayage` | `mobile/**` | agent |
 
@@ -155,7 +155,7 @@ Vues (`security_invoker = true`, comme `v_fuites`) :
 | `v_balayage_journalier` | `marche_id, date_balayage, equipe_id, equipe, agent_id, agent (nom_complet), zone_id, zone, secteur_id, secteur, nb_troncons, lineaire_m` (premiers passages), `lineaire_repasse_m` (passages suivants), `nb_noeuds` (nœuds à moins de 1 m d'une extrémité d'un tronçon balayé ce jour), `nb_fuites` (fuites du marché détectées ce jour dans ce secteur, non supprimées) |
 | `v_troncons_sans_secteur` | `marche_id, nb_troncons, lineaire_m` : ce qui reste à zoner |
 
-Tests pgTAP (`13_reseau_balayage.test.sql`, jeu d'essai sur le marché `TEST-A` comme `02_parametres_marche`) :
+Tests pgTAP (`15_reseau_balayage.test.sql`, jeu d'essai sur le marché `TEST-A` comme `02_parametres_marche`) :
 RLS lecture / écriture par rôle ; import idempotent (même fichier → 0 insert) et mise à jour par référence ;
 longueur calculée ; zonage automatique par contour ; affectation par liste et par polygone, contours recalculés ;
 `premier_passage` et annulation ; statut du secteur `a_balayer → en_cours → balayee` ; vues (linéaires, journalier,

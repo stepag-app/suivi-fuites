@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Aperçu du réseau converti</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #fff; }
+  #carte { position: absolute; inset: 0; }
+  #panneau { position: absolute; top: 10px; left: 10px; background: #fff; padding: 10px 12px; border-radius: 8px;
+             box-shadow: 0 1px 6px rgba(0,0,0,.2); font-size: 13px; max-height: 90vh; overflow: auto; min-width: 220px; }
+  #panneau label { display: block; margin: 2px 0; cursor: pointer; }
+  .pastille { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -2px; margin-right: 6px; }
+  #info { position: absolute; bottom: 24px; left: 10px; background: #fff; padding: 6px 10px; border-radius: 6px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="carte"></div>
+<div id="panneau">
+  <strong>Réseau converti</strong>
+  <div id="stats">chargement…</div>
+  <label><input type="checkbox" id="cb-secteurs" checked> contours des secteurs</label>
+  <label><input type="checkbox" id="cb-noeuds"> nœuds</label>
+  <label><input type="checkbox" id="cb-rues" checked> rues OSM (fond)</label>
+  <div id="legende"></div>
+</div>
+<div id="info">Cliquez sur un tronçon.</div>
+<script>
+// Aperçu local : python3 -m http.server 8765 dans data-private/reseau/ (où ce fichier a été copié).
+const params = new URLSearchParams(location.search);
+const fichier = params.get('troncons') || 'troncons.geojson';
+const couleurs = ['#0b5d8a','#b44f00','#256f3a','#8b1a89','#aa0808','#0064d9','#6b5b00','#007f7f','#9c4b00','#4b4b9c',
+  '#2e7d32','#c62828','#00838f','#6a1b9a','#ef6c00','#1565c0','#558b2f','#ad1457','#283593','#00695c',
+  '#f9a825','#4e342e','#37474f','#d84315','#1b5e20','#311b92','#01579b','#827717','#880e4f','#004d40','#e65100','#263238','#3e2723','#b71c1c'];
+const carte = new maplibregl.Map({ container: 'carte', style: 'https://tiles.openfreemap.org/styles/positron',
+  center: [-1.9086, 34.6814], zoom: 12 });
+carte.addControl(new maplibregl.NavigationControl());
+carte.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+carte.on('load', async () => {
+  const [tr, se, no] = await Promise.all([
+    fetch(fichier).then(r => r.json()),
+    fetch('secteurs.geojson').then(r => r.ok ? r.json() : { type: 'FeatureCollection', features: [] }).catch(() => ({ type: 'FeatureCollection', features: [] })),
+    fetch('noeuds.geojson').then(r => r.ok ? r.json() : { type: 'FeatureCollection', features: [] }).catch(() => ({ type: 'FeatureCollection', features: [] })),
+  ]);
+  const codes = [...new Set(tr.features.map(f => f.properties.secteur_code).filter(Boolean))].sort();
+  const couleurDe = Object.fromEntries(codes.map((c, i) => [c, couleurs[i % couleurs.length]]));
+  tr.features.forEach(f => { f.properties.couleur = couleurDe[f.properties.secteur_code] || '#8a97a5'; });
+  carte.addSource('troncons', { type: 'geojson', data: tr });
+  carte.addSource('secteurs', { type: 'geojson', data: se });
+  carte.addSource('noeuds', { type: 'geojson', data: no });
+  carte.addLayer({ id: 'troncons', type: 'line', source: 'troncons',
+    paint: { 'line-color': ['get', 'couleur'], 'line-width': ['case', ['==', ['get', 'categorie'], 'branchement'], 0.8, 2], 'line-opacity': 0.9 } });
+  carte.addLayer({ id: 'secteurs-trait', type: 'line', source: 'secteurs', paint: { 'line-color': '#d100d1', 'line-width': 2, 'line-dasharray': [3, 2] } });
+  carte.addLayer({ id: 'secteurs-nom', type: 'symbol', source: 'secteurs',
+    layout: { 'text-field': ['get', 'libelle'], 'text-size': 13, 'text-font': ['Noto Sans Bold'] }, paint: { 'text-color': '#8b1a89', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } });
+  carte.addLayer({ id: 'noeuds', type: 'circle', source: 'noeuds', minzoom: 14, layout: { visibility: 'none' },
+    paint: { 'circle-radius': 3, 'circle-color': ['match', ['get', 'type'], 'jonction', '#1d2d3e', 'extremite', '#aa0808', '#0064d9'], 'circle-stroke-color': '#fff', 'circle-stroke-width': 1 } });
+  const bornes = new maplibregl.LngLatBounds();
+  tr.features.forEach(f => f.geometry.coordinates.forEach(c => bornes.extend(c)));
+  if (!bornes.isEmpty()) carte.fitBounds(bornes, { padding: 40 });
+  const km = tr.features.reduce((t, f) => t + longueur(f.geometry.coordinates), 0) / 1000;
+  document.getElementById('stats').textContent = `${tr.features.length} tronçons, ${km.toFixed(1)} km ; ${se.features.length} secteurs ; ${no.features.length} nœuds`;
+  document.getElementById('legende').innerHTML = codes.map(c => `<div><span class="pastille" style="background:${couleurDe[c]}"></span>${c}</div>`).join('')
+    + `<div><span class="pastille" style="background:#8a97a5"></span>(non zoné)</div>`;
+  document.getElementById('cb-secteurs').onchange = e => ['secteurs-trait', 'secteurs-nom'].forEach(l => carte.setLayoutProperty(l, 'visibility', e.target.checked ? 'visible' : 'none'));
+  document.getElementById('cb-noeuds').onchange = e => carte.setLayoutProperty('noeuds', 'visibility', e.target.checked ? 'visible' : 'none');
+  document.getElementById('cb-rues').onchange = e => carte.getStyle().layers.filter(l => !['troncons','secteurs-trait','secteurs-nom','noeuds'].includes(l.id))
+    .forEach(l => carte.setLayoutProperty(l.id, 'visibility', e.target.checked ? 'visible' : 'none'));
+  carte.on('click', 'troncons', e => {
+    const p = e.features[0].properties;
+    document.getElementById('info').textContent = `${p.reference} · ${p.calque} · ${p.categorie} · DN ${p.diametre_mm ?? '?'} · ${p.materiau ?? '?'} · secteur ${p.secteur_code ?? '—'} · ${e.lngLat.lat.toFixed(6)}, ${e.lngLat.lng.toFixed(6)}`;
+  });
+});
+function longueur(c) { let l = 0; for (let i = 1; i < c.length; i++) l += dist(c[i-1], c[i]); return l; }
+function dist(a, b) { const R = 6371000, r = Math.PI / 180, dl = (b[1]-a[1])*r, dg = (b[0]-a[0])*r*Math.cos((a[1]+b[1])/2*r); return R*Math.hypot(dl, dg); }
+</script>
+</body>
+</html>

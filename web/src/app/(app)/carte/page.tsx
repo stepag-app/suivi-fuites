@@ -1,45 +1,59 @@
-'use client';
+"use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { STATUTS, libellesMarche, messageErreur } from '@/lib/format';
-import { useSession } from '@/lib/session';
-import { getSupabase, lireTout } from '@/lib/supabase';
-import type { StatutFuite } from '@/lib/types';
-import { Carte, type CarteRef } from './Carte';
-import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from './commun';
-import type { ChoixImpression } from './impression';
-import { PanneauImpression } from './PanneauImpression';
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Spinner } from "@/components/ui/spinner";
+import { STATUT_STYLE } from "@/components/statut";
+import { libellesMarche, messageErreur } from "@/lib/format";
+import { useSession } from "@/lib/session";
+import { getSupabase, lireTout } from "@/lib/supabase";
+import type { StatutFuite } from "@/lib/types";
+import { Carte, type CarteRef } from "./Carte";
+import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
+import { ApercuFuite, BarreCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
+import type { ChoixImpression } from "./impression";
+import { ListeCarte } from "./liste-carte";
+import { PanneauImpression } from "./PanneauImpression";
 
 type SecteurCarte = Contour & { zone_id: string | null };
 
-const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR');
+const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString("fr-FR");
+const FILTRES_VIDES: FiltresCarte = { secteur: "", du: "", au: "", alertes: false };
 
 export default function PageCarte() {
+  return (
+    <Suspense fallback={<p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>}>
+      <CarteDesFuites />
+    </Suspense>
+  );
+}
+
+function CarteDesFuites() {
   const { marche, peut } = useSession();
   const libelles = libellesMarche(marche);
+  const fuiteDemandee = useSearchParams().get("fuite");
   const [fuites, setFuites] = useState<FuiteCarte[]>([]);
   const [secteurs, setSecteurs] = useState<SecteurCarte[]>([]);
   const [zones, setZones] = useState<Contour[]>([]);
-  const [erreur, setErreur] = useState('');
+  const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
-  const [statuts, setStatuts] = useState<StatutFuite[]>([]);
-  const [secteur, setSecteur] = useState('');
-  const [du, setDu] = useState('');
-  const [au, setAu] = useState('');
-  const [alertesSeules, setAlertesSeules] = useState(false);
-  const [impressionOuverte, setImpressionOuverte] = useState(false);
+  const [statut, setStatut] = useState<StatutFuite | "">("");
+  const [texte, setTexte] = useState("");
+  const [filtres, setFiltres] = useState<FiltresCarte>(FILTRES_VIDES);
+  const [selection, setSelection] = useState<string | null>(null);
+  const [onglet, setOnglet] = useState("fuite");
+  const [feuille, setFeuille] = useState(false);
   const carte = useRef<CarteRef>(null);
 
   const marcheId = marche?.id;
-  // Une réponse arrivée après un changement de marché (ou une actualisation plus récente) est ignorée.
   const derniereDemande = useRef(0);
   const charger = useCallback(async () => {
     if (!marcheId) return;
     const demande = ++derniereDemande.current;
-    setErreur('');
-    // Sans réseau, inutile d'attendre les nouvelles tentatives : la carte a besoin de la connexion.
+    setErreur("");
     if (!navigator.onLine) {
-      setErreur('Pas de réseau : la carte des fuites s\'affichera au retour de la connexion (bouton « Actualiser »).');
+      setErreur("Pas de réseau : la carte des fuites s'affichera au retour de la connexion (bouton « Actualiser »).");
       setChargement(false);
       return;
     }
@@ -47,10 +61,10 @@ export default function PageCarte() {
     const sb = getSupabase();
     try {
       const [f, s, z] = await Promise.all([
-        lireTout<FuiteCarte>((de, a) => sb.from('v_fuites').select(COLONNES_CARTE).eq('marche_id', marcheId)
-          .order('numero').range(de, a) as unknown as PromiseLike<{ data: FuiteCarte[] | null; error: { message: string } | null }>),
-        sb.from('secteurs').select('id, zone_id, code, libelle, geom').eq('marche_id', marcheId).eq('actif', true).order('libelle'),
-        sb.from('zones').select('id, code, libelle, geom').eq('marche_id', marcheId).eq('actif', true).order('numero'),
+        lireTout<FuiteCarte>((de, a) => sb.from("v_fuites").select(COLONNES_CARTE).eq("marche_id", marcheId)
+          .order("numero").range(de, a) as unknown as PromiseLike<{ data: FuiteCarte[] | null; error: { message: string } | null }>),
+        sb.from("secteurs").select("id, zone_id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("libelle"),
+        sb.from("zones").select("id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("numero"),
       ]);
       if (demande !== derniereDemande.current) return;
       if (s.error) throw s.error;
@@ -69,28 +83,25 @@ export default function PageCarte() {
     charger();
   }, [charger]);
 
-  const filtrees = useMemo(
-    () => fuites.filter((f) => {
-      if (statuts.length && !statuts.includes(f.statut)) return false;
-      if (secteur && f.secteur_id !== secteur) return false;
-      if (alertesSeules && !aUneAlerte(f)) return false;
-      if (du || au) {
+  const filtrees = useMemo(() => {
+    const t = texte.trim().toLowerCase();
+    return fuites.filter((f) => {
+      if (statut && f.statut !== statut) return false;
+      if (filtres.secteur && f.secteur_id !== filtres.secteur) return false;
+      if (filtres.alertes && !aUneAlerte(f)) return false;
+      if (filtres.du || filtres.au) {
         const j = jourMaroc(f.date_detection);
-        if (du && j < du) return false;
-        if (au && j > au) return false;
+        if (filtres.du && j < filtres.du) return false;
+        if (filtres.au && j > filtres.au) return false;
       }
-      return true;
-    }),
-    [fuites, statuts, secteur, du, au, alertesSeules],
-  );
-  const placees = filtrees.filter((f) => f.latitude != null && f.longitude != null);
+      return !t || String(f.numero) === t || (f.reference_srm ?? "").toLowerCase().includes(t) || (f.adresse ?? "").toLowerCase().includes(t);
+    });
+  }, [fuites, statut, filtres, texte]);
+  const placees = useMemo(() => filtrees.filter((f) => f.latitude != null && f.longitude != null), [filtrees]);
   const sansPosition = filtrees.length - placees.length;
+  const choisie = fuites.find((f) => f.id === selection) ?? null;
 
-  // Contours affichés : le secteur choisi (ou tous), et seulement s'ils sont dessinés.
-  const secteursAffiches = useMemo(
-    () => secteurs.filter((s) => (!secteur || s.id === secteur) && geometrieValide(s.geom)),
-    [secteurs, secteur],
-  );
+  const secteursAffiches = useMemo(() => secteurs.filter((s) => (!filtres.secteur || s.id === filtres.secteur) && geometrieValide(s.geom)), [secteurs, filtres.secteur]);
   const zonesAffichees = useMemo(() => zones.filter((z) => geometrieValide(z.geom)), [zones]);
 
   const compteurs = useMemo(() => {
@@ -99,34 +110,32 @@ export default function PageCarte() {
     return c;
   }, [fuites]);
 
-  // Filtres appliqués, écrits dans le PDF de la carte.
-  const libelleSecteur = secteurs.find((s) => s.id === secteur)?.libelle;
+  const libelleSecteur = secteurs.find((s) => s.id === filtres.secteur)?.libelle;
   const descriptionFiltres = [
-    statuts.length > 0 && `statut : ${statuts.map((s) => STATUTS[s].libelle).join(' / ')}`,
+    statut && `statut : ${STATUT_STYLE[statut].libelle}`,
     libelleSecteur && `secteur : ${libelleSecteur}`,
-    du && au ? `détectées du ${jourFr(du)} au ${jourFr(au)}` : du ? `détectées depuis le ${jourFr(du)}` : au ? `détectées jusqu'au ${jourFr(au)}` : '',
-    alertesSeules && 'alertes seulement',
-  ].filter(Boolean).join(' ; ');
-  const filtresImpression = `Filtres : ${descriptionFiltres || 'aucun (toutes les fuites du marché)'}`;
+    filtres.du && filtres.au ? `détectées du ${jourFr(filtres.du)} au ${jourFr(filtres.au)}` : filtres.du ? `détectées depuis le ${jourFr(filtres.du)}` : filtres.au ? `détectées jusqu'au ${jourFr(filtres.au)}` : "",
+    filtres.alertes && "alertes seulement",
+    texte.trim() && `recherche « ${texte.trim()} »`,
+  ].filter(Boolean).join(" ; ");
+  const filtresImpression = `Filtres : ${descriptionFiltres || "aucun (toutes les fuites du marché)"}`;
 
   const imprimer = async (choix: ChoixImpression, etape: (texte: string) => void) => {
     const etat = carte.current?.etatImpression();
-    if (!etat || !marcheId) throw new Error('La carte n\'est pas encore affichée : attendez la fin du chargement puis réessayez.');
-    const { imprimerCarte } = await import('./impression');
+    if (!etat || !marcheId) throw new Error("La carte n'est pas encore affichée : attendez la fin du chargement puis réessayez.");
+    const { imprimerCarte } = await import("./impression");
     const r = await imprimerCarte(marcheId, choix, {
-      etat, fuites: filtrees, zones: zonesAffichees, secteurs: secteursAffiches,
-      filtres: filtresImpression, libelleReference: libelles.reference,
+      etat, fuites: filtrees, zones: zonesAffichees, secteurs: secteursAffiches, filtres: filtresImpression, libelleReference: libelles.reference,
     }, etape);
-    return `PDF téléchargé (${(r.octets / 1048576).toFixed(1).replace('.', ',')} Mo, ${Math.max(1, Math.round(r.secondes))} s).`;
+    return `PDF téléchargé (${(r.octets / 1048576).toFixed(1).replace(".", ",")} Mo, ${Math.max(1, Math.round(r.secondes))} s).`;
   };
 
-  const basculer = (s: StatutFuite) =>
-    setStatuts((liste) => (liste.includes(s) ? liste.filter((x) => x !== s) : [...liste, s]));
-  const filtresActifs = statuts.length > 0 || !!secteur || !!du || !!au || alertesSeules;
+  const filtresActifs = !!statut || !!filtres.secteur || !!filtres.du || !!filtres.au || filtres.alertes || !!texte.trim();
+  const effacer = () => { setStatut(""); setTexte(""); setFiltres(FILTRES_VIDES); };
 
   // Après un changement de filtre, la vue se recadre sur les fuites restantes.
   const premierCadrage = useRef(true);
-  const cleFiltres = `${statuts.join(',')}|${secteur}|${du}|${au}|${alertesSeules}|${fuites.length}`;
+  const cleFiltres = `${statut}|${filtres.secteur}|${filtres.du}|${filtres.au}|${filtres.alertes}|${fuites.length}`;
   useEffect(() => {
     if (premierCadrage.current) {
       premierCadrage.current = false;
@@ -135,90 +144,81 @@ export default function PageCarte() {
     carte.current?.recentrer();
   }, [cleFiltres]);
 
+  const choisir = useCallback((f: FuiteCarte) => {
+    setSelection(f.id);
+    setOnglet("fuite");
+    carte.current?.centrerSur(f);
+    if (window.innerWidth < 1024) setFeuille(true);
+  }, []);
+
+  // Fuite demandée dans l'adresse (?fuite=…) : sélectionnée dès que la carte est prête.
+  const demandeTraitee = useRef<string | null>(null);
+  useEffect(() => {
+    if (!fuiteDemandee || demandeTraitee.current === fuiteDemandee || !fuites.length) return;
+    const f = fuites.find((x) => x.id === fuiteDemandee);
+    if (!f) return;
+    demandeTraitee.current = fuiteDemandee;
+    setSelection(f.id);
+    let essais = 0;
+    const minuteur = setInterval(() => {
+      essais++;
+      if (carte.current?.etatImpression() || essais > 20) {
+        clearInterval(minuteur);
+        carte.current?.centrerSur(f);
+      }
+    }, 400);
+    return () => clearInterval(minuteur);
+  }, [fuiteDemandee, fuites]);
+
+  const details = (
+    <OngletsCarte onglet={onglet} changerOnglet={setOnglet} impression={peut("exports", "lire")}>
+      <TabsContent className="min-h-0 overflow-auto p-4" value="fuite"><ApercuFuite fuite={choisie} libelles={libelles} /></TabsContent>
+      <TabsContent className="min-h-0 overflow-auto p-4" value="filtres">
+        <FiltresCarteForm filtres={filtres} changer={(f) => setFiltres((x) => ({ ...x, ...f }))} secteurs={secteurs} />
+      </TabsContent>
+      {peut("exports", "lire") && (
+        <TabsContent className="min-h-0 overflow-auto p-4" value="impression">
+          <PanneauImpression titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ""}`} nombreSurCarte={placees.length}
+            nombreListe={filtrees.length} filtres={filtresImpression} imprimer={imprimer} />
+        </TabsContent>
+      )}
+    </OngletsCarte>
+  );
+
   return (
-    <div className="page-carte">
-      <div className="barre">
-        <h1>
-          Carte des fuites{' '}
-          <span className="discret">
-            ({placees.length} sur la carte{sansPosition > 0 ? `, ${sansPosition} sans position` : ''})
-          </span>
-        </h1>
-        <div className="actions">
-          <button className="gros" onClick={() => carte.current?.recentrer()}>Recentrer</button>
-          <button className="gros" onClick={charger} disabled={chargement}>Actualiser</button>
-          {peut('exports', 'lire') && (
-            <button className="gros" onClick={() => setImpressionOuverte(true)} disabled={chargement || !!erreur}>
-              Imprimer la carte
-            </button>
-          )}
+    <>
+      <div data-content-padding="false" className="flex h-[calc(100dvh-var(--dashboard-header-height))] flex-col overflow-hidden lg:grid lg:grid-cols-[400px_minmax(0,1fr)] lg:divide-x">
+        <div className="order-2 min-h-0 flex-1 overflow-hidden lg:order-1 lg:h-full">
+          <ListeCarte fuites={filtrees} total={fuites.length} compteurs={compteurs} statut={statut} choisirStatut={setStatut}
+            texte={texte} changerTexte={setTexte} selection={selection} choisir={choisir} libelles={libelles}
+            filtresActifs={filtresActifs} effacer={effacer} ouvrirFiltres={() => { setOnglet("filtres"); if (window.innerWidth < 1024) setFeuille(true); }} />
+        </div>
+        <div className="order-1 h-[44vh] shrink-0 overflow-hidden lg:order-2 lg:h-full">
+          <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
+            <div className="relative min-h-0 overflow-hidden">
+              <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} />
+              {chargement && fuites.length === 0 && (
+                <div className="absolute inset-0 grid place-items-center bg-background/60 text-muted-foreground text-sm"><span className="flex items-center gap-2"><Spinner />Chargement des fuites…</span></div>
+              )}
+            </div>
+            <div className="hidden min-h-0 border-t lg:block">
+              <BarreCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur} recentrer={() => carte.current?.recentrer()} actualiser={charger} />
+              <div className="h-60 overflow-hidden">{details}</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Les pastilles servent aussi de légende : couleur du point = couleur du badge. */}
-      <div className="pastilles legende-carte" role="group" aria-label="Statuts (légende et filtre)">
-        {(Object.keys(STATUTS) as StatutFuite[]).map((s) => (
-          <button
-            key={s}
-            className={`pastille ${STATUTS[s].classe} ${statuts.includes(s) ? 'choisie' : ''}`}
-            aria-pressed={statuts.includes(s)}
-            onClick={() => basculer(s)}
-          >
-            <span className={`point-legende pt-${s}`} aria-hidden="true" />
-            {STATUTS[s].libelle} · {compteurs[s] ?? 0}
-          </button>
-        ))}
-        <span className="pastille legende-alerte"><span className="point-legende pt-alerte" aria-hidden="true" />En alerte</span>
-      </div>
-
-      <div className="filtres">
-        <label>
-          Secteur
-          <select value={secteur} onChange={(e) => setSecteur(e.target.value)}>
-            <option value="">Tous les secteurs</option>
-            {secteurs.map((s) => (
-              <option key={s.id} value={s.id}>{s.libelle}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Détectées du
-          <input type="date" value={du} max={au || undefined} onChange={(e) => setDu(e.target.value)} />
-        </label>
-        <label>
-          au
-          <input type="date" value={au} min={du || undefined} onChange={(e) => setAu(e.target.value)} />
-        </label>
-        <label className="ligne">
-          <input type="checkbox" checked={alertesSeules} onChange={(e) => setAlertesSeules(e.target.checked)} />
-          Alertes seulement
-        </label>
-        {filtresActifs && (
-          <button onClick={() => { setStatuts([]); setSecteur(''); setDu(''); setAu(''); setAlertesSeules(false); }}>
-            Effacer les filtres
-          </button>
-        )}
-      </div>
-
-      {erreur && <p className="erreur">{erreur}</p>}
-      {chargement && <p className="discret">Chargement des fuites…</p>}
-      {!chargement && !erreur && placees.length === 0 && (
-        <p className="discret">
-          {fuites.length === 0 ? 'Aucune fuite dans ce marché.' : 'Aucune fuite géolocalisée ne correspond aux filtres.'}
-        </p>
-      )}
-
-      <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} />
-
-      <PanneauImpression
-        ouvert={impressionOuverte}
-        fermer={() => setImpressionOuverte(false)}
-        titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ''}`}
-        nombreSurCarte={placees.length}
-        nombreListe={filtrees.length}
-        filtres={filtresImpression}
-        imprimer={imprimer}
-      />
-    </div>
+      <Sheet open={feuille} onOpenChange={setFeuille}>
+        <SheetContent side="bottom" className="h-[70vh] gap-0 p-0">
+          <SheetHeader className="sr-only">
+            <SheetTitle>{choisie ? `Fuite N° ${choisie.numero}` : "Détails"}</SheetTitle>
+            <SheetDescription>Détails de la fuite choisie, filtres et impression.</SheetDescription>
+          </SheetHeader>
+          <BarreCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur} recentrer={() => carte.current?.recentrer()} actualiser={charger} />
+          <div className="min-h-0 flex-1 overflow-hidden">{details}</div>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }

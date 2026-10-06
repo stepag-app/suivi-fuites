@@ -3,9 +3,29 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-05 (session 6 : PR #21 à #26 des lots F, G, H, I, J **fusionnées**, migrations des
+Dernière mise à jour : 2026-10-06 (maquette shadcn à valider, voir § 0 ; session 6 : PR #21 à #26 des lots F, G, H, I, J **fusionnées**, migrations des
 lots F et J **déployées** à 16 h 51 UTC ; lots K, L, M menés en parallèle, PR #27 à #29 **en brouillon** ; le test de
 restauration (K) révèle trois défauts de l'export de la sauvegarde, à corriger en priorité).
+
+## 0. Maquette « Studio Admin » (shadcn/ui) à valider — 2026-10-06
+
+Branche **`claude/maquette-shadcn`** (copie de `main` après la PR #30) : le panneau web entier reconstruit avec
+l'interface du modèle [next-shadcn-admin-dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard)
+(Tailwind v4, shadcn/ui, Recharts, TanStack Table), en reprenant les composants de chaque rubrique du modèle là où
+ils conviennent (Default / Analytics → tableau de bord, Tasks / Kanban → liste des fuites, Profile → fiche,
+Logistics → carte, Invoice → lot d'attachement, Finance → attachements, Users / Roles → utilisateurs,
+Infrastructure → marchés, Patient monitoring → nouvelle page Alertes, Productivity → nouvelle page À faire,
+Auth v1 → connexion). Données, base, droits, exports et hors ligne inchangés. Guide : `web/MAQUETTE-SHADCN.md`.
+
+- **À faire par Issam** : ouvrir la maquette (`cd web && npm run dev`, vraie connexion ; ou
+  `NEXT_PUBLIC_MODE_DEMO=1 npm run dev` pour un jeu de données fictif sans compte), parcourir les écrans sur
+  ordinateur et sur la tablette, puis dire si on **adopte** cette interface (la branche sera alors fusionnée
+  et les onglets des paramètres, le panneau d'export et les formulaires encore « à l'ancienne » seront convertis)
+  ou si on **reste** sur le style Fiori de `main` (branche à supprimer).
+- Vérifié ici en mode démonstration (navigateur intégré) : connexion, tableau de bord, liste (tableau, colonnes,
+  filtres), fiche et photos, carte (liste et sélection ; fond de carte non chargé dans ce navigateur), alertes,
+  à faire, attachements (synthèse, lots, lot en brouillon), paramètres, utilisateurs, marchés, nouvelle fuite,
+  sans erreur de console. Non vérifié : vraie base Supabase, tablette, exports PDF / Excel depuis la maquette.
 
 ## 1. Fait
 

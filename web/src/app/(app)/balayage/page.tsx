@@ -1,7 +1,8 @@
 'use client';
 
 // Journal des balayages (droit « balayage / lire ») : lignes de `v_balayage_journalier` par jour, équipe,
-// agent, zone et secteur ; filtres période / équipe / secteur ; totaux ; export Excel ou CSV via lib/export.
+// agent, zone et secteur ; filtres période / équipe / secteur ; totaux ; export Excel ou CSV via lib/export ;
+// rapport journalier de recherche de fuites (PDF avec extrait de plan, ou Excel) par jour ou par équipe.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { messageErreur, nombre } from '@/lib/format';
 import { chargerEquipes, chargerJournal, estBaseSansReseau, messageReseau, type EquipeReseau } from '@/lib/reseau/donnees';
@@ -10,6 +11,7 @@ import { formaterLineaire } from '@/lib/reseau/selection';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { LigneBalayageJournalier, Secteur } from '@/lib/types';
+import type { ModeRapport } from './rapport';
 
 const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
 
@@ -24,6 +26,10 @@ export default function PageBalayage() {
   const [erreur, setErreur] = useState('');
   const [baseAbsente, setBaseAbsente] = useState(false);
   const [exportEnCours, setExportEnCours] = useState('');
+  const [modeRapport, setModeRapport] = useState<ModeRapport>('jour');
+  const [avecPlan, setAvecPlan] = useState(true);
+  const [rapportEnCours, setRapportEnCours] = useState('');
+  const [infoRapport, setInfoRapport] = useState('');
 
   const derniereDemande = useState({ n: 0 })[0];
   const charger = useCallback(async () => {
@@ -102,6 +108,26 @@ export default function PageBalayage() {
     setExportEnCours('');
   }
 
+  // Rapport journalier de recherche de fuites (CPS art. II-21) : un fichier pour le jour, ou un par équipe.
+  async function rapportJournalier(jour: string, format: 'pdf' | 'xlsx') {
+    if (!marcheId) return;
+    setRapportEnCours(`${jour}|${format}`);
+    setErreur('');
+    setInfoRapport('');
+    try {
+      const { telechargerRapportJournalier } = await import('./rapport');
+      const r = await telechargerRapportJournalier(marcheId, jour, format, modeRapport, avecPlan);
+      setInfoRapport(
+        `${r.fichiers} rapport${r.fichiers > 1 ? 's' : ''} du ${jourFr(jour)} téléchargé${r.fichiers > 1 ? 's' : ''}.`
+        + (r.nonAttribuees ? ` ${r.nonAttribuees} fuite${r.nonAttribuees > 1 ? 's' : ''} sans équipe identifiable (secteur balayé par plusieurs équipes) : renseigner l'équipe de détection sur la fiche ou utiliser le rapport du jour.` : ''),
+      );
+    } catch (e) {
+      setErreur(messageErreur(e));
+    }
+    setRapportEnCours('');
+  }
+  const peutRapport = peut('exports', 'lire');
+
   if (!peut('balayage', 'lire')) return <p className="carte">Votre compte ne voit pas le journal des balayages.</p>;
 
   return (
@@ -156,6 +182,22 @@ export default function PageBalayage() {
         )}
       </div>
 
+      {peutRapport && (
+        <div className="filtres">
+          <label>
+            Rapport journalier
+            <select value={modeRapport} onChange={(e) => setModeRapport(e.target.value as ModeRapport)}>
+              <option value="jour">Un rapport par jour (toutes équipes)</option>
+              <option value="equipe">Un rapport par équipe</option>
+            </select>
+          </label>
+          <label className="ligne">
+            <input type="checkbox" checked={avecPlan} onChange={(e) => setAvecPlan(e.target.checked)} />
+            Extrait de plan A4 dans le PDF
+          </label>
+        </div>
+      )}
+      {infoRapport && <p className="carte succes">{infoRapport}</p>}
       {erreur && <p className="erreur">{erreur}</p>}
       {baseAbsente && (
         <p className="carte attention">
@@ -186,6 +228,7 @@ export default function PageBalayage() {
                     <th>Jour</th><th>Équipe</th><th>Agent</th><th>Zone</th><th>Secteur</th>
                     <th className="num">Tronçons</th><th className="num">Linéaire</th><th className="num">Repassé</th>
                     <th className="num">Nœuds</th><th className="num">Fuites</th>
+                    {peutRapport && <th>Rapport du jour</th>}
                   </tr>
                 </thead>
                 {jours.map((j) => (
@@ -202,6 +245,20 @@ export default function PageBalayage() {
                         <td className="num">{l.lineaire_repasse_m > 0 ? formaterLineaire(l.lineaire_repasse_m) : '—'}</td>
                         <td className="num">{nombre(l.nb_noeuds, 0)}</td>
                         <td className="num">{nombre(l.nb_fuites, 0)}</td>
+                        {peutRapport && (
+                          <td>
+                            {i === 0 && (
+                              <span className="actions">
+                                <button onClick={() => rapportJournalier(j.jour, 'pdf')} disabled={!!rapportEnCours}>
+                                  {rapportEnCours === `${j.jour}|pdf` ? 'PDF…' : 'PDF'}
+                                </button>
+                                <button onClick={() => rapportJournalier(j.jour, 'xlsx')} disabled={!!rapportEnCours}>
+                                  {rapportEnCours === `${j.jour}|xlsx` ? 'Excel…' : 'Excel'}
+                                </button>
+                              </span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                     {j.lignes.length > 1 && (
@@ -212,6 +269,7 @@ export default function PageBalayage() {
                         <td className="num">{j.totaux.lineaire_repasse_m > 0 ? formaterLineaire(j.totaux.lineaire_repasse_m) : '—'}</td>
                         <td className="num">{nombre(j.totaux.nb_noeuds, 0)}</td>
                         <td className="num">{nombre(j.totaux.nb_fuites, 0)}</td>
+                        {peutRapport && <td />}
                       </tr>
                     )}
                   </tbody>
@@ -224,6 +282,7 @@ export default function PageBalayage() {
                     <td className="num">{totaux.lineaire_repasse_m > 0 ? formaterLineaire(totaux.lineaire_repasse_m) : '—'}</td>
                     <td className="num">{nombre(totaux.nb_noeuds, 0)}</td>
                     <td className="num">{nombre(totaux.nb_fuites, 0)}</td>
+                    {peutRapport && <td />}
                   </tr>
                 </tfoot>
               </table>

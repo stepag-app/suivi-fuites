@@ -42,15 +42,22 @@ export function filtrerJournal(lignes: LigneBalayageJournalier[], f: Partial<Fil
   });
 }
 
+// `nb_fuites` de la vue est le nombre de fuites du secteur détectées ce jour, répété sur chaque ligne équipe /
+// agent du même secteur : il ne compte qu'une fois par jour et par secteur.
 export function totauxJournal(lignes: LigneBalayageJournalier[]): TotauxJournal {
   const t: TotauxJournal = { nb_troncons: 0, lineaire_m: 0, lineaire_repasse_m: 0, nb_noeuds: 0, nb_fuites: 0, jours: 0 };
   const jours = new Set<string>();
+  const fuitesVues = new Set<string>();
   for (const l of lignes) {
     t.nb_troncons += Number(l.nb_troncons) || 0;
     t.lineaire_m += Number(l.lineaire_m) || 0;
     t.lineaire_repasse_m += Number(l.lineaire_repasse_m) || 0;
     t.nb_noeuds += Number(l.nb_noeuds) || 0;
-    t.nb_fuites += Number(l.nb_fuites) || 0;
+    const cleFuites = `${l.date_balayage}|${l.secteur_id ?? ''}`;
+    if (!fuitesVues.has(cleFuites)) {
+      fuitesVues.add(cleFuites);
+      t.nb_fuites += Number(l.nb_fuites) || 0;
+    }
     jours.add(l.date_balayage);
   }
   t.jours = jours.size;

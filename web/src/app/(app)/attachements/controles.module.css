@@ -48,7 +48,7 @@
 .panneau {
   margin: 0.3rem 0 0.6rem;
   padding: 0.75rem 0.85rem;
-  background: #fff;
+  background: var(--card);
   border: 1px solid var(--bord);
   border-left: 3px solid var(--principal);
   border-radius: var(--rayon-petit);

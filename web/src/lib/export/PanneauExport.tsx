@@ -259,7 +259,7 @@ export function PanneauExport({
   );
 
   return (
-    <aside className="panneau-export" role="dialog" aria-label="Exporter">
+    <aside className="panneau-export ancien" role="dialog" aria-label="Exporter">
       <div className="barre">
         <h2>Exporter</h2>
         <button onClick={fermer} aria-label="Fermer le panneau d'export">Fermer</button>

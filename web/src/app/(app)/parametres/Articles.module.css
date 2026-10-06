@@ -8,7 +8,7 @@
 }
 
 .etapes button[aria-pressed='true'] {
-  color: #fff;
+  color: var(--primary-foreground);
   background: var(--principal);
   border-color: var(--principal);
 }

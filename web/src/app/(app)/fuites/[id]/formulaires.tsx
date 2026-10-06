@@ -221,11 +221,11 @@ export function FormReparation({
           ))}
         </ul>
         <div className="ligne-pieces">
-          <input list="articles" placeholder="Rechercher un article" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
+          <input list="articles" className="mt-0 min-w-0 flex-1" placeholder="Rechercher un article" value={pieceTexte} onChange={(e) => setPieceTexte(e.target.value)} />
           <datalist id="articles">
             {pieces.map((p) => (<option key={p.id} value={p.designation} />))}
           </datalist>
-          <input className="court" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />
+          <input className="court mt-0 w-20 flex-none" value={pieceQte} onChange={(e) => setPieceQte(e.target.value)} inputMode="decimal" aria-label="Quantité" />
           <button type="button" onClick={ajouterPiece}>Ajouter</button>
         </div>
         <p className="discret">Article absent de la liste : le noter en observation et demander sa création dans Dolibarr.</p>

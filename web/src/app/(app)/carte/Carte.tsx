@@ -25,7 +25,7 @@ import { creerGestionReseau, type GestionReseau, type SecteurAffiche } from './r
 import styles from './reseau.module.css';
 
 type Libelles = ReturnType<typeof libellesMarche>;
-export type CarteRef = { recentrer: () => void; etatImpression: () => EtatCarte | null };
+export type CarteRef = { recentrer: () => void; centrerSur: (f: FuiteCarte) => void; etatImpression: () => EtatCarte | null };
 
 /** Réseau d'eau affiché sur la carte (lot S) ; absent : aucune couche du réseau. */
 export interface ReseauCarteProps {
@@ -117,7 +117,22 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       hauteurPx: m.getContainer().clientHeight,
     };
   };
-  useImperativeHandle(ref, () => ({ recentrer: () => recentrerRef.current(), etatImpression }), []);
+  // Centre la carte sur une fuite et ouvre sa bulle (sélection depuis la liste).
+  const mlRef = useRef<typeof import('maplibre-gl') | null>(null);
+  const centrerSur = (f: FuiteCarte) => {
+    const m = carte.current;
+    const ml = mlRef.current;
+    if (!m || !ml || f.latitude == null || f.longitude == null) return;
+    const position: [number, number] = [f.longitude, f.latitude];
+    m.easeTo({ center: position, zoom: Math.max(m.getZoom(), 15), offset: [0, m.getContainer().clientHeight * 0.2], duration: 500 });
+    new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
+      .setLngLat(position)
+      .setDOMContent(bulle(f, libellesRef.current, (href) => routerRef.current.push(href)))
+      .addTo(m);
+  };
+  const centrerSurRef = useRef(centrerSur);
+  centrerSurRef.current = centrerSur;
+  useImperativeHandle(ref, () => ({ recentrer: () => recentrerRef.current(), centrerSur: (f) => centrerSurRef.current(f), etatImpression }), []);
 
   // Création de la carte (une fois).
   useEffect(() => {
@@ -132,6 +147,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         return;
       }
       if (annule || !conteneur.current) return;
+      mlRef.current = ml;
 
       // Le fond n'est demandé qu'une fois ; sans réponse en 8 s, fond uni.
       let style: StyleSpecification = STYLE_SECOURS;
@@ -227,7 +243,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         // Bulle au-dessus du point, placé dans le quart bas de la carte : elle reste entière à l'écran.
         const position: [number, number] = [f.longitude as number, f.latitude as number];
         m.easeTo({ center: position, offset: [0, m.getContainer().clientHeight * 0.28], duration: 300 });
-        new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14 })
+        new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
           .setLngLat(position)
           .setDOMContent(bulle(f, libellesRef.current, (href) => routerRef.current.push(href)))
           .addTo(m);
@@ -290,12 +306,14 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   }, [pret, modeBalayage]);
 
   return (
-    <div className="carte-cadre">
-      <div ref={conteneur} className="carte-maplibre" aria-label="Carte des fuites" />
-      {!pret && !erreur && <p className="carte-message">Chargement de la carte…</p>}
-      {erreur && <p className="carte-message erreur">{erreur}</p>}
+    <div className="relative h-full min-h-72 w-full overflow-hidden bg-muted">
+      <div ref={conteneur} className="carte-maplibre absolute inset-0" aria-label="Carte des fuites" />
+      {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center p-4 text-center text-muted-foreground text-sm">Chargement de la carte…</p>}
+      {erreur && <p className="absolute inset-x-4 bottom-4 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       {fondIndisponible && pret && (
-        <p className="carte-bandeau">Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.</p>
+        <p className="absolute top-3 right-14 left-3 m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+          Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.
+        </p>
       )}
     </div>
   );

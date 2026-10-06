@@ -1,0 +1,210 @@
+/* -----------------------------------------------------------------------------
+   Habillage « shadcn » des écrans encore écrits avec les classes de l'ancienne
+   version (onglets des paramètres, panneau d'export, formulaires de saisie).
+   Portée : tout ce qui se trouve sous un conteneur .ancien ; les composants
+   shadcn (attribut data-slot) ne sont jamais touchés. Dans @layer components,
+   les classes utilitaires gardent la priorité.
+   ----------------------------------------------------------------------------- */
+/* Jetons de l'ancienne version (style Fiori), lus par les modules CSS des écrans de bureau (contrôles et
+   corrections à l'attachement, matrice des droits, articles, réseau, logos) : rapportés aux jetons shadcn,
+   donc justes en clair comme en sombre. */
+:root {
+  --fond: var(--background);
+  --carte: var(--card);
+  --texte: var(--foreground);
+  --discret: var(--muted-foreground);
+  --principal: var(--primary);
+  --principal-fonce: var(--primary);
+  --principal-clair: color-mix(in oklab, var(--primary) 10%, transparent);
+  --bord: var(--border);
+  --bord-doux: color-mix(in oklab, var(--border) 70%, transparent);
+  --survol: var(--muted);
+  --zebre: color-mix(in oklab, var(--muted) 55%, transparent);
+  --danger: var(--destructive);
+  --danger-fond: color-mix(in oklab, var(--destructive) 10%, transparent);
+  --attention: oklch(0.666 0.179 58.318);
+  --attention-bord: color-mix(in oklab, oklch(0.666 0.179 58.318) 35%, transparent);
+  --succes-fond: color-mix(in oklab, oklch(0.627 0.194 149.214) 12%, transparent);
+  --info-fond: color-mix(in oklab, oklch(0.588 0.158 241.966) 12%, transparent);
+  --st-negatif: var(--destructive);
+  --st-critique: oklch(0.666 0.179 58.318);
+  --st-info: oklch(0.588 0.158 241.966);
+  --st-positif: oklch(0.627 0.194 149.214);
+  --st-neutre: var(--muted-foreground);
+  --rayon: var(--radius);
+  --rayon-petit: calc(var(--radius) - 4px);
+  --h-cmd: 2rem;
+  --h-cmd-gros: 2.75rem;
+  --ombre: 0 4px 16px rgb(0 0 0 / 0.12);
+  --police: var(--font-sans);
+  --police-chiffres: var(--font-sans);
+}
+
+@layer components {
+  .ancien { @apply text-sm; }
+  .ancien h1 { @apply text-2xl font-medium tracking-tight mb-3; }
+  .ancien h2 { @apply text-base font-medium leading-snug mb-3; }
+  .ancien h3 { @apply text-sm font-medium mb-2; }
+  .ancien a:not([data-slot]):not(.bouton) { @apply text-primary underline-offset-4 hover:underline; }
+  .ancien p { @apply my-1.5; }
+
+  .ancien .carte {
+    @apply block rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 p-4 mb-4;
+  }
+  .ancien .carte.attention {
+    @apply bg-amber-50 ring-amber-200 text-amber-900 dark:bg-amber-950 dark:ring-amber-900 dark:text-amber-50;
+  }
+  .ancien .carte.fuite { @apply text-inherit no-underline hover:ring-primary/40; }
+  .ancien .fuite-tete { @apply flex flex-wrap items-center justify-between gap-2; }
+  .ancien .barre { @apply flex flex-wrap items-center justify-between gap-2; }
+  .ancien .barre h2, .ancien .barre h1 { @apply mb-0; }
+  .ancien .sous-formulaire { @apply mt-3 border-t pt-3; }
+  .ancien .bloc { @apply border-t py-2; }
+  .ancien .ligne-param { @apply flex flex-wrap items-center justify-between gap-2; }
+  .ancien .actions { @apply mt-3 flex flex-wrap items-center gap-2; }
+  .ancien .deux { @apply grid grid-cols-1 gap-3 sm:grid-cols-2; }
+  .ancien .trois { @apply grid grid-cols-1 gap-3 sm:grid-cols-3; }
+  .ancien .pleine-largeur { grid-column: 1 / -1; }
+  .ancien .discret { @apply text-muted-foreground; }
+  .ancien .nowrap { white-space: nowrap; }
+  .ancien .texte-libre { @apply whitespace-pre-wrap my-1; }
+  .ancien .aide { @apply block mt-1 text-xs font-normal text-muted-foreground; }
+  .ancien .designation { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .ancien .erreur {
+    @apply rounded-lg bg-destructive/10 px-3 py-2 text-destructive;
+  }
+  .ancien .info {
+    @apply rounded-lg bg-green-500/10 px-3 py-2 text-green-700 dark:text-green-300;
+  }
+  .ancien span.erreur, .ancien span.info, .ancien td.erreur { @apply bg-transparent p-0; }
+  .ancien .carte.succes { @apply bg-green-500/10 text-green-700 ring-green-500/20 dark:text-green-300; }
+  .ancien .sous-titre { @apply ml-2 text-base font-normal text-muted-foreground; }
+  .ancien .actions.en-tete { @apply mt-0; }
+  .ancien .carte-tableau td, .ancien .carte-tableau th { @apply px-2; }
+  .ancien .alerte {
+    @apply inline-flex h-5 items-center rounded-full bg-destructive/10 px-2 text-xs font-medium text-destructive whitespace-nowrap;
+  }
+  .ancien p.alerte { @apply h-auto rounded-lg px-3 py-2 text-sm; }
+  .ancien .alerte.orange { @apply bg-amber-500/10 text-amber-700 dark:text-amber-300; }
+  .ancien .alertes { @apply flex flex-wrap gap-1.5; }
+  .ancien .etiquette {
+    @apply ml-1.5 inline-flex h-5 items-center rounded-full bg-secondary px-2 text-xs font-medium text-secondary-foreground whitespace-nowrap;
+  }
+  .ancien .etiquette-alerte { @apply bg-destructive/10 text-destructive; }
+  .ancien .etiquette.symbole { @apply ml-0 min-w-9 justify-center; }
+
+  /* Statuts : texte coloré précédé d'un point */
+  .ancien .badge, .maplibregl-popup .badge {
+    @apply inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap;
+    color: var(--st, var(--muted-foreground));
+  }
+  .ancien .badge::before, .maplibregl-popup .badge::before {
+    content: ""; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: currentColor; flex: none;
+  }
+  .st-detectee { --st: oklch(0.577 0.245 27.325); }
+  .st-encours { --st: oklch(0.666 0.179 58.318); }
+  .st-reparee { --st: oklch(0.588 0.158 241.966); }
+  .st-achevee { --st: oklch(0.627 0.194 149.214); }
+  .st-sans { --st: oklch(0.554 0.046 257.417); }
+  .dark .st-detectee { --st: oklch(0.704 0.191 22.216); }
+  .dark .st-encours { --st: oklch(0.769 0.188 70.08); }
+  .dark .st-reparee { --st: oklch(0.746 0.16 232.661); }
+  .dark .st-achevee { --st: oklch(0.792 0.209 151.711); }
+
+  /* Champs */
+  .ancien label:not([data-slot]) { @apply block text-sm font-medium mb-3 text-foreground; }
+  .ancien label.ligne, .ancien label.unite-ligne { @apply flex items-center gap-2 font-normal; }
+  .ancien span.ligne { @apply inline-flex flex-wrap items-center gap-2; }
+  .ancien input:not([data-slot]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  .ancien select:not([data-slot]),
+  .ancien textarea:not([data-slot]) {
+    @apply mt-1 block h-8 w-full min-w-0 rounded-lg border border-input bg-transparent px-2.5 py-1 text-sm font-normal text-foreground shadow-xs outline-none transition-[color,box-shadow] dark:bg-input/30;
+  }
+  .ancien input:not([data-slot]):focus-visible, .ancien select:not([data-slot]):focus-visible, .ancien textarea:not([data-slot]):focus-visible {
+    @apply border-ring ring-3 ring-ring/50;
+  }
+  .ancien input:not([data-slot]):disabled, .ancien select:not([data-slot]):disabled, .ancien textarea:not([data-slot]):disabled {
+    @apply cursor-not-allowed opacity-50;
+  }
+  .ancien select:not([data-slot]) option { @apply bg-popover text-popover-foreground; }
+  .ancien textarea:not([data-slot]) { @apply h-auto min-h-16 py-2 resize-y; }
+  .ancien input[type="checkbox"], .ancien input[type="radio"] {
+    @apply m-0 size-4 shrink-0 rounded-[4px] border border-input accent-primary align-middle;
+  }
+  .ancien input.court { @apply inline-block w-24; }
+  .ancien input[type="date"], .ancien input[type="datetime-local"] { @apply w-auto min-w-40; }
+  .ancien fieldset { @apply mb-3 rounded-lg border p-3; }
+  .ancien legend { @apply px-1 text-sm font-medium; }
+  .ancien .filtres { @apply mb-3 flex flex-wrap items-end gap-2; }
+  .ancien .filtres label { @apply mb-0 min-w-36 flex-1; }
+  .ancien .filtres label > input:not([type="checkbox"]):not([type="radio"]), .ancien .filtres label > select { @apply w-full min-w-0; }
+  .ancien .filtres input, .ancien .filtres select { @apply mt-1; }
+  .ancien .filtres label.ligne { @apply flex-none min-w-0 self-center whitespace-nowrap; }
+  .ancien .filtres > input, .ancien .filtres > select { @apply mt-0 w-auto min-w-48 flex-1; }
+  .ancien .ligne-pieces { @apply flex items-center gap-2; }
+  /* Même poids que la règle générale des champs (les :not() comptent) pour pouvoir la corriger */
+  .ancien .ligne-pieces input:not([data-slot]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):first-child {
+    @apply mt-0 min-w-0 flex-1;
+  }
+  .ancien .ligne-pieces input.court:not([data-slot]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]),
+  .ancien .ligne-pieces select:not([data-slot]) { @apply mt-0 w-24 flex-none; }
+  .ancien .cases-materiaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 0.75rem; }
+  .ancien .cases-materiaux label { @apply mb-1.5; }
+  .ancien .secteurs-zone { @apply ml-4 mt-2 border-l-2 pl-3; }
+  .ancien .ligne-secteur { @apply border-b border-dashed py-1; }
+  .ancien .secteurs-zone > button { @apply mt-2; }
+  .ancien .regles-prix { @apply block text-xs mt-0.5; }
+  .ancien .simple { @apply list-none m-0 p-0; }
+  .ancien .simple li { @apply py-1; }
+  .ancien .infos { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1.2rem; margin: 0.5rem 0; }
+  .ancien .infos dt { @apply text-muted-foreground; }
+  .ancien .infos dd { @apply m-0; }
+  .ancien .vignettes { @apply my-2 flex flex-wrap gap-2; }
+  .ancien .vignette { @apply m-0 w-36; }
+  .ancien .vignette img { @apply block h-24 w-36 rounded-lg border object-cover; }
+
+  /* Boutons : « contour » par défaut, .primaire = principal, .danger = destructif */
+  .ancien button:not([data-slot]), .ancien .bouton, .maplibregl-popup .bouton {
+    @apply inline-flex h-8 shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-background px-2.5 text-sm font-medium whitespace-nowrap text-foreground no-underline transition-all outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 dark:border-input dark:bg-input/30 dark:hover:bg-input/50;
+  }
+  .ancien button.primaire, .ancien .bouton.primaire, .maplibregl-popup .bouton.primaire {
+    @apply border-transparent bg-primary text-primary-foreground hover:bg-primary/80;
+  }
+  .ancien button.danger { @apply border-transparent bg-destructive/10 text-destructive hover:bg-destructive/20; }
+  .ancien button.gros, .ancien .bouton.gros { @apply h-9 px-3; }
+  .ancien button.petit, .ancien .bouton.petit { @apply h-7 rounded-md px-2 text-xs; }
+  .ancien button.actif { @apply border-transparent bg-primary text-primary-foreground; }
+  .ancien .choix-boutons { @apply my-2 flex flex-wrap gap-1; }
+  .ancien .onglets button { @apply rounded-none border-0 border-b-2 border-transparent bg-transparent text-muted-foreground hover:bg-transparent hover:text-foreground; }
+  .ancien .onglets button.actif { @apply border-primary text-foreground; }
+  .ancien .lien-fuite { @apply font-medium text-primary no-underline hover:underline; }
+
+  /* Tableaux */
+  .ancien .defilement { @apply overflow-x-auto; }
+  .ancien table:not([data-slot]) { @apply w-full caption-bottom text-sm; border-collapse: collapse; }
+  .ancien th:not([data-slot]) {
+    @apply h-10 border-b px-2 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground;
+  }
+  .ancien td:not([data-slot]) { @apply border-b p-2 align-middle; }
+  .ancien tbody tr:hover > td { @apply bg-muted/50; }
+  .ancien tfoot td { @apply bg-muted/50 font-medium; }
+  .ancien td.num, .ancien th.num { @apply text-right tabular-nums; }
+  .ancien tr.zebre > td { @apply bg-muted/30; }
+  .ancien tr.discret td { @apply text-muted-foreground; }
+  .ancien .liste-compacte { @apply text-xs; }
+  .ancien .liste-compacte th { @apply h-8 px-2 text-xs; }
+  .ancien .liste-compacte td { @apply px-2 py-1.5; }
+  .ancien .unites-ligne { @apply flex flex-wrap gap-x-3 gap-y-1; }
+  .ancien .unite-ligne { @apply m-0 inline-flex items-center gap-1 font-normal whitespace-nowrap; }
+  .ancien .apercu-export table { @apply text-xs; }
+  .ancien .apercu-export td, .ancien .apercu-export th { @apply max-w-48 truncate; }
+
+  /* Panneau d'export (à droite, la liste reste visible) */
+  .ancien.panneau-export, .ancien .panneau-export {
+    @apply fixed inset-y-0 right-0 z-50 w-[min(480px,94vw)] overflow-y-auto border-l bg-background p-4 pb-8 shadow-2xl;
+  }
+  .ancien .groupe-colonnes { @apply mt-2 border-t pt-2; }
+  .ancien .groupe-colonnes .titre-groupe { @apply font-medium; }
+  .ancien .groupe-colonnes .cases { @apply ml-6 grid grid-cols-1 gap-x-3 sm:grid-cols-2; }
+  .ancien .groupe-colonnes .cases label { @apply mb-1.5 text-sm font-normal; }
+}

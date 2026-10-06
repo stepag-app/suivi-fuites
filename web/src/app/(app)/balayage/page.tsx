@@ -131,7 +131,7 @@ export default function PageBalayage() {
   if (!peut('balayage', 'lire')) return <p className="carte">Votre compte ne voit pas le journal des balayages.</p>;
 
   return (
-    <>
+    <div className="ancien">
       <div className="barre">
         <h1>
           Journal des balayages{' '}
@@ -290,6 +290,6 @@ export default function PageBalayage() {
           )}
         </section>
       )}
-    </>
+    </div>
   );
 }

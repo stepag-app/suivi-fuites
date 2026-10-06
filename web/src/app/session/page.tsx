@@ -51,7 +51,8 @@ export default function PageSession() {
   }, [router]);
 
   return (
-    <main className="carte connexion" aria-live="polite">
+    <main className="ancien flex min-h-screen items-center justify-center p-4" aria-live="polite">
+      <div className="carte w-full max-w-sm">
       <h1>Suivi des fuites</h1>
       {erreur ? (
         <>
@@ -64,6 +65,7 @@ export default function PageSession() {
       ) : (
         <p className="discret">{etape}</p>
       )}
+      </div>
     </main>
   );
 }

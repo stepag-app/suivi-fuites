@@ -11,8 +11,11 @@ export const NOM_ORGANISATION = process.env.NEXT_PUBLIC_NOM_ORGANISATION || 'STE
 export const emailDepuisIdentifiant = (identifiant: string) =>
   `${identifiant.trim().toLowerCase()}@${DOMAINE_AGENTS}`;
 
+// Mode démonstration (NEXT_PUBLIC_MODE_DEMO=1) : données fictives en mémoire, aucun appel réseau.
+export const MODE_DEMO = process.env.NEXT_PUBLIC_MODE_DEMO === '1';
+
 export const configurationManquante = () =>
-  !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  !MODE_DEMO && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
 
 let client: SupabaseClient | null = null;
 
@@ -28,6 +31,12 @@ export const estContexteApk = (
 ) => aReactNativeWebView || /SuiviFuitesAPK/.test(userAgent ?? '');
 
 export function getSupabase(): SupabaseClient {
+  if (!client && MODE_DEMO) {
+    // Chargé à la demande : le jeu de données ne pèse rien dans l'application réelle.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { creerClientDemo } = require('./demo/client') as typeof import('./demo/client');
+    client = creerClientDemo();
+  }
   if (!client) {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const cle = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;

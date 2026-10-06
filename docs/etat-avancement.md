@@ -265,7 +265,8 @@ Mets à jour docs/etat-avancement.md en fin de session.
 
 ## 7. Session 7 (2026-10-06) : plan du réseau DWG, zonage, balayage par tronçon (lot S)
 
-Contrat : `docs/lots/lot-s-reseau.md`. Tout est sur la branche **`claude/lot-s-integration`** (PR brouillon), qui
+Contrat : `docs/lots/lot-s-reseau.md`. Tout est sur la branche **`claude/lot-s-integration`** (PR brouillon
+[#38](https://github.com/stepag-app/suivi-fuites/pull/38) ; base verte en CI sur PostgreSQL 16, aperçu Vercel déployé), qui
 réunit S1 (conversion), S2 (base), S3 (panneau web), S4 (APK), S5 (rapport journalier) et les retouches d'intégration.
 
 | Élément | Où | État |
@@ -280,6 +281,7 @@ réunit S1 (conversion), S2 (base), S3 (panneau web), S4 (APK), S5 (rapport jour
 | **Rapport journalier de recherche de fuites (S5)** : PDF A4 au gabarit STEPAG 2026 avec extrait de plan A4, ou Excel ; par jour ou par équipe ; bouton dans `/balayage` | `web/src/lib/export/rapport-journalier.ts`, `web/src/app/(app)/balayage/rapport.ts` | 48 vérifications ; extrait de plan non essayé dans un navigateur |
 | **APK (S4)** : écran Balayage (WebView du panneau, session de la tablette, mode balayage) | `mobile/src/balayage.tsx` | tsc et 28 vérifications ; à essayer sur la tablette |
 | Matrice des droits : lignes Balayage (voir, cocher, annuler les siens, annuler ceux des autres) | `web/src/app/(app)/utilisateurs/matrice.ts` | vérifié |
+| **Essai de bout en bout en local** : vrai réseau importé dans une base PostgreSQL 17 servie par PostgREST, panneau web de la branche : carte et coloration, carte de zonage (8 862 tronçons affectés d'un coup), balayage enregistré depuis la carte, journal, rapport PDF de 2 pages avec extrait de plan ; correctif « Enregistrer… » | `data-private/essai-web/` (hors dépôt) | fait le 2026-10-06 ; reste l'essai sur l'aperçu Vercel avec la vraie base |
 
 **À faire par Issam (lot S)** :
 1. Relire le zonage sur l'aperçu (`data-private/reseau/apercu.html`, `python3 -m http.server 8765` dans ce dossier)

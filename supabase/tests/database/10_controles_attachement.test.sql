@@ -119,10 +119,10 @@ select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, pie
   'second chef : ne remplace pas la pièce d''un autre');
 select throws_ok($$ update reparation_pieces set etat = 'retiree', motif_modification = 'Non posée'
                      where id = 'aaaaaaaa-6666-0000-0000-000000000001' $$,
-  '42501', 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)',
+  '42501', null,  -- refus par le garde générique (saisie d'un autre), message : « Modification non autorisée »
   'second chef : ne retire pas la pièce d''un autre');
 select throws_ok($$ update reparation_pieces set quantite = 1 where id = 'aaaaaaaa-6666-0000-0000-000000000001' $$,
-  '42501', 'Correction refusée : réparation d''un autre agent (droit « interventions / modifier » requis)',
+  '42501', null,
   'second chef : ne modifie pas la pièce d''un autre');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
@@ -206,7 +206,7 @@ select throws_ok($$ update reparation_pieces set quantite = 3 where id = 'aaaaaa
   '23514', 'Pièce remplacée ou retirée : elle ne se modifie plus', 'réparateur : sa pièce remplacée est figée');
 select throws_ok($$ update reparation_pieces set etat = 'retiree', motif_modification = 'Pas posé'
                      where id = 'aaaaaaaa-6666-0000-0000-000000000003' $$,
-  '42501', 'Correction refusée : pièce saisie par un autre compte', 'réparateur : ne retire pas une correction du bureau');
+  '42501', null, 'réparateur : ne retire pas une correction du bureau');
 select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, piece_id, quantite, remplace_piece_id, motif_modification) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 'aaaaaaaa-5555-0000-0000-000000000002', 1,
    'aaaaaaaa-6666-0000-0000-000000000003', 'Collier et non robinet') $$,

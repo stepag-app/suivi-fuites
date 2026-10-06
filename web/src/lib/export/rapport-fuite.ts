@@ -148,7 +148,7 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
     const [ro, rpi] = repIds.length
       ? await Promise.all([
         sb.from('reparation_ouvriers').select('reparation_id, ouvrier_id').in('reparation_id', repIds),
-        sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', repIds).is('supprime_le', null),
+        sb.from('reparation_pieces').select('reparation_id, piece_id, designation_libre, quantite').in('reparation_id', repIds).is('supprime_le', null).eq('etat', 'posee'),
       ])
       : [{ data: [] }, { data: [] }];
     const lignesOuvriers = (ro.data as { reparation_id: string; ouvrier_id: string }[] | null) ?? [];

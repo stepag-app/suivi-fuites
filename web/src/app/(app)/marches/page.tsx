@@ -13,7 +13,7 @@ interface MarcheLigne {
 
 // Administrateur : liste des marchés, activation, création (vide ou par copie des paramètres).
 export default function Marches() {
-  const { profil, marche, choisirMarche, recharger } = useSession();
+  const { profil, marche, choisirMarche, recharger, verrouille } = useSession();
   const router = useRouter();
   const [liste, setListe] = useState<MarcheLigne[]>([]);
   const [erreur, setErreur] = useState('');
@@ -98,7 +98,10 @@ export default function Marches() {
       </div>
       {erreur && <p className="erreur">{erreur}</p>}
       {info && <p className="info">{info}</p>}
-      {creation && <FormMarche marches={liste} proposition={marche?.id ?? ''} onSubmit={creer} annuler={() => setCreation(false)} />}
+      {creation && (
+        <FormMarche marches={liste} proposition={marche?.id ?? ''} copieVerrouillee={verrouille('marches', 'copier')}
+          onSubmit={creer} annuler={() => setCreation(false)} />
+      )}
 
       <section className="carte">
         <p className="discret">
@@ -124,9 +127,13 @@ export default function Marches() {
                   <td className="nowrap">
                     <span className="actions">
                       <button className="petit" onClick={() => ouvrir(m)}>Paramètres</button>
-                      <button className={`petit ${m.actif ? 'danger' : ''}`} onClick={() => basculer(m)}>
-                        {m.actif ? 'Désactiver' : 'Réactiver'}
-                      </button>
+                      {m.actif && verrouille('marches', 'desactiver') ? (
+                        <button className="petit" disabled title="Verrouillé par vous : rouvrez le verrou dans Utilisateurs > Droits">Désactiver (verrouillé)</button>
+                      ) : (
+                        <button className={`petit ${m.actif ? 'danger' : ''}`} onClick={() => basculer(m)}>
+                          {m.actif ? 'Désactiver' : 'Réactiver'}
+                        </button>
+                      )}
                     </span>
                   </td>
                 </tr>
@@ -142,11 +149,11 @@ export default function Marches() {
 interface Valeurs { source: string; code: string; numero: string; intitule: string; client: string; ville: string }
 
 function FormMarche({
-  marches, proposition, onSubmit, annuler,
+  marches, proposition, copieVerrouillee, onSubmit, annuler,
 }: {
-  marches: MarcheLigne[]; proposition: string; onSubmit: (v: Valeurs) => Promise<boolean>; annuler: () => void;
+  marches: MarcheLigne[]; proposition: string; copieVerrouillee: boolean; onSubmit: (v: Valeurs) => Promise<boolean>; annuler: () => void;
 }) {
-  const [mode, setMode] = useState<'copie' | 'vide'>(marches.length ? 'copie' : 'vide');
+  const [mode, setMode] = useState<'copie' | 'vide'>(marches.length && !copieVerrouillee ? 'copie' : 'vide');
   const [source, setSource] = useState(marches.find((m) => m.id === proposition && m.code !== 'DEMO')?.id
     ?? marches.find((m) => m.actif && m.code !== 'DEMO')?.id ?? marches[0]?.id ?? '');
   const [code, setCode] = useState('');
@@ -173,7 +180,8 @@ function FormMarche({
     <form className="carte" onSubmit={envoyer}>
       <h2>Nouveau marché</h2>
       <div className="choix-boutons" role="radiogroup" aria-label="Type de création">
-        <button type="button" role="radio" aria-checked={copie} className={copie ? 'actif' : ''} onClick={() => setMode('copie')} disabled={!marches.length}>
+        <button type="button" role="radio" aria-checked={copie} className={copie ? 'actif' : ''} onClick={() => setMode('copie')} disabled={!marches.length || copieVerrouillee}
+          title={copieVerrouillee ? 'Verrouillé par vous : rouvrez le verrou dans Utilisateurs > Droits' : undefined}>
           Copier les paramètres d&apos;un marché
         </button>
         <button type="button" role="radio" aria-checked={!copie} className={!copie ? 'actif' : ''} onClick={() => setMode('vide')}>

@@ -19,9 +19,14 @@ const OngletNomenclature = dynamic(() => import('./OngletNomenclature').then((m)
   ssr: false,
   loading: () => <p className="carte discret">Chargement…</p>,
 });
+// Plan du réseau (import GeoJSON, carte de zonage MapLibre) : chargé seulement à l'ouverture de l'onglet.
+const OngletReseau = dynamic(() => import('./OngletReseau').then((m) => m.OngletReseau), {
+  ssr: false,
+  loading: () => <p className="carte discret">Chargement…</p>,
+});
 
 type Onglet = 'marche' | 'bordereau' | 'attachement' | 'evenements' | 'ouvriers' | 'equipes' | 'motifs'
-  | 'secteurs' | 'natures' | 'catalogue' | 'nomenclature';
+  | 'secteurs' | 'reseau' | 'natures' | 'catalogue' | 'nomenclature';
 
 interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
@@ -106,6 +111,7 @@ export default function Parametres() {
     ['equipes', 'Équipes', accesParametres],
     ['motifs', 'Motifs', accesParametres],
     ['secteurs', 'Secteurs', accesParametres],
+    ['reseau', 'Réseau', !!profil?.est_admin || peut('parametres', 'modifier')],
     ['natures', 'Natures de réfection', accesParametres],
     ['catalogue', 'Catalogue des pièces', accesParametres],
     ['nomenclature', 'Nomenclature Dolibarr', !!profil?.est_admin],
@@ -130,6 +136,9 @@ export default function Parametres() {
       {onglet === 'attachement' && <OngletAttachement marcheId={marche.id} modifiable={peut('parametres', 'modifier')} />}
       {onglet === 'evenements' && <OngletEvenements marcheId={marche.id} />}
       {onglet === 'secteurs' && <OngletSecteurs key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
+      {onglet === 'reseau' && (!!profil?.est_admin || peut('parametres', 'modifier')) && (
+        <OngletReseau key={marche.id} marcheId={marche.id} peutImporter={!!profil?.est_admin} />
+      )}
       {onglet === 'natures' && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'catalogue' && <OngletCatalogue key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
       {onglet === 'nomenclature' && profil?.est_admin && <OngletNomenclature key={marche.id} marcheId={marche.id} marcheCode={marche.code} />}

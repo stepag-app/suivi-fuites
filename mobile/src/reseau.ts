@@ -1,8 +1,9 @@
-// Délai des requêtes vers Supabase. Le fetch de l'APK (expo/fetch, sur le client OkHttp de React Native : connexion,
-// lecture et écriture sans délai) attend sans fin une réponse qui ne viendra pas : sur une connexion 4G morte, jusqu'à
-// l'expiration TCP, souvent un quart d'heure. La file d'attente n'envoyant qu'une synchro à la fois (`synchroniser`),
-// plus rien ne partait d'ici là. Passé le délai, la requête est abandonnée et l'erreur compte comme une coupure : la
-// saisie reste sur la tablette, sans message, et repart au tour suivant.
+// Délai des requêtes vers Supabase. Le fetch de l'APK (expo/fetch, sur le client OkHttp de React Native, sans délai à
+// l'origine) attendait sans fin une réponse qui ne viendrait pas : sur une connexion 4G morte, jusqu'à l'expiration TCP,
+// souvent un quart d'heure. La file d'attente n'envoyant qu'une synchro à la fois (`synchroniser`), plus rien ne
+// partait d'ici là. Passé le délai, la requête est abandonnée et l'erreur compte comme une coupure : la saisie reste
+// sur la tablette, sans message, et repart au tour suivant. Les délais d'inactivité d'OkHttp (plugins/okhttp-delais.js,
+// plus courts) tombent d'ordinaire avant : celui-ci borne l'attente entière (nom d'hôte, connexions, envoi).
 export const DELAI_API_MS = 60000;
 // Envoi d'une photo (1 600 px, qualité 70 : quelques centaines de Ko) : de quoi passer sur une 4G très lente.
 export const DELAI_PHOTO_MS = 3 * 60 * 1000;

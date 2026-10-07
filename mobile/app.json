@@ -31,7 +31,8 @@
           { "path": "./node_modules/@expo-google-fonts/geist/600SemiBold/Geist_600SemiBold.ttf", "weight": 600 },
           { "path": "./node_modules/@expo-google-fonts/geist/700Bold/Geist_700Bold.ttf", "weight": 700 }
         ]
-      }] } }]
+      }] } }],
+      "./plugins/okhttp-delais.js"
     ]
   }
 }

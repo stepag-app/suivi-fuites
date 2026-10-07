@@ -11,13 +11,14 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { getSupabase, lireTout } from "@/lib/supabase";
+import { fonctionAbsente, getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import {
-  COLONNES_TDB, libellePeriode, periodePour,
-  type ArticleTdb, type ChoixPeriode, type FuiteTdb, type LigneAttacheeTdb, type LotTdb, type Periode, type UniteResteTdb,
+  COLONNES_TDB, libellePeriode, periodePour, resumerUnites,
+  type ArticleTdb, type ChoixPeriode, type FuiteTdb, type LigneAttacheeTdb, type LotTdb, type Periode, type ResteAAttacher, type UniteResteTdb,
 } from "@/lib/ui/tableau-de-bord";
 import { BlocAttachements, type DonneesAttachements } from "./BlocAttachements";
 import { DernieresFuites, type FuiteRecente } from "./DernieresFuites";
@@ -28,7 +29,8 @@ type Reponse<T> = PromiseLike<{ data: T[] | null; error: { message: string } | n
 interface Donnees {
   marcheId: string;
   maintenant: Date;
-  fuites: FuiteRecente[];
+  fuites: Lignes<FuiteTdb>;
+  recentes: FuiteRecente[];
   anomalies: Anomalie[] | null;
   attachements: DonneesAttachements | null;
 }
@@ -39,6 +41,19 @@ const CHOIX_PERIODE: [ChoixPeriode, string][] = [
 
 const toutLire = <T,>(requete: (de: number, a: number) => unknown) =>
   lireTout<T>((de, a) => requete(de, a) as Reponse<T>, 1000, 50000);
+
+// Reste à attacher agrégé par la base ; sans la fonction (migration pas encore déployée, mode démonstration),
+// lecture de v_a_attacher comme avant.
+async function lireResteAAttacher(marcheId: string): Promise<ResteAAttacher> {
+  const sb = getSupabase();
+  const { data, error } = await sb.rpc("resume_a_attacher", { p_marche: marcheId });
+  if (!fonctionAbsente(error, data)) {
+    if (error) throw error;
+    return data as ResteAAttacher;
+  }
+  return resumerUnites(await toutLire<UniteResteTdb>((de, a) => sb.from("v_a_attacher").select("fuite_id, prix_id, reste, brouillon_id")
+    .eq("marche_id", marcheId).neq("reste", 0).order("fuite_id").order("prix_id").range(de, a)));
+}
 async function lire<T>(requete: unknown): Promise<T[]> {
   const { data, error } = await (requete as Reponse<T>);
   if (error) throw error;
@@ -73,9 +88,11 @@ export default function TableauDeBord() {
     setChargement(true);
     const sb = getSupabase();
     try {
-      const [fuites, anomalies, lots, articles, lignes, unites] = await Promise.all([
-        toutLire<FuiteRecente>((de, a) => sb.from("v_fuites").select(`${COLONNES_TDB}, reference_srm, adresse, detectee_par`)
-          .eq("marche_id", marcheId).order("numero").range(de, a)),
+      const [fuites, recentes, anomalies, lots, articles, lignes, aAttacher] = await Promise.all([
+        toutLire<FuiteTdb>((de, a) => sb.from("v_fuites").select(COLONNES_TDB)
+          .eq("marche_id", marcheId).order("numero", { ascending: false }).range(de, a)),
+        lire<FuiteRecente>(sb.from("v_fuites").select(`${COLONNES_TDB}, reference_srm, adresse, detectee_par`)
+          .eq("marche_id", marcheId).order("date_detection", { ascending: false }).limit(10)),
         voirAnomalies
           ? toutLire<Anomalie>((de, a) => sb.from("v_anomalies").select("fuite_id, anomalie").eq("marche_id", marcheId)
             .order("fuite_id").order("anomalie").order("reparation_id", { nullsFirst: true }).range(de, a))
@@ -90,15 +107,12 @@ export default function TableauDeBord() {
           ? toutLire<LigneAttacheeTdb>((de, a) => sb.from("v_attachement_lignes").select("prix_id, quantite, pu_ht")
             .eq("marche_id", marcheId).eq("attachement_statut", "arrete").order("id").range(de, a))
           : null,
-        voirAttachements
-          ? toutLire<UniteResteTdb>((de, a) => sb.from("v_a_attacher").select("fuite_id, prix_id, reste, brouillon_id")
-            .eq("marche_id", marcheId).neq("reste", 0).order("fuite_id").order("prix_id").range(de, a))
-          : null,
+        voirAttachements ? lireResteAAttacher(marcheId) : null,
       ]);
       if (demande !== derniereDemande.current) return;
       setDonnees({
-        marcheId, maintenant: new Date(), fuites, anomalies,
-        attachements: lots && articles && lignes && unites ? { lots, articles, lignes, unites } : null,
+        marcheId, maintenant: new Date(), fuites, recentes, anomalies,
+        attachements: lots && articles && lignes && aAttacher ? { lots, articles, lignes, aAttacher } : null,
       });
     } catch (e) {
       if (demande !== derniereDemande.current) return;
@@ -123,7 +137,7 @@ export default function TableauDeBord() {
 
   const titrePeriode = libellePeriode(periode);
   const prenom = profil?.nom_complet?.split(/\s+/)[0] ?? "";
-  const fuites = donnees?.fuites as FuiteTdb[] | undefined;
+  const fuites = donnees?.fuites;
 
   return (
     <div className="flex flex-col gap-4">
@@ -195,6 +209,8 @@ export default function TableauDeBord() {
           </div>
         )}
 
+        {fuites?.tronque && <AvertissementPlafond lues={fuites.length} />}
+
         {donnees && fuites && fuites.length === 0 && <Vide>Aucune fuite enregistrée sur ce marché pour l&apos;instant.</Vide>}
 
         {donnees && fuites && fuites.length > 0 && (
@@ -212,7 +228,7 @@ export default function TableauDeBord() {
               </TabsContent>
             )}
             <TabsContent value="recentes">
-              <DernieresFuites fuites={donnees.fuites} libelles={libelles} />
+              <DernieresFuites fuites={donnees.recentes} total={fuites.length} libelles={libelles} />
             </TabsContent>
           </>
         )}

@@ -92,7 +92,8 @@ export function refectionsAFaire(
   const serie = finsDeJour(14, maintenant).map((fin) => fuites.filter((f) => {
     const rep = t(f.derniere_reparation_le);
     const ref = t(f.derniere_refection_le);
-    return (f.statut === 'reparee' || f.statut === 'achevee') && rep != null && rep <= fin && (ref == null || ref > fin);
+    // Achevée sans réfection (terrain naturel) : jamais en attente de réfection.
+    return (f.statut === 'reparee' || (f.statut === 'achevee' && ref != null)) && rep != null && rep <= fin && (ref == null || ref > fin);
   }).length);
   return {
     valeur: aFaire.length,

@@ -120,8 +120,12 @@ async function lire(q: PromiseLike<{ data: unknown; error: { message: string } |
 }
 
 type Paginable = { range: (de: number, a: number) => PromiseLike<{ data: unknown; error: { message: string } | null }> };
-const toutLire = (fabrique: () => Paginable) =>
-  lireTout<Ligne>((de, a) => fabrique().range(de, a) as PromiseLike<{ data: Ligne[] | null; error: { message: string } | null }>);
+// Un export tronqué serait faux sans que rien ne le signale : au plafond, on refuse.
+const toutLire = async (fabrique: () => Paginable) => {
+  const lignes = await lireTout<Ligne>((de, a) => fabrique().range(de, a) as PromiseLike<{ data: Ligne[] | null; error: { message: string } | null }>);
+  if (lignes.tronque) throw new Error(`Export limité à ${lignes.length.toLocaleString('fr-FR')} lignes : réduisez la période ou ajoutez un filtre.`);
+  return lignes;
+};
 
 // ---------------------------------------------------------------------------
 // Libellés communs

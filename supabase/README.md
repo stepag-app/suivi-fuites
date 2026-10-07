@@ -47,6 +47,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/12_droits_auteur_inconnu.test.sql` | 9 tests du correctif (saisie sans auteur refusée à la détection et au chef, propre saisie et saisie d'un autre chef, responsable « toutes », administrateur) |
 | `migrations/20261006130000_reseau_balayage.sql` | lot S2 : tronçons, nœuds et balayages (RLS, marché désactivé en lecture seule), import, GeoJSON par secteur, état de balayage, zonage (liste, polygone, contours), vues des linéaires et du journal ; droit « balayage » de la détection (voir, cocher, annuler les siens) |
 | `tests/database/15_reseau_balayage.test.sql` | 115 tests du lot S2 (droits par rôle, isolation, import idempotent, longueur, zonage automatique et manuel, contours, premier passage et annulation, statut du secteur, vues, marché désactivé, `copier_marche` inchangée) |
+| `migrations/20261007120000_essai_charge.sql` | essai de charge à 3 000 fuites (`docs/essai-charge-3000.md`) : `compter_fuites` (fuites par marché et statut), `resume_a_attacher` (reste à attacher par article), `etat_balayage_compact` (état de balayage en un seul document JSON : `etat_balayage` en lignes était plafonné à 1 000 tronçons par l'API) ; toutes SECURITY INVOKER (RLS de l'appelant) |
+| `tests/database/17_essai_charge.test.sql` | 22 tests : privilèges, comptages identiques à `v_fuites` sous la RLS de chaque rôle, reste à attacher identique à `v_a_attacher`, état compact identique à `etat_balayage` au-delà de 1 000 tronçons |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma

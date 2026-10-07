@@ -1,11 +1,12 @@
 import { useState, type ComponentProps, type ReactNode } from 'react';
 import {
-  ActivityIndicator, Image, Linking, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
+  ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 import { Icone, type NomIcone } from './icones';
+import { useLangue, type Langue } from './langue';
 import { STATUTS, type StatutFuite } from './types';
 
 // Jetons de l'interface « Studio Admin » du panneau web (web/src/app/globals.css, préréglage « default », mode clair),
@@ -73,6 +74,7 @@ export const useBas = () => useSafeAreaInsets().bottom;
 export function BarreApp({ titre, sousTitre, retour, droite }: {
   titre: string; sousTitre?: string; retour?: () => void; droite?: ReactNode;
 }) {
+  const { t } = useLangue();
   const haut = useSafeAreaInsets().top || (StatusBar.currentHeight ?? 24);
   return (
     <View style={[s.barre, { paddingTop: haut + 8, minHeight: haut + 64 }]}>
@@ -81,7 +83,7 @@ export function BarreApp({ titre, sousTitre, retour, droite }: {
           onPress={retour}
           style={({ pressed }) => [s.boutonIcone, pressed && s.appuye]}
           accessibilityRole="button"
-          accessibilityLabel="Retour"
+          accessibilityLabel={t('Retour')}
         >
           <Icone nom="arrow-left" taille={24} />
         </Pressable>
@@ -92,8 +94,37 @@ export function BarreApp({ titre, sousTitre, retour, droite }: {
         <Text style={s.titreBarre} numberOfLines={1}>{titre}</Text>
         {!!sousTitre && <Text style={s.sousTitreBarre} numberOfLines={1}>{sousTitre}</Text>}
       </View>
+      <BoutonLangue />
       {droite}
     </View>
+  );
+}
+
+const LANGUES: { langue: Langue; nom: string; court: string }[] = [
+  { langue: 'fr', nom: 'Français', court: 'FR' },
+  { langue: 'hybride', nom: 'عربي + Français', court: 'ع + FR' },
+  { langue: 'ar', nom: 'العربية', court: 'ع' },
+];
+
+/** Choix de la langue (en haut de chaque écran) : libellés écrits dans les deux langues, lisibles par tous. */
+export function BoutonLangue({ style }: { style?: StyleProp<ViewStyle> }) {
+  const { langue, choisir } = useLangue();
+  const actuelle = LANGUES.find((l) => l.langue === langue) ?? LANGUES[0];
+  const ouvrir = () => Alert.alert(
+    'Langue · اللغة',
+    undefined,
+    LANGUES.map((l) => ({ text: l.langue === langue ? `✓ ${l.nom}` : l.nom, onPress: () => choisir(l.langue) })),
+    { cancelable: true },
+  );
+  return (
+    <Pressable
+      onPress={ouvrir}
+      style={({ pressed }) => [s.boutonLangue, pressed && s.appuye, style]}
+      accessibilityRole="button"
+      accessibilityLabel={`Langue · اللغة : ${actuelle.nom}`}
+    >
+      <Text style={s.texteLangue}>{actuelle.court}</Text>
+    </Pressable>
   );
 }
 
@@ -159,11 +190,12 @@ export function TeteCarte({ titre, compteur, description, icone, action }: {
 
 /** Badge de statut du panneau : point et libellé colorés sur fond teinté ; `court` dans les listes. */
 export function Statut({ statut, court, carre }: { statut: StatutFuite; court?: boolean; carre?: boolean }) {
+  const { tx } = useLangue();
   const st = STATUT_STYLE[statut] ?? STATUT_STYLE.sans_reparation;
   return (
     <View style={[s.badge, carre && s.badgeCarre, { backgroundColor: st.fond, borderColor: st.bord }]}>
       <View style={[s.point, { backgroundColor: st.point }]} />
-      <Text style={[s.texteBadge, { color: st.texte }]} numberOfLines={1}>{court ? st.court : STATUTS[statut] ?? statut}</Text>
+      <Text style={[s.texteBadge, { color: st.texte }]} numberOfLines={1}>{tx(court ? st.court : STATUTS[statut] ?? statut)}</Text>
     </View>
   );
 }
@@ -225,10 +257,11 @@ const CIRCONFERENCE = 2 * Math.PI * RAYON;
 
 /** Anneau d'avancement de la fiche (modèle « Profile » du panneau), couleur et progression du statut. */
 export function AnneauStatut({ statut, taille = 76 }: { statut: StatutFuite; taille?: number }) {
+  const { t } = useLangue();
   const st = STATUT_STYLE[statut] ?? STATUT_STYLE.sans_reparation;
   const marge = Math.round(taille * 0.145);
   return (
-    <View style={{ width: taille, height: taille }} accessibilityLabel={`Avancement ${st.progression} %`}>
+    <View style={{ width: taille, height: taille }} accessibilityLabel={t('Avancement {progression} %', { progression: st.progression })}>
       <Svg width={taille} height={taille} viewBox="0 0 100 100" style={{ transform: [{ rotate: '-90deg' }] }}>
         <Circle cx="50" cy="50" r={RAYON} fill="none" stroke={COULEURS.sourdine} strokeWidth={3} />
         <Circle
@@ -260,10 +293,11 @@ export function BoutonYAller({ latitude, longitude, libelle, grand, style }: {
   latitude: number | null | undefined; longitude: number | null | undefined; libelle: string; grand?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { t } = useLangue();
   const position = latitude != null && longitude != null;
   return (
     <Bouton
-      titre={position ? 'Y aller' : 'Y aller (pas de position GPS)'}
+      titre={position ? t('Y aller') : t('Y aller (pas de position GPS)')}
       icone="navigation"
       grand={grand}
       style={style}
@@ -387,6 +421,7 @@ export function Selecteur({ valeur, indication, onPress }: { valeur?: string | n
 export function Vignettes({ photos, retirer }: {
   photos: { id: string; uri?: string; legende: string }[]; retirer?: (id: string) => void;
 }) {
+  const { t } = useLangue();
   if (!photos.length) return null;
   return (
     <View style={s.ligne}>
@@ -396,14 +431,14 @@ export function Vignettes({ photos, retirer }: {
           onPress={retirer ? () => retirer(p.id) : undefined}
           disabled={!retirer}
           style={s.vignette}
-          accessibilityLabel={retirer ? `${p.legende} : retirer la photo` : p.legende}
+          accessibilityLabel={retirer ? t('{legende} : retirer la photo', { legende: p.legende }) : p.legende}
         >
           {p.uri ? (
             <Image source={{ uri: p.uri }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
             <View style={s.vignetteVide}>
               <Icone nom="camera" taille={24} couleur={COULEURS.discret} />
-              <Text style={[s.petit, { textAlign: 'center' }]}>Visible avec le réseau</Text>
+              <Text style={[s.petit, { textAlign: 'center' }]}>{t('Visible avec le réseau')}</Text>
             </View>
           )}
           <View style={s.etiquetteVignette}><Text style={s.texteEtiquetteVignette} numberOfLines={1}>{p.legende}</Text></View>
@@ -423,6 +458,11 @@ export const s = StyleSheet.create({
     borderColor: COULEURS.bord, paddingBottom: 8, paddingLeft: 10, paddingRight: 14,
   },
   boutonIcone: { width: 48, height: 48, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  boutonLangue: {
+    minWidth: 48, height: 40, borderRadius: 10, borderWidth: 1, borderColor: COULEURS.bord, paddingHorizontal: 10,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  texteLangue: { fontFamily: POLICE, fontSize: 15, fontWeight: '600', color: COULEURS.texte },
   titreBarre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.2 },
   sousTitreBarre: { fontFamily: POLICE, fontSize: 14, color: COULEURS.discret },
   h1: { fontFamily: POLICE, fontSize: 28, lineHeight: 34, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.5 },

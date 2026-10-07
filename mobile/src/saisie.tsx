@@ -7,6 +7,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ajouterEnvoi, effacerPhotos, synchroniser, type PhotoAttente, type PieceAttente } from './file-attente';
 import { Icone } from './icones';
 import type { ContexteSaisie } from './fiche';
+import { t, tx, useLangue } from './langue';
 import { aucunChangement, differences } from './modification';
 import { useParametres, type Parametres } from './parametres';
 import { prendrePhoto } from './photos';
@@ -19,7 +20,7 @@ const nombreOuNul = (t: string) => {
   return t.trim() === '' || Number.isNaN(n) ? null : n;
 };
 const sansAccents = (t: string) => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-const options = (table: Record<string, string>) => Object.entries(table).map(([valeur, libelle]) => ({ valeur, libelle }));
+const options = (table: Record<string, string>) => Object.entries(table).map(([valeur, libelle]) => ({ valeur, libelle: tx(libelle) }));
 const deux = (n: number) => String(n).padStart(2, '0');
 const enTexte = (v: unknown) => (v == null ? '' : String(v).replace('.', ','));
 
@@ -64,19 +65,19 @@ function useDateHeure(iso?: string) {
 /** Contrôle commun : renvoie la date ISO ou un message d'erreur. */
 function controlerDate(jour: string, heure: string): { iso: string } | { erreur: string } {
   const d = lireDate(jour, heure);
-  if (!d) return { erreur: 'Date ou heure invalide (JJ/MM/AAAA et HH:MM).' };
-  if (d.getTime() > Date.now() + 10 * 60 * 1000) return { erreur: 'La date est dans le futur : vérifiez-la.' };
+  if (!d) return { erreur: t('Date ou heure invalide (JJ/MM/AAAA et HH:MM).') };
+  if (d.getTime() > Date.now() + 10 * 60 * 1000) return { erreur: t('La date est dans le futur : vérifiez-la.') };
   return { iso: d.toISOString() };
 }
 
 function DateHeure({ d }: { d: ReturnType<typeof useDateHeure> }) {
   return (
     <View style={{ gap: 6 }}>
-      <Text style={s.etiquette}>Date et heure des travaux</Text>
+      <Text style={s.etiquette}>{t('Date et heure des travaux')}</Text>
       <View style={s.ligne}>
-        <Saisie style={{ flexGrow: 1, flexBasis: 150 }} value={d.jour} onChangeText={d.setJour} keyboardType="number-pad" placeholder="JJ/MM/AAAA" maxLength={10} />
-        <Saisie style={{ flexGrow: 1, flexBasis: 100 }} value={d.heure} onChangeText={d.setHeure} keyboardType="number-pad" placeholder="HH:MM" maxLength={5} />
-        <Bouton titre="Maintenant" icone="clock" onPress={d.remettre} />
+        <Saisie style={{ flexGrow: 1, flexBasis: 150 }} value={d.jour} onChangeText={d.setJour} keyboardType="number-pad" placeholder={t('JJ/MM/AAAA')} maxLength={10} />
+        <Saisie style={{ flexGrow: 1, flexBasis: 100 }} value={d.heure} onChangeText={d.setHeure} keyboardType="number-pad" placeholder={t('HH:MM')} maxLength={5} />
+        <Bouton titre={t('Maintenant')} icone="clock" onPress={d.remettre} />
       </View>
     </View>
   );
@@ -88,7 +89,7 @@ function ChoixEquipe({ parametres, valeur, onChange }: { parametres: Parametres;
   if (!liste.length) return null;
   return (
     <View style={{ gap: 6 }}>
-      <Text style={s.etiquette}>Équipe</Text>
+      <Text style={s.etiquette}>{t('Équipe')}</Text>
       <Puces facultatif options={liste.map((e) => ({ valeur: e.id, libelle: e.libelle }))} valeur={valeur} onChange={onChange} />
     </View>
   );
@@ -112,7 +113,7 @@ function usePhotos() {
       if (typeof r === 'string') setErreur(r);
       else if (r) setPhotos((p) => [...p, r]);
     } catch (e) {
-      setErreur(`Photo impossible : ${String((e as Error).message ?? e)}`);
+      setErreur(t('Photo impossible : {erreur}', { erreur: String((e as Error).message ?? e) }));
     }
   }
   function retirer(id: string) {
@@ -126,17 +127,17 @@ function usePhotos() {
 function BlocPhotos({ ph, types }: { ph: ReturnType<typeof usePhotos>; types: TypePhoto[] }) {
   return (
     <Carte>
-      <TeteCarte titre="Photos" compteur={ph.photos.length} />
+      <TeteCarte titre={t('Photos')} compteur={ph.photos.length} />
       <View style={s.ligne}>
-        {types.map((t) => (
+        {types.map((tp) => (
           <Bouton
-            key={t} titre={`${TYPES_PHOTO[t]} (${ph.photos.filter((p) => p.type === t).length})`} icone="camera"
-            onPress={() => ph.prendre(t)} style={{ flexGrow: 1, flexBasis: 150 }}
+            key={tp} titre={`${tx(TYPES_PHOTO[tp])} (${ph.photos.filter((p) => p.type === tp).length})`} icone="camera"
+            onPress={() => ph.prendre(tp)} style={{ flexGrow: 1, flexBasis: 150 }}
           />
         ))}
       </View>
       {!!ph.erreur && <Message ton="erreur">{ph.erreur}</Message>}
-      <Vignettes photos={ph.photos.map((p) => ({ id: p.id, uri: p.fichier, legende: TYPES_PHOTO[p.type ?? 'autre'] }))} retirer={ph.retirer} />
+      <Vignettes photos={ph.photos.map((p) => ({ id: p.id, uri: p.fichier, legende: tx(TYPES_PHOTO[p.type ?? 'autre']) }))} retirer={ph.retirer} />
     </Carte>
   );
 }
@@ -148,13 +149,14 @@ interface PieceForm extends PieceAttente { texte: string }
 
 export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
   const { marche, peut } = useSession();
+  useLangue();
   const parametres = useParametres(marche?.id);
   const bas = useBas();
   const m = contexte.modification;
   const init: Record<string, unknown> = m?.etat.ligne ?? {};
   const chaine = (k: string) => (typeof init[k] === 'string' ? (init[k] as string) : '');
   const oui = (k: string) => init[k] === true;
-  const sigle = marche?.client_sigle?.trim() || marche?.client?.trim() || 'du maître d\'ouvrage';
+  const sigle = marche?.client_sigle?.trim() || marche?.client?.trim() || t("du maître d'ouvrage");
   const [resultat, setResultat] = useState<ResultatReparation | ''>((chaine('resultat') as ResultatReparation) || 'reparee');
   const [motifId, setMotifId] = useState(chaine('motif_id'));
   const quand = useDateHeure(m ? chaine('realisee_le') : undefined);
@@ -200,7 +202,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
   function ajouterPiece(pieceId: number, designation: string) {
     const q = nombreOuNul(quantite);
     if (!q || q <= 0) {
-      setErreur('Quantité de la pièce : un nombre supérieur à 0.');
+      setErreur(t('Quantité de la pièce : un nombre supérieur à 0.'));
       return;
     }
     setErreur('');
@@ -221,8 +223,8 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
   async function enregistrer() {
     if (!marche) return;
     setErreur('');
-    if (!resultat) return setErreur('Choisissez le résultat.');
-    if (nonReparee && !motifId) return setErreur('Fuite non réparée : choisissez le motif.');
+    if (!resultat) return setErreur(t('Choisissez le résultat.'));
+    if (nonReparee && !motifId) return setErreur(t('Fuite non réparée : choisissez le motif.'));
     let realiseeLe = chaine('realisee_le');
     if (!quand.inchangee) {
       const date = controlerDate(quand.jour, quand.heure);
@@ -232,13 +234,13 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     const nombres = { diametre: nombreOuNul(diametre), pe: nombreOuNul(longueurPe), l: longueur, la: nombreOuNul(fl), p: nombreOuNul(fP) };
     const textes = { diametre, pe: longueurPe, l: fL, la: fl, p: fP };
     for (const k of Object.keys(nombres) as (keyof typeof nombres)[]) {
-      if (textes[k].trim() !== '' && (nombres[k] == null || (nombres[k] ?? 0) < 0)) return setErreur(`Valeur numérique invalide : « ${textes[k]} ».`);
+      if (textes[k].trim() !== '' && (nombres[k] == null || (nombres[k] ?? 0) < 0)) return setErreur(t('Valeur numérique invalide : « {valeur} ».', { valeur: textes[k] }));
     }
-    if (nombres.diametre != null && !Number.isInteger(nombres.diametre)) return setErreur('Diamètre : un nombre entier de millimètres.');
+    if (nombres.diametre != null && !Number.isInteger(nombres.diametre)) return setErreur(t('Diamètre : un nombre entier de millimètres.'));
     const posees: PieceAttente[] = [];
     for (const p of pieces) {
       const q = nombreOuNul(p.texte);
-      if (!q || q <= 0) return setErreur(`Quantité de « ${p.designation} » : un nombre supérieur à 0.`);
+      if (!q || q <= 0) return setErreur(t('Quantité de « {designation} » : un nombre supérieur à 0.', { designation: p.designation }));
       posees.push({ id: p.id, produit_id: p.produit_id, designation: p.designation, quantite: q });
     }
     const travaux = !nonReparee;
@@ -253,7 +255,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
       representant_srm: representant.trim() || null, observation: observation.trim() || null,
     };
     const changements = m ? differences(m.etat, { ligne, pieces: posees, ouvriers }) : null;
-    if (changements && aucunChangement(changements) && !ph.photos.length) return setErreur('Aucune modification à enregistrer.');
+    if (changements && aucunChangement(changements) && !ph.photos.length) return setErreur(t('Aucune modification à enregistrer.'));
     setOccupe(true);
     try {
       const commun = { id: Crypto.randomUUID(), marche_id: marche.id, fuite_id: contexte.fuiteId, fuite_libelle: contexte.libelle, photos: ph.photos };
@@ -269,26 +271,26 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
       void synchroniser().catch(() => undefined);
       retour();
     } catch (e) {
-      setErreur(`Enregistrement sur la tablette impossible : ${String((e as Error).message ?? e)}`);
+      setErreur(t('Enregistrement sur la tablette impossible : {erreur}', { erreur: String((e as Error).message ?? e) }));
       setOccupe(false);
     }
   }
 
   return (
     <View style={s.ecran}>
-      <BarreApp titre={m ? 'Modifier la réparation' : 'Nouvelle réparation'} sousTitre={contexte.libelle} retour={retour} />
+      <BarreApp titre={m ? t('Modifier la réparation') : t('Nouvelle réparation')} sousTitre={contexte.libelle} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         {m && (
           <Text style={s.discret}>
-            Corrigez ce qui doit l&apos;être, puis « Enregistrer les modifications ». Les photos prises ici s&apos;ajoutent à celles déjà envoyées.
+            {t("Corrigez ce qui doit l'être, puis « Enregistrer les modifications ». Les photos prises ici s'ajoutent à celles déjà envoyées.")}
           </Text>
         )}
         <Carte>
-          <Text style={s.etiquette}>Résultat</Text>
+          <Text style={s.etiquette}>{t('Résultat')}</Text>
           <Puces options={options(RESULTATS_REPARATION) as { valeur: ResultatReparation; libelle: string }[]} valeur={resultat} onChange={setResultat} />
           {nonReparee && (
             <>
-              <Text style={s.etiquette}>Motif (obligatoire)</Text>
+              <Text style={s.etiquette}>{t('Motif (obligatoire)')}</Text>
               <Puces
                 options={parametres.motifs.filter((x) => x.categorie === 'sans_reparation').map((x) => ({ valeur: x.id, libelle: x.libelle_fr }))}
                 valeur={motifId} onChange={setMotifId}
@@ -300,47 +302,47 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
         </Carte>
 
         <Carte>
-          <Text style={s.sousTitre}>Constat</Text>
-          <Text style={s.etiquette}>Ouvrage</Text>
+          <Text style={s.sousTitre}>{t('Constat')}</Text>
+          <Text style={s.etiquette}>{t('Ouvrage')}</Text>
           <Puces facultatif options={options(OUVRAGES)} valeur={ouvrage} onChange={setOuvrage} />
-          <Text style={s.etiquette}>Matériau</Text>
+          <Text style={s.etiquette}>{t('Matériau')}</Text>
           <Puces facultatif options={options(MATERIAUX)} valeur={materiau} onChange={setMateriau} />
-          <Champ libelle="Diamètre (mm) : DE pour le PE, DN pour les conduites" valeur={diametre} onChange={setDiametre} nombre />
+          <Champ libelle={t('Diamètre (mm) : DE pour le PE, DN pour les conduites')} valeur={diametre} onChange={setDiametre} nombre />
         </Carte>
 
         {!nonReparee && (
           <Carte>
-            <Text style={s.sousTitre}>Travaux réalisés</Text>
-            <Case libelle="Tuyau / conduite réparé(e)" valeur={tuyau} onChange={setTuyau} />
-            <Case libelle="Robinet PEC changé" valeur={robinet} onChange={setRobinet} />
-            <Case libelle="Collier PEC changé" valeur={collier} onChange={setCollier} />
-            <Case libelle="Bouche à clé mise à niveau" valeur={boucheACle} onChange={setBoucheACle} />
-            <Case libelle="Élément de conduite remplacé" valeur={elementRemplace} onChange={setElementRemplace} />
+            <Text style={s.sousTitre}>{t('Travaux réalisés')}</Text>
+            <Case libelle={t('Tuyau / conduite réparé(e)')} valeur={tuyau} onChange={setTuyau} />
+            <Case libelle={t('Robinet PEC changé')} valeur={robinet} onChange={setRobinet} />
+            <Case libelle={t('Collier PEC changé')} valeur={collier} onChange={setCollier} />
+            <Case libelle={t('Bouche à clé mise à niveau')} valeur={boucheACle} onChange={setBoucheACle} />
+            <Case libelle={t('Élément de conduite remplacé')} valeur={elementRemplace} onChange={setElementRemplace} />
             {tuyau && materiau === 'polyethylene' && (
-              <Champ libelle="Longueur de PE posée (m)" valeur={longueurPe} onChange={setLongueurPe} nombre />
+              <Champ libelle={t('Longueur de PE posée (m)')} valeur={longueurPe} onChange={setLongueurPe} nombre />
             )}
           </Carte>
         )}
 
         <Carte>
-          <Text style={s.sousTitre}>Fouille</Text>
+          <Text style={s.sousTitre}>{t('Fouille')}</Text>
           <View style={s.ligne}>
-            <Champ libelle="Longueur (m)" valeur={fL} onChange={setFL} nombre />
-            <Champ libelle="Largeur (m)" valeur={fl} onChange={setFl} nombre />
-            <Champ libelle="Profondeur (m)" valeur={fP} onChange={setFP} nombre />
+            <Champ libelle={t('Longueur (m)')} valeur={fL} onChange={setFL} nombre />
+            <Champ libelle={t('Largeur (m)')} valeur={fl} onChange={setFl} nombre />
+            <Champ libelle={t('Profondeur (m)')} valeur={fP} onChange={setFP} nombre />
           </View>
           {longueur != null && longueur > 2 && !elementRemplace && (
-            <Message ton="attention">Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.</Message>
+            <Message ton="attention">{t('Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.')}</Message>
           )}
-          <Text style={s.etiquette}>Revêtement à refaire</Text>
+          <Text style={s.etiquette}>{t('Revêtement à refaire')}</Text>
           <Puces facultatif options={parametres.natures.map((n) => ({ valeur: n.id, libelle: n.libelle_fr }))} valeur={natureId} onChange={choisirNature} />
-          <Text style={s.etiquette}>Emplacement</Text>
+          <Text style={s.etiquette}>{t('Emplacement')}</Text>
           <Puces facultatif options={options(EMPLACEMENTS)} valeur={emplacement} onChange={setEmplacement} />
-          <Champ libelle={`Représentant ${sigle} présent (nom)`} valeur={representant} onChange={setRepresentant} />
+          <Champ libelle={t('Représentant {sigle} présent (nom)', { sigle })} valeur={representant} onChange={setRepresentant} />
         </Carte>
 
         <Carte>
-          <Text style={s.sousTitre}>Pièces posées</Text>
+          <Text style={s.sousTitre}>{t('Pièces posées')}</Text>
           {pieces.map((p) => (
             <View key={p.id} style={[s.ligne, { alignItems: 'center' }]}>
               <Saisie
@@ -349,22 +351,22 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                 onChangeText={(texte) => setPieces(pieces.map((x) => (x.id === p.id ? { ...x, texte } : x)))}
                 keyboardType="decimal-pad"
                 editable={peutRequantifier(p.id)}
-                accessibilityLabel={`Quantité : ${p.designation}`}
+                accessibilityLabel={t('Quantité : {designation}', { designation: p.designation })}
               />
-              <Text style={[s.texte, { flex: 1, minWidth: 160 }]}>× {p.designation}{p.produit_id != null ? '' : ' (libre)'}</Text>
+              <Text style={[s.texte, { flex: 1, minWidth: 160 }]}>× {p.designation}{p.produit_id != null ? '' : ` ${t('(libre)')}`}</Text>
               {peutRetirer(p.id)
-                ? <Bouton titre="Retirer" icone="trash" danger onPress={() => setPieces(pieces.filter((x) => x.id !== p.id))} />
-                : <Text style={s.discret}>Retrait : responsable</Text>}
+                ? <Bouton titre={t('Retirer')} icone="trash" danger onPress={() => setPieces(pieces.filter((x) => x.id !== p.id))} />
+                : <Text style={s.discret}>{t('Retrait : responsable')}</Text>}
             </View>
           ))}
           {peutAjouter && (
             <>
               <View style={s.ligne}>
                 <View style={{ flexGrow: 3, flexBasis: 220 }}>
-                  <Champ libelle="Rechercher un article" valeur={recherche} onChange={setRecherche} indication="ex. collier 63" />
+                  <Champ libelle={t('Rechercher un article')} valeur={recherche} onChange={setRecherche} indication={t('ex. collier 63')} />
                 </View>
                 <View style={{ flexGrow: 1, flexBasis: 90 }}>
-                  <Champ libelle="Quantité" valeur={quantite} onChange={setQuantite} nombre />
+                  <Champ libelle={t('Quantité')} valeur={quantite} onChange={setQuantite} nombre />
                 </View>
               </View>
               {correspondances.map((p) => (
@@ -381,17 +383,17 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
               ))}
               {!!recherche.trim() && !correspondances.length && !!parametres.pieces.length && (
                 <Text style={s.discret}>
-                  Aucun article ne correspond. S&apos;il manque, notez-le en observation : le responsable demandera sa création dans Dolibarr.
+                  {t("Aucun article ne correspond. S'il manque, notez-le en observation : le responsable demandera sa création dans Dolibarr.")}
                 </Text>
               )}
-              {!parametres.pieces.length && <Text style={s.discret}>Liste des articles pas encore chargée sur cette tablette : connectez-la au réseau.</Text>}
+              {!parametres.pieces.length && <Text style={s.discret}>{t('Liste des articles pas encore chargée sur cette tablette : connectez-la au réseau.')}</Text>}
             </>
           )}
         </Carte>
 
         {parametres.ouvriers.length > 0 && (
           <Carte>
-            <Text style={s.sousTitre}>Ouvriers (facultatif)</Text>
+            <Text style={s.sousTitre}>{t('Ouvriers (facultatif)')}</Text>
             <View style={s.ligne}>
               {parametres.ouvriers.map((o) => {
                 const actif = ouvriers.includes(o.id);
@@ -415,12 +417,12 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
         {peutPhotos && <BlocPhotos ph={ph} types={['avant', 'pendant', 'apres']} />}
 
         <Carte>
-          <Champ libelle="Observation" valeur={observation} onChange={setObservation} multiligne />
+          <Champ libelle={t('Observation')} valeur={observation} onChange={setObservation} multiligne />
         </Carte>
 
         {!!erreur && <Message ton="erreur">{erreur}</Message>}
-        <Bouton titre={m ? 'Enregistrer les modifications' : 'Enregistrer la réparation'} primaire grand onPress={enregistrer} occupe={occupe} />
-        <Bouton titre="Annuler" onPress={retour} desactive={occupe} />
+        <Bouton titre={m ? t('Enregistrer les modifications') : t('Enregistrer la réparation')} primaire grand onPress={enregistrer} occupe={occupe} />
+        <Bouton titre={t('Annuler')} onPress={retour} desactive={occupe} />
       </ScrollView>
     </View>
   );
@@ -431,6 +433,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
 // ---------------------------------------------------------------------------
 export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
   const { marche } = useSession();
+  useLangue();
   const parametres = useParametres(marche?.id);
   const bas = useBas();
   const [resultat, setResultat] = useState<'faite' | 'non_faite' | ''>('faite');
@@ -446,19 +449,19 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
   const ph = usePhotos();
   const d = contexte.derniere;
   const naturePrevue = parametres.natures.find((n) => n.id === d?.nature_revetement_id)?.libelle_fr;
-  const fouille = (v: number | null | undefined) => (v != null ? `${String(v).replace('.', ',')} (fouille)` : undefined);
+  const fouille = (v: number | null | undefined) => (v != null ? t('{valeur} (fouille)', { valeur: String(v).replace('.', ',') }) : undefined);
 
   async function enregistrer() {
     if (!marche) return;
     setErreur('');
-    if (!resultat) return setErreur('Indiquez si la réfection est faite.');
+    if (!resultat) return setErreur(t('Indiquez si la réfection est faite.'));
     if (resultat === 'faite' && !natureId && !d?.nature_revetement_id) {
-      return setErreur('Choisissez la nature de la réfection (aucune n\'est prévue à la réparation).');
+      return setErreur(t("Choisissez la nature de la réfection (aucune n'est prévue à la réparation)."));
     }
-    if (resultat === 'non_faite' && !motifId) return setErreur('Réfection non faite : choisissez le motif.');
+    if (resultat === 'non_faite' && !motifId) return setErreur(t('Réfection non faite : choisissez le motif.'));
     const [longueur, largeur] = [nombreOuNul(longueurT), nombreOuNul(largeurT)];
     if ((longueurT.trim() && (longueur == null || longueur < 0)) || (largeurT.trim() && (largeur == null || largeur < 0))) {
-      return setErreur('Longueur ou largeur invalide.');
+      return setErreur(t('Longueur ou largeur invalide.'));
     }
     const date = controlerDate(quand.jour, quand.heure);
     if ('erreur' in date) return setErreur(date.erreur);
@@ -480,34 +483,36 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
       void synchroniser().catch(() => undefined);
       retour();
     } catch (e) {
-      setErreur(`Enregistrement sur la tablette impossible : ${String((e as Error).message ?? e)}`);
+      setErreur(t('Enregistrement sur la tablette impossible : {erreur}', { erreur: String((e as Error).message ?? e) }));
       setOccupe(false);
     }
   }
 
   return (
     <View style={s.ecran}>
-      <BarreApp titre="Nouvelle réfection" sousTitre={contexte.libelle} retour={retour} />
+      <BarreApp titre={t('Nouvelle réfection')} sousTitre={contexte.libelle} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         <Carte>
           <Puces
-            options={[{ valeur: 'faite' as const, libelle: 'Réfection faite' }, { valeur: 'non_faite' as const, libelle: 'Non faite (motif)' }]}
+            options={[{ valeur: 'faite' as const, libelle: t('Réfection faite') }, { valeur: 'non_faite' as const, libelle: t('Non faite (motif)') }]}
             valeur={resultat} onChange={setResultat}
           />
           {resultat === 'faite' && (
             <>
-              <Text style={s.etiquette}>Nature{naturePrevue ? ` (vide : ${naturePrevue}, prévue à la réparation)` : ''}</Text>
+              <Text style={s.etiquette}>
+                {naturePrevue ? t('Nature (vide : {nature}, prévue à la réparation)', { nature: naturePrevue }) : t('Nature')}
+              </Text>
               <Puces facultatif options={parametres.natures.map((n) => ({ valeur: n.id, libelle: n.libelle_fr }))} valeur={natureId} onChange={setNatureId} />
               <View style={s.ligne}>
-                <Champ libelle="Longueur (m)" valeur={longueurT} onChange={setLongueurT} nombre indication={fouille(d?.fouille_longueur_m)} />
-                <Champ libelle="Largeur (m)" valeur={largeurT} onChange={setLargeurT} nombre indication={fouille(d?.fouille_largeur_m)} />
+                <Champ libelle={t('Longueur (m)')} valeur={longueurT} onChange={setLongueurT} nombre indication={fouille(d?.fouille_longueur_m)} />
+                <Champ libelle={t('Largeur (m)')} valeur={largeurT} onChange={setLargeurT} nombre indication={fouille(d?.fouille_largeur_m)} />
               </View>
-              <Text style={s.discret}>Laissées vides, longueur et largeur sont reprises de la fouille.</Text>
+              <Text style={s.discret}>{t('Laissées vides, longueur et largeur sont reprises de la fouille.')}</Text>
             </>
           )}
           {resultat === 'non_faite' && (
             <>
-              <Text style={s.etiquette}>Motif (obligatoire)</Text>
+              <Text style={s.etiquette}>{t('Motif (obligatoire)')}</Text>
               <Puces
                 options={parametres.motifs.filter((m) => m.categorie === 'sans_refection').map((m) => ({ valeur: m.id, libelle: m.libelle_fr }))}
                 valeur={motifId} onChange={setMotifId}
@@ -519,11 +524,11 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
         </Carte>
         <BlocPhotos ph={ph} types={['refection']} />
         <Carte>
-          <Champ libelle="Observation" valeur={observation} onChange={setObservation} multiligne />
+          <Champ libelle={t('Observation')} valeur={observation} onChange={setObservation} multiligne />
         </Carte>
         {!!erreur && <Message ton="erreur">{erreur}</Message>}
-        <Bouton titre="Enregistrer la réfection" primaire grand onPress={enregistrer} occupe={occupe} />
-        <Bouton titre="Annuler" onPress={retour} desactive={occupe} />
+        <Bouton titre={t('Enregistrer la réfection')} primaire grand onPress={enregistrer} occupe={occupe} />
+        <Bouton titre={t('Annuler')} onPress={retour} desactive={occupe} />
       </ScrollView>
     </View>
   );

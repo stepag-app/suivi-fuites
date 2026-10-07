@@ -90,10 +90,25 @@ l'émulateur relaie encore vers l'ancien routeur : plus aucun nom ne se résout 
 besoin de la connexion »). Redémarrer l'émulateur à froid (Android Studio > Device Manager > ⋮ > Cold Boot Now), puis
 rouvrir l'appli : la session est gardée.
 **Défaut relevé sur l'APK (antérieur à cette livraison)** : au démarrage **sans réseau** avec un jeton expiré (plus
-d'une heure), `supabase.auth.getSession()` renvoie `null` (supabase-js 2.117 garde la session en stockage mais ne la
-rend pas tant que le rafraîchissement échoue) et `mobile/src/session.tsx` affiche l'écran **Connexion** au lieu de la
-liste hors ligne. Rien n'est perdu : la session revient en rouvrant l'appli avec du réseau. À corriger : relire la
-session stockée et le contexte (`cleContexte`) quand l'erreur est réseau, réessayer au retour du réseau.
+d'une heure), `supabase.auth.getSession()` renvoyait `null` (supabase-js 2.117 garde la session en stockage mais ne la
+rend pas tant que le rafraîchissement échoue, et l'événement `INITIAL_SESSION` arrive sans session) : l'APK affichait
+l'écran **Connexion** au lieu de la liste hors ligne. **Corrigé par la PR [#56](https://github.com/stepag-app/suivi-fuites/pull/56), à fusionner sur accord d'Issam** :
+- au démarrage, la session est relue du stockage et l'appli ouvre la liste hors ligne sur le dernier contexte connu
+  (profil, marchés, droits) ;
+- le jeton est renouvelé au retour du réseau : minuteur d'auth-js, et essai aussitôt au retour sur l'appli (arrêté en
+  arrière-plan). La file d'attente repart ensuite, et le contexte est rechargé du serveur ;
+- rien n'est envoyé sans jeton valide ;
+- « Quitter » marche aussi hors ligne (avant, `signOut()` échouait sans rien effacer) ;
+- seul un renouvellement refusé par le serveur ramène à l'écran Connexion.
+
+Vérifié par l'essai sans pile avec le vrai client Supabase (25 vérifications, horloge simulée) et sur l'émulateur :
+- session fictive au jeton expiré, DNS en panne : liste hors ligne au bout de 44 s ;
+- « Quitter » : écran Connexion en moins de 3 s ;
+- APK d'origine remise ensuite.
+
+**Reste lent** : sans réseau, auth-js réessaie le renouvellement près de 25 s (44 s sur l'émulateur) avant d'ouvrir la
+liste. La PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54) (autre session, même défaut, correctif partiel)
+est à fermer si la #56 est fusionnée.
 Sur l'émulateur du Mac, la première connexion à un nouveau nom d'hôte prend une dizaine de secondes (DNS du routeur
 local) : premier chargement, vignettes et carte du Balayage lents à l'ouverture, sans lien avec l'appli.
 

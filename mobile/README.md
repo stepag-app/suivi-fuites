@@ -34,11 +34,16 @@ Deux envois de plus : `photos` (ajoutées depuis la fiche) et `modification` (se
 réparation, `src/modification.ts` : champs, pièces ajoutées / retirées / requantifiées, ouvriers ajoutés / retirés ;
 chaque étape rejouable sans effet de plus) ; ils partent après la saisie qu'ils complètent si elle attend encore ;
 abandonner une réparation emporte ses modifications et ses photos ajoutées.
-**Délai des requêtes** (`src/reseau.ts`, `global.fetch` du client Supabase) : le fetch de l'APK n'en a aucun, et une
+**Délai des requêtes** (`src/reseau.ts`, `global.fetch` du client Supabase) : le fetch de l'APK n'en avait aucun, et une
 requête restée sans réponse (connexion 4G morte) bloquait la synchro, une seule à la fois, jusqu'à l'expiration TCP
 (souvent un quart d'heure). Toute requête est abandonnée après **60 s**, **3 min** pour l'envoi d'une photo ; l'abandon
 compte comme une coupure : la saisie reste sur la tablette, sans message, et repart à la synchro suivante. Une requête
 qui porte déjà son propre signal d'abandon le garde (liste des fuites : 20 s).
+Côté natif, `plugins/okhttp-delais.js` (posé par `expo prebuild` dans `MainApplication.kt`) donne au client OkHttp
+(fetch, images) des délais d'**inactivité** : connexion 10 s, lecture et écriture **15 s**, 60 s pour un corps de plus de
+16 Ko (photos). Dépassé, un délai fait écarter la connexion HTTP/2 morte (PING sans réponse en 1 s) : la requête
+suivante en ouvre une neuve. Un abandon par JavaScript, lui, la laisse en place pour les requêtes suivantes : les délais
+natifs sont donc plus courts que ceux ci-dessus, pour tomber avant eux. Pas de PING régulier (radio 4G, batterie).
 
 **Style** : celui du panneau web, interface « Studio Admin » (shadcn/ui, depuis le 2026-10-07 ; maquettes validées par
 Issam : liste en tableau comme le panneau, fiche sur une seule page). Jetons de `web/src/app/globals.css` (préréglage

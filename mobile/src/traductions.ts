@@ -1,13 +1,14 @@
 // Dictionnaire de l'APK : la clé est le texte français affiché dans le code (avec {repères} remplis à l'affichage).
-// `ar` : arabe classique ; `hyb` : mode hybride (arabe, termes techniques gardés en français), absent = comme `ar`.
-// Relu et validé par Issam dans l'artefact « Dictionnaire arabe APK » (docs/traduction/), sauf les entrées
-// marquées « à relire » (libellés ajoutés par l'interface Studio Admin).
+// `ar` : arabe classique ; `hyb` : mode hybride, absent = comme `ar`. Règle d'Issam (2026-10-07) : en hybride, une
+// phrase arabe ne garde un mot français que s'il s'agit de « Réfection » ; les libellés entièrement en français
+// (Balayage, Secteur, listes de choix…) restent en français. Tout relu et validé par Issam dans l'artefact
+// « Dictionnaire arabe APK » (docs/traduction/).
 
 export interface Entree { ar: string; hyb?: string }
 
 export const TRADUCTIONS = {
   // Général
-  'Suivi des fuites': { ar: 'تتبع التسربات', hyb: 'تتبع الـ Fuites' },
+  'Suivi des fuites': { ar: 'تتبع التسربات' },
   'Application non configurée (adresse du serveur absente).': { ar: 'التطبيق غير مُهيّأ (عنوان الخادم غير موجود).' },
   "Aucun marché n'est affecté à votre compte. Contactez l'administrateur.": { ar: 'لا توجد أي صفقة مرتبطة بحسابك. اتصل بمسؤول النظام.' },
   'Retour': { ar: 'رجوع' },
@@ -23,7 +24,6 @@ export const TRADUCTIONS = {
   'Se connecter': { ar: 'دخول' },
   'Identifiant ou mot de passe incorrect.': { ar: 'اسم المستخدم أو كلمة المرور غير صحيحة.' },
   'Connexion impossible : vérifiez le réseau.': { ar: 'تعذّر الدخول: تحقّق من الاتصال بالإنترنت.' },
-  // à relire
   'Bonjour': { ar: 'مرحبًا' },
   'Connectez-vous pour continuer': { ar: 'سجّل الدخول للمتابعة' },
   "Entrez l'identifiant et le mot de passe remis par l'administrateur.": { ar: 'أدخل اسم المستخدم وكلمة المرور اللذين سلّمهما لك مسؤول النظام.' },
@@ -35,41 +35,39 @@ export const TRADUCTIONS = {
   'Fuites · {code}': { ar: 'التسربات · {code}', hyb: 'Fuites · {code}' },
   'Balayage': { ar: 'مسح الشبكة', hyb: 'Balayage' },
   'Hors ligne : dernière liste connue.': { ar: 'دون اتصال: آخر قائمة محفوظة.' },
-  'Aucune fuite.': { ar: 'لا يوجد أي تسرب.', hyb: 'لا توجد أي Fuite.' },
+  'Aucune fuite.': { ar: 'لا يوجد أي تسرب.' },
   'Gardée sur la tablette': { ar: 'محفوظة على الجهاز اللوحي' },
   '{date} · gardée sur la tablette': { ar: '{date} · محفوظة على الجهاز اللوحي' },
   'N° {numero}': { ar: 'رقم {numero}' },
-  'Fuite N° {numero}': { ar: 'التسرب رقم {numero}', hyb: 'Fuite رقم {numero}' },
-  'Non réparée > {delai} h': { ar: 'لم يُصلَح > {delai} ساعة', hyb: 'بدون Réparation > {delai} ساعة' },
+  'Fuite N° {numero}': { ar: 'التسرب رقم {numero}' },
+  'Non réparée > {delai} h': { ar: 'لم يُصلَح > {delai} ساعة' },
   'Y aller': { ar: 'الذهاب إلى الموقع' },
   'Y aller (pas de position GPS)': { ar: 'الذهاب إلى الموقع (لا يوجد موقع GPS)' },
-  'Référence client': { ar: 'مرجع الزبون', hyb: 'Référence الزبون' },
-  // à relire
+  'Référence client': { ar: 'مرجع الزبون' },
   'Fuites': { ar: 'التسربات', hyb: 'Fuites' },
   'Toutes': { ar: 'الكل' },
-  '{n} fuites': { ar: 'عدد التسربات: {n}', hyb: 'عدد الـ Fuites: {n}' },
+  '{n} fuites': { ar: 'عدد التسربات: {n}' },
   '{n} affichées sur {total}': { ar: 'المعروضة: {n} من {total}' },
   'À envoyer': { ar: 'للإرسال' },
-  'N°, référence ou adresse': { ar: 'الرقم أو المرجع أو العنوان', hyb: 'الرقم أو الـ Référence أو العنوان' },
-  'Rechercher une fuite': { ar: 'البحث عن تسرب', hyb: 'البحث عن Fuite' },
+  'N°, référence ou adresse': { ar: 'الرقم أو المرجع أو العنوان' },
+  'Rechercher une fuite': { ar: 'البحث عن تسرب' },
   'Effacer la recherche': { ar: 'مسح البحث' },
   'N°': { ar: 'رقم' },
-  'Secteur · adresse': { ar: 'القطاع · العنوان', hyb: 'Secteur · العنوان' },
-  'Détectée le': { ar: 'تاريخ الكشف', hyb: 'تاريخ الـ Détection' },
+  'Secteur · adresse': { ar: 'القطاع · العنوان' },
+  'Détectée le': { ar: 'تاريخ الكشف' },
   'Statut': { ar: 'الحالة' },
   'Alertes': { ar: 'التنبيهات' },
   'Photos': { ar: 'الصور' },
-  'Chargement des fuites…': { ar: 'جارٍ تحميل التسربات…', hyb: 'جارٍ تحميل الـ Fuites…' },
-  'Aucune fuite ne correspond.': { ar: 'لا يوجد أي تسرب مطابق.', hyb: 'لا توجد أي Fuite مطابقة.' },
-  'Secteur non renseigné': { ar: 'القطاع غير محدد', hyb: 'Secteur غير محدد' },
+  'Chargement des fuites…': { ar: 'جارٍ تحميل التسربات…' },
+  'Aucune fuite ne correspond.': { ar: 'لا يوجد أي تسرب مطابق.' },
+  'Secteur non renseigné': { ar: 'القطاع غير محدد' },
 
   // Statuts
   'Détectée, non réparée': { ar: 'تم الكشف، لم يتم الإصلاح' },
-  'Réparation en cours': { ar: 'الإصلاح جارٍ', hyb: 'Réparation جارية' },
+  'Réparation en cours': { ar: 'الإصلاح جارٍ' },
   'Réparée': { ar: 'تم الإصلاح' },
   'Achevée': { ar: 'مكتمل' },
-  'Sans réparation': { ar: 'بدون إصلاح', hyb: 'بدون Réparation' },
-  // à relire (libellés courts des onglets et nouveau statut)
+  'Sans réparation': { ar: 'بدون إصلاح' },
   'Réparée, réfection à faire': { ar: 'تم الإصلاح، إعادة الرصف متبقية', hyb: 'تم الإصلاح، الـ Réfection متبقية' },
   'Détectée': { ar: 'تم الكشف', hyb: 'Détectée' },
   'En cours': { ar: 'جارٍ' },
@@ -83,7 +81,7 @@ export const TRADUCTIONS = {
   "Position introuvable. Sortez à l'air libre et réessayez.": { ar: 'تعذّر تحديد الموقع. اخرج إلى مكان مكشوف وأعد المحاولة.' },
   "Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu'elle n'est pas déjà signalée.": {
     ar: 'لا يوجد اتصال: لا يمكن التحقق من التكرار. تأكّد في عين المكان أن هذا التسرب لم يُبلَّغ عنه من قبل.',
-    hyb: 'لا يوجد اتصال: لا يمكن التحقق من التكرار. تأكّد في عين المكان أن هذه الـ Fuite لم يُبلَّغ عنها من قبل.',
+   
   },
   'Fuite déjà signalée ici ?': { ar: 'هل سبق الإبلاغ عن تسرب هنا؟' },
   ' · même référence': { ar: ' · نفس المرجع' },
@@ -96,7 +94,7 @@ export const TRADUCTIONS = {
   'La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?': { ar: 'لن يُحتفَظ بالإدخال الحالي وصوره. هل تريد فتح البطاقة الموجودة؟' },
   'Oui, ouvrir la fiche': { ar: 'نعم، افتح البطاقة' },
   'Secteur': { ar: 'القطاع', hyb: 'Secteur' },
-  'Choisir le secteur': { ar: 'اختر القطاع', hyb: 'اختر الـ Secteur' },
+  'Choisir le secteur': { ar: 'اختر القطاع' },
   'Aucun': { ar: 'لا شيء' },
   'Adresse / repère': { ar: 'العنوان / معلم قريب' },
   'Observation': { ar: 'ملاحظة' },
@@ -107,10 +105,9 @@ export const TRADUCTIONS = {
   'Envoi…': { ar: 'جارٍ الإرسال…' },
   'Photo impossible : {erreur}': { ar: 'تعذّر التقاط الصورة: {erreur}' },
   'Appareil photo refusé : autorisez-le dans les réglages de la tablette.': { ar: 'تم رفض الوصول إلى الكاميرا: اسمح به في إعدادات الجهاز اللوحي.' },
-  // à relire
   'Identification': { ar: 'بيانات التعريف' },
   'Facultatives ; un appui sur une photo la retire.': { ar: 'اختيارية؛ اضغط على صورة لإزالتها.' },
-  '{n} secteurs': { ar: 'عدد القطاعات: {n}', hyb: 'عدد الـ Secteurs: {n}' },
+  '{n} secteurs': { ar: 'عدد القطاعات: {n}' },
 
   // Types de photo
   'Détection': { ar: 'الكشف', hyb: 'Détection' },
@@ -143,9 +140,8 @@ export const TRADUCTIONS = {
   'Réfection · {fuite}': { ar: 'إعادة الرصف · {fuite}', hyb: 'Réfection · {fuite}' },
   'Modification de réparation · {fuite}': { ar: 'تعديل الإصلاح · {fuite}' },
   'Photo(s) ajoutée(s) · {fuite}': { ar: 'صور مضافة · {fuite}' },
-  'Nouvelle fuite · {reference}': { ar: 'تسرب جديد · {reference}', hyb: 'Fuite جديدة · {reference}' },
-  'sans référence': { ar: 'بدون مرجع', hyb: 'بدون Référence' },
-  // à relire
+  'Nouvelle fuite · {reference}': { ar: 'تسرب جديد · {reference}' },
+  'sans référence': { ar: 'بدون مرجع' },
   '{n} saisies sur la tablette': { ar: 'إدخالات على الجهاز اللوحي: {n}' },
   'Aucune saisie en attente.': { ar: 'لا توجد إدخالات في الانتظار.' },
   'Refusée par le serveur : {erreur}': { ar: 'رفضها الخادم: {erreur}' },
@@ -155,7 +151,7 @@ export const TRADUCTIONS = {
   'Fuite à envoyer': { ar: 'تسرب للإرسال' },
   'Fuite à envoyer ({reference})': { ar: 'تسرب للإرسال ({reference})' },
   'Fiche jamais ouverte sur cette tablette : elle sera disponible au retour du réseau.': { ar: 'لم تُفتح هذه البطاقة من قبل على هذا الجهاز اللوحي: ستكون متاحة عند عودة الاتصال.' },
-  'Fuite introuvable ou accès refusé.': { ar: 'التسرب غير موجود أو الوصول مرفوض.', hyb: 'Fuite غير موجودة أو الوصول مرفوض.' },
+  'Fuite introuvable ou accès refusé.': { ar: 'التسرب غير موجود أو الوصول مرفوض.' },
   'Liste des fuites': { ar: 'قائمة التسربات' },
   'Hors ligne : dernière version connue de la fiche.': { ar: 'دون اتصال: آخر نسخة محفوظة من البطاقة.' },
   'Cette fuite est encore sur la tablette : elle partira au retour du réseau.': { ar: 'هذا التسرب ما زال على الجهاز اللوحي: سيُرسَل عند عودة الاتصال.' },
@@ -164,7 +160,7 @@ export const TRADUCTIONS = {
   'Ouvrage': { ar: 'المنشأة', hyb: 'Ouvrage' },
   '{date} par {agent}': { ar: '{date} بواسطة {agent}' },
   'Re-détection': { ar: 'إعادة الكشف', hyb: 'Re-détection' },
-  'liée à une fuite déjà signalée': { ar: 'مرتبط بتسرب مُبلَّغ عنه سابقًا', hyb: 'مرتبطة بـ Fuite مُبلَّغ عنها سابقًا' },
+  'liée à une fuite déjà signalée': { ar: 'مرتبط بتسرب مُبلَّغ عنه سابقًا' },
   'Motif': { ar: 'السبب' },
   'Aucune photo.': { ar: 'لا توجد صور.' },
   'Ajouter une photo de la fuite': { ar: 'إضافة صورة للتسرب' },
@@ -180,14 +176,14 @@ export const TRADUCTIONS = {
   'Saisir une réfection': { ar: 'إدخال إعادة رصف', hyb: 'إدخال Réfection' },
   'Sur la tablette, envoi au retour du réseau.': { ar: 'على الجهاز اللوحي، يُرسَل عند عودة الاتصال.' },
   'Modification sur la tablette, envoi au retour du réseau.': { ar: 'تعديل على الجهاز اللوحي، يُرسَل عند عودة الاتصال.' },
-  'tuyau réparé': { ar: 'أنبوب مُصلَح', hyb: 'Tuyau مُصلَح' },
-  'robinet PEC changé': { ar: 'محبس التفريع مُستبدَل', hyb: 'Robinet PEC مُستبدَل' },
-  'collier PEC changé': { ar: 'طوق التفريع مُستبدَل', hyb: 'Collier PEC مُستبدَل' },
-  'bouche à clé mise à niveau': { ar: 'غطاء المحبس مُسوّى مع السطح', hyb: 'Bouche à clé مُسوّاة مع السطح' },
-  'élément remplacé': { ar: 'عنصر مُستبدَل', hyb: 'Élément مُستبدَل' },
+  'tuyau réparé': { ar: 'أنبوب مُصلَح' },
+  'robinet PEC changé': { ar: 'محبس التفريع مُستبدَل' },
+  'collier PEC changé': { ar: 'طوق التفريع مُستبدَل' },
+  'bouche à clé mise à niveau': { ar: 'غطاء المحبس مُسوّى مع السطح' },
+  'élément remplacé': { ar: 'عنصر مُستبدَل' },
   '{l} × {la} × {p} m': { ar: '{l} × {la} × {p} م' },
   'Ø {d} mm': { ar: 'Ø {d} مم' },
-  ' · PE {n} m': { ar: ' · بولي إيثيلين {n} م', hyb: ' · PE {n} م' },
+  ' · PE {n} m': { ar: ' · بولي إيثيلين {n} م' },
   'Ajouter une photo :': { ar: 'إضافة صورة:' },
   'Modifier la réparation': { ar: 'تعديل الإصلاح' },
   'Réfection faite': { ar: 'تمت إعادة الرصف', hyb: 'Réfection مُنجَزة' },
@@ -195,13 +191,12 @@ export const TRADUCTIONS = {
   'Revêtement prévu à la réparation': { ar: 'طبقة الرصف المُقرَّرة عند الإصلاح' },
   'dimensions de la fouille': { ar: 'أبعاد الحفرة' },
   'Ajouter une photo de réfection': { ar: 'إضافة صورة إعادة الرصف', hyb: 'إضافة صورة Réfection' },
-  'Nature': { ar: 'نوع طبقة الرصف', hyb: 'نوع الـ Revêtement' },
-  // à relire
+  'Nature': { ar: 'نوع طبقة الرصف' },
   'Réf. {ref}': { ar: 'المرجع {ref}', hyb: 'Réf. {ref}' },
-  'Sans référence ni adresse': { ar: 'بدون مرجع ولا عنوان', hyb: 'بدون Référence ولا عنوان' },
+  'Sans référence ni adresse': { ar: 'بدون مرجع ولا عنوان' },
   'Interventions saisies sur le terrain ou au bureau.': { ar: 'التدخلات المُدخلة في الميدان أو في المكتب.' },
   'Remise en état du revêtement après la réparation.': {
-    ar: 'إعادة طبقة الرصف إلى حالتها بعد الإصلاح.', hyb: 'إعادة الـ Revêtement إلى حالته بعد الـ Réparation.',
+    ar: 'إعادة طبقة الرصف إلى حالتها بعد الإصلاح.',
   },
   'Pas encore envoyée : {erreur}': { ar: 'لم تُرسَل بعد: {erreur}' },
   'Modification pas encore envoyée : {erreur}': { ar: 'التعديل لم يُرسَل بعد: {erreur}' },
@@ -232,23 +227,23 @@ export const TRADUCTIONS = {
   'Constat': { ar: 'المعاينة' },
   'Matériau': { ar: 'المادة' },
   'Diamètre (mm) : DE pour le PE, DN pour les conduites': {
-    ar: 'القطر (مم): القطر الخارجي لأنابيب البولي إيثيلين، والقطر الاسمي للقنوات', hyb: 'القطر (مم): DE للـ PE، و DN للـ Conduites',
+    ar: 'القطر (مم): القطر الخارجي لأنابيب البولي إيثيلين، والقطر الاسمي للقنوات',
   },
   'Travaux réalisés': { ar: 'الأشغال المنجزة' },
   'Tuyau / conduite réparé(e)': { ar: 'أنبوب / قناة مُصلَحة' },
-  'Robinet PEC changé': { ar: 'محبس التفريع مُستبدَل', hyb: 'Robinet PEC مُستبدَل' },
-  'Collier PEC changé': { ar: 'طوق التفريع مُستبدَل', hyb: 'Collier PEC مُستبدَل' },
-  'Bouche à clé mise à niveau': { ar: 'غطاء المحبس مُسوّى مع السطح', hyb: 'Bouche à clé مُسوّاة مع السطح' },
-  'Élément de conduite remplacé': { ar: 'عنصر من القناة مُستبدَل', hyb: 'Élément de conduite مُستبدَل' },
-  'Longueur de PE posée (m)': { ar: 'طول أنبوب البولي إيثيلين المُركَّب (م)', hyb: 'طول الـ Polyethylene المُركَّب (م)' },
+  'Robinet PEC changé': { ar: 'محبس التفريع مُستبدَل' },
+  'Collier PEC changé': { ar: 'طوق التفريع مُستبدَل' },
+  'Bouche à clé mise à niveau': { ar: 'غطاء المحبس مُسوّى مع السطح' },
+  'Élément de conduite remplacé': { ar: 'عنصر من القناة مُستبدَل' },
+  'Longueur de PE posée (m)': { ar: 'طول أنبوب البولي إيثيلين المُركَّب (م)' },
   'Fouille': { ar: 'الحفرة', hyb: 'Fouille' },
   'Longueur (m)': { ar: 'الطول (م)' },
   'Largeur (m)': { ar: 'العرض (م)' },
   'Profondeur (m)': { ar: 'العمق (م)' },
   'Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.': {
-    ar: 'طول يتجاوز 2 م: يجب تبريره باستبدال عنصر من القناة.', hyb: 'طول يتجاوز 2 م: يجب تبريره بـ Élément de conduite مُستبدَل.',
+    ar: 'طول يتجاوز 2 م: يجب تبريره باستبدال عنصر من القناة.',
   },
-  'Revêtement à refaire': { ar: 'طبقة الرصف المطلوب إعادتها', hyb: 'الـ Revêtement المطلوب إعادته' },
+  'Revêtement à refaire': { ar: 'طبقة الرصف المطلوب إعادتها' },
   'Emplacement': { ar: 'المكان' },
   'Représentant {sigle} présent (nom)': { ar: 'ممثل {sigle} الحاضر (الاسم)' },
   "du maître d'ouvrage": { ar: 'صاحب المشروع' },
@@ -261,7 +256,7 @@ export const TRADUCTIONS = {
   'Quantité': { ar: 'الكمية' },
   'Liste des articles pas encore chargée sur cette tablette : connectez-la au réseau.': { ar: 'قائمة الأصناف لم تُحمَّل بعد على هذا الجهاز اللوحي: اربطه بالإنترنت.' },
   'Ouvriers (facultatif)': { ar: 'العمال (اختياري)' },
-  'Enregistrer la réparation': { ar: 'حفظ الإصلاح', hyb: 'حفظ الـ Réparation' },
+  'Enregistrer la réparation': { ar: 'حفظ الإصلاح' },
   'Enregistrer les modifications': { ar: 'حفظ التعديلات' },
   'Choisissez le résultat.': { ar: 'اختر النتيجة.' },
   'Fuite non réparée : choisissez le motif.': { ar: 'تسرب لم يُصلَح: اختر السبب.' },
@@ -271,7 +266,6 @@ export const TRADUCTIONS = {
   'Quantité de la pièce : un nombre supérieur à 0.': { ar: 'كمية القطعة: عدد أكبر من 0.' },
   'Aucune modification à enregistrer.': { ar: 'لا توجد تعديلات للحفظ.' },
   'Enregistrement sur la tablette impossible : {erreur}': { ar: 'تعذّر الحفظ على الجهاز اللوحي: {erreur}' },
-  // à relire
   "Aucun article ne correspond. S'il manque, notez-le en observation : le responsable demandera sa création dans Dolibarr.": {
     ar: 'لا يوجد صنف مطابق. إذا كان ناقصًا، دوّنه في الملاحظة: سيطلب المسؤول إضافته في Dolibarr.',
   },
@@ -280,10 +274,10 @@ export const TRADUCTIONS = {
   'Nouvelle réfection': { ar: 'إعادة رصف جديدة', hyb: 'Réfection جديدة' },
   'Non faite (motif)': { ar: 'غير مُنجَزة (السبب)' },
   'Nature (vide : {nature}, prévue à la réparation)': {
-    ar: 'نوع طبقة الرصف (فارغ: {nature}، المُقرَّرة عند الإصلاح)', hyb: 'نوع الـ Revêtement (فارغ: {nature}، المُقرَّرة عند الـ Réparation)',
+    ar: 'نوع طبقة الرصف (فارغ: {nature}، المُقرَّرة عند الإصلاح)',
   },
   'Laissées vides, longueur et largeur sont reprises de la fouille.': {
-    ar: 'إذا تُرك الطول والعرض فارغَين، تُعتمَد أبعاد الحفرة.', hyb: 'إذا تُرك الطول والعرض فارغَين، تُعتمَد أبعاد الـ Fouille.',
+    ar: 'إذا تُرك الطول والعرض فارغَين، تُعتمَد أبعاد الحفرة.',
   },
   '{valeur} (fouille)': { ar: '{valeur} (الحفرة)', hyb: '{valeur} (Fouille)' },
   'Indiquez si la réfection est faite.': { ar: 'حدّد هل تمت إعادة الرصف.', hyb: 'حدّد هل الـ Réfection مُنجَزة.' },
@@ -338,7 +332,7 @@ export const TRADUCTIONS = {
   'Modification non autorisée': { ar: 'تعديل غير مسموح به' },
   "En attente : une saisie précédente de cette fuite n'est pas encore passée.": { ar: 'في الانتظار: إدخال سابق لهذا التسرب لم يُرسَل بعد.' },
 
-  // Accessibilité (lus par le lecteur d'écran) — à relire
+  // Accessibilité (lus par le lecteur d'écran)
   '{legende} : retirer la photo': { ar: '{legende}: إزالة الصورة' },
   'Avancement {progression} %': { ar: 'التقدّم {progression} %' },
 } as const satisfies Record<string, Entree>;

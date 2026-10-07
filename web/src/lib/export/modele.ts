@@ -48,6 +48,24 @@ export interface EnteteDoc {
   logoMaitreOuvrage?: LogoEntete | null;  // à droite
 }
 
+// Colonne d'en-tête à écrire : sous un logo, ni le nom (première ligne) ni sa version
+// arabe, déjà portés par le logo ; sans logo, le nom en gras puis les détails.
+export function lignesEntete(lignes: string[], ar: string | null | undefined, logo: LogoEntete | null | undefined) {
+  return {
+    nom: logo ? null : lignes[0] ?? null,
+    details: lignes.slice(1),
+    ar: logo ? null : ar || null,
+  };
+}
+
+// Noms arabes réellement écrits dans l'en-tête (seuls ceux-là sont à composer).
+export function textesArabesEntete(e: EnteteDoc): string[] {
+  return [
+    lignesEntete(e.titulaire, e.titulaireAr, e.logoTitulaire).ar,
+    lignesEntete(e.client, e.clientAr, e.logoMaitreOuvrage).ar,
+  ].filter((t): t is string => !!t);
+}
+
 // Logos des en-têtes : hauteur fixe, proportions conservées ; un logo très large
 // est réduit pour ne pas dépasser la largeur maximale.
 export const LOGO_HAUTEUR_MM = 14;

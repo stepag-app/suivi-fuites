@@ -63,11 +63,19 @@ export async function lireAttente(): Promise<Envoi[]> {
     return [];
   }
 }
-const ecrireAttente = (liste: Envoi[]) => AsyncStorage.setItem(CLE, JSON.stringify(liste));
 // Toute écriture passe par cette chaîne : une saisie faite pendant une synchro n'est jamais écrasée.
+// Une file inchangée n'est pas réécrite ; `version` n'avance qu'à un vrai changement (voir synchroniser).
 let chaine: Promise<unknown> = Promise.resolve();
+let version = 0;
 function modifier(f: (liste: Envoi[]) => Envoi[]): Promise<void> {
-  const suite = chaine.then(async () => ecrireAttente(f(await lireAttente())));
+  const suite = chaine.then(async () => {
+    const liste = await lireAttente();
+    const avant = JSON.stringify(liste);
+    const apres = JSON.stringify(f(liste));
+    if (apres === avant) return;
+    await AsyncStorage.setItem(CLE, apres);
+    version += 1;
+  });
   chaine = suite.catch(() => undefined);
   return suite;
 }
@@ -125,12 +133,17 @@ export function messageClair(e: unknown): string {
 
 let enCours: Promise<number> | null = null;
 
-/** Envoie tout ce qui attend ; renvoie le nombre d'envois restants. Une synchro à la fois. */
+/**
+ * Envoie tout ce qui attend ; renvoie le nombre d'envois restants. Une synchro à la fois.
+ * Les écrans ne sont prévenus (et ne rechargent) que si la file a changé : la synchro des 30 s, file vide ou sans
+ * réseau, ne réveille ni la liste ni la fiche.
+ */
 export function synchroniser(): Promise<number> {
   if (!enCours) {
+    const depart = version;
     enCours = executer().finally(() => {
       enCours = null;
-      prevenir();
+      if (version !== depart) prevenir();
     });
   }
   return enCours;
@@ -213,6 +226,8 @@ function envoyer(e: Envoi) {
 const ATTENTE_PRECEDENT = "En attente : une saisie précédente de cette fuite n'est pas encore passée.";
 
 async function executer(): Promise<number> {
+  // Cas courant (toutes les 30 s) : rien à envoyer, rien d'autre à lire.
+  if (!(await lireAttente()).length) return 0;
   const { data } = await supabase.auth.getSession();
   if (!data.session) return (await lireAttente()).length;
 

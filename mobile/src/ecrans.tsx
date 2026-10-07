@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dateHeure } from './fiche';
 import {
@@ -108,6 +110,11 @@ const COL = {
   numero: { width: 56 }, reference: { width: 150 }, lieu: { flex: 1.3 }, date: { width: 168 }, statut: { width: 150 },
   alertes: { flex: 1 }, photos: { width: 64 }, aller: { width: 150 },
 };
+// Sans geste de l'agent, la liste suit les fuites des autres équipes à ce rythme (tirer la liste : tout de suite).
+const MISE_A_JOUR_MS = 5 * 60 * 1000;
+// Le fetch de React Native n'a pas de délai : passé celui-ci, connexion tenue pour bloquée, dernière liste connue.
+const DELAI_LISTE_MS = 20000;
+const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
@@ -121,36 +128,63 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   const [texte, setTexte] = useState('');
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const bas = useBas();
+  const derniere = useRef('');
   const { langue } = useLangue();
 
-  const charger = useCallback(async () => {
+  // `discret` : rechargement de fond, sans le rond de rafraîchissement (réservé à l'arrivée sur la liste et au geste
+  // de l'agent) et sans rien redessiner si rien n'a changé.
+  const charger = useCallback(async (discret = false) => {
     if (!marche) return;
-    setRafraichit(true);
-    setEnvois(await lireAttente());
-    const cle = `suivi-fuites:liste:${marche.id}`;
-    const { data, error } = await supabase
-      .from('v_fuites')
-      .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
-      .eq('marche_id', marche.id)
-      .order('date_detection', { ascending: false })
-      .limit(200);
-    if (error || !data) {
-      const copie = await AsyncStorage.getItem(cle);
-      if (copie) setFuites(JSON.parse(copie));
-      setMessage(t('Hors ligne : dernière liste connue.'));
-    } else {
-      setFuites(data as VFuite[]);
-      setMessage('');
-      AsyncStorage.setItem(cle, JSON.stringify(data)).catch(() => undefined);
+    if (!discret) setRafraichit(true);
+    const controleur = new AbortController();
+    const delai = setTimeout(() => controleur.abort(), DELAI_LISTE_MS);
+    try {
+      const attente = await lireAttente();
+      setEnvois((avant) => (memes(avant, attente) ? avant : attente));
+      const cle = `suivi-fuites:liste:${marche.id}`;
+      const { data, error } = await supabase
+        .from('v_fuites')
+        .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
+        .eq('marche_id', marche.id)
+        .order('date_detection', { ascending: false })
+        .limit(200)
+        .abortSignal(controleur.signal);
+      if (error || !data) {
+        const copie = await AsyncStorage.getItem(cle);
+        if (copie && copie !== derniere.current) {
+          derniere.current = copie;
+          setFuites(JSON.parse(copie));
+        }
+        setMessage(t('Hors ligne : dernière liste connue.'));
+      } else {
+        const contenu = JSON.stringify(data);
+        if (contenu !== derniere.current) {
+          derniere.current = contenu;
+          setFuites(data as VFuite[]);
+          AsyncStorage.setItem(cle, contenu).catch(() => undefined);
+        }
+        setMessage('');
+      }
+    } finally {
+      clearTimeout(delai);
+      setRafraichit(false);
     }
-    setRafraichit(false);
   }, [marche]);
 
   useEffect(() => {
     charger();
   }, [charger]);
-  // Après chaque synchro : compteur à jour, et la liste suit les statuts recalculés par le serveur.
-  useEffect(() => surChangement(() => void charger()), [charger]);
+  // Après une synchro qui a changé la file : compteur à jour, et la liste suit les statuts recalculés par le serveur.
+  useEffect(() => surChangement(() => void charger(true)), [charger]);
+  // Mise à jour de fond : toutes les 5 min et au retour sur l'application.
+  useEffect(() => {
+    const minuteur = setInterval(() => void charger(true), MISE_A_JOUR_MS);
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && void charger(true));
+    return () => {
+      clearInterval(minuteur);
+      abonnement.remove();
+    };
+  }, [charger]);
   // Autre marché : on repart de toutes ses fuites.
   useEffect(() => {
     setOnglet('toutes');

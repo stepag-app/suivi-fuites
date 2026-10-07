@@ -251,14 +251,16 @@ verifier('PDF : cadre de l\'extrait pleine largeur et haut', cadreDemande && Mat
   cadreDemande && `${cadreDemande.l.toFixed(0)} × ${cadreDemande.h.toFixed(0)} mm`);
 verifier('PDF : titre, société, journée en lettres', r1.texte.includes(rj.TITRE_RAPPORT_JOURNALIER) && r1.texte.includes('Entreprise Essai SARL')
   && r1.texte.includes(rj.jourEnLettres(JOUR)));
-verifier('PDF : en-tête du marché', r1.texte.includes('Marché n° ESSAI-0001') && r1.texte.includes('Régie d\'essai des eaux'));
+verifier('PDF : en-tête du marché, noms portés par les logos', r1.texte.includes('Marché n° ESSAI-0001') && r1.texte.includes('Direction d\'essai')
+  && !r1.texte.includes('Régie d\'essai des eaux'));
 verifier('PDF : linéaires en km (payé, repassé)', r1.texte.includes('4,485 km (premiers passages)') && r1.texte.includes('0,121 km (non rémunéré)'));
 verifier('PDF : tableau du gabarit et TOTAL', ['Canalisation prospectée', 'Calibre', 'Invisibles', 'dégradation', 'Fuites hors des secteurs balayés ce jour', 'TOTAL', '900-000-101']
   .every((t) => r1.texte.includes(t)) && r1.texte.includes('Total des fuites détectées : 6 (1 visible, 4 invisibles, 1 sans visibilité précisée)'));
 verifier('PDF : commentaire et visas du marché', r1.texte.includes('COMMENTAIRE') && r1.texte.includes('Balayage interrompu')
   && occurrences(r1.texte, 'R.E') === 1 && !r1.texte.includes('S.R.M') && !r1.texte.includes('STEPAG'));
-verifier('PDF : extrait avec légende, échelle, nord, coordonnées', ['Extrait du plan du réseau', 'Légende', 'Conduites inspectées ce jour', 'Échelle 1 :',
+verifier('PDF : extrait avec légende, échelle, nord, coordonnées', ['Légende', 'Conduites inspectées ce jour', 'Échelle 1 :',
   'Coordonnées GPS (WGS84)', '© contributeurs OpenStreetMap'].every((t) => r1.texte.includes(t)) && /\(N\) Tj/.test(r1.texte)
+  && (r1.texte.includes('Extrait du plan du réseau') || r1.texte.includes('EXTRAIT DU PLAN DU RÉSEAU'))
   && r1.texte.includes(`${CENTRE.lat.toFixed(6)}, ${CENTRE.lon.toFixed(6)}`));
 verifier('PDF : fuites numérotées sur l\'extrait, hors cadre signalée', occurrences(r1.texte, '101') === 2 && occurrences(r1.texte, '105') === 1
   && r1.texte.includes('1 fuite hors du cadre'), `101 ×${occurrences(r1.texte, '101')}, 105 ×${occurrences(r1.texte, '105')}`);
@@ -287,6 +289,7 @@ const r3 = await fabriquer('rapport-sans-fuite', s1, [], {
 rj.GABARIT_JOURNALIER.hauteurMinExtraitBasDePage = minimum;
 ctx.logos = ctxSansLogo;
 verifier('PDF sans fuite : R.A.S et TOTAL à zéro', r3.texte.includes('R.A.S : aucune fuite détectée ce jour') && r3.texte.includes('Total des fuites détectées : 0 (R.A.S)'));
+verifier('PDF sans logo : noms du titulaire et du client écrits', r3.texte.includes('Entreprise Essai SARL') && r3.texte.includes('Régie d\'essai des eaux'));
 verifier('PDF sans fuite : une page, extrait sous les visas, image non géoréférencée', r3.pages === 1 && r3.texte.includes('Extrait du plan du réseau')
   && r3.texte.includes('Échelle non fournie') && r3.texte.includes(`${CENTRE.lat.toFixed(6)}`), `${r3.pages} page(s)`);
 
@@ -297,9 +300,16 @@ const composer = async (textes, taille) => new Map(textes.map((t, i) => {
   return [t, { donnees: `data:image/png;base64,${png(60, 12, aplat(60, 12, [20, 35, 46])).toString('base64')}`, alias: `essai-ar-${taille}-${i}`, largeurMm: 20, hauteurMm: 4 }];
 }));
 ctx.marche.client_nom_ar = 'وكالة تجريبية';
+const r4a = await fabriquer('rapport-arabe-logo', g.rapports[0].journee, [{ ...fuites[0], revetement: 'زليج' }], { composerArabe: composer });
+verifier('PDF arabe : nom arabe du client porté par son logo, cellule composée', !composes.includes('وكالة تجريبية') && composes.includes('زليج'),
+  `${composes.length} texte(s), ${r4a.images} image(s)`);
+composes.length = 0;
+const logosEssai = ctx.logos;
+ctx.logos = { titulaire: logosEssai.titulaire };
 const r4 = await fabriquer('rapport-arabe', g.rapports[0].journee, [{ ...fuites[0], revetement: 'زليج' }], { composerArabe: composer });
+ctx.logos = logosEssai;
 delete ctx.marche.client_nom_ar;
-verifier('PDF arabe : en-tête et cellule composés en images', composes.includes('وكالة تجريبية') && composes.includes('زليج') && r4.images >= 4,
+verifier('PDF arabe sans logo du client : en-tête et cellule composés en images', composes.includes('وكالة تجريبية') && composes.includes('زليج') && r4.images >= 3,
   `${composes.length} texte(s), ${r4.images} image(s)`);
 
 // Excel

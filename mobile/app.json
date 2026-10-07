@@ -22,7 +22,7 @@
     "plugins": [
       ["expo-location", { "locationWhenInUsePermission": "La position sert à localiser les fuites." }],
       ["expo-image-picker", { "cameraPermission": "L'appareil photo sert à photographier les fuites.", "photosPermission": false }],
-      ["expo-build-properties", { "android": { "usesCleartextTraffic": false } }],
+      ["expo-build-properties", { "android": { "usesCleartextTraffic": false, "buildArchs": ["armeabi-v7a", "arm64-v8a"], "useLegacyPackaging": true } }],
       ["expo-font", { "android": { "fonts": [{
         "fontFamily": "Geist",
         "fontDefinitions": [

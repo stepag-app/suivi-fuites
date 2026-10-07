@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { dateHeure } from './fiche';
 import {
@@ -10,12 +12,13 @@ import {
   type Envoi, type EnvoiFuite, type PhotoAttente,
 } from './file-attente';
 import { Icone } from './icones';
+import { t, tx, useLangue } from './langue';
 import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { Proche, Secteur, StatutFuite, VFuite } from './types';
 import {
-  Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
+  Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
   POLICE, s, Saisie, Segments, Selecteur, Statut, STATUT_STYLE, TeteCarte, useBas, Vide, Vignettes,
 } from './ui';
 // Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
@@ -39,6 +42,7 @@ export function Connexion() {
   const [occupe, setOccupe] = useState(false);
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const haut = useSafeAreaInsets().top || (StatusBar.currentHeight ?? 24);
+  useLangue();
 
   async function entrer() {
     setOccupe(true);
@@ -47,7 +51,7 @@ export function Connexion() {
       email: emailDepuisIdentifiant(identifiant),
       password: motDePasse,
     });
-    if (error) setErreur(/invalid login/i.test(error.message) ? 'Identifiant ou mot de passe incorrect.' : 'Connexion impossible : vérifiez le réseau.');
+    if (error) setErreur(/invalid login/i.test(error.message) ? t('Identifiant ou mot de passe incorrect.') : t('Connexion impossible : vérifiez le réseau.'));
     setOccupe(false);
   }
 
@@ -57,37 +61,38 @@ export function Connexion() {
       {large && (
         <View style={l.volet}>
           <Icone nom="droplets" taille={48} couleur={COULEURS.principalTexte} />
-          <Text style={l.bonjour}>Bonjour</Text>
-          <Text style={l.sousBonjour}>Connectez-vous pour continuer</Text>
+          <Text style={l.bonjour}>{t('Bonjour')}</Text>
+          <Text style={l.sousBonjour}>{t('Connectez-vous pour continuer')}</Text>
         </View>
       )}
+      <BoutonLangue style={[l.langueConnexion, { top: haut + 12 }]} />
       <ScrollView style={{ flex: 2 }} contentContainerStyle={l.formulaire} keyboardShouldPersistTaps="handled">
         <View style={{ width: '100%', maxWidth: 440, gap: 28 }}>
           <View style={{ alignItems: 'center', gap: 10 }}>
             {!large && (
               <View style={[s.ligneTitre, { marginBottom: 8 }]}>
                 <Icone nom="droplets" taille={24} couleur={COULEURS.marque} />
-                <Text style={s.texteFort}>Suivi des fuites</Text>
+                <Text style={s.texteFort}>{t('Suivi des fuites')}</Text>
               </View>
             )}
-            <Text style={l.titreConnexion}>Connexion</Text>
+            <Text style={l.titreConnexion}>{t('Connexion')}</Text>
             <Text style={[s.discret, { textAlign: 'center' }]}>
-              Entrez l&apos;identifiant et le mot de passe remis par l&apos;administrateur.
+              {t("Entrez l'identifiant et le mot de passe remis par l'administrateur.")}
             </Text>
           </View>
           <View style={{ gap: 16 }}>
             <View style={{ gap: 6 }}>
-              <Text style={s.etiquette}>Identifiant</Text>
-              <Saisie value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} placeholder="ex. agent1" />
+              <Text style={s.etiquette}>{t('Identifiant')}</Text>
+              <Saisie value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} placeholder={t('ex. agent1')} />
             </View>
             <View style={{ gap: 6 }}>
-              <Text style={s.etiquette}>Mot de passe</Text>
+              <Text style={s.etiquette}>{t('Mot de passe')}</Text>
               <Saisie value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" />
-              <Text style={s.petit}>La session reste ouverte sur cette tablette jusqu&apos;à « Quitter ».</Text>
+              <Text style={s.petit}>{t("La session reste ouverte sur cette tablette jusqu'à « Quitter ».")}</Text>
             </View>
             {!!erreur && <Message ton="erreur">{erreur}</Message>}
             <Bouton
-              titre={occupe ? 'Connexion…' : 'Se connecter'} primaire grand onPress={entrer} occupe={occupe}
+              titre={occupe ? t('Connexion…') : t('Se connecter')} primaire grand onPress={entrer} occupe={occupe}
               desactive={!identifiant || !motDePasse}
             />
           </View>
@@ -105,6 +110,11 @@ const COL = {
   numero: { width: 56 }, reference: { width: 150 }, lieu: { flex: 1.3 }, date: { width: 168 }, statut: { width: 150 },
   alertes: { flex: 1 }, photos: { width: 64 }, aller: { width: 150 },
 };
+// Sans geste de l'agent, la liste suit les fuites des autres équipes à ce rythme (tirer la liste : tout de suite).
+const MISE_A_JOUR_MS = 5 * 60 * 1000;
+// Le fetch de React Native n'a pas de délai : passé celui-ci, connexion tenue pour bloquée, dernière liste connue.
+const DELAI_LISTE_MS = 20000;
+const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
@@ -118,35 +128,63 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   const [texte, setTexte] = useState('');
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const bas = useBas();
+  const derniere = useRef('');
+  const { langue } = useLangue();
 
-  const charger = useCallback(async () => {
+  // `discret` : rechargement de fond, sans le rond de rafraîchissement (réservé à l'arrivée sur la liste et au geste
+  // de l'agent) et sans rien redessiner si rien n'a changé.
+  const charger = useCallback(async (discret = false) => {
     if (!marche) return;
-    setRafraichit(true);
-    setEnvois(await lireAttente());
-    const cle = `suivi-fuites:liste:${marche.id}`;
-    const { data, error } = await supabase
-      .from('v_fuites')
-      .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
-      .eq('marche_id', marche.id)
-      .order('date_detection', { ascending: false })
-      .limit(200);
-    if (error || !data) {
-      const copie = await AsyncStorage.getItem(cle);
-      if (copie) setFuites(JSON.parse(copie));
-      setMessage('Hors ligne : dernière liste connue.');
-    } else {
-      setFuites(data as VFuite[]);
-      setMessage('');
-      AsyncStorage.setItem(cle, JSON.stringify(data)).catch(() => undefined);
+    if (!discret) setRafraichit(true);
+    const controleur = new AbortController();
+    const delai = setTimeout(() => controleur.abort(), DELAI_LISTE_MS);
+    try {
+      const attente = await lireAttente();
+      setEnvois((avant) => (memes(avant, attente) ? avant : attente));
+      const cle = `suivi-fuites:liste:${marche.id}`;
+      const { data, error } = await supabase
+        .from('v_fuites')
+        .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
+        .eq('marche_id', marche.id)
+        .order('date_detection', { ascending: false })
+        .limit(200)
+        .abortSignal(controleur.signal);
+      if (error || !data) {
+        const copie = await AsyncStorage.getItem(cle);
+        if (copie && copie !== derniere.current) {
+          derniere.current = copie;
+          setFuites(JSON.parse(copie));
+        }
+        setMessage(t('Hors ligne : dernière liste connue.'));
+      } else {
+        const contenu = JSON.stringify(data);
+        if (contenu !== derniere.current) {
+          derniere.current = contenu;
+          setFuites(data as VFuite[]);
+          AsyncStorage.setItem(cle, contenu).catch(() => undefined);
+        }
+        setMessage('');
+      }
+    } finally {
+      clearTimeout(delai);
+      setRafraichit(false);
     }
-    setRafraichit(false);
   }, [marche]);
 
   useEffect(() => {
     charger();
   }, [charger]);
-  // Après chaque synchro : compteur à jour, et la liste suit les statuts recalculés par le serveur.
-  useEffect(() => surChangement(() => void charger()), [charger]);
+  // Après une synchro qui a changé la file : compteur à jour, et la liste suit les statuts recalculés par le serveur.
+  useEffect(() => surChangement(() => void charger(true)), [charger]);
+  // Mise à jour de fond : toutes les 5 min et au retour sur l'application.
+  useEffect(() => {
+    const minuteur = setInterval(() => void charger(true), MISE_A_JOUR_MS);
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && void charger(true));
+    return () => {
+      clearInterval(minuteur);
+      abonnement.remove();
+    };
+  }, [charger]);
   // Autre marché : on repart de toutes ses fuites.
   useEffect(() => {
     setOnglet('toutes');
@@ -158,7 +196,7 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   const total = fuites.length + locales.length;
   const nbAttente = envois.length;
   const delai = marche?.delai_alerte_reparation_h ?? 48;
-  const libelleReference = marche?.libelle_reference || 'Référence client';
+  const libelleReference = tx(marche?.libelle_reference || 'Référence client');
 
   // Recherche du panneau : N° exact, référence (aussi par ses chiffres), adresse.
   const correspond = useMemo(() => {
@@ -181,9 +219,9 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
     ? locales.filter((e) => correspond(null, (e.ligne.reference_srm as string) ?? null, (e.ligne.adresse as string) ?? null))
     : [];
   const onglets: { cle: Onglet; libelle: string; nb: number }[] = [
-    { cle: 'toutes', libelle: 'Toutes', nb: total },
+    { cle: 'toutes', libelle: t('Toutes'), nb: total },
     ...ORDRE_STATUTS.map((st) => ({
-      cle: st, libelle: STATUT_STYLE[st].court, nb: (compteurs[st] ?? 0) + (st === 'detectee' ? locales.length : 0),
+      cle: st, libelle: tx(STATUT_STYLE[st].court), nb: (compteurs[st] ?? 0) + (st === 'detectee' ? locales.length : 0),
     })),
   ];
   const filtre = onglet !== 'toutes' || !!texte.trim();
@@ -193,14 +231,14 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   return (
     <View style={s.ecran}>
       <BarreApp
-        titre="Suivi des fuites"
+        titre={t('Suivi des fuites')}
         sousTitre={profil?.nom_complet}
         droite={(
           <>
             {large && marches.length > 1 && (
               <Segments options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={choisirMarche} />
             )}
-            <BoutonBarre titre="Quitter" icone="log-out" onPress={deconnecter} />
+            <BoutonBarre titre={t('Quitter')} icone="log-out" onPress={deconnecter} />
           </>
         )}
       />
@@ -210,16 +248,21 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
         )}
         <View style={l.tetePage}>
           <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, gap: 2 }}>
-            <Text style={s.h1}>Fuites</Text>
+            <Text style={s.h1}>{t('Fuites')}</Text>
             <Text style={s.discret}>
-              {enChargement ? 'Chargement…' : filtre ? `${pluriel(affichees.length + localesAffichees.length, 'affichée')} sur ${total}` : pluriel(total, 'fuite')}
+              {enChargement
+                ? t('Chargement…')
+                : filtre
+                  ? t('{n} affichées sur {total}', { n: affichees.length + localesAffichees.length, total },
+                    `${pluriel(affichees.length + localesAffichees.length, 'affichée')} sur ${total}`)
+                  : t('{n} fuites', { n: total }, pluriel(total, 'fuite'))}
               {marche ? ` · ${marche.code}` : ''}
             </Text>
           </View>
           <View style={[s.ligne, { alignItems: 'center' }]}>
-            {nbAttente > 0 && <Bouton titre="Envois en attente" icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
-            {peut('balayage', 'lire') && <Bouton titre="Balayage" icone="map" onPress={balayage} />}
-            {peut('fuites', 'creer') && <Bouton titre="Nouvelle fuite" icone="plus" primaire onPress={nouvelle} />}
+            {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
+            {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
+            {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
         </View>
         {!!message && <Message ton="attention" icone="wifi-off">{message}</Message>}
@@ -253,13 +296,13 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
                 style={l.champRecherche}
                 value={texte}
                 onChangeText={setTexte}
-                placeholder="N°, référence ou adresse"
+                placeholder={t('N°, référence ou adresse')}
                 autoCorrect={false}
                 returnKeyType="search"
-                accessibilityLabel="Rechercher une fuite"
+                accessibilityLabel={t('Rechercher une fuite')}
               />
               {!!texte && (
-                <Pressable onPress={() => setTexte('')} style={l.effacer} accessibilityRole="button" accessibilityLabel="Effacer la recherche">
+                <Pressable onPress={() => setTexte('')} style={l.effacer} accessibilityRole="button" accessibilityLabel={t('Effacer la recherche')}>
                   <Icone nom="x" taille={18} couleur={COULEURS.discret} />
                 </Pressable>
               )}
@@ -267,18 +310,19 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
           </View>
           {large && (
             <View style={[l.ligneTableau, l.enTete]}>
-              <Text style={[l.titreColonne, COL.numero]}>N°</Text>
+              <Text style={[l.titreColonne, COL.numero]}>{t('N°')}</Text>
               <Text style={[l.titreColonne, COL.reference]} numberOfLines={2}>{libelleReference}</Text>
-              <Text style={[l.titreColonne, COL.lieu]}>Secteur · adresse</Text>
-              <Text style={[l.titreColonne, COL.date]}>Détectée le</Text>
-              <Text style={[l.titreColonne, COL.statut]}>Statut</Text>
-              <Text style={[l.titreColonne, COL.alertes]}>Alertes</Text>
-              <Text style={[l.titreColonne, COL.photos, { textAlign: 'right' }]}>Photos</Text>
+              <Text style={[l.titreColonne, COL.lieu]}>{t('Secteur · adresse')}</Text>
+              <Text style={[l.titreColonne, COL.date]}>{t('Détectée le')}</Text>
+              <Text style={[l.titreColonne, COL.statut]}>{t('Statut')}</Text>
+              <Text style={[l.titreColonne, COL.alertes]}>{t('Alertes')}</Text>
+              <Text style={[l.titreColonne, COL.photos, { textAlign: 'right' }]}>{t('Photos')}</Text>
               <View style={[COL.aller, { marginRight: 32 }]} />
             </View>
           )}
           <FlatList
             data={affichees}
+            extraData={langue}
             keyExtractor={(f) => f.id}
             refreshing={rafraichit}
             onRefresh={charger}
@@ -288,10 +332,10 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
             ListEmptyComponent={localesAffichees.length ? null : enChargement ? (
               <View style={{ padding: 32, alignItems: 'center', gap: 10 }}>
                 <ActivityIndicator color={COULEURS.principal} />
-                <Text style={s.discret}>Chargement des fuites…</Text>
+                <Text style={s.discret}>{t('Chargement des fuites…')}</Text>
               </View>
             ) : (
-              <View style={{ padding: 16 }}><Vide texte={filtre ? 'Aucune fuite ne correspond.' : 'Aucune fuite.'} /></View>
+              <View style={{ padding: 16 }}><Vide texte={filtre ? t('Aucune fuite ne correspond.') : t('Aucune fuite.')} /></View>
             )}
             ListHeaderComponent={localesAffichees.length ? (
               <View>
@@ -308,19 +352,19 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
                           <Text style={[s.texte, COL.reference]} numberOfLines={1}>{String(e.ligne.reference_srm ?? '—')}</Text>
                           <Text style={[s.texte, COL.lieu]} numberOfLines={2}>{String(e.ligne.adresse ?? '—')}</Text>
                           <Text style={[s.texte, COL.date]}>{dateHeure(e.creee_le)}</Text>
-                          <View style={COL.statut}><Badge texte="À envoyer" ton="orange" icone="clock" /></View>
-                          <Text style={[s.petit, COL.alertes]} numberOfLines={2}>Gardée sur la tablette</Text>
+                          <View style={COL.statut}><Badge texte={t('À envoyer')} ton="orange" icone="clock" /></View>
+                          <Text style={[s.petit, COL.alertes]} numberOfLines={2}>{t('Gardée sur la tablette')}</Text>
                           <Photos nb={e.photos.length} />
                           <View style={COL.aller} />
                         </>
                       ) : (
                         <View style={{ flex: 1, gap: 6 }}>
                           <View style={l.entreDeux}>
-                            <Text style={s.texteFort} numberOfLines={1}>{String(e.ligne.reference_srm ?? 'Nouvelle fuite')}</Text>
-                            <Badge texte="À envoyer" ton="orange" icone="clock" />
+                            <Text style={s.texteFort} numberOfLines={1}>{String(e.ligne.reference_srm ?? t('Nouvelle fuite'))}</Text>
+                            <Badge texte={t('À envoyer')} ton="orange" icone="clock" />
                           </View>
                           {!!e.ligne.adresse && <Text style={s.texte}>{String(e.ligne.adresse)}</Text>}
-                          <Text style={s.petit}>{dateHeure(e.creee_le)} · gardée sur la tablette</Text>
+                          <Text style={s.petit}>{t('{date} · gardée sur la tablette', { date: dateHeure(e.creee_le) })}</Text>
                         </View>
                       )}
                       <Icone nom="chevron-right" couleur={COULEURS.discret} />
@@ -334,7 +378,7 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
               <Pressable
                 onPress={() => ouvrir(f.id)}
                 accessibilityRole="button"
-                accessibilityLabel={`Fuite N° ${f.numero}`}
+                accessibilityLabel={t('Fuite N° {numero}', { numero: f.numero })}
                 style={({ pressed }) => [large ? l.ligneTableau : l.ligneEmpilee, pressed && s.appuye]}
               >
                 {large ? (
@@ -342,18 +386,18 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
                     <Text style={[s.texteFort, COL.numero]}>{f.numero}</Text>
                     <Text style={[s.texte, COL.reference]} numberOfLines={1}>{f.reference_srm ?? '—'}</Text>
                     <View style={COL.lieu}>
-                      <Text style={s.texte} numberOfLines={1}>{f.secteur ?? 'Secteur non renseigné'}</Text>
+                      <Text style={s.texte} numberOfLines={1}>{f.secteur ?? t('Secteur non renseigné')}</Text>
                       {!!f.adresse && <Text style={s.petit} numberOfLines={1}>{f.adresse}</Text>}
                     </View>
                     <Text style={[s.texte, COL.date]}>{dateHeure(f.date_detection)}</Text>
                     <View style={COL.statut}><Statut statut={f.statut} court /></View>
                     <View style={COL.alertes}>
-                      {f.alerte_non_reparee ? <Alerte texte={`Non réparée > ${delai} h`} /> : <Text style={s.discret}>—</Text>}
+                      {f.alerte_non_reparee ? <Alerte texte={t('Non réparée > {delai} h', { delai })} /> : <Text style={s.discret}>—</Text>}
                     </View>
                     <Photos nb={f.nb_photos} />
                     <View style={[COL.aller, { alignItems: 'flex-end' }]}>
                       {f.latitude != null && f.longitude != null && (
-                        <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={`Fuite N° ${f.numero}`} />
+                        <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: f.numero })} />
                       )}
                     </View>
                   </>
@@ -361,21 +405,21 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
                   <View style={{ flex: 1, gap: 6 }}>
                     <View style={l.entreDeux}>
                       <Text style={[s.texteFort, { flexShrink: 1 }]} numberOfLines={1}>
-                        N° {f.numero}{f.reference_srm ? <Text style={s.discret}> · {f.reference_srm}</Text> : null}
+                        {t('N° {numero}', { numero: f.numero })}{f.reference_srm ? <Text style={s.discret}> · {f.reference_srm}</Text> : null}
                       </Text>
                       <Statut statut={f.statut} court />
                     </View>
                     <Text style={s.texte}>
-                      {f.secteur ?? 'Secteur non renseigné'}{f.adresse ? <Text style={s.discret}> · {f.adresse}</Text> : null}
+                      {f.secteur ?? t('Secteur non renseigné')}{f.adresse ? <Text style={s.discret}> · {f.adresse}</Text> : null}
                     </Text>
                     <View style={[s.ligneTitre, { gap: 6 }]}>
                       <Text style={s.petit}>{dateHeure(f.date_detection)}</Text>
                       <Icone nom="camera" taille={15} couleur={COULEURS.discret} />
                       <Text style={s.petit}>{f.nb_photos}</Text>
                     </View>
-                    {f.alerte_non_reparee && <Alerte texte={`Non réparée > ${delai} h`} />}
+                    {f.alerte_non_reparee && <Alerte texte={t('Non réparée > {delai} h', { delai })} />}
                     {f.latitude != null && f.longitude != null && (
-                      <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={`Fuite N° ${f.numero}`} style={{ alignSelf: 'flex-start' }} />
+                      <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: f.numero })} style={{ alignSelf: 'flex-start' }} />
                     )}
                   </View>
                 )}
@@ -402,7 +446,8 @@ function Photos({ nb }: { nb: number }) {
 
 export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouvrirFiche: (id: string) => void }) {
   const { marche } = useSession();
-  const libelleReference = marche?.libelle_reference || 'Référence client';
+  useLangue();
+  const libelleReference = tx(marche?.libelle_reference || 'Référence client');
   const masque = marche?.masque_reference ?? null;
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [secteurId, setSecteurId] = useState('');
@@ -411,7 +456,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
   const [adresse, setAdresse] = useState('');
   const [observation, setObservation] = useState('');
   const [position, setPosition] = useState<{ lat: number; lon: number; precision: number } | null>(null);
-  const [gps, setGps] = useState('Recherche de la position…');
+  const [gps, setGps] = useState(() => t('Recherche de la position…'));
   const [photos, setPhotos] = useState<PhotoAttente[]>([]);
   const [erreur, setErreur] = useState('');
   const [envoi, setEnvoi] = useState('');
@@ -444,10 +489,10 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
   }, [marche]);
 
   const localiser = useCallback(async () => {
-    setGps('Recherche de la position…');
+    setGps(t('Recherche de la position…'));
     const droit = await Location.requestForegroundPermissionsAsync();
     if (droit.status !== 'granted') {
-      setGps('Position refusée : autorisez la localisation dans les réglages de la tablette.');
+      setGps(t('Position refusée : autorisez la localisation dans les réglages de la tablette.'));
       return;
     }
     try {
@@ -455,7 +500,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
       setPosition({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy ?? 0 });
       setGps('');
     } catch {
-      setGps('Position introuvable. Sortez à l\'air libre et réessayez.');
+      setGps(t("Position introuvable. Sortez à l'air libre et réessayez."));
     }
   }, []);
 
@@ -504,7 +549,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
       if (typeof r === 'string') setErreur(r);
       else if (r) setPhotos((p) => [...p, r]);
     } catch (e) {
-      setErreur(`Photo impossible : ${String((e as Error).message ?? e)}`);
+      setErreur(t('Photo impossible : {erreur}', { erreur: String((e as Error).message ?? e) }));
     }
   }
 
@@ -520,9 +565,9 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
       ouvrirFiche(id);
     };
     if (!photos.length) return ouvrirLaFiche();
-    Alert.alert('Même fuite', 'La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?', [
-      { text: 'Non', style: 'cancel' },
-      { text: 'Oui, ouvrir la fiche', onPress: ouvrirLaFiche },
+    Alert.alert(t('Même fuite'), t('La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?'), [
+      { text: t('Non'), style: 'cancel' },
+      { text: t('Oui, ouvrir la fiche'), onPress: ouvrirLaFiche },
     ]);
   }
 
@@ -530,13 +575,13 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     if (!marche) return;
     setErreur('');
     if (!position && !reference && !adresse.trim()) {
-      setErreur(`Indiquez au moins la position GPS, la ${libelleReference.toLowerCase()} ou l'adresse.`);
+      setErreur(t("Indiquez au moins la position GPS, la {reference} ou l'adresse.", { reference: libelleReference.toLowerCase() }));
       return;
     }
     const pos = position ? `SRID=4326;POINT(${position.lon} ${position.lat})` : null;
     const secteur = secteurs.find((x) => x.id === secteurId);
     const id = Crypto.randomUUID();
-    setEnvoi('Enregistrement sur la tablette…');
+    setEnvoi(t('Enregistrement sur la tablette…'));
     try {
       await mettreEnAttente({
         id, marche_id: marche.id, position: pos, photos,
@@ -548,7 +593,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
         },
       });
       gardees.current = true;
-      setEnvoi('Envoi…');
+      setEnvoi(t('Envoi…'));
       await synchroniser();
       retour();
     } catch (e) {
@@ -559,12 +604,12 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
 
   return (
     <View style={s.ecran}>
-      <BarreApp titre="Nouvelle fuite" sousTitre={marche?.code} retour={retour} />
+      <BarreApp titre={t('Nouvelle fuite')} sousTitre={marche?.code} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         <Carte>
           <TeteCarte
-            titre="Position" icone="map-pin"
-            action={<Bouton titre="Actualiser la position" icone="locate-fixed" onPress={localiser} />}
+            titre={t('Position')} icone="map-pin"
+            action={<Bouton titre={t('Actualiser la position')} icone="locate-fixed" onPress={localiser} />}
           />
           {position ? (
             <Text style={s.texte}>{position.lat.toFixed(6)}, {position.lon.toFixed(6)} (± {Math.round(position.precision)} m)</Text>
@@ -572,27 +617,27 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
         </Carte>
         {controle === 'hors_ligne' && (
           <Message ton="attention" icone="wifi-off">
-            Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu&apos;elle n&apos;est pas déjà signalée.
+            {t("Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu'elle n'est pas déjà signalée.")}
           </Message>
         )}
         {proches.length > 0 && (
           <Carte>
-            <TeteCarte titre="Fuite déjà signalée ici ?" icone="triangle-alert" />
+            <TeteCarte titre={t('Fuite déjà signalée ici ?')} icone="triangle-alert" />
             {proches.map((p) => (
               <View key={p.id} style={s.separateur}>
                 <View style={[s.ligne, { alignItems: 'center' }]}>
-                  <Text style={s.texteFort}>N° {p.numero}</Text>
+                  <Text style={s.texteFort}>{t('N° {numero}', { numero: p.numero })}</Text>
                   <Statut statut={p.statut} court />
                   <Text style={s.discret}>
                     {dateHeure(p.date_detection)}
-                    {p.meme_reference ? ' · même référence' : ''}
-                    {p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ''}
+                    {p.meme_reference ? t(' · même référence') : ''}
+                    {p.distance_m != null ? t(' · à {n} m', { n: Math.round(p.distance_m) }) : ''}
                   </Text>
                 </View>
                 <View style={s.ligne}>
-                  <Bouton titre="C'est la même fuite" icone="check" onPress={() => memeFuite(p.id)} style={{ flexGrow: 1, flexBasis: 200 }} />
+                  <Bouton titre={t("C'est la même fuite")} icone="check" onPress={() => memeFuite(p.id)} style={{ flexGrow: 1, flexBasis: 200 }} />
                   <Bouton
-                    titre="Nouvelle fuite liée"
+                    titre={t('Nouvelle fuite liée')}
                     icone={lierA === p.id ? 'check' : 'link-2'}
                     primaire={lierA === p.id}
                     onPress={() => setLierA(lierA === p.id ? '' : p.id)}
@@ -603,13 +648,13 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
             ))}
             <Text style={s.discret}>
               {lierA
-                ? `Elle sera enregistrée comme nouvelle fuite liée au N° ${proches.find((p) => p.id === lierA)?.numero ?? ''}.`
-                : 'Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.'}
+                ? t('Elle sera enregistrée comme nouvelle fuite liée au N° {numero}.', { numero: proches.find((p) => p.id === lierA)?.numero })
+                : t('Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.')}
             </Text>
           </Carte>
         )}
         <Carte>
-          <TeteCarte titre="Identification" />
+          <TeteCarte titre={t('Identification')} />
           <View style={{ gap: 6 }}>
             <Text style={s.etiquette}>{libelleReference}</Text>
             <Saisie
@@ -621,34 +666,38 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
             />
           </View>
           <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>Secteur</Text>
-            <Selecteur valeur={secteurs.find((x) => x.id === secteurId)?.libelle} indication="Choisir le secteur" onPress={() => setChoixSecteur(true)} />
+            <Text style={s.etiquette}>{t('Secteur')}</Text>
+            <Selecteur valeur={secteurs.find((x) => x.id === secteurId)?.libelle} indication={t('Choisir le secteur')} onPress={() => setChoixSecteur(true)} />
           </View>
           <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>Adresse / repère</Text>
+            <Text style={s.etiquette}>{t('Adresse / repère')}</Text>
             <Saisie value={adresse} onChangeText={setAdresse} />
           </View>
           <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>Observation</Text>
+            <Text style={s.etiquette}>{t('Observation')}</Text>
             <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
           </View>
         </Carte>
         <Carte>
           <TeteCarte
-            titre="Photos" compteur={photos.length}
-            action={<Bouton titre="Prendre une photo" icone="camera" onPress={prendrePhoto} />}
+            titre={t('Photos')} compteur={photos.length}
+            action={<Bouton titre={t('Prendre une photo')} icone="camera" onPress={prendrePhoto} />}
           />
-          {!photos.length && <Text style={s.discret}>Facultatives ; un appui sur une photo la retire.</Text>}
-          <Vignettes photos={photos.map((p) => ({ id: p.id, uri: p.fichier, legende: 'Détection' }))} retirer={retirerPhoto} />
+          {!photos.length && <Text style={s.discret}>{t('Facultatives ; un appui sur une photo la retire.')}</Text>}
+          <Vignettes photos={photos.map((p) => ({ id: p.id, uri: p.fichier, legende: t('Détection') }))} retirer={retirerPhoto} />
         </Carte>
         {!!erreur && <Message ton="erreur">{erreur}</Message>}
-        <Bouton titre={envoi || 'Enregistrer la fuite'} primaire grand onPress={enregistrer} occupe={!!envoi} />
-        <Bouton titre="Annuler" onPress={retour} desactive={!!envoi} />
+        <Bouton titre={envoi || t('Enregistrer la fuite')} primaire grand onPress={enregistrer} occupe={!!envoi} />
+        <Bouton titre={t('Annuler')} onPress={retour} desactive={!!envoi} />
       </ScrollView>
 
       <Modal visible={choixSecteur} animationType="slide" statusBarTranslucent onRequestClose={() => setChoixSecteur(false)}>
         <View style={s.ecran}>
-          <BarreApp titre="Choisir le secteur" sousTitre={pluriel(secteurs.length, 'secteur')} retour={() => setChoixSecteur(false)} />
+          <BarreApp
+            titre={t('Choisir le secteur')}
+            sousTitre={t('{n} secteurs', { n: secteurs.length }, pluriel(secteurs.length, 'secteur'))}
+            retour={() => setChoixSecteur(false)}
+          />
           <FlatList
             data={[{ id: '', libelle: 'Aucun' } as Secteur, ...secteurs]}
             keyExtractor={(x) => x.id || 'aucun'}
@@ -667,7 +716,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
                   accessibilityState={{ selected: actif }}
                 >
                   <Text style={[s.texte, { flex: 1, fontSize: 18 }, !item.id && { color: COULEURS.discret }, actif && { fontWeight: '600' }]}>
-                    {item.libelle}
+                    {item.id ? item.libelle : t('Aucun')}
                   </Text>
                   {actif && <Icone nom="check" couleur={COULEURS.texte} />}
                 </Pressable>
@@ -682,19 +731,23 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
 
 const titreEnvoi = (e: Envoi) => {
   switch (e.type) {
-    case 'reparation': return `Réparation · ${e.fuite_libelle}`;
-    case 'refection': return `Réfection · ${e.fuite_libelle}`;
-    case 'modification': return `Modification de réparation · ${e.fuite_libelle}`;
-    case 'photos': return `Photo(s) ajoutée(s) · ${e.fuite_libelle}`;
-    default: return `Nouvelle fuite · ${(e.ligne.reference_srm as string) || (e.ligne.adresse as string) || 'sans référence'}`;
+    case 'reparation': return t('Réparation · {fuite}', { fuite: e.fuite_libelle });
+    case 'refection': return t('Réfection · {fuite}', { fuite: e.fuite_libelle });
+    case 'modification': return t('Modification de réparation · {fuite}', { fuite: e.fuite_libelle });
+    case 'photos': return t('Photo(s) ajoutée(s) · {fuite}', { fuite: e.fuite_libelle });
+    default:
+      return t('Nouvelle fuite · {reference}', {
+        reference: (e.ligne.reference_srm as string) || (e.ligne.adresse as string) || t('sans référence'),
+      });
   }
 };
 
 export function EnAttente({ retour }: { retour: () => void }) {
   const [liste, setListe] = useState<Envoi[]>([]);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState<{ texte: string; ok: boolean } | null>(null);
   const [occupe, setOccupe] = useState(false);
   const bas = useBas();
+  useLangue();
   const charger = useCallback(async () => setListe(await lireAttente()), []);
   useEffect(() => {
     charger();
@@ -704,7 +757,12 @@ export function EnAttente({ retour }: { retour: () => void }) {
   async function envoyer() {
     setOccupe(true);
     const restantes = await synchroniser().catch(() => -1);
-    setMessage(restantes === 0 ? 'Tout est envoyé.' : restantes < 0 ? 'Envoi impossible pour le moment.' : `${restantes} envoi(s) restent à traiter.`);
+    setMessage({
+      ok: restantes === 0,
+      texte: restantes === 0
+        ? t('Tout est envoyé.')
+        : restantes < 0 ? t('Envoi impossible pour le moment.') : t('{n} envoi(s) restent à traiter.', { n: restantes }),
+    });
     setOccupe(false);
     charger();
   }
@@ -712,40 +770,45 @@ export function EnAttente({ retour }: { retour: () => void }) {
   async function supprimer(e: Envoi) {
     const suite = await dependants(e.id);
     Alert.alert(
-      'Supprimer de la tablette ?',
-      `Cette saisie${suite.length ? ` et ${suite.length} saisie(s) liée(s) (réparation, réfection, modification, photos)` : ''} et ses photos seront définitivement perdues.`,
+      t('Supprimer de la tablette ?'),
+      suite.length
+        ? t('Cette saisie et {n} saisie(s) liée(s) (réparation, réfection, modification, photos) et ses photos seront définitivement perdues.', { n: suite.length })
+        : t('Cette saisie et ses photos seront définitivement perdues.'),
       [
-        { text: 'Garder', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: async () => { await abandonner(e.id); charger(); } },
+        { text: t('Garder'), style: 'cancel' },
+        { text: t('Supprimer'), style: 'destructive', onPress: async () => { await abandonner(e.id); charger(); } },
       ],
     );
   }
 
   return (
     <View style={s.ecran}>
-      <BarreApp titre="Envois en attente" sousTitre={`${pluriel(liste.length, 'saisie')} sur la tablette`} retour={retour} />
+      <BarreApp
+        titre={t('Envois en attente')}
+        sousTitre={t('{n} saisies sur la tablette', { n: liste.length }, `${pluriel(liste.length, 'saisie')} sur la tablette`)}
+        retour={retour}
+      />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]}>
         <Text style={s.discret}>
-          Ces saisies sont gardées sur la tablette. Elles partent dans l&apos;ordre dès que le réseau revient ;
-          ne désinstallez pas l&apos;application avant.
+          {t("Ces saisies sont gardées sur la tablette. Elles partent dans l'ordre dès que le réseau revient ; ne désinstallez pas l'application avant.")}
         </Text>
-        <Bouton titre="Envoyer maintenant" icone="cloud-upload" primaire grand onPress={envoyer} occupe={occupe} desactive={liste.length === 0} />
-        {!!message && <Message ton={message === 'Tout est envoyé.' ? 'info' : 'attention'}>{message}</Message>}
-        {liste.length === 0 && <Vide texte="Aucune saisie en attente." />}
+        <Bouton titre={t('Envoyer maintenant')} icone="cloud-upload" primaire grand onPress={envoyer} occupe={occupe} desactive={liste.length === 0} />
+        {!!message && <Message ton={message.ok ? 'info' : 'attention'}>{message.texte}</Message>}
+        {liste.length === 0 && <Vide texte={t('Aucune saisie en attente.')} />}
         {liste.map((e) => (
           <Carte key={e.id}>
             <View style={[s.ligne, { alignItems: 'center', flexWrap: 'nowrap' }]}>
               <View style={l.icone}><Icone nom="cloud-upload" taille={18} couleur={COULEURS.discret} /></View>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={s.texteFort}>{titreEnvoi(e)}</Text>
-                <Text style={s.discret}>Saisie le {dateHeure(e.creee_le)} · {e.photos.length} photo(s) en attente</Text>
+                <Text style={s.discret}>{t('Saisie le {date} · {n} photo(s) en attente', { date: dateHeure(e.creee_le), n: e.photos.length })}</Text>
               </View>
             </View>
-            {!!e.erreur && <Message ton="erreur">Refusée par le serveur : {e.erreur}</Message>}
-            <Bouton titre="Supprimer de la tablette" icone="trash" danger onPress={() => supprimer(e)} style={{ alignSelf: 'flex-start' }} />
+            {!!e.erreur && <Message ton="erreur">{t('Refusée par le serveur : {erreur}', { erreur: tx(e.erreur) })}</Message>}
+            <Bouton titre={t('Supprimer de la tablette')} icone="trash" danger onPress={() => supprimer(e)} style={{ alignSelf: 'flex-start' }} />
           </Carte>
         ))}
-        <Bouton titre="Retour" icone="arrow-left" onPress={retour} />
+        <Bouton titre={t('Retour')} icone="arrow-left" onPress={retour} />
       </ScrollView>
     </View>
   );
@@ -753,6 +816,7 @@ export function EnAttente({ retour }: { retour: () => void }) {
 
 const l = StyleSheet.create({
   connexion: { flexDirection: 'row' },
+  langueConnexion: { position: 'absolute', right: 16, zIndex: 1, backgroundColor: COULEURS.fond },
   volet: { flex: 1, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 },
   bonjour: { fontFamily: POLICE, fontSize: 44, fontWeight: '400', color: COULEURS.principalTexte, letterSpacing: -0.5 },
   sousBonjour: { fontFamily: POLICE, fontSize: 19, color: 'rgba(250, 250, 250, 0.8)', textAlign: 'center' },

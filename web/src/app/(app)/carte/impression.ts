@@ -59,8 +59,8 @@ export interface DonneesImpression {
 export async function fabriquerPdfCarte(
   ctx: Contexte, choix: ChoixImpression, d: DonneesImpression, etape: (texte: string) => void,
 ): Promise<Blob> {
-  const [{ genererCartePdf }, { construireEntete }, { contientArabe, imagesTextes }] = await Promise.all([
-    import('@/lib/export/carte-pdf'), import('@/lib/export/jeux'), import('@/lib/export/arabe'),
+  const [{ genererCartePdf }, { construireEntete }, { contientArabe, imagesTextes }, { textesArabesEntete }] = await Promise.all([
+    import('@/lib/export/carte-pdf'), import('@/lib/export/jeux'), import('@/lib/export/arabe'), import('@/lib/export/modele'),
   ]);
   const placees = d.fuites.filter((f) => f.latitude != null && f.longitude != null);
   const sansPosition = d.fuites.length - placees.length;
@@ -70,7 +70,7 @@ export async function fabriquerPdfCarte(
   const liste = choix.avecListe ? d.fuites : null;
 
   // Arabe (nom du titulaire ou du client, adresses) : composé par le navigateur, comme les autres PDF.
-  const arabesEntete = [entete.titulaireAr, entete.clientAr].filter(contientArabe);
+  const arabesEntete = textesArabesEntete(entete).filter(contientArabe);
   const arabesListe = (liste ?? []).flatMap((f) => [f.reference_srm, f.secteur, f.adresse]).filter(contientArabe);
   const imagesEntete = arabesEntete.length ? await imagesTextes(arabesEntete, 10, true) : new Map<string, ImageTexte>();
   const imagesCellules = arabesListe.length ? await imagesTextes(arabesListe, 7.5) : new Map<string, ImageTexte>();

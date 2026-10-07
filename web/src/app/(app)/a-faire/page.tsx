@@ -7,6 +7,7 @@ import { fr } from "date-fns/locale";
 import {
   ArrowRight, CalendarDays, Clock3, Download, Droplets, ListChecks, MapPinned, Plus, ReceiptText, Siren, Timer, TrendingUp, Wrench,
 } from "lucide-react";
+import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { Vide } from "@/components/en-tete-page";
 import { BadgeStatut, alertesDe } from "@/components/statut";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,18 +21,18 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Spinner } from "@/components/ui/spinner";
 import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { getSupabase, lireTout } from "@/lib/supabase";
-import type { VFuite } from "@/lib/types";
+import { COLONNES_LISTE, type FuiteListe } from "@/lib/colonnes-fuites";
+import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import { activite, jourCasa, lundiDe, ajouterJours } from "@/lib/ui/tableau-de-bord";
 import { cn, dureeDepuis, pluriel, pourcent } from "@/lib/utils";
 
-type Tache = { fuite: VFuite; titre: string; type: "reparation" | "refection" | "communication" | "photo"; priorite: "haute" | "normale" };
+type Tache = { fuite: FuiteListe; titre: string; type: "reparation" | "refection" | "communication" | "photo"; priorite: "haute" | "normale" };
 
 /** « À faire » (modèle « Productivity ») : ce qui attend l'équipe, par priorité, avec calendrier des détections. */
 export default function AFaire() {
   const { marche, peut, profil } = useSession();
   const libelles = libellesMarche(marche);
-  const [fuites, setFuites] = useState<VFuite[]>([]);
+  const [fuites, setFuites] = useState<Lignes<FuiteListe>>([]);
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
   const [filtre, setFiltre] = useState<"toutes" | Tache["type"]>("toutes");
@@ -46,7 +47,8 @@ export default function AFaire() {
     setChargement(true);
     try {
       const sb = getSupabase();
-      setFuites(await lireTout<VFuite>((de, a) => sb.from("v_fuites").select("*").eq("marche_id", marcheId).order("numero").range(de, a), 1000, 10000));
+      setFuites(await lireTout<FuiteListe>((de, a) => sb.from("v_fuites").select(COLONNES_LISTE).eq("marche_id", marcheId).order("numero", { ascending: false })
+        .range(de, a) as unknown as PromiseLike<{ data: FuiteListe[] | null; error: { message: string } | null }>, 1000, 10000));
       setErreur("");
     } catch (e) {
       setErreur(messageErreur(e));
@@ -123,6 +125,7 @@ export default function AFaire() {
           </div>
 
           {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
+          {fuites.tronque && <AvertissementPlafond lues={fuites.length} />}
 
           <div className="grid gap-4 md:grid-cols-3">
             {[

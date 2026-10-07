@@ -13,13 +13,15 @@ import type { FuiteTdb } from "@/lib/ui/tableau-de-bord";
 export type FuiteRecente = FuiteTdb & { reference_srm: string | null; adresse: string | null; detectee_par: string | null };
 
 /** Dernières fuites détectées (modèle « Recent customers »). */
-export function DernieresFuites({ fuites, libelles, nombre = 10 }: { fuites: FuiteRecente[]; libelles: ReturnType<typeof libellesMarche>; nombre?: number }) {
+export function DernieresFuites({ fuites, total, libelles, nombre = 10 }: {
+  fuites: FuiteRecente[]; total: number; libelles: ReturnType<typeof libellesMarche>; nombre?: number;
+}) {
   const router = useRouter();
   const recentes = [...fuites].sort((a, b) => b.date_detection.localeCompare(a.date_detection)).slice(0, nombre);
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="leading-none">{fuites.length.toLocaleString("fr-FR")} fuites</CardTitle>
+        <CardTitle className="leading-none">{total.toLocaleString("fr-FR")} fuites</CardTitle>
         <CardDescription>Les {recentes.length} dernières détectées : référence, secteur, statut et alertes.</CardDescription>
         <CardAction>
           <Button variant="outline" size="sm" asChild>

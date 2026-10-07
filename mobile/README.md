@@ -8,7 +8,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Écran | Contenu |
 |---|---|
 | Connexion | identifiant + mot de passe (compte créé par l'administrateur) |
-| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; dernière liste gardée hors ligne ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche ; **onglets par statut** avec compteurs et **recherche** (N° exact, référence, aussi par ses chiffres, adresse), comme le panneau, faits sur la tablette sans requête de plus ; tableau en paysage, lignes empilées en portrait |
+| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; sinon mise à jour **en silence** (sans le rond de rafraîchissement, rien de redessiné si rien n'a changé) toutes les 5 min, au retour sur l'appli et après un envoi ; chargement abandonné après 20 s sans réponse (dernière liste connue) ; dernière liste gardée hors ligne ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche ; **onglets par statut** avec compteurs et **recherche** (N° exact, référence, aussi par ses chiffres, adresse), comme le panneau, faits sur la tablette sans requête de plus ; tableau en paysage, lignes empilées en portrait |
 | Nouvelle fuite | GPS, référence SRM, secteur, adresse, observation, photos (redimensionnées à 1 600 px, qualité 70, stockées dans le dossier privé de l'appli, jamais dans la galerie) ; **contrôle des doublons** (`rechercher_fuites_proches`) : « C'est la même fuite » ouvre la fiche existante, « Nouvelle fuite liée » remplit `fuite_liee_id` ; sans réseau, pas de contrôle (signalé) |
 | Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée hors ligne ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
 | Saisir une réparation | résultat (réparée, en cours, non réparée + motif), date et heure, équipe, ouvrage, matériau, diamètre, travaux (cases), longueur PE, fouille L × l × p (alerte > 2 m), revêtement à refaire, emplacement, représentant du maître d'ouvrage, pièces posées (recherche dans les articles Dolibarr activés, quantité ; plus de désignation libre : un article absent se note en observation), ouvriers, observation, photos avant / pendant / après ; même écran, pré-rempli, pour **modifier** une réparation envoyée (quantités modifiables ; retrait d'une pièce déjà envoyée seulement avec « interventions / supprimer », que le chef n'a pas) |
@@ -21,7 +21,10 @@ photos) saisit ; l'agent de détection (interventions en lecture) voit les fiche
 
 **Hors ligne** (`src/file-attente.ts`) : chaque saisie (fuite, réparation, réfection) et ses photos sont
 d'abord écrites sur la tablette, puis envoyées (ouverture de l'appli, retour au premier plan, toutes les 30 s,
-juste après l'enregistrement). Les identifiants sont créés sur l'appareil, donc un renvoi ne crée pas de doublon ;
+juste après l'enregistrement). Les écrans (liste, fiche, envois en attente) ne rechargent qu'à un vrai changement de
+la file : la synchro des 30 s sans rien à envoyer ne fait ni requête ni rechargement (avant le 2026-10-07, elle
+rechargeait la liste toutes les 30 s, rond de rafraîchissement compris : CPU de la tablette sollicité en continu).
+Les identifiants sont créés sur l'appareil, donc un renvoi ne crée pas de doublon ;
 les étapes confirmées sont notées (reprise après coupure) ; les fichiers locaux ne sont supprimés qu'après
 confirmation du serveur. Ordre respecté : fuite → réparation → pièces / ouvriers → photos → réfection → photos ;
 une saisie refusée bloque les suivantes **de la même fuite** (les autres partent). Paramètres de saisie (natures,
@@ -35,7 +38,7 @@ abandonner une réparation emporte ses modifications et ses photos ajoutées.
 requête restée sans réponse (connexion 4G morte) bloquait la synchro, une seule à la fois, jusqu'à l'expiration TCP
 (souvent un quart d'heure). Toute requête est abandonnée après **60 s**, **3 min** pour l'envoi d'une photo ; l'abandon
 compte comme une coupure : la saisie reste sur la tablette, sans message, et repart à la synchro suivante. Une requête
-qui porte déjà son propre signal d'abandon le garde.
+qui porte déjà son propre signal d'abandon le garde (liste des fuites : 20 s).
 
 **Style** : celui du panneau web, interface « Studio Admin » (shadcn/ui, depuis le 2026-10-07 ; maquettes validées par
 Issam : liste en tableau comme le panneau, fiche sur une seule page). Jetons de `web/src/app/globals.css` (préréglage
@@ -58,7 +61,8 @@ reprise, photos typées et rattachées, réfection reprise de la fouille, statut
 verrouillée, doublons, droits détection / chef, aucun prix visible).
 Essai **sans pile** (ni Docker ni installation) : `node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs`
 depuis `mobile/` (Node ≥ 22.18) : vrai code de la file d'attente, base, stockage et réseau simulés
-(`essais/mocks/supabase-simule.js`) ; 38 vérifications (photos depuis la fiche, modification après la création,
+(`essais/mocks/supabase-simule.js`) ; 42 vérifications (écrans prévenus seulement à un vrai changement de la file,
+photos depuis la fiche, modification après la création,
 coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai sur une horloge simulée).
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
@@ -83,6 +87,27 @@ dans `node_modules/expo/bundledNativeModules.json` si ces serveurs sont inaccess
 Workflow `.github/workflows/apk.yml` : types, `expo prebuild`, `gradlew assembleRelease`, APK en artefact
 (14 jours). Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour
 Vercel) ; sans lui l'APK se compile mais ne peut pas se connecter.
+
+**Architectures** (depuis le 2026-10-07) : bibliothèques natives compilées pour **ARM seulement**, `armeabi-v7a` et
+`arm64-v8a` (`buildArchs` d'`expo-build-properties` dans `app.json`, repris dans `reactNativeArchitectures` de
+`android/gradle.properties`) : les tablettes Samsung et l'émulateur du Mac sont ARM. Sans x86 ni x86_64, l'APK passe
+de 79,0 à 42,6 Mo (bibliothèques ARM inchangées : 17,2 Mo en `arm64-v8a`, 11,9 Mo en `armeabi-v7a`) et la compilation
+d'environ 20 à 13 min. Un émulateur x86_64 (PC Windows, Mac Intel) ne la lance que par traduction ARM (images
+Android 11 et plus, plus lent) et la refuse sur les images plus anciennes (`INSTALL_FAILED_NO_MATCHING_ABIS`) : pour
+un tel essai, rajouter `x86_64` à la liste le temps d'une compilation.
+
+**Bibliothèques natives compressées** (depuis le 2026-10-07) : `useLegacyPackaging: true` d'`expo-build-properties` dans
+`app.json`, repris dans `expo.useLegacyPackaging` de `android/gradle.properties`. Les `.so` sont rangés compressés dans
+l'APK (`Defl:N` dans `unzip -v`) : bibliothèques ARM de 29,1 à 10,8 Mo, APK de 42,6 à **24,1 Mo**, soit 18,5 Mo de
+moins à faire passer sur la tablette (l'artefact zippé de GitHub ne change presque pas, 21,9 puis 21,5 Mo : le zip
+compressait déjà les `.so`). Le compromis : Android extrait les bibliothèques à l'installation (`extractNativeLibs`),
+mais seulement celles de l'architecture de l'appareil, 17,2 Mo en `arm64-v8a` (11,9 Mo sur un Android 32 bits) ; l'APK
+qu'il garde ayant maigri de 18,5 Mo, la place prise par l'appli ne grossit pas (émulateur : APK et bibliothèques de
+42,6 à 41,2 Mo, taille de l'appli dans les Réglages de 65,9 à 64,8 Mo). L'extraction prend de 0,2 à 2,9 s selon la
+charge de l'émulateur (journal d'Android) ; la durée d'installation dépend surtout de la compilation du code par
+Android, la même pour les deux versions, et le démarrage à froid ne change pas de façon mesurable (comparaison
+alternée sur l'émulateur : médiane 2,6 s contre 3,6 s avant, de 1,2 à 4,6 s d'un essai à l'autre). Pour revenir aux
+`.so` non compressés : retirer la clé (ou la mettre à `false`).
 
 L'APK est **signé avec la clé de test d'Expo** : suffisant pour les essais sur la tablette de test.
 **Avant toute distribution aux agents**, créer un keystore de production **hors du dépôt**, en deux copies

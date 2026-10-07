@@ -3,7 +3,7 @@
 // fichiers et réseau simulés (mocks/supabase-simule.js). Depuis mobile/ :
 //   node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
 import fs from 'node:fs';
-import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, synchroniser } from '../src/file-attente.ts';
+import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, surChangement, synchroniser } from '../src/file-attente.ts';
 import { appliquer, aucunChangement, differences } from '../src/modification.ts';
 import { avecDelai, DELAI_API_MS, DELAI_PHOTO_MS } from '../src/reseau.ts';
 import { simulation as sim } from './mocks/supabase-simule.js';
@@ -156,7 +156,34 @@ sim.reseau = true;
 reste = await synchroniser();
 verifier(reste === 0 && fs.readdirSync(D).length === 0, 'la photo de la fuite part au retour du réseau');
 
-console.log('8. Requête sans réponse (connexion 4G morte) : abandonnée au délai, la file d\'attente repart');
+console.log('8. Les écrans ne rechargent qu\'à un vrai changement de la file (synchro des 30 s au repos)');
+let prevenus = 0;
+const arreter = surChangement(() => { prevenus += 1; });
+sim.journal = [];
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 0 && sim.journal.length === 0, 'file vide : aucune requête, aucun écran prévenu', { prevenus, journal: sim.journal });
+sim.reseau = false;
+await mettreEnAttente({ id: uuid(), marche_id: M, position: null, photos: [], ligne: { adresse: 'Sans réseau' } });
+prevenus = 0;
+reste = await synchroniser();
+verifier(reste === 1 && prevenus === 0, 'sans réseau : file inchangée, aucun écran prévenu', prevenus);
+sim.reseau = true;
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 1, 'envoi fait : écrans prévenus une fois (statuts recalculés par le serveur)', prevenus);
+sim.verrouillees.add(F);
+await ajouterEnvoi({ ...modif, id: uuid(), photos: [], changements: { ...VIDE, ligne: { observation: 'refusée' } } });
+await ajouterEnvoi({ type: 'photos', id: uuid(), marche_id: M, fuite_id: F, fuite_libelle: 'x', photos: [photo('detection')] });
+prevenus = 0;
+await synchroniser();
+const auRefus = prevenus;
+await synchroniser();
+await synchroniser();
+verifier(auRefus === 1 && prevenus === 1, 'saisie refusée : prévenus au refus, pas à chaque nouvel essai (même erreur, rien de réécrit)', { auRefus, prevenus });
+for (const e of await lireAttente()) await abandonner(e.id);
+sim.verrouillees.clear();
+arreter();
+
+console.log('9. Requête sans réponse (connexion 4G morte) : abandonnée au délai, la file d\'attente repart');
 // Horloge simulée le temps de cette section (setTimeout / clearTimeout) : les délais passent d'un coup.
 const minuteurs = new Map();
 let maintenant = 0, numero = 0;
@@ -185,9 +212,9 @@ await tour();
 verifier(!s1.finie, `toujours en attente juste avant ${DELAI_API_MS / 1000} s`);
 avancer(1);
 await tour();
-const l8 = await lireAttente();
-verifier(s1.reste === 1 && !l8[0].erreur && sim.sansReponse === 0,
-  `abandonnée à ${DELAI_API_MS / 1000} s : synchro terminée, fuite gardée sur la tablette sans message (comptée comme coupure)`, l8);
+const l9 = await lireAttente();
+verifier(s1.reste === 1 && !l9[0].erreur && sim.sansReponse === 0,
+  `abandonnée à ${DELAI_API_MS / 1000} s : synchro terminée, fuite gardée sur la tablette sans message (comptée comme coupure)`, l9);
 if (!s1.finie) process.exit(1); // file d'attente figée : la suite de l'essai attendrait sans fin
 reste = await synchroniser();
 verifier(reste === 0 && sim.tables.fuites.some((f) => f.id === F3) && fs.readdirSync(D).length === 0, 'synchro suivante : la fuite et sa photo partent');
@@ -202,9 +229,9 @@ await tour();
 verifier(!s2.finie, `envoi d'une photo : encore attendu à ${DELAI_API_MS / 1000} s (délai des photos plus long)`);
 avancer(DELAI_PHOTO_MS - DELAI_API_MS);
 await tour();
-const l8b = await lireAttente();
-verifier(s2.reste === 1 && l8b[0].fait?.ligne === true && !l8b[0].erreur && fs.existsSync(l8b[0].photos[0].fichier.slice(7)),
-  `photo abandonnée à ${DELAI_PHOTO_MS / 60000} min : fuite déjà créée (reprise notée), photo gardée sur la tablette, sans message`, l8b);
+const l9b = await lireAttente();
+verifier(s2.reste === 1 && l9b[0].fait?.ligne === true && !l9b[0].erreur && fs.existsSync(l9b[0].photos[0].fichier.slice(7)),
+  `photo abandonnée à ${DELAI_PHOTO_MS / 60000} min : fuite déjà créée (reprise notée), photo gardée sur la tablette, sans message`, l9b);
 if (!s2.finie) process.exit(1);
 reste = await synchroniser();
 verifier(reste === 0 && sim.tables.photos.some((p) => p.fuite_id === F4) && fs.readdirSync(D).length === 0,

@@ -6,11 +6,11 @@ import { BadgesAlertes, ORDRE_STATUTS, STATUT_STYLE } from "@/components/statut"
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { dateSeule, type libellesMarche } from "@/lib/format";
-import type { VFuite } from "@/lib/types";
+import type { FuiteListe } from "@/lib/colonnes-fuites";
 import { cn, pluriel } from "@/lib/utils";
 
 /** Vue en colonnes par statut (modèle « Kanban », sans glisser-déposer : le statut se change sur la fiche). */
-export function VueKanban({ fuites, libelles }: { fuites: VFuite[]; libelles: ReturnType<typeof libellesMarche> }) {
+export function VueKanban({ fuites, libelles }: { fuites: FuiteListe[]; libelles: ReturnType<typeof libellesMarche> }) {
   return (
     <div className="grid auto-cols-[minmax(17rem,1fr)] grid-flow-col gap-4 overflow-x-auto p-4">
       {ORDRE_STATUTS.map((statut) => {

@@ -4,7 +4,7 @@
 // (maître d'ouvrage), puis sans logo, et contrôle le contenu des fichiers. Les fichiers
 // produits restent dans le dossier de sortie pour un contrôle à l'œil.
 // Node 22.15 ou plus (types TypeScript retirés à la volée).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { registerHooks } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -20,7 +20,7 @@ registerHooks({
   },
 });
 
-const { dimensionsLogo } = await import('../src/lib/export/modele.ts');
+const { dimensionsLogo, lignesEntete, textesArabesEntete } = await import('../src/lib/export/modele.ts');
 const { genererPdf, dessinerEntete } = await import('../src/lib/export/pdf.ts');
 const { genererDocx } = await import('../src/lib/export/docx.ts');
 const { genererXlsx } = await import('../src/lib/export/xlsx.ts');
@@ -118,7 +118,44 @@ for (const avec of [true, false]) {
   const u8 = new Uint8Array(pdf.output('arraybuffer'));
   verifier(images(u8) === 3, 'PDF de deux pages : logos inclus une seule fois');
   const ySans = dessinerEntete(new jsPDF({ unit: 'mm', format: 'a4' }), documentEssai(false).entete, new Map(), 12);
-  verifier(proche(y - ySans, 16), `en-tête descendu de la hauteur des logos (${(y - ySans).toFixed(1)} mm)`);
+  // Logos (14 + 2 mm) à la place de la ligne du nom (4,6 mm)
+  verifier(proche(y - ySans, 16 - 4.6), `en-tête descendu de la hauteur des logos, sans la ligne du nom (${(y - ySans).toFixed(1)} mm)`);
+}
+
+// Le logo porte le nom : ni nom ni nom arabe sous un logo, les deux sans logo
+const nomsEcrits = (texte) => ['STEPAG SARL', 'Maître d', 'وكالة'].filter((n) => texte.includes(n));
+// Police arabe du Word lue dans public/ (fetch relatif impossible hors navigateur)
+const fetchOrigine = globalThis.fetch;
+globalThis.fetch = async (u, ...r) => (typeof u === 'string' && u.startsWith('/polices/')
+  ? new Response(readFileSync(new URL(`../public${u}`, import.meta.url)))
+  : fetchOrigine(u, ...r));
+const avecArabe = (avec) => {
+  const doc = documentEssai(avec);
+  return { ...doc, entete: { ...doc.entete, titulaireAr: null, clientAr: 'وكالة تجريبية' } };
+};
+{
+  const sous = lignesEntete(['STEPAG SARL', 'Oujda'], 'ستيباگ', logoTitulaire);
+  const seul = lignesEntete(['STEPAG SARL', 'Oujda'], 'ستيباگ', null);
+  verifier(sous.nom === null && sous.ar === null && sous.details.join() === 'Oujda', 'sous un logo : détails seuls');
+  verifier(seul.nom === 'STEPAG SARL' && seul.ar === 'ستيباگ' && seul.details.join() === 'Oujda', 'sans logo : nom, détails et nom arabe');
+  verifier(textesArabesEntete(avecArabe(true).entete).length === 0 && textesArabesEntete(avecArabe(false).entete).join() === 'وكالة تجريبية',
+    'nom arabe composé seulement s\'il est écrit');
+  for (const avec of [true, false]) {
+    const texte = Buffer.from(await octets(await genererPdf(documentEssai(avec)))).toString('latin1');
+    const vus = nomsEcrits(texte);
+    verifier(avec ? vus.length === 0 : vus.length === 2, `PDF ${avec ? 'avec' : 'sans'} logos : noms écrits ${vus.join(', ') || 'aucun'}`);
+  }
+  for (const avec of [true, false]) {
+    const xml = strFromU8(unzipSync(await octets(await genererDocx(avecArabe(avec))))['word/document.xml']);
+    const vus = nomsEcrits(xml);
+    verifier(avec ? vus.length === 0 : vus.length === 3, `Word ${avec ? 'avec' : 'sans'} logos : noms écrits ${vus.join(', ') || 'aucun'}`);
+  }
+  for (const avec of [true, false]) {
+    const zip = unzipSync(await octets(await genererXlsx(avecArabe(avec))));
+    const xml = Object.entries(zip).filter(([n]) => n.endsWith('.xml')).map(([, v]) => strFromU8(v)).join('\n');
+    const vus = nomsEcrits(xml);
+    verifier(avec ? vus.length === 0 : vus.length === 3, `Excel ${avec ? 'avec' : 'sans'} logos : noms écrits ${vus.join(', ') || 'aucun'}`);
+  }
 }
 
 // Word

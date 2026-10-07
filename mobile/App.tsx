@@ -6,6 +6,7 @@ import { Balayage } from './src/balayage';
 import { Connexion, EnAttente, Liste, NouvelleFuite } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
+import { LangueProvider, useLangue } from './src/langue';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { configurationManquante } from './src/supabase';
@@ -18,6 +19,7 @@ const LISTE: Vue = { nom: 'liste' };
 
 function Racine() {
   const { chargement, session, marche } = useSession();
+  const { t } = useLangue();
   const [vue, setVue] = useState<Vue>(LISTE);
   const retourListe = () => setVue(LISTE);
   // Une saisie revient à sa fiche, le reste à la liste.
@@ -50,17 +52,17 @@ function Racine() {
     };
   }, [session]);
 
-  if (configurationManquante) return <Avis texte="Application non configurée (adresse du serveur absente)." />;
+  if (configurationManquante) return <Avis texte={t('Application non configurée (adresse du serveur absente).')} />;
   if (chargement) {
     return (
       <View style={s.ecran}>
-        <BarreApp titre="Suivi des fuites" />
+        <BarreApp titre={t('Suivi des fuites')} />
         <View style={[s.contenu, { flex: 1, justifyContent: 'center' }]}><ActivityIndicator size="large" color={COULEURS.principal} /></View>
       </View>
     );
   }
   if (!session) return <Connexion />;
-  if (!marche) return <Avis texte="Aucun marché n'est affecté à votre compte. Contactez l'administrateur." />;
+  if (!marche) return <Avis texte={t("Aucun marché n'est affecté à votre compte. Contactez l'administrateur.")} />;
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {
     case 'nouvelle':
@@ -88,9 +90,10 @@ function Racine() {
 }
 
 function Avis({ texte }: { texte: string }) {
+  const { t } = useLangue();
   return (
     <View style={s.ecran}>
-      <BarreApp titre="Suivi des fuites" />
+      <BarreApp titre={t('Suivi des fuites')} />
       <View style={s.defile}><Message ton="erreur">{texte}</Message></View>
     </View>
   );
@@ -99,10 +102,12 @@ function Avis({ texte }: { texte: string }) {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <SessionProvider>
-        <StatusBar style="dark" />
-        <Racine />
-      </SessionProvider>
+      <LangueProvider>
+        <SessionProvider>
+          <StatusBar style="dark" />
+          <Racine />
+        </SessionProvider>
+      </LangueProvider>
     </SafeAreaProvider>
   );
 }

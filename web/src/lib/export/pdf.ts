@@ -1,6 +1,6 @@
 // Export PDF (jsPDF + jspdf-autotable, chargés à la demande).
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
-import { dimensionsLogo, etendueLibelle, parcourir, texteCellule, texteDate, type DocumentExport, type LogoEntete, type SectionDoc } from './modele';
+import { dimensionsLogo, etendueLibelle, lignesEntete, parcourir, texteCellule, texteDate, textesArabesEntete, type DocumentExport, type LogoEntete, type SectionDoc } from './modele';
 
 export const BLEU: [number, number, number] = [11, 93, 138];
 export const GRIS_TRAIT: [number, number, number] = [175, 186, 196];
@@ -33,33 +33,35 @@ export function dessinerEntete(pdf: Pdf, entete: DocumentExport['entete'], image
   const utile = largeur - 2 * marge;
   pdf.setTextColor(20, 35, 46);
   const hauteurLogos = dessinerLogos(pdf, entete, marge);
-  let yGauche = marge + 2 + hauteurLogos;
-  let yDroite = marge + 2 + hauteurLogos;
   const demi = utile / 2 - 4;
-  entete.titulaire.forEach((t, i) => {
-    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    pdf.setFontSize(i === 0 ? 10.5 : 8);
-    const lignes = pdf.splitTextToSize(t, demi);
-    pdf.text(lignes, marge, yGauche);
-    yGauche += lignes.length * (i === 0 ? 4.6 : 3.6);
-  });
-  const imgTitulaire = entete.titulaireAr ? imagesEntete.get(entete.titulaireAr) : undefined;
-  if (imgTitulaire) {
-    pdf.addImage(imgTitulaire.donnees, 'PNG', marge, yGauche - 2.5, imgTitulaire.largeurMm, imgTitulaire.hauteurMm, imgTitulaire.alias, 'FAST');
-    yGauche += imgTitulaire.hauteurMm;
-  }
-  entete.client.forEach((t, i) => {
-    pdf.setFont('helvetica', i === 0 ? 'bold' : 'normal');
-    pdf.setFontSize(i === 0 ? 10.5 : 8);
-    const lignes = pdf.splitTextToSize(t, demi);
-    pdf.text(lignes, largeur - marge, yDroite, { align: 'right' });
-    yDroite += lignes.length * (i === 0 ? 4.6 : 3.6);
-  });
-  const imgClient = entete.clientAr ? imagesEntete.get(entete.clientAr) : undefined;
-  if (imgClient) {
-    pdf.addImage(imgClient.donnees, 'PNG', largeur - marge - imgClient.largeurMm, yDroite - 2.5, imgClient.largeurMm, imgClient.hauteurMm, imgClient.alias, 'FAST');
-    yDroite += imgClient.hauteurMm;
-  }
+  const colonne = (lignes: string[], ar: string | null | undefined, logo: LogoEntete | null | undefined, cote: 'gauche' | 'droite') => {
+    const { nom, details, ar: arabe } = lignesEntete(lignes, ar, logo);
+    const x = cote === 'gauche' ? marge : largeur - marge;
+    const options = cote === 'gauche' ? undefined : { align: 'right' as const };
+    let y = marge + 2 + hauteurLogos;
+    if (nom) {
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(10.5);
+      const texte = pdf.splitTextToSize(nom, demi);
+      pdf.text(texte, x, y, options);
+      y += texte.length * 4.6;
+    }
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(8);
+    details.forEach((t) => {
+      const texte = pdf.splitTextToSize(t, demi);
+      pdf.text(texte, x, y, options);
+      y += texte.length * 3.6;
+    });
+    const img = arabe ? imagesEntete.get(arabe) : undefined;
+    if (img) {
+      pdf.addImage(img.donnees, 'PNG', cote === 'gauche' ? marge : largeur - marge - img.largeurMm, y - 2.5, img.largeurMm, img.hauteurMm, img.alias, 'FAST');
+      y += img.hauteurMm;
+    }
+    return y;
+  };
+  const yGauche = colonne(entete.titulaire, entete.titulaireAr, entete.logoTitulaire, 'gauche');
+  const yDroite = colonne(entete.client, entete.clientAr, entete.logoMaitreOuvrage, 'droite');
   let y = Math.max(yGauche, yDroite) + 3;
   pdf.setDrawColor(...BLEU);
   pdf.setLineWidth(0.4);
@@ -89,7 +91,7 @@ export async function genererPdf(d: DocumentExport): Promise<Blob> {
     l.cellules.forEach((c) => contientArabe(c) && arabesCellules.push(c));
     if (contientArabe(l.libelle)) arabesCellules.push(l.libelle);
   }));
-  const arabesEntete = [d.entete.titulaireAr, d.entete.clientAr].filter(contientArabe);
+  const arabesEntete = textesArabesEntete(d.entete).filter(contientArabe);
   const imagesCellules = arabesCellules.length ? await imagesTextes(arabesCellules, TAILLE_CELLULE) : new Map<string, ImageTexte>();
   const imagesEntete = arabesEntete.length ? await imagesTextes(arabesEntete, 10, true) : new Map<string, ImageTexte>();
 

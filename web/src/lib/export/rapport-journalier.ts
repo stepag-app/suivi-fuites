@@ -1030,7 +1030,8 @@ async function reglerImpression(fichier: Blob, nomFeuille: string, titres: [numb
   contenu[chemin] = strToU8(xml);
   const nom = echapperXml(nomFeuille.replace(/'/g, "''"));
   const defini = `<definedName name="_xlnm.Print_Titles" localSheetId="0">'${nom}'!$${titres[0]}:$${titres[1]}</definedName>`;
-  let classeur = strFromU8(contenu['xl/workbook.xml']);
+  // write-excel-file écrit un <definedNames/> vide : un second bloc rendrait le classeur invalide pour Excel.
+  let classeur = strFromU8(contenu['xl/workbook.xml']).replace(/<definedNames\s*\/>/g, '');
   classeur = classeur.includes('<definedNames>')
     ? classeur.replace('<definedNames>', `<definedNames>${defini}`)
     : classeur.replace('</sheets>', `</sheets><definedNames>${defini}</definedNames>`);

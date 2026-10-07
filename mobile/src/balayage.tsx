@@ -1,4 +1,4 @@
-import type { Session } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
@@ -79,9 +79,10 @@ export function Balayage({ retour }: { retour: () => void }) {
       setMessage(HORS_LIGNE);
       return;
     }
-    const { data } = await supabase.auth.getSession();
+    const { data, error } = await supabase.auth.getSession();
     if (!data.session) {
-      setMessage('Session expirée : reconnectez-vous.');
+      // Jeton expiré que le réseau n'a pas encore permis de renouveler : la session n'est pas perdue.
+      setMessage(isAuthRetryableFetchError(error) ? HORS_LIGNE : 'Session expirée : reconnectez-vous.');
       return;
     }
     appliquer(data.session);

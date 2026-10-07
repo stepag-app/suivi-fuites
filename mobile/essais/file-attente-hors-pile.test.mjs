@@ -1,6 +1,6 @@
 // Essai SANS pile Supabase (ni Docker, ni dépendance à installer) de la file d'attente de la tablette :
-// vrai code de src/file-attente.ts, src/modification.ts, src/photos.ts et src/reseau.ts ; base, stockage,
-// fichiers et réseau simulés (mocks/supabase-simule.js). Depuis mobile/ :
+// vrai code de src/file-attente.ts, src/modification.ts, src/photos.ts et src/reseau.ts, vrai client Supabase pour la
+// connexion (src/supabase.ts) ; base, stockage, fichiers et réseau simulés (mocks/serveur-simule.js). Depuis mobile/ :
 //   node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
 import fs from 'node:fs';
 import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, surChangement, synchroniser } from '../src/file-attente.ts';
@@ -13,8 +13,6 @@ const verifier = (cond, msg, extra) => { if (cond) { ok++; console.log('  ✓', 
 const uuid = () => crypto.randomUUID();
 const D = `${process.env.H}/docs/attente/`;
 fs.mkdirSync(D, { recursive: true });
-// photos.ts lit le fichier local par fetch(file://…)
-globalThis.fetch = (u) => Promise.resolve(new Response(fs.readFileSync(String(u).replace(/^file:\/\//, ''))));
 const photo = (type) => {
   const id = uuid();
   const f = `${D}${id}.jpg`;
@@ -48,6 +46,7 @@ console.log('2. Modification et photos d\'une réparation encore en attente : en
 sim.remettre();
 sim.utilisateur = 'chef';
 sim.droits = { modifier: 'siennes', supprimer: 'non' };
+await sim.connecter(); // l'agent est connecté : jeton valide une heure
 const M = 'marche-essai';
 const F = uuid(), R = uuid(), P1 = uuid(), P2 = uuid();
 await mettreEnAttente({ id: F, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Essai' } });
@@ -252,6 +251,8 @@ verifier(erreur?.name === 'AbortError' && /timeout/.test(erreur.message),
   'abandon par le délai : AbortError (supabase-js ne relance pas une lecture sur la même connexion morte)', erreur);
 globalThis.setTimeout = vraiSetTimeout;
 globalThis.clearTimeout = vraiClearTimeout;
+
+verifier(!sim.sansJeton.length, 'toutes les requêtes de données ont porté le jeton de la session (jamais la clé anonyme)', sim.sansJeton);
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 process.exit(ko ? 1 : 0);

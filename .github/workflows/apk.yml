@@ -40,6 +40,11 @@ jobs:
           java-version: 17
       - run: npm ci
       - run: npx tsc --noEmit
+      # Vrai code de la file d'attente et de la session, vrai client Supabase ; serveur et réseau simulés.
+      - name: Essais sans pile (file d'attente, session hors ligne)
+        run: |
+          node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
+          node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
       - run: npx expo prebuild --platform android --no-install
       - name: Compilation (release, signature de test)
         working-directory: mobile/android

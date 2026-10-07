@@ -110,6 +110,8 @@ export async function abandonner(id: string) {
 }
 
 interface ErreurApi { code?: string; message?: string; statusCode?: string | number }
+// Coupure, pas un refus : erreur du fetch de l'APK (expo/fetch : « fetch failed: … ») ou requête abandonnée par le
+// délai de reseau.ts (« timeout »).
 const erreurReseau = (e: unknown) =>
   /network|fetch|timeout|internet|aborted/i.test(String((e as ErreurApi)?.message ?? e));
 

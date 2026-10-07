@@ -1,6 +1,7 @@
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+import { fetchAvecDelai } from './reseau';
 
 // Les agents se connectent avec un identifiant ; l'adresse technique n'est jamais utilisée pour écrire.
 // Domaine réglable pour une autre société (même valeur que NEXT_PUBLIC_DOMAINE_AGENTS du panneau).
@@ -15,4 +16,6 @@ export const configurationManquante = !url || !cle;
 
 export const supabase = createClient(url || 'https://exemple.supabase.co', cle || 'cle-absente', {
   auth: { storage: AsyncStorage, persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
+  // Toute requête (API, connexion, photos) abandonnée passé un délai : voir reseau.ts.
+  global: { fetch: fetchAvecDelai },
 });

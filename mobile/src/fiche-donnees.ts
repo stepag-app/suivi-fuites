@@ -1,4 +1,5 @@
-// Lecture d'une fiche (serveur, ou saisie encore sur la tablette) ; sans dépendance d'affichage.
+// Lecture d'une fiche (copie de la tablette, serveur, ou saisie encore sur la tablette) ; sans dépendance d'affichage.
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { estFuite, type Envoi } from './file-attente';
 import { supabase } from './supabase';
 import type { FicheFuite, OuvrierPresent, PhotoLigne, PiecePosee, Refection, Reparation } from './types';
@@ -37,6 +38,30 @@ export async function chargerServeur(id: string): Promise<Donnees | null> {
     fuite: (f.data as unknown as FicheFuite | null) ?? null, photos: (ph.data ?? []) as PhotoLigne[], reparations,
     refections: (rf.data ?? []) as Refection[], pieces: (pc.data ?? []) as PiecePosee[], ouvriers: (ou.data ?? []) as OuvrierPresent[],
   };
+}
+
+/**
+ * Chargement de l'écran Fiche. `copie` : `afficher` reçoit d'abord la version gardée sur la tablette (fiche déjà
+ * ouverte ici), sans attendre le réseau. Puis la réponse du serveur, gardée à son tour. Jeton à renouveler : aucune
+ * requête (voir session-donnees.ts). Renvoie la réponse du serveur, ou null sans réponse (hors ligne).
+ */
+export async function chargerFiche(id: string, o: {
+  copie: boolean; aRenouveler: boolean; afficher: (donnees: Donnees) => void;
+}): Promise<Donnees | null> {
+  if (o.copie) {
+    try {
+      const copie = JSON.parse((await AsyncStorage.getItem(cleFiche(id))) ?? 'null') as Donnees | null;
+      if (copie) o.afficher(copie);
+    } catch {
+      // copie illisible : la fiche attend le serveur
+    }
+  }
+  if (o.aRenouveler) return null;
+  const serveur = await chargerServeur(id).catch(() => null);
+  if (!serveur) return null;
+  o.afficher(serveur);
+  AsyncStorage.setItem(cleFiche(id), JSON.stringify(serveur)).catch(() => undefined);
+  return serveur;
 }
 
 /** Fuite saisie sur la tablette et pas encore envoyée : fiche reconstituée à partir de la saisie. */

@@ -13,6 +13,7 @@ import {
 } from './file-attente';
 import { Icone } from './icones';
 import { t, tx, useLangue } from './langue';
+import { chargerListe } from './liste-donnees';
 import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
 import { emailDepuisIdentifiant, supabase } from './supabase';
@@ -112,14 +113,14 @@ const COL = {
 };
 // Sans geste de l'agent, la liste suit les fuites des autres équipes à ce rythme (tirer la liste : tout de suite).
 const MISE_A_JOUR_MS = 5 * 60 * 1000;
-// Le fetch de React Native n'a pas de délai : passé celui-ci, connexion tenue pour bloquée, dernière liste connue.
+// Passé ce délai (jeton attendu par supabase-js compris), connexion tenue pour bloquée : dernière liste connue.
 const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
 }) {
-  const { marche, marches, choisirMarche, peut, profil, deconnecter } = useSession();
+  const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [envois, setEnvois] = useState<Envoi[]>([]);
   const [message, setMessage] = useState('');
@@ -128,48 +129,33 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   const [texte, setTexte] = useState('');
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const bas = useBas();
-  const derniere = useRef('');
+  // Liste affichée (marché, JSON) : rien n'est redessiné si elle n'a pas changé.
+  const derniere = useRef({ marche: '', contenu: '' });
   const { langue } = useLangue();
+  const marcheId = marche?.id;
 
   // `discret` : rechargement de fond, sans le rond de rafraîchissement (réservé à l'arrivée sur la liste et au geste
-  // de l'agent) et sans rien redessiner si rien n'a changé.
+  // de l'agent). À l'ouverture et au changement de marché, la copie de la tablette s'affiche d'abord (liste-donnees.ts).
   const charger = useCallback(async (discret = false) => {
-    if (!marche) return;
+    if (!marcheId) return;
     if (!discret) setRafraichit(true);
-    const controleur = new AbortController();
-    const delai = setTimeout(() => controleur.abort(), DELAI_LISTE_MS);
+    const afficher = (contenu: string) => {
+      if (derniere.current.marche === marcheId && derniere.current.contenu === contenu) return false;
+      derniere.current = { marche: marcheId, contenu };
+      setFuites(JSON.parse(contenu) as VFuite[]);
+      return true;
+    };
     try {
       const attente = await lireAttente();
       setEnvois((avant) => (memes(avant, attente) ? avant : attente));
-      const cle = `suivi-fuites:liste:${marche.id}`;
-      const { data, error } = await supabase
-        .from('v_fuites')
-        .select('id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, alerte_sans_photo, latitude, longitude')
-        .eq('marche_id', marche.id)
-        .order('date_detection', { ascending: false })
-        .limit(200)
-        .abortSignal(controleur.signal);
-      if (error || !data) {
-        const copie = await AsyncStorage.getItem(cle);
-        if (copie && copie !== derniere.current) {
-          derniere.current = copie;
-          setFuites(JSON.parse(copie));
-        }
-        setMessage(t('Hors ligne : dernière liste connue.'));
-      } else {
-        const contenu = JSON.stringify(data);
-        if (contenu !== derniere.current) {
-          derniere.current = contenu;
-          setFuites(data as VFuite[]);
-          AsyncStorage.setItem(cle, contenu).catch(() => undefined);
-        }
-        setMessage('');
-      }
+      const repondu = await chargerListe(marcheId, {
+        copie: derniere.current.marche !== marcheId, aRenouveler, delaiMs: DELAI_LISTE_MS, afficher,
+      });
+      setMessage(repondu ? '' : t('Hors ligne : dernière liste connue.'));
     } finally {
-      clearTimeout(delai);
       setRafraichit(false);
     }
-  }, [marche]);
+  }, [marcheId, aRenouveler]);
 
   useEffect(() => {
     charger();
@@ -445,7 +431,7 @@ function Photos({ nb }: { nb: number }) {
 }
 
 export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouvrirFiche: (id: string) => void }) {
-  const { marche } = useSession();
+  const { marche, aRenouveler } = useSession();
   useLangue();
   const libelleReference = tx(marche?.libelle_reference || 'Référence client');
   const masque = marche?.masque_reference ?? null;
@@ -473,20 +459,26 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     if (!gardees.current) void effacerPhotos(photosCourantes.current);
   }, []);
 
+  // Secteurs : copie de la tablette d'abord, puis serveur ; jeton à renouveler : copie seulement (session-donnees.ts).
+  const marcheId = marche?.id;
   useEffect(() => {
-    if (!marche) return;
-    const cle = `suivi-fuites:secteurs:${marche.id}`;
-    supabase.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marche.id).eq('actif', true).order('libelle')
-      .then(async ({ data, error }) => {
-        if (!error && data) {
-          setSecteurs(data as Secteur[]);
-          AsyncStorage.setItem(cle, JSON.stringify(data)).catch(() => undefined);
-        } else {
-          const copie = await AsyncStorage.getItem(cle);
-          if (copie) setSecteurs(JSON.parse(copie));
-        }
-      });
-  }, [marche]);
+    if (!marcheId) return;
+    const cle = `suivi-fuites:secteurs:${marcheId}`;
+    let annule = false;
+    (async () => {
+      const copie = await AsyncStorage.getItem(cle).catch(() => null);
+      if (copie && !annule) setSecteurs(JSON.parse(copie));
+      if (aRenouveler) return;
+      const { data, error } = await supabase.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId)
+        .eq('actif', true).order('libelle');
+      if (error || !data || annule) return;
+      setSecteurs(data as Secteur[]);
+      AsyncStorage.setItem(cle, JSON.stringify(data)).catch(() => undefined);
+    })().catch(() => undefined);
+    return () => {
+      annule = true;
+    };
+  }, [marcheId, aRenouveler]);
 
   const localiser = useCallback(async () => {
     setGps(t('Recherche de la position…'));
@@ -512,6 +504,12 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     if (!marche || (!position && !reference.trim())) {
       setProches([]);
       setControle('');
+      return;
+    }
+    // Jeton à renouveler : la recherche partirait sans jeton valide après les reprises d'auth-js (session-donnees.ts).
+    if (aRenouveler) {
+      setProches([]);
+      setControle('hors_ligne');
       return;
     }
     let annule = false;
@@ -540,7 +538,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
       annule = true;
       clearTimeout(delai);
     };
-  }, [marche, position, reference]);
+  }, [marche, position, reference, aRenouveler]);
 
   async function prendrePhoto() {
     setErreur('');

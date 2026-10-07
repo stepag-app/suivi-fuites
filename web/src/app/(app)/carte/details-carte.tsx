@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dateHeure, type libellesMarche } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
+import { cn } from "@/lib/utils";
 import type { FuiteCarte } from "./commun";
 
 type Libelles = ReturnType<typeof libellesMarche>;
@@ -30,35 +31,28 @@ export function ApercuFuite({ fuite, libelles }: { fuite: FuiteCarte | null; lib
   }
   const itineraire = lienItineraire(fuite.latitude, fuite.longitude);
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-        <div className="flex items-center gap-2">
-          <h2 className="font-medium text-lg tabular-nums tracking-tight sm:text-xl">Fuite N° {fuite.numero}</h2>
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
+          <h2 className="font-medium text-lg tabular-nums tracking-tight">Fuite N° {fuite.numero}</h2>
           {fuite.origine === "srm" && <Badge variant="secondary">Signalée {libelles.sigle}</Badge>}
-        </div>
-        <div className="flex items-center gap-2 text-xs sm:text-sm">
           <BadgeStatut statut={fuite.statut} />
-          <span className="text-muted-foreground">·</span>
           <span className="text-foreground tabular-nums">détectée le {dateHeure(fuite.date_detection)}</span>
+          <BadgesAlertes fuite={fuite} libelles={libelles} vide="aucune alerte" />
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" asChild><Link href={`/fuites/${fuite.id}`} prefetch={false}><ExternalLink data-icon="inline-start" />Ouvrir la fiche</Link></Button>
+          {itineraire && <Button size="sm" variant="outline" asChild><a href={itineraire} target="_blank" rel="noreferrer"><Navigation data-icon="inline-start" />Y aller</a></Button>}
         </div>
       </div>
-      <Separator />
-      <div className="grid grid-cols-2 gap-x-4 gap-y-4 md:grid-cols-4">
-        <div className="flex flex-col gap-1.5"><span className="text-muted-foreground text-xs leading-none">{libelles.reference}</span><span className="text-sm leading-none">{fuite.reference_srm ?? "—"}</span></div>
-        <div className="flex flex-col gap-1.5"><span className="text-muted-foreground text-xs leading-none">Zone · secteur</span><span className="text-sm leading-none">{[fuite.zone, fuite.secteur].filter(Boolean).join(" · ") || "—"}</span></div>
-        <div className="col-span-2 flex flex-col gap-1.5"><span className="text-muted-foreground text-xs leading-none">Adresse</span><span className="text-sm leading-none">{fuite.adresse ?? "—"}</span></div>
-        <div className="col-span-2 flex flex-col gap-1.5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_minmax(0,1.5fr)_minmax(0,1.1fr)]">
+        <div className="flex flex-col gap-1"><span className="text-muted-foreground text-xs leading-none">{libelles.reference}</span><span className="text-sm leading-snug">{fuite.reference_srm ?? "—"}</span></div>
+        <div className="flex flex-col gap-1"><span className="text-muted-foreground text-xs leading-none">Zone · secteur</span><span className="line-clamp-2 text-sm leading-snug" title={[fuite.zone, fuite.secteur].filter(Boolean).join(" · ")}>{[fuite.zone, fuite.secteur].filter(Boolean).join(" · ") || "—"}</span></div>
+        <div className="flex flex-col gap-1"><span className="text-muted-foreground text-xs leading-none">Adresse</span><span className="line-clamp-2 text-sm leading-snug" title={fuite.adresse ?? undefined}>{fuite.adresse ?? "—"}</span></div>
+        <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs leading-none">Coordonnées GPS</span>
-          <span className="font-mono text-sm leading-none tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
+          <span className="font-mono text-sm leading-snug tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
         </div>
-        <div className="col-span-2 flex flex-col gap-1.5">
-          <span className="text-muted-foreground text-xs leading-none">Alertes</span>
-          <BadgesAlertes fuite={fuite} libelles={libelles} vide="aucune" />
-        </div>
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" asChild><Link href={`/fuites/${fuite.id}`} prefetch={false}><ExternalLink data-icon="inline-start" />Ouvrir la fiche</Link></Button>
-        {itineraire && <Button size="sm" variant="outline" asChild><a href={itineraire} target="_blank" rel="noreferrer"><Navigation data-icon="inline-start" />Y aller</a></Button>}
       </div>
     </div>
   );
@@ -90,22 +84,34 @@ export function FiltresCarteForm({ filtres, changer, secteurs }: { filtres: Filt
   );
 }
 
-export function BarreCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser }: {
-  placees: number; sansPosition: number; chargement: boolean; erreur: string; recentrer: () => void; actualiser: () => void;
+/**
+ * Commandes posées sur la carte (au-dessus de l'échelle, décalées quand le panneau Réseau est ouvert) :
+ * recentrer, actualiser, nombre de fuites placées ; message d'erreur en haut. Elles remplacent la bande
+ * qui prenait de la hauteur à la carte.
+ */
+export function CommandesCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser, decalee }: {
+  placees: number; sansPosition: number; chargement: boolean; erreur: string; recentrer: () => void; actualiser: () => void; decalee: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-2 p-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-muted-foreground text-sm">
-          {placees} sur la carte{sansPosition > 0 ? `, ${sansPosition} sans position` : ""}
-        </p>
-        <div className="flex items-center gap-1">
-          <Button size="sm" variant="outline" onClick={recentrer}><Crosshair data-icon="inline-start" />Recentrer</Button>
-          <Button size="icon-sm" variant="outline" onClick={actualiser} disabled={chargement} aria-label="Actualiser"><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
-        </div>
+    <>
+      <div
+        role="group"
+        aria-label="Commandes de la carte"
+        className={cn(
+          "absolute bottom-9 z-[3] flex items-center gap-0.5 rounded-lg border bg-background/95 p-0.5 shadow-sm",
+          decalee ? "left-[calc(min(340px,92vw)+0.5rem)]" : "left-2",
+        )}
+      >
+        <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label="Recentrer la carte" title="Recentrer"><Crosshair /></Button>
+        <Button size="icon-sm" variant="ghost" onClick={actualiser} disabled={chargement} aria-label="Actualiser" title="Actualiser"><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
+        <span className="px-2 text-muted-foreground text-xs tabular-nums" aria-live="polite">
+          {placees} sur la carte{sansPosition > 0 ? ` · ${sansPosition} sans position` : ""}
+        </span>
       </div>
-      {erreur && <Alert variant="destructive"><AlertDescription>{erreur}</AlertDescription></Alert>}
-    </div>
+      {erreur && (
+        <Alert variant="destructive" className="absolute inset-x-3 top-14 z-[4] w-auto bg-background shadow-sm"><AlertDescription>{erreur}</AlertDescription></Alert>
+      )}
+    </>
   );
 }
 

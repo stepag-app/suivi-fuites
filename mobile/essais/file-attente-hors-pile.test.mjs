@@ -1,10 +1,11 @@
 // Essai SANS pile Supabase (ni Docker, ni dépendance à installer) de la file d'attente de la tablette :
-// vrai code de src/file-attente.ts, src/modification.ts et src/photos.ts ; base, stockage, fichiers et
-// réseau simulés (mocks/supabase-simule.js). Depuis mobile/ :
+// vrai code de src/file-attente.ts, src/modification.ts, src/photos.ts et src/reseau.ts, vrai client Supabase pour la
+// connexion (src/supabase.ts) ; base, stockage, fichiers et réseau simulés (mocks/serveur-simule.js). Depuis mobile/ :
 //   node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
 import fs from 'node:fs';
-import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, synchroniser } from '../src/file-attente.ts';
+import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, surChangement, synchroniser } from '../src/file-attente.ts';
 import { appliquer, aucunChangement, differences } from '../src/modification.ts';
+import { avecDelai, DELAI_API_MS, DELAI_PHOTO_MS } from '../src/reseau.ts';
 import { simulation as sim } from './mocks/supabase-simule.js';
 
 let ok = 0, ko = 0;
@@ -12,8 +13,6 @@ const verifier = (cond, msg, extra) => { if (cond) { ok++; console.log('  ✓', 
 const uuid = () => crypto.randomUUID();
 const D = `${process.env.H}/docs/attente/`;
 fs.mkdirSync(D, { recursive: true });
-// photos.ts lit le fichier local par fetch(file://…)
-globalThis.fetch = (u) => Promise.resolve(new Response(fs.readFileSync(String(u).replace(/^file:\/\//, ''))));
 const photo = (type) => {
   const id = uuid();
   const f = `${D}${id}.jpg`;
@@ -47,6 +46,7 @@ console.log('2. Modification et photos d\'une réparation encore en attente : en
 sim.remettre();
 sim.utilisateur = 'chef';
 sim.droits = { modifier: 'siennes', supprimer: 'non' };
+await sim.connecter(); // l'agent est connecté : jeton valide une heure
 const M = 'marche-essai';
 const F = uuid(), R = uuid(), P1 = uuid(), P2 = uuid();
 await mettreEnAttente({ id: F, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Essai' } });
@@ -154,6 +154,105 @@ verifier(l7.length === 1 && l7[0].type === 'photos' && !l7[0].reparation_id && f
 sim.reseau = true;
 reste = await synchroniser();
 verifier(reste === 0 && fs.readdirSync(D).length === 0, 'la photo de la fuite part au retour du réseau');
+
+console.log('8. Les écrans ne rechargent qu\'à un vrai changement de la file (synchro des 30 s au repos)');
+let prevenus = 0;
+const arreter = surChangement(() => { prevenus += 1; });
+sim.journal = [];
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 0 && sim.journal.length === 0, 'file vide : aucune requête, aucun écran prévenu', { prevenus, journal: sim.journal });
+sim.reseau = false;
+await mettreEnAttente({ id: uuid(), marche_id: M, position: null, photos: [], ligne: { adresse: 'Sans réseau' } });
+prevenus = 0;
+reste = await synchroniser();
+verifier(reste === 1 && prevenus === 0, 'sans réseau : file inchangée, aucun écran prévenu', prevenus);
+sim.reseau = true;
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 1, 'envoi fait : écrans prévenus une fois (statuts recalculés par le serveur)', prevenus);
+sim.verrouillees.add(F);
+await ajouterEnvoi({ ...modif, id: uuid(), photos: [], changements: { ...VIDE, ligne: { observation: 'refusée' } } });
+await ajouterEnvoi({ type: 'photos', id: uuid(), marche_id: M, fuite_id: F, fuite_libelle: 'x', photos: [photo('detection')] });
+prevenus = 0;
+await synchroniser();
+const auRefus = prevenus;
+await synchroniser();
+await synchroniser();
+verifier(auRefus === 1 && prevenus === 1, 'saisie refusée : prévenus au refus, pas à chaque nouvel essai (même erreur, rien de réécrit)', { auRefus, prevenus });
+for (const e of await lireAttente()) await abandonner(e.id);
+sim.verrouillees.clear();
+arreter();
+
+console.log('9. Requête sans réponse (connexion 4G morte) : abandonnée au délai, la file d\'attente repart');
+// Horloge simulée le temps de cette section (setTimeout / clearTimeout) : les délais passent d'un coup.
+const minuteurs = new Map();
+let maintenant = 0, numero = 0;
+const [vraiSetTimeout, vraiClearTimeout] = [globalThis.setTimeout, globalThis.clearTimeout];
+globalThis.setTimeout = (f, ms) => { minuteurs.set(++numero, { f, echeance: maintenant + ms }); return numero; };
+globalThis.clearTimeout = (n) => void minuteurs.delete(n);
+const avancer = (ms) => {
+  maintenant += ms;
+  for (const [n, m] of [...minuteurs]) if (m.echeance <= maintenant) { minuteurs.delete(n); m.f(); }
+};
+// Laisse avancer les promesses en cours, par microtâches seulement, comme tout cet essai (un passage par la boucle
+// d'événements ferait seulement afficher l'avertissement de Node sur le type de module des .ts).
+const tour = async () => { for (let i = 0; i < 1000; i++) await null; };
+const attendreBlocage = async () => { for (let i = 0; i < 1000 && !sim.sansReponse; i++) await null; };
+const suivre = (p) => { const e = { finie: false, reste: null }; p.then((n) => { e.finie = true; e.reste = n; }); return e; };
+const F3 = uuid();
+await mettreEnAttente({ id: F3, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Connexion morte' } });
+sim.sansReponseDans = 0; // la création de la fuite part, la réponse ne revient jamais
+const bloquee = synchroniser();
+const s1 = suivre(bloquee);
+await attendreBlocage();
+verifier(sim.sansReponse === 1 && synchroniser() === bloquee,
+  'en attente de réponse : une synchro de plus (minuteur des 30 s, retour sur l\'appli, « Envoyer maintenant ») rejoint celle en cours');
+avancer(DELAI_API_MS - 1);
+await tour();
+verifier(!s1.finie, `toujours en attente juste avant ${DELAI_API_MS / 1000} s`);
+avancer(1);
+await tour();
+const l9 = await lireAttente();
+verifier(s1.reste === 1 && !l9[0].erreur && sim.sansReponse === 0,
+  `abandonnée à ${DELAI_API_MS / 1000} s : synchro terminée, fuite gardée sur la tablette sans message (comptée comme coupure)`, l9);
+if (!s1.finie) process.exit(1); // file d'attente figée : la suite de l'essai attendrait sans fin
+reste = await synchroniser();
+verifier(reste === 0 && sim.tables.fuites.some((f) => f.id === F3) && fs.readdirSync(D).length === 0, 'synchro suivante : la fuite et sa photo partent');
+const F4 = uuid();
+await mettreEnAttente({ id: F4, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Photo sans réponse' } });
+sim.sansReponseDans = 2; // la fuite et l'appel à photos-r2 (« non configuré ») passent, le dépôt de la photo reste sans réponse
+const lente = synchroniser();
+const s2 = suivre(lente);
+await attendreBlocage();
+avancer(DELAI_API_MS);
+await tour();
+verifier(!s2.finie, `envoi d'une photo : encore attendu à ${DELAI_API_MS / 1000} s (délai des photos plus long)`);
+avancer(DELAI_PHOTO_MS - DELAI_API_MS);
+await tour();
+const l9b = await lireAttente();
+verifier(s2.reste === 1 && l9b[0].fait?.ligne === true && !l9b[0].erreur && fs.existsSync(l9b[0].photos[0].fichier.slice(7)),
+  `photo abandonnée à ${DELAI_PHOTO_MS / 60000} min : fuite déjà créée (reprise notée), photo gardée sur la tablette, sans message`, l9b);
+if (!s2.finie) process.exit(1);
+reste = await synchroniser();
+verifier(reste === 0 && sim.tables.photos.some((p) => p.fuite_id === F4) && fs.readdirSync(D).length === 0,
+  'synchro suivante : la photo part, fichier effacé de la tablette');
+let recu;
+const repond = (_adresse, init) => { recu = init?.signal; return Promise.resolve(new Response('[]')); };
+const propre = new AbortController().signal;
+await avecDelai(repond)('/rest/v1/v_fuites', { signal: propre });
+verifier(recu === propre && minuteurs.size === 0, 'requête avec son propre signal (liste des fuites : 20 s) : signal gardé tel quel, pas de second délai');
+await avecDelai(repond)('/rest/v1/fuites', { method: 'POST', body: '{}' });
+verifier(minuteurs.size === 0 && !recu.aborted, 'réponse reçue à temps : délai annulé aussitôt, aucun minuteur laissé');
+const muet = (_adresse, init) => new Promise((_, ko) => init?.signal?.addEventListener('abort', () => ko(new Error('fetch failed'))));
+let erreur = null;
+avecDelai(muet)('/rest/v1/fuites').catch((e) => { erreur = e; });
+avancer(DELAI_API_MS);
+await tour();
+verifier(erreur?.name === 'AbortError' && /timeout/.test(erreur.message),
+  'abandon par le délai : AbortError (supabase-js ne relance pas une lecture sur la même connexion morte)', erreur);
+globalThis.setTimeout = vraiSetTimeout;
+globalThis.clearTimeout = vraiClearTimeout;
+
+verifier(!sim.sansJeton.length, 'toutes les requêtes de données ont porté le jeton de la session (jamais la clé anonyme)', sim.sansJeton);
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 process.exit(ko ? 1 : 0);

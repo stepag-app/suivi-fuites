@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { chargerContexte, cleContexte, fermerSession, suivreSession, type Contexte as ContexteAgent, type EtatSession } from './session-donnees';
 import { configurationManquante, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
 
@@ -9,6 +10,8 @@ type Action = 'lire' | 'creer' | 'valider' | 'modifier' | 'supprimer';
 interface Etat {
   chargement: boolean;
   session: Session | null;
+  /** Jeton expiré pas encore renouvelé (hors ligne) : écrans sur les copies de la tablette, aucune requête. */
+  aRenouveler: boolean;
   profil: Profil | null;
   marche: Marche | null;
   marches: Marche[];
@@ -22,80 +25,66 @@ interface Etat {
 }
 
 const Contexte = createContext<Etat | null>(null);
-const cleContexte = (id: string) => `suivi-fuites:contexte:${id}`;
 const cleMarche = (id: string) => `suivi-fuites:marche:${id}`;
+const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [chargement, setChargement] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
+  const [aRenouveler, setARenouveler] = useState(false);
   const [profil, setProfil] = useState<Profil | null>(null);
   const [marches, setMarches] = useState<Marche[]>([]);
   const [droits, setDroits] = useState<Droit[]>([]);
   const [marcheChoisi, setMarcheChoisi] = useState<string | null>(null);
+
+  const appliquer = useCallback((etat: EtatSession) => {
+    setSession(etat.session);
+    setARenouveler(etat.aRenouveler);
+    if (!etat.session) {
+      setProfil(null);
+      setMarches([]);
+      setDroits([]);
+      setChargement(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (configurationManquante) {
       setChargement(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (!data.session) setChargement(false);
-    });
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      if (!s) {
-        setProfil(null);
-        setMarches([]);
-        setDroits([]);
-        setChargement(false);
-      }
-    });
-    return () => data.subscription.unsubscribe();
-  }, []);
+    return suivreSession(appliquer);
+  }, [appliquer]);
 
+  // Profil, marchés et droits : copie de la tablette d'abord, puis serveur (après le renouvellement du jeton s'il est
+  // à renouveler). Un contexte inchangé garde ses objets : la liste ne se recharge pas pour rien.
   const uid = session?.user.id;
   useEffect(() => {
     if (!uid) return;
     let annule = false;
-    (async () => {
-      AsyncStorage.getItem(cleMarche(uid)).then((id) => !annule && setMarcheChoisi(id)).catch(() => undefined);
-      const [p, m, d] = await Promise.all([
-        supabase.from('profils').select('id, identifiant, nom_complet, est_admin, actif').eq('id', uid).maybeSingle(),
-        // Le marché commencé le plus récemment d'abord (un marché de démonstration passe après).
-        supabase.from('marches').select('*').order('date_commencement', { ascending: false, nullsFirst: false }).order('code'),
-        supabase.from('droits').select('marche_id, type_donnee, lire, creer, modifier, supprimer, valider').eq('profil_id', uid),
-      ]);
+    const afficher = (c: ContexteAgent) => {
       if (annule) return;
-      if (p.error || m.error || d.error) {
-        // Sans réseau : dernier contexte connu (profil, marchés, droits).
-        const copie = JSON.parse((await AsyncStorage.getItem(cleContexte(uid))) ?? 'null');
-        if (copie) {
-          setProfil(copie.profil);
-          setMarches(copie.marches);
-          setDroits(copie.droits);
-        }
-        setChargement(false);
-        return;
-      }
-      const profilCharge = p.data as Profil | null;
-      if (profilCharge && !profilCharge.actif) {
+      setProfil((x) => (memes(x, c.profil) ? x : c.profil));
+      setMarches((x) => (memes(x, c.marches) ? x : c.marches));
+      setDroits((x) => (memes(x, c.droits) ? x : c.droits));
+      setChargement(false);
+    };
+    (async () => {
+      const choisi = await AsyncStorage.getItem(cleMarche(uid)).catch(() => null);
+      if (annule) return;
+      setMarcheChoisi(choisi);
+      const fin = await chargerContexte(uid, aRenouveler, afficher);
+      if (annule) return;
+      if (fin === 'inactif') {
         await supabase.auth.signOut();
         return;
       }
-      setProfil(profilCharge);
-      setMarches((m.data as Marche[]) ?? []);
-      setDroits((d.data as Droit[]) ?? []);
-      await AsyncStorage.setItem(
-        cleContexte(uid),
-        JSON.stringify({ profil: profilCharge, marches: m.data ?? [], droits: d.data ?? [] }),
-      );
       setChargement(false);
     })();
     return () => {
       annule = true;
     };
-  }, [uid]);
+  }, [uid, aRenouveler]);
 
   // Marché choisi sur la tablette (mémorisé), sinon le premier de la liste.
   const marche = marches.find((x) => x.id === marcheChoisi) ?? marches[0] ?? null;
@@ -123,12 +112,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   const deconnecter = useCallback(async () => {
     if (uid) await AsyncStorage.removeItem(cleContexte(uid));
-    await supabase.auth.signOut();
-  }, [uid]);
+    await fermerSession(aRenouveler);
+    // Écran Connexion sans attendre SIGNED_OUT, qui suit la fin des reprises d'auth-js au démarrage hors ligne.
+    appliquer({ session: null, aRenouveler: false });
+  }, [uid, aRenouveler, appliquer]);
 
   const valeur = useMemo(
-    () => ({ chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter }),
-    [chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter],
+    () => ({ chargement, session, aRenouveler, profil, marche, marches, choisirMarche, peut, deconnecter }),
+    [chargement, session, aRenouveler, profil, marche, marches, choisirMarche, peut, deconnecter],
   );
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;
 }

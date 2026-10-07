@@ -207,8 +207,9 @@ function FormSecteur({
   return (
     <form onSubmit={envoyer} className="sous-formulaire">
       <div className="trois">
-        <label>Code<input value={code} onChange={(e) => setCode(e.target.value)} required /></label>
-        <label>Libellé<input value={libelle} onChange={(e) => setLibelle(e.target.value)} required /></label>
+        {/* Convention : secteurs en capitales, code court. */}
+        <label>Code<input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} maxLength={12} placeholder="QODS-H" required /></label>
+        <label>Libellé<input value={libelle} onChange={(e) => setLibelle(e.target.value.toLocaleUpperCase('fr'))} placeholder="QODS HAUT" required /></label>
         <label>
           Zone
           <select value={zone} onChange={(e) => setZone(e.target.value)} required>

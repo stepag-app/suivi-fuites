@@ -306,6 +306,29 @@ export interface ArticleTdb {
 export interface LigneAttacheeTdb { prix_id: string; quantite: number | null; pu_ht: number | null }
 // Unité fuite × article au solde non nul (v_a_attacher).
 export interface UniteResteTdb { fuite_id: string; prix_id: string; reste: number; brouillon_id: string | null }
+// Reste à attacher agrégé par la base (resume_a_attacher), ou par resumerUnites à partir de v_a_attacher.
+export interface ResteAAttacher {
+  articles: { prix_id: string; reste: number; unites: number }[];
+  unites: number;
+  fuites: number;
+  unites_en_brouillon: number;
+}
+
+export function resumerUnites(unites: UniteResteTdb[]): ResteAAttacher {
+  const parPrix = new Map<string, { prix_id: string; reste: number; unites: number }>();
+  for (const u of unites) {
+    const a = parPrix.get(u.prix_id) ?? { prix_id: u.prix_id, reste: 0, unites: 0 };
+    a.reste += Number(u.reste);
+    a.unites++;
+    parPrix.set(u.prix_id, a);
+  }
+  return {
+    articles: [...parPrix.values()],
+    unites: unites.length,
+    fuites: new Set(unites.map((u) => u.fuite_id)).size,
+    unites_en_brouillon: unites.filter((u) => u.brouillon_id).length,
+  };
+}
 
 export function resumeLots(lots: LotTdb[]) {
   const arretes = lots.filter((l) => l.statut === 'arrete' && l.numero != null)
@@ -325,7 +348,7 @@ export interface ArticleRecap {
 
 const arrondi = (x: number, d: number) => Math.round(x * 10 ** d) / 10 ** d;
 
-export function recapAttachements(articles: ArticleTdb[], lignes: LigneAttacheeTdb[], unites: UniteResteTdb[]) {
+export function recapAttachements(articles: ArticleTdb[], lignes: LigneAttacheeTdb[], aAttacher: ResteAAttacher) {
   const attache = new Map<string, { q: number; m: number }>();
   for (const l of lignes) {
     const a = attache.get(l.prix_id) ?? { q: 0, m: 0 };
@@ -335,7 +358,7 @@ export function recapAttachements(articles: ArticleTdb[], lignes: LigneAttacheeT
     attache.set(l.prix_id, a);
   }
   const reste = new Map<string, number>();
-  for (const u of unites) reste.set(u.prix_id, (reste.get(u.prix_id) ?? 0) + Number(u.reste));
+  for (const a of aAttacher.articles) reste.set(a.prix_id, (reste.get(a.prix_id) ?? 0) + Number(a.reste));
 
   const lignesArticles: ArticleRecap[] = [...articles]
     .sort((a, b) => a.ordre - b.ordre || a.numero.localeCompare(b.numero, 'fr', { numeric: true }))
@@ -366,8 +389,8 @@ export function recapAttachements(articles: ArticleTdb[], lignes: LigneAttacheeT
     montantReste,
     montantMarche,
     avancement: montantMarche > 0 ? arrondi((100 * montantAttache) / montantMarche, 1) : null,
-    unitesReste: unites.length,
-    fuitesReste: new Set(unites.map((u) => u.fuite_id)).size,
-    unitesEnBrouillon: unites.filter((u) => u.brouillon_id).length,
+    unitesReste: aAttacher.unites,
+    fuitesReste: aAttacher.fuites,
+    unitesEnBrouillon: aAttacher.unites_en_brouillon,
   };
 }

@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { dateHeure, type libellesMarche } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
-import type { VFuite } from "@/lib/types";
+import type { FuiteListe } from "@/lib/colonnes-fuites";
 
 type Libelles = ReturnType<typeof libellesMarche>;
 
@@ -22,7 +22,7 @@ export const LIBELLES_COLONNES: Record<string, string> = {
   statut: "Statut", alertes: "Alertes", nb_photos: "Photos",
 };
 
-export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: VFuite) => void; peutRapport: boolean }): ColumnDef<VFuite>[] {
+export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: FuiteListe) => void; peutRapport: boolean }): ColumnDef<FuiteListe>[] {
   return [
     {
       id: "select",

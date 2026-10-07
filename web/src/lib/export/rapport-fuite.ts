@@ -15,7 +15,7 @@ import { getSupabase } from '@/lib/supabase';
 import type { Marche, Quantite, Refection, Reparation, VFuite } from '@/lib/types';
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
 import { construireEntete, type Contexte } from './jeux';
-import { nomFichierSur, telecharger, texteDate, texteNombre } from './modele';
+import { nomFichierSur, telecharger, texteDate, texteNombre, textesArabesEntete } from './modele';
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
 
@@ -304,7 +304,7 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
 
   // Textes arabes (en-tête, natures et motifs) composés par le navigateur, comme pdf.ts.
   const enteteModele = construireEntete(ctx, '', []);
-  const arabesEntete = [enteteModele.titulaireAr, enteteModele.clientAr].filter(contientArabe);
+  const arabesEntete = textesArabesEntete(enteteModele).filter(contientArabe);
   const arabes = fiches.flatMap((f) => [
     f.fuite.motif_sans_reparation_ar,
     ...f.refections.flatMap((r) => [r.natureAr, r.motifAr]),

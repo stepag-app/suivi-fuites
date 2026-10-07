@@ -3,7 +3,7 @@
 // Impression : A4 dans l'orientation choisie, ajusté à une page en largeur, titres de
 // colonnes répétés sur chaque page, numéro de page en pied (réglages ajoutés au fichier).
 import {
-  decimalesPour, dimensionsLogo, etendueLibelle, mmEnPixels, octetsDataUrl, parcourir,
+  decimalesPour, dimensionsLogo, etendueLibelle, lignesEntete, mmEnPixels, octetsDataUrl, parcourir,
   type DocumentExport, type LogoEntete, type SectionDoc,
 } from './modele';
 
@@ -95,10 +95,14 @@ function feuille(d: DocumentExport, section: SectionDoc, premiere: boolean) {
   }
   const images = logos.length ? imagesLogos(d, tailles, lignes.length) : null;
   if (d.filigrane) pleine(`${d.filigrane} : document provisoire, non définitif`, { fontWeight: 'bold', textColor: '#B3261E' });
-  d.entete.titulaire.forEach((t, i) => pleine(t, i === 0 ? { fontWeight: 'bold', fontSize: 12 } : { textColor: '#5B6B77' }));
-  if (d.entete.titulaireAr) pleine(d.entete.titulaireAr, { fontWeight: 'bold', align: 'left' });
-  d.entete.client.forEach((t, i) => pleine(t, i === 0 ? { fontWeight: 'bold', fontSize: 12 } : { textColor: '#5B6B77' }));
-  if (d.entete.clientAr) pleine(d.entete.clientAr, { fontWeight: 'bold', align: 'left' });
+  for (const { nom, details, ar } of [
+    lignesEntete(d.entete.titulaire, d.entete.titulaireAr, d.entete.logoTitulaire),
+    lignesEntete(d.entete.client, d.entete.clientAr, d.entete.logoMaitreOuvrage),
+  ]) {
+    if (nom) pleine(nom, { fontWeight: 'bold', fontSize: 12 });
+    details.forEach((t) => pleine(t, { textColor: '#5B6B77' }));
+    if (ar) pleine(ar, { fontWeight: 'bold', align: 'left' });
+  }
   lignes.push([]);
   pleine(d.entete.titre, { fontWeight: 'bold', fontSize: 14, align: 'center', height: 24 });
   d.entete.infos.forEach((t) => pleine(t));
@@ -186,7 +190,8 @@ async function reglerImpression(fichier: Blob, onglets: { nom: string; ligneTitr
   const titres = onglets
     .map((o, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${echapperXml(o.nom.replace(/'/g, "''"))}'!$${o.ligneTitres}:$${o.ligneTitres}</definedName>`)
     .join('');
-  let classeur = strFromU8(contenu['xl/workbook.xml']);
+  // write-excel-file écrit un <definedNames/> vide : un second bloc rendrait le classeur invalide pour Excel.
+  let classeur = strFromU8(contenu['xl/workbook.xml']).replace(/<definedNames\s*\/>/g, '');
   classeur = classeur.includes('<definedNames>')
     ? classeur.replace('<definedNames>', `<definedNames>${titres}`)
     : classeur.replace('</sheets>', `</sheets><definedNames>${titres}</definedNames>`);

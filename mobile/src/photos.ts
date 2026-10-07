@@ -9,6 +9,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { t } from './langue';
 import { supabase } from './supabase';
 import type { TypePhoto } from './types';
 
@@ -51,7 +52,7 @@ async function positionRapide(): Promise<string | null> {
 /** Ouvre l'appareil photo ; renvoie la photo compressée et gardée sur la tablette, null si annulé, ou un message d'erreur. */
 export async function prendrePhoto(type: TypePhoto, avecPosition = false): Promise<PhotoAttente | null | string> {
   const droit = await ImagePicker.requestCameraPermissionsAsync();
-  if (!droit.granted) return 'Appareil photo refusé : autorisez-le dans les réglages de la tablette.';
+  if (!droit.granted) return t('Appareil photo refusé : autorisez-le dans les réglages de la tablette.');
   const r = await ImagePicker.launchCameraAsync({ quality: 1, exif: false });
   if (r.canceled || !r.assets[0]) return null;
   const a = r.assets[0];

@@ -6,10 +6,10 @@ import { Camera, ChevronRight } from "lucide-react";
 import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Badge } from "@/components/ui/badge";
 import { dateHeure, type libellesMarche } from "@/lib/format";
-import type { VFuite } from "@/lib/types";
+import type { FuiteListe } from "@/lib/colonnes-fuites";
 
 /** Écran étroit (tablette en portrait, téléphone) : une carte par fuite, mêmes lignes que le tableau. */
-export function VueCartes({ lignes, libelles }: { lignes: Row<VFuite>[]; libelles: ReturnType<typeof libellesMarche> }) {
+export function VueCartes({ lignes, libelles }: { lignes: Row<FuiteListe>[]; libelles: ReturnType<typeof libellesMarche> }) {
   if (!lignes.length) return <p className="p-6 text-center text-muted-foreground text-sm">Aucune fuite à afficher.</p>;
   return (
     <ul className="divide-y">

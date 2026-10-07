@@ -183,6 +183,8 @@ backups/
 !supabase/tests/**/*.sql
 !supabase/ci/*.sql
 !supabase/seed.sql
+# Scripts de l'essai de charge (pas des exports de base)
+!outils/charge/*.sql
 
 # Supabase local
 supabase/.temp/

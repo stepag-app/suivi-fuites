@@ -92,7 +92,8 @@ fiche du marché (titulaire, maître d'ouvrage, n° du marché, objet, OS) ; un 
 **Logos** (Paramètres > Marché) repris en tête des PDF (exports, lots, rapport par fuite, carte), Word et Excel :
 titulaire à gauche, maître d'ouvrage à droite, 14 mm de haut, proportions conservées. Chargés avec le contexte du
 marché (`chargerLogosEntete` de `src/lib/logos.ts`) et transmis par l'en-tête (`logoTitulaire`, `logoMaitreOuvrage`) ;
-`dessinerEntete` les dessine pour tout PDF. Pas de logo en CSV. Vérification : `node scripts/essai-logos.mjs`.
+`dessinerEntete` les dessine pour tout PDF. Un logo remplace le nom et le nom arabe de sa colonne (`lignesEntete` de
+`src/lib/export/modele.ts`) ; sans logo, le nom reste écrit. Pas de logo en CSV. Vérification : `node scripts/essai-logos.mjs`.
 
 Fichiers fabriqués **dans le navigateur** (aucun coût serveur), bibliothèques chargées seulement au moment
 de l'export (mesures minifiées + gzip) :
@@ -226,6 +227,23 @@ la copie hors ligne et le rapport PDF. Mise en service : `docs/feuille-de-route.
   (re-détection) est muette sans réseau.
 - Limite : la session reste valable tant que le jeton se rafraîchit ; après une très longue coupure,
   il faut se reconnecter en ligne (les envois en attente sont conservés).
+
+## Tenue en charge (essai à 3 000 fuites)
+
+Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
+
+- `lireTout` (`src/lib/supabase.ts`) lit 1 000 lignes par appel (plafond de l'API Supabase) ; après une première page
+  pleine, les suivantes partent 3 par 3. Au plafond (10 000 fuites pour la liste, « Alertes », « À faire » ; 50 000
+  ailleurs), le résultat porte `tronque = true` et la page affiche « Affichage incomplet » (`AvertissementPlafond`) ;
+  les pages lisent par numéro décroissant, donc ce sont les fuites les plus anciennes qui manquent. Un export refuse
+  de sortir un fichier tronqué.
+- Colonnes : `src/lib/colonnes-fuites.ts` (`COLONNES_LISTE`, `COLONNES_ALERTES`, types qui suivent la liste) ; jamais
+  `select('*')` sur `v_fuites` pour une liste.
+- Agrégats calculés par la base (RLS de l'appelant) : `compter_fuites` (onglets de la liste, page des marchés),
+  `resume_a_attacher` (tableau de bord), `etat_balayage_compact` (carte : un seul document JSON, non plafonné). Si la
+  fonction manque (migration pas encore déployée, mode démonstration), la page retombe sur l'ancienne lecture.
+- « Alertes » ne lit que les fuites en alerte et celles des courbes des 14 derniers jours.
+- Vérification : `node scripts/verifier-essai-charge.mjs` (11).
 
 ## Variables d'environnement (Vercel et `web/.env.local`)
 

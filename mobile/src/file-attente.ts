@@ -9,8 +9,10 @@
 // ajoutées à une saisie encore en attente partent donc toujours après elle. Les statuts et les
 // quantités sont recalculés par le serveur (déclencheurs).
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { t } from './langue';
 import type { Changements } from './modification';
 import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
+import { sessionStockee } from './session-donnees';
 import { supabase } from './supabase';
 
 export { effacerPhotos, type PhotoAttente };
@@ -62,11 +64,19 @@ export async function lireAttente(): Promise<Envoi[]> {
     return [];
   }
 }
-const ecrireAttente = (liste: Envoi[]) => AsyncStorage.setItem(CLE, JSON.stringify(liste));
 // Toute écriture passe par cette chaîne : une saisie faite pendant une synchro n'est jamais écrasée.
+// Une file inchangée n'est pas réécrite ; `version` n'avance qu'à un vrai changement (voir synchroniser).
 let chaine: Promise<unknown> = Promise.resolve();
+let version = 0;
 function modifier(f: (liste: Envoi[]) => Envoi[]): Promise<void> {
-  const suite = chaine.then(async () => ecrireAttente(f(await lireAttente())));
+  const suite = chaine.then(async () => {
+    const liste = await lireAttente();
+    const avant = JSON.stringify(liste);
+    const apres = JSON.stringify(f(liste));
+    if (apres === avant) return;
+    await AsyncStorage.setItem(CLE, apres);
+    version += 1;
+  });
   chaine = suite.catch(() => undefined);
   return suite;
 }
@@ -101,6 +111,8 @@ export async function abandonner(id: string) {
 }
 
 interface ErreurApi { code?: string; message?: string; statusCode?: string | number }
+// Coupure, pas un refus : erreur du fetch de l'APK (expo/fetch : « fetch failed: … ») ou requête abandonnée par le
+// délai de reseau.ts (« timeout »).
 const erreurReseau = (e: unknown) =>
   /network|fetch|timeout|internet|aborted/i.test(String((e as ErreurApi)?.message ?? e));
 
@@ -109,28 +121,32 @@ export function messageClair(e: unknown): string {
   const err = (e ?? {}) as ErreurApi;
   const brut = String(err.message ?? e);
   if (/verrouill/i.test(brut)) {
-    return 'Fuite verrouillée (lot d\'attachement arrêté) : seul le responsable peut encore la compléter ou la modifier. '
-      + 'Rien n\'est perdu : prévenez le responsable, puis « Envoyer maintenant ».';
+    return t("Fuite verrouillée (lot d'attachement arrêté) : seul le responsable peut encore la compléter ou la modifier. Rien n'est perdu : prévenez le responsable, puis « Envoyer maintenant ».");
   }
   if (err.code === '42501' || /row-level security|non autorisée|permission denied/i.test(brut)) {
-    return 'Droit insuffisant sur ce marché pour cette saisie. Rien n\'est perdu : voyez avec l\'administrateur.';
+    return t("Droit insuffisant sur ce marché pour cette saisie. Rien n'est perdu : voyez avec l'administrateur.");
   }
-  if (err.code === '23503') return 'Fuite ou paramètre introuvable sur le serveur (supprimé entre-temps ?).';
+  if (err.code === '23503') return t('Fuite ou paramètre introuvable sur le serveur (supprimé entre-temps ?).');
   if (/produit_obligatoire/.test(brut)) {
-    return 'Pièce sans article de la liste (ancienne désignation libre) refusée : retirez-la et choisissez un article proposé.';
+    return t('Pièce sans article de la liste (ancienne désignation libre) refusée : retirez-la et choisissez un article proposé.');
   }
-  if (err.code === '23514') return `Saisie incomplète refusée par le serveur (${brut}).`;
+  if (err.code === '23514') return t('Saisie incomplète refusée par le serveur ({detail}).', { detail: brut });
   return brut;
 }
 
 let enCours: Promise<number> | null = null;
 
-/** Envoie tout ce qui attend ; renvoie le nombre d'envois restants. Une synchro à la fois. */
+/**
+ * Envoie tout ce qui attend ; renvoie le nombre d'envois restants. Une synchro à la fois.
+ * Les écrans ne sont prévenus (et ne rechargent) que si la file a changé : la synchro des 30 s, file vide ou sans
+ * réseau, ne réveille ni la liste ni la fiche.
+ */
 export function synchroniser(): Promise<number> {
   if (!enCours) {
+    const depart = version;
     enCours = executer().finally(() => {
       enCours = null;
-      prevenir();
+      if (version !== depart) prevenir();
     });
   }
   return enCours;
@@ -210,11 +226,21 @@ function envoyer(e: Envoi) {
   return envoyerCreation(e);
 }
 
-const ATTENTE_PRECEDENT = 'En attente : une saisie précédente de cette fuite n\'est pas encore passée.';
+const ATTENTE_PRECEDENT = "En attente : une saisie précédente de cette fuite n'est pas encore passée.";
+
+// Jeton de la session, sans lequel rien ne part : supabase-js enverrait la clé anonyme, qui n'a aucun droit (la base
+// refuserait la saisie, affichée comme un droit insuffisant). Absent : pas de session, ou jeton expiré pas encore
+// renouvelé (hors ligne) ; tout repart à la synchro qui suit le renouvellement. Jeton gardé déjà expiré : getSession()
+// attendrait les reprises du renouvellement (près de 25 s sans réseau) pour ne rien rendre ; la synchro n'attend pas.
+const jeton = async () => {
+  const gardee = await sessionStockee();
+  if (!gardee || (gardee.expires_at ?? 0) * 1000 <= Date.now()) return null;
+  return (await supabase.auth.getSession()).data.session?.access_token ?? null;
+};
 
 async function executer(): Promise<number> {
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return (await lireAttente()).length;
+  // Cas courant (toutes les 30 s) : rien à envoyer, rien d'autre à lire.
+  if (!(await lireAttente()).length) return 0;
 
   const bloquees = new Set<string>();
   for (const e of await lireAttente()) {
@@ -223,11 +249,16 @@ async function executer(): Promise<number> {
       await majEnvoi(e.id, (x) => ({ ...x, erreur: ATTENTE_PRECEDENT }));
       continue;
     }
+    const avant = await jeton();
+    if (!avant) break;
     try {
       await envoyer(e);
       await modifier((l) => l.filter((x) => x.id !== e.id));
     } catch (err) {
       if (erreurReseau(err)) break; // on réessaiera au retour du réseau, rien n'est perdu
+      // Jeton expiré ou renouvelé pendant l'envoi : le refus peut venir d'une requête partie sans jeton valide, pas
+      // des droits. On réessaiera à la synchro suivante.
+      if ((await jeton()) !== avant) break;
       bloquees.add(fuite);
       await majEnvoi(e.id, (x) => ({ ...x, erreur: messageClair(err) }));
     }

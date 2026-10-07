@@ -1,14 +1,16 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Balayage } from './src/balayage';
 import { Connexion, EnAttente, Liste, NouvelleFuite } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
+import { LangueProvider, useLangue } from './src/langue';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { configurationManquante } from './src/supabase';
-import { BarreApp, COULEURS, s } from './src/ui';
+import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'balayage' } | { nom: 'fiche'; id: string }
@@ -17,6 +19,7 @@ const LISTE: Vue = { nom: 'liste' };
 
 function Racine() {
   const { chargement, session, marche } = useSession();
+  const { t } = useLangue();
   const [vue, setVue] = useState<Vue>(LISTE);
   const retourListe = () => setVue(LISTE);
   // Une saisie revient à sa fiche, le reste à la liste.
@@ -49,17 +52,17 @@ function Racine() {
     };
   }, [session]);
 
-  if (configurationManquante) return <Message texte="Application non configurée (adresse du serveur absente)." />;
+  if (configurationManquante) return <Avis texte={t('Application non configurée (adresse du serveur absente).')} />;
   if (chargement) {
     return (
       <View style={s.ecran}>
-        <BarreApp titre="Suivi des fuites" />
+        <BarreApp titre={t('Suivi des fuites')} />
         <View style={[s.contenu, { flex: 1, justifyContent: 'center' }]}><ActivityIndicator size="large" color={COULEURS.principal} /></View>
       </View>
     );
   }
   if (!session) return <Connexion />;
-  if (!marche) return <Message texte="Aucun marché n'est affecté à votre compte. Contactez l'administrateur." />;
+  if (!marche) return <Avis texte={t("Aucun marché n'est affecté à votre compte. Contactez l'administrateur.")} />;
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {
     case 'nouvelle':
@@ -86,20 +89,25 @@ function Racine() {
   }
 }
 
-function Message({ texte }: { texte: string }) {
+function Avis({ texte }: { texte: string }) {
+  const { t } = useLangue();
   return (
     <View style={s.ecran}>
-      <BarreApp titre="Suivi des fuites" />
-      <View style={s.contenu}><Text style={s.erreur}>{texte}</Text></View>
+      <BarreApp titre={t('Suivi des fuites')} />
+      <View style={s.defile}><Message ton="erreur">{texte}</Message></View>
     </View>
   );
 }
 
 export default function App() {
   return (
-    <SessionProvider>
-      <StatusBar style="light" />
-      <Racine />
-    </SessionProvider>
+    <SafeAreaProvider>
+      <LangueProvider>
+        <SessionProvider>
+          <StatusBar style="dark" />
+          <Racine />
+        </SessionProvider>
+      </LangueProvider>
+    </SafeAreaProvider>
   );
 }

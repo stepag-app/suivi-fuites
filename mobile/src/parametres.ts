@@ -1,5 +1,5 @@
 // Paramètres utiles à la saisie (natures de réfection, motifs, équipes, ouvriers du marché ; articles
-// Dolibarr activés, communs à tous les marchés) : lus au serveur quand le réseau est là, sinon dernière copie gardée.
+// Dolibarr activés, communs à tous les marchés) : dernière copie gardée d'abord, puis serveur quand le réseau est là.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase';
@@ -23,6 +23,14 @@ async function lireArticles(): Promise<{ data: Piece[] | null; error: unknown }>
   return { data: tout, error: null };
 }
 
+async function parametresGardes(marcheId: string): Promise<Parametres> {
+  try {
+    return { ...VIDE, ...JSON.parse((await AsyncStorage.getItem(cle(marcheId))) ?? '{}') };
+  } catch {
+    return VIDE;
+  }
+}
+
 export async function chargerParametres(marcheId: string): Promise<Parametres> {
   const [n, m, p, e, o] = await Promise.all([
     supabase.from('natures_refection').select('id, code, libelle_fr, emplacement, necessite_refection')
@@ -32,13 +40,7 @@ export async function chargerParametres(marcheId: string): Promise<Parametres> {
     supabase.from('equipes').select('id, type, numero, libelle').eq('marche_id', marcheId).eq('actif', true).order('type').order('numero'),
     supabase.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId).eq('actif', true).order('nom_complet'),
   ]);
-  if (n.error || m.error || p.error || e.error || o.error) {
-    try {
-      return { ...VIDE, ...JSON.parse((await AsyncStorage.getItem(cle(marcheId))) ?? '{}') };
-    } catch {
-      return VIDE;
-    }
-  }
+  if (n.error || m.error || p.error || e.error || o.error) return parametresGardes(marcheId);
   const valeur: Parametres = {
     natures: n.data as Nature[], motifs: m.data as Motif[], pieces: p.data as Piece[],
     equipes: e.data as Equipe[], ouvriers: o.data as Ouvrier[],
@@ -47,15 +49,23 @@ export async function chargerParametres(marcheId: string): Promise<Parametres> {
   return valeur;
 }
 
-export function useParametres(marcheId: string | undefined): Parametres {
+/** `aRenouveler` (session.tsx) : copie seulement, la requête partirait sans jeton valide après les reprises d'auth-js. */
+export function useParametres(marcheId: string | undefined, aRenouveler: boolean): Parametres {
   const [p, setP] = useState<Parametres>(VIDE);
   useEffect(() => {
     if (!marcheId) return;
     let annule = false;
-    chargerParametres(marcheId).then((v) => !annule && setP(v)).catch(() => undefined);
+    (async () => {
+      const copie = await parametresGardes(marcheId);
+      if (annule) return;
+      setP(copie);
+      if (aRenouveler) return;
+      const v = await chargerParametres(marcheId);
+      if (!annule) setP(v);
+    })().catch(() => undefined);
     return () => {
       annule = true;
     };
-  }, [marcheId]);
+  }, [marcheId, aRenouveler]);
   return p;
 }

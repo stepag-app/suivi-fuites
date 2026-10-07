@@ -3,7 +3,7 @@ export type StatutFuite = 'detectee' | 'en_reparation' | 'reparee' | 'achevee' |
 export const STATUTS: Record<StatutFuite, string> = {
   detectee: 'Détectée, non réparée',
   en_reparation: 'Réparation en cours',
-  reparee: 'Réparée',
+  reparee: 'Réparée, réfection à faire',
   achevee: 'Achevée',
   sans_reparation: 'Sans réparation',
 };

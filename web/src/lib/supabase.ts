@@ -51,19 +51,39 @@ export function getSupabase(): SupabaseClient {
   return client;
 }
 
+/** Lignes lues par lireTout ; `tronque` : le plafond est atteint, il reste sans doute des lignes non lues. */
+export type Lignes<T> = T[] & { tronque?: boolean };
+
 // L'API de données renvoie au plus 1 000 lignes par requête : lecture page par page.
 // `requete(de, a)` fabrique une requête neuve, triée sur une clé stable, limitée à [de, a].
+// Après une première page pleine, les suivantes partent `parallele` par `parallele` (3 000 fuites :
+// deux allers-retours au lieu de quatre). Plafond atteint : `tronque` vaut true, à signaler à l'écran.
 export async function lireTout<T>(
   requete: (de: number, a: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
   taillePage = 1000,
   maximum = 50000,
-): Promise<T[]> {
-  const tout: T[] = [];
-  for (let de = 0; de < maximum; de += taillePage) {
+  parallele = 3,
+): Promise<Lignes<T>> {
+  const lire = async (de: number) => {
     const { data, error } = await requete(de, de + taillePage - 1);
     if (error) throw error;
-    tout.push(...(data ?? []));
-    if (!data || data.length < taillePage) break;
+    return data ?? [];
+  };
+  const tout: Lignes<T> = await lire(0);
+  let de = taillePage;
+  if (tout.length < taillePage) return tout;
+  while (de < maximum) {
+    const lots: Promise<T[]>[] = [];
+    for (let i = 0; i < parallele && de < maximum; i++, de += taillePage) lots.push(lire(de));
+    for (const page of await Promise.all(lots)) {
+      tout.push(...page);
+      if (page.length < taillePage) return tout;
+    }
   }
+  tout.tronque = true;
   return tout;
 }
+
+/** Fonction absente de la base (migration pas encore déployée) ou mode démonstration (rpc sans résultat). */
+export const fonctionAbsente = (error: { code?: string } | null, data: unknown) =>
+  (error != null && (error.code === 'PGRST202' || error.code === '42883')) || (error == null && data == null);

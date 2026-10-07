@@ -84,7 +84,7 @@ function CarteDesFuites() {
     try {
       const [f, s, z] = await Promise.all([
         lireTout<FuiteCarte>((de, a) => sb.from("v_fuites").select(COLONNES_CARTE).eq("marche_id", marcheId)
-          .order("numero").range(de, a) as unknown as PromiseLike<{ data: FuiteCarte[] | null; error: { message: string } | null }>),
+          .order("numero", { ascending: false }).range(de, a) as unknown as PromiseLike<{ data: FuiteCarte[] | null; error: { message: string } | null }>),
         sb.from("secteurs").select("id, zone_id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("libelle"),
         sb.from("zones").select("id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("numero"),
       ]);
@@ -92,6 +92,7 @@ function CarteDesFuites() {
       if (s.error) throw s.error;
       if (z.error) throw z.error;
       setFuites(f);
+      if (f.tronque) setErreur(`Carte incomplète : seules les ${f.length.toLocaleString("fr-FR")} fuites les plus récentes sont chargées.`);
       setSecteurs((s.data as SecteurCarte[] | null) ?? []);
       setZones((z.data as Contour[] | null) ?? []);
     } catch (e) {

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { BellOff, Camera, ExternalLink, FileText, MapPinned, Navigation, Network, Printer, Volume2, Wifi, WifiOff } from "lucide-react";
+import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { Vide } from "@/components/en-tete-page";
 import { ALERTES_FUITE, BadgeStatut, STATUT_STYLE, alertesDe } from "@/components/statut";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -17,18 +18,32 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
 import { useSession } from "@/lib/session";
-import { getSupabase, lireTout } from "@/lib/supabase";
-import type { VFuite } from "@/lib/types";
+import { COLONNES_ALERTES, filtreAlertes, type FuiteAlerte } from "@/lib/colonnes-fuites";
+import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import { nonReparees, refectionsAFaire } from "@/lib/ui/indicateurs";
 import { cn, dureeDepuis } from "@/lib/utils";
 
 const heuresDepuis = (iso: string | null | undefined, maintenant: Date) => (iso ? Math.max(0, Math.round((maintenant.getTime() - new Date(iso).getTime()) / 3_600_000)) : null);
 
+function Horloge() {
+  const [t, setT] = useState(() => new Date());
+  useEffect(() => {
+    const i = setInterval(() => setT(new Date()), 1000);
+    return () => clearInterval(i);
+  }, []);
+  return (
+    <span className="whitespace-nowrap tabular-nums">
+      {t.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" })}&nbsp;&nbsp;{t.toLocaleTimeString("fr-FR")}
+    </span>
+  );
+}
+
 /** Suivi des fuites en alerte (modèle « Patient monitoring ») : surveillance, acquittement, tendances. */
 export default function Alertes() {
   const { marche, peut } = useSession();
   const libelles = libellesMarche(marche);
-  const [fuites, setFuites] = useState<VFuite[]>([]);
+  const [fuites, setFuites] = useState<Lignes<FuiteAlerte>>([]);
+  const [chargeLe, setChargeLe] = useState(() => new Date());
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
   const [selection, setSelection] = useState<string | null>(null);
@@ -38,7 +53,8 @@ export default function Alertes() {
   const marcheId = marche?.id;
 
   useEffect(() => {
-    const t = setInterval(() => setMaintenant(new Date()), 1000);
+    // Durées affichées à l'heure près : la page se redessine chaque minute ; l'horloge seule chaque seconde.
+    const t = setInterval(() => setMaintenant(new Date()), 60_000);
     setEnLigne(navigator.onLine);
     const on = () => setEnLigne(true);
     const off = () => setEnLigne(false);
@@ -53,8 +69,13 @@ export default function Alertes() {
     setErreur("");
     try {
       const sb = getSupabase();
-      const toutes = await lireTout<VFuite>((de, a) => sb.from("v_fuites").select("*").eq("marche_id", marcheId).order("numero").range(de, a), 1000, 10000);
-      setFuites(toutes);
+      // Fuites en alerte et celles des courbes des 14 derniers jours seulement (pas tout le marché).
+      const depuis = new Date(Date.now() - 15 * 86_400_000);
+      const utiles = await lireTout<FuiteAlerte>((de, a) => sb.from("v_fuites").select(COLONNES_ALERTES).eq("marche_id", marcheId)
+        .or(filtreAlertes(depuis)).order("numero", { ascending: false })
+        .range(de, a) as unknown as PromiseLike<{ data: FuiteAlerte[] | null; error: { message: string } | null }>, 1000, 10000);
+      setFuites(utiles);
+      setChargeLe(new Date());
     } catch (e) {
       setErreur(messageErreur(e));
     }
@@ -70,17 +91,15 @@ export default function Alertes() {
     .sort((a, b) => Number(b.alerte_non_reparee) - Number(a.alerte_non_reparee) || a.date_detection.localeCompare(b.date_detection)), [fuites]);
   const choisie = enAlerte.find((f) => f.id === selection) ?? enAlerte[0] ?? null;
   const tendances = useMemo(() => ({
-    retard: nonReparees(fuites, libelles.delaiReparationH, maintenant),
-    refections: refectionsAFaire(fuites, maintenant),
-  }), [fuites, libelles.delaiReparationH, maintenant]);
+    retard: nonReparees(fuites, libelles.delaiReparationH, chargeLe),
+    refections: refectionsAFaire(fuites, chargeLe),
+  }), [fuites, libelles.delaiReparationH, chargeLe]);
 
   if (!peut("fuites", "lire")) return <Vide>Votre compte n&apos;a pas accès aux fuites de ce marché.</Vide>;
 
   const acquittee = !!choisie && acquittees.includes(choisie.id);
   const alertesChoisie = choisie ? alertesDe(choisie) : [];
   const alarmeActive = !!choisie && alertesChoisie.some((a) => a.ton === "rouge") && !acquittee;
-  const date = maintenant.toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
-  const heure = maintenant.toLocaleTimeString("fr-FR");
 
   return (
     <div className="flex min-h-[calc(100svh-var(--dashboard-header-height))] min-w-0 flex-col" data-content-padding="false">
@@ -88,7 +107,7 @@ export default function Alertes() {
         <div className="truncate uppercase tracking-wide lg:overflow-visible">Suivi des alertes · {marche?.code}</div>
         <div className="whitespace-nowrap">{enAlerte.length} fuite{enAlerte.length > 1 ? "s" : ""} en alerte</div>
         <div className="col-span-2 flex items-center justify-between gap-5 text-muted-foreground lg:col-span-1 lg:justify-end">
-          <span className="whitespace-nowrap tabular-nums">{date}&nbsp;&nbsp;{heure}</span>
+          <Horloge />
           <Tooltip>
             <TooltipTrigger aria-label="Son des alarmes coupé" className="inline-flex" type="button"><BellOff aria-hidden="true" className="size-4" /></TooltipTrigger>
             <TooltipContent>Son des alarmes coupé (pas de notification sonore)</TooltipContent>
@@ -108,6 +127,7 @@ export default function Alertes() {
       <Separator />
 
       {erreur && <Alert variant="destructive" className="m-3"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
+      {fuites.tronque && <div className="m-3"><AvertissementPlafond lues={fuites.length} /></div>}
       {chargement && fuites.length === 0 && <p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>}
       {!chargement && enAlerte.length === 0 && (
         <div className="p-6"><Vide>Aucune fuite en alerte : tout est à jour sur ce marché.</Vide></div>

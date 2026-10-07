@@ -41,9 +41,9 @@ const CHAMPS_MARCHE: Champ[] = [
 ];
 
 const CHAMPS_CLIENT: Champ[] = [
-  { cle: 'client', libelle: 'Raison sociale', obligatoire: true },
+  { cle: 'client', libelle: 'Raison sociale', obligatoire: true, aide: 'En-tête des documents : remplacée par le logo s\'il est chargé' },
   { cle: 'client_sigle', libelle: 'Sigle (utilisé dans les écrans)', aide: 'Ex. SRM : « Suivi SRM », « Non communiquée SRM »' },
-  { cle: 'client_nom_ar', libelle: 'Nom en arabe', arabe: true },
+  { cle: 'client_nom_ar', libelle: 'Nom en arabe', arabe: true, aide: 'En-tête des documents : remplacé par le logo s\'il est chargé' },
   { cle: 'client_direction', libelle: 'Direction' },
   { cle: 'client_service', libelle: 'Service chargé du suivi' },
   { cle: 'client_adresse', libelle: 'Adresse' },
@@ -54,8 +54,8 @@ const CHAMPS_CLIENT: Champ[] = [
 ];
 
 const CHAMPS_TITULAIRE: Champ[] = [
-  { cle: 'titulaire_nom', libelle: 'Raison sociale' },
-  { cle: 'titulaire_nom_ar', libelle: 'Nom en arabe', arabe: true },
+  { cle: 'titulaire_nom', libelle: 'Raison sociale', aide: 'En-tête des documents : remplacée par le logo s\'il est chargé' },
+  { cle: 'titulaire_nom_ar', libelle: 'Nom en arabe', arabe: true, aide: 'En-tête des documents : remplacé par le logo s\'il est chargé' },
   { cle: 'titulaire_forme_juridique', libelle: 'Forme juridique' },
   { cle: 'titulaire_capital', libelle: 'Capital' },
   { cle: 'titulaire_adresse', libelle: 'Adresse (siège ou domicile élu)' },

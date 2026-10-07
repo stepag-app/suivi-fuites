@@ -61,25 +61,53 @@ function geometrieValide(g: unknown, genre: GenreImport): g is Geometry {
   return geo.type === 'Point' && coordonneeValide(geo.coordinates);
 }
 
-/** Lit un fichier GeoJSON (texte) et ne garde que les features valides, avec les propriétés du contrat. */
-export function lireFeatureCollection(contenu: string, genre: GenreImport): LectureGeoJSON {
+// Fichiers de data-private/IMPORT-RESEAU (outils/reseau/preparer_import.py), un par étape d'import.
+const ETAPES_FICHIER: Record<GenreImport | 'contours', { etape: string; fichier: string; contenu: string }> = {
+  contours: { etape: '1. Contours des secteurs', fichier: '1-contours-secteurs.geojson', contenu: 'des contours de secteurs' },
+  troncons: { etape: '2. Tronçons', fichier: '2-troncons.geojson', contenu: 'des tronçons' },
+  noeuds: { etape: '3. Nœuds', fichier: '3-noeuds.geojson', contenu: 'des nœuds' },
+};
+const GENRE_GEOMETRIE: Record<string, GenreImport | 'contours'> = {
+  Polygon: 'contours', MultiPolygon: 'contours', LineString: 'troncons', MultiLineString: 'troncons', Point: 'noeuds', MultiPoint: 'noeuds',
+};
+
+/** JSON → features d'une FeatureCollection ; refuse un fichier d'une autre étape avec le nom du bon fichier. */
+function lireCollection(contenu: string, attendu: GenreImport | 'contours'): unknown[] {
   let brut: unknown;
   try {
     brut = JSON.parse(contenu);
   } catch {
     throw new Error('Le fichier n\'est pas un JSON lisible.');
   }
+  const { fichier, etape } = ETAPES_FICHIER[attendu];
   if (!brut || typeof brut !== 'object' || (brut as { type?: unknown }).type !== 'FeatureCollection'
     || !Array.isArray((brut as { features?: unknown }).features)) {
-    throw new Error('Le fichier doit être une FeatureCollection GeoJSON (export de outils/reseau/convertir.py).');
+    throw new Error(`Ce fichier n'est pas un plan GeoJSON (FeatureCollection). Prenez « ${fichier} » dans le dossier data-private/IMPORT-RESEAU (outils/reseau/secteurs.json n'est qu'une table de noms).`);
   }
+  const features = (brut as { features: unknown[] }).features;
+  const parGenre = new Map<string, number>();
+  for (const f of features) {
+    const genre = GENRE_GEOMETRIE[String((f as Partial<Feature>)?.geometry?.type)];
+    if (genre) parGenre.set(genre, (parGenre.get(genre) ?? 0) + 1);
+  }
+  const dominant = [...parGenre.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] as GenreImport | 'contours' | undefined;
+  if (dominant && dominant !== attendu) {
+    const autre = ETAPES_FICHIER[dominant];
+    throw new Error(`Ce fichier contient ${autre.contenu} : il va à l'étape « ${autre.etape} » (${autre.fichier}). Pour l'étape « ${etape} », prenez « ${fichier} ».`);
+  }
+  return features;
+}
+
+/** Lit un fichier GeoJSON (texte) et ne garde que les features valides, avec les propriétés du contrat. */
+export function lireFeatureCollection(contenu: string, genre: GenreImport): LectureGeoJSON {
+  const features = lireCollection(contenu, genre);
   const lecture: LectureGeoJSON = {
     genre, features: [], rejetees: [],
     resume: { total: 0, calques: new Map(), secteurs: new Map(), classes: new Map(), longueurApprox_m: 0, references_doublons: 0 },
   };
   const compter = (m: Map<string, number>, cle: string) => m.set(cle, (m.get(cle) ?? 0) + 1);
   const references = new Set<string>();
-  ((brut as { features: unknown[] }).features).forEach((f, index) => {
+  features.forEach((f, index) => {
     const feature = f as Partial<Feature>;
     const p = (feature?.properties ?? {}) as Record<string, unknown>;
     const reference = texte(p.reference);
@@ -145,21 +173,12 @@ function polygoneValide(g: unknown): g is Polygon | MultiPolygon {
 
 /** Lit secteurs.geojson et retrouve l'identifiant de chaque secteur par son code dans le marché courant. */
 export function lireContoursSecteurs(contenu: string, secteurs: { id: string; code: string }[]): LectureContours {
-  let brut: unknown;
-  try {
-    brut = JSON.parse(contenu);
-  } catch {
-    throw new Error('Le fichier n\'est pas un JSON lisible.');
-  }
-  if (!brut || typeof brut !== 'object' || (brut as { type?: unknown }).type !== 'FeatureCollection'
-    || !Array.isArray((brut as { features?: unknown }).features)) {
-    throw new Error('Le fichier doit être une FeatureCollection GeoJSON (secteurs.geojson de outils/reseau/convertir.py).');
-  }
+  const features = lireCollection(contenu, 'contours');
   const parCode = new Map(secteurs.map((s) => [s.code.trim(), s]));
   const parCodeMinuscule = new Map(secteurs.map((s) => [s.code.trim().toLowerCase(), s]));
   const lecture: LectureContours = { contours: [], inconnus: [], rejetees: [], total: 0 };
   const vus = new Set<string>();
-  ((brut as { features: unknown[] }).features).forEach((f, index) => {
+  features.forEach((f, index) => {
     const feature = f as Partial<Feature>;
     lecture.total++;
     if (feature?.type !== 'Feature') return void lecture.rejetees.push({ index, motif: 'pas une Feature' });

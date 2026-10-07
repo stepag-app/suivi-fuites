@@ -396,6 +396,22 @@ ok('contours des secteurs (secteurs.geojson) : code → identifiant du secteur, 
   assert.throws(() => importReseau.lireContoursSecteurs('{"type":"Feature"}', SECTEURS), /FeatureCollection/);
 });
 
+ok('fichier d\'une autre étape refusé avec le nom du bon fichier ; table de correspondance des noms refusée', () => {
+  const collection = (type, coordinates) => JSON.stringify({
+    type: 'FeatureCollection', features: [{ type: 'Feature', geometry: { type, coordinates }, properties: { reference: 'R1', secteur_code: 'S1A' } }],
+  });
+  const lignes = collection('LineString', [[-1.91, 34.70], [-1.90, 34.70]]);
+  const points = collection('Point', [-1.91, 34.70]);
+  const contours = collection('MultiPolygon', [[[[-1.92, 34.68], [-1.90, 34.68], [-1.90, 34.70], [-1.92, 34.68]]]]);
+  assert.throws(() => importReseau.lireContoursSecteurs(lignes, SECTEURS), /des tronçons : il va à l'étape « 2\. Tronçons » \(2-troncons\.geojson\)/);
+  assert.throws(() => importReseau.lireFeatureCollection(contours, 'troncons'), /étape « 1\. Contours des secteurs ».*prenez « 2-troncons\.geojson »/);
+  assert.throws(() => importReseau.lireFeatureCollection(lignes, 'noeuds'), /étape « 2\. Tronçons »/);
+  assert.throws(() => importReseau.lireFeatureCollection(points, 'troncons'), /étape « 3\. Nœuds » \(3-noeuds\.geojson\)/);
+  assert.throws(() => importReseau.lireContoursSecteurs('{"QODS HAUT":"qods_haut_chu_mouhoub_iriss"}', SECTEURS),
+    /1-contours-secteurs\.geojson.*IMPORT-RESEAU.*table de noms/);
+  assert.equal(importReseau.lireFeatureCollection(lignes, 'troncons').features.length, 1, 'bon fichier : accepté');
+});
+
 ok('découpage en paquets de 1 000 et cumul des résultats de la base', () => {
   const liste = Array.from({ length: 2500 }, (_, i) => i);
   const paquets = importReseau.decouperEnPaquets(liste);

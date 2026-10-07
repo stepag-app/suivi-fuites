@@ -199,6 +199,7 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
   équipe (Q-37, vue `v_pieces_posees`).
 - Photos facultatives, alerte si aucune.
 - Sondage négatif payé en terrassement (hypothèse Q-08, réglable : `motifs.terrassement_paye`).
+- **Linéaire du contrat** (2026-10-07) : 1 466 km vérifiés (CPS tableau n° 1, F056 p.19), donné **par zone seulement** (358, 362, 228, 399, 119 km). Aucun linéaire par secteur dans le marché : `secteurs.lineaire_m` reste vide (« — » dans Paramètres > Réseau) ; la comparaison plan / contrat se fait sur la ligne « Total zone » et le total du marché. À reprendre si la SRM fournit un linéaire par secteur.
 
 ## 4. Emplacement réservé : plan du réseau (DWG → DXF → tronçons)
 

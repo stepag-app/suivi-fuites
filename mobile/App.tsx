@@ -1,6 +1,7 @@
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, Text, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, View } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { Balayage } from './src/balayage';
 import { Connexion, EnAttente, Liste, NouvelleFuite } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
@@ -8,7 +9,7 @@ import { synchroniser } from './src/file-attente';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { configurationManquante } from './src/supabase';
-import { BarreApp, COULEURS, s } from './src/ui';
+import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle' } | { nom: 'attente' } | { nom: 'balayage' } | { nom: 'fiche'; id: string }
@@ -49,7 +50,7 @@ function Racine() {
     };
   }, [session]);
 
-  if (configurationManquante) return <Message texte="Application non configurée (adresse du serveur absente)." />;
+  if (configurationManquante) return <Avis texte="Application non configurée (adresse du serveur absente)." />;
   if (chargement) {
     return (
       <View style={s.ecran}>
@@ -59,7 +60,7 @@ function Racine() {
     );
   }
   if (!session) return <Connexion />;
-  if (!marche) return <Message texte="Aucun marché n'est affecté à votre compte. Contactez l'administrateur." />;
+  if (!marche) return <Avis texte="Aucun marché n'est affecté à votre compte. Contactez l'administrateur." />;
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {
     case 'nouvelle':
@@ -86,20 +87,22 @@ function Racine() {
   }
 }
 
-function Message({ texte }: { texte: string }) {
+function Avis({ texte }: { texte: string }) {
   return (
     <View style={s.ecran}>
       <BarreApp titre="Suivi des fuites" />
-      <View style={s.contenu}><Text style={s.erreur}>{texte}</Text></View>
+      <View style={s.defile}><Message ton="erreur">{texte}</Message></View>
     </View>
   );
 }
 
 export default function App() {
   return (
-    <SessionProvider>
-      <StatusBar style="light" />
-      <Racine />
-    </SessionProvider>
+    <SafeAreaProvider>
+      <SessionProvider>
+        <StatusBar style="dark" />
+        <Racine />
+      </SessionProvider>
+    </SafeAreaProvider>
   );
 }

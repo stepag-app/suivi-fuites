@@ -19,6 +19,19 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 **Droits** : boutons de saisie affichés selon les droits du marché. Le chef de réparation (fuites, interventions,
 photos) saisit ; l'agent de détection (interventions en lecture) voit les fiches sans les boutons.
 
+**Session hors ligne** (`src/session-donnees.ts`) : la session reste sur la tablette jusqu'à « Quitter ». Au démarrage
+sans réseau avec un jeton expiré (plus d'une heure), auth-js garde la session en stockage mais `getSession()` rend
+`null` tant que le renouvellement échoue (avant le 2026-10-07 : écran Connexion). La session est alors relue du
+stockage (`CLE_SESSION`, clé par défaut de supabase-js) et l'appli s'ouvre sur la liste hors ligne avec le dernier
+contexte connu (profil, marchés, droits). Rien ne part sans jeton valide (supabase-js enverrait la clé anonyme, sans
+aucun droit) ; un refus reçu pendant que le jeton expirait n'est pas compté, la saisie repart ensuite. Renouvellement :
+minuteur d'auth-js toutes les 30 s au premier plan (pause de 60 s après un échec), essai aussitôt au retour sur l'appli,
+rien en arrière-plan (`AppState`, `src/supabase.ts`) ; une fois le jeton renouvelé, la file repart et le contexte est
+rechargé du serveur. Seuls « Quitter » (sans réseau : session retirée de la tablette sans appel au serveur) et un
+renouvellement refusé par le serveur (jeton révoqué) ramènent à l'écran Connexion. Encore lent : sans réseau, auth-js
+réessaie le renouvellement près de 25 s avant de rendre la main (44 s sur l'émulateur, DNS en panne) ; l'appli affiche
+le chargement pendant ce temps.
+
 **Hors ligne** (`src/file-attente.ts`) : chaque saisie (fuite, réparation, réfection) et ses photos sont
 d'abord écrites sur la tablette, puis envoyées (ouverture de l'appli, retour au premier plan, toutes les 30 s,
 juste après l'enregistrement). Les écrans (liste, fiche, envois en attente) ne rechargent qu'à un vrai changement de
@@ -59,11 +72,18 @@ Cloudflare R2 (lot dédié) ne changera que `envoyerPhoto`.
 et des paramètres, avec stockage, fichiers et réseau simulés ; 25 vérifications (ordre d'envoi, coupures,
 reprise, photos typées et rattachées, réfection reprise de la fouille, statut avancé par le serveur, fuite
 verrouillée, doublons, droits détection / chef, aucun prix visible).
-Essai **sans pile** (ni Docker ni installation) : `node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs`
-depuis `mobile/` (Node ≥ 22.18) : vrai code de la file d'attente, base, stockage et réseau simulés
-(`essais/mocks/supabase-simule.js`) ; 42 vérifications (écrans prévenus seulement à un vrai changement de la file,
-photos depuis la fiche, modification après la création,
-coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai sur une horloge simulée).
+Essais **sans pile** (ni Docker ni installation), depuis `mobile/` (Node ≥ 22.18), lancés aussi par la CI de l'APK :
+vrai client Supabase (connexion par auth-js, jeton porté par chaque requête, délais de `src/reseau.ts`) ; serveur,
+stockage et réseau simulés (`essais/mocks/serveur-simule.js` : une requête sans jeton valide y est refusée comme par
+la base).
+- `node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs` : vrai code de la file d'attente,
+  43 vérifications (écrans prévenus seulement à un vrai changement de la file, photos depuis la fiche, modification
+  après la création, coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai
+  sur une horloge simulée, jamais la clé anonyme).
+- `node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs` : démarrage sans réseau avec un jeton
+  expiré, sur une horloge simulée, 25 vérifications (liste hors ligne au lieu de Connexion, rien d'envoyé sans jeton
+  valide puis envoi après le renouvellement, arrière-plan et premier plan, jeton expiré pendant un envoi, refus du
+  serveur, « Quitter » avec et sans réseau).
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
 photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications

@@ -12,7 +12,7 @@ export const FORMATS: Record<FormatExport, string> = {
 };
 
 function genererCsv(d: DocumentExport): Blob {
-  const echapper = (v: string) => (/[";\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
+  const echapper = (v: string) => (/[";\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const lignes: string[][] = [];
   if (d.filigrane) lignes.push([`${d.filigrane} : document provisoire, non définitif`]);
   lignes.push([d.entete.titre], ...d.entete.infos.map((t) => [t]), []);

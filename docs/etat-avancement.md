@@ -3,7 +3,10 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-06 (session 8 : **nouvelle interface « Studio Admin » (shadcn/ui) adoptée**, **lot S** (réseau,
+Dernière mise à jour : 2026-10-07 (**essai de charge à 3 000 fuites**, § 8 et `docs/essai-charge-3000.md` : pages de suivi
+sous 2 s après correctifs, état de balayage tronqué à 1 000 tronçons corrigé, carte avec tout le réseau trop lourde
+pour la tablette → tuiles vectorielles, photos au-delà du 1 Go gratuit vers le 4e mois → R2).
+Précédente : 2026-10-06 (session 8 : **nouvelle interface « Studio Admin » (shadcn/ui) adoptée**, **lot S** (réseau,
 balayage par tronçon, rapport journalier) et **lot T** (articles Dolibarr, ajusté : activation par l'admin ou le responsable,
 plus de pièce libre) réunis dans la PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39), fusionnée et déployée ;
 reste à faire par Issam : importer `produits.csv` et activer les articles, puis importer le réseau ; voir § 2 et § 7).
@@ -320,3 +323,27 @@ encore en production** : import par Paramètres > Réseau (administrateur), avec
 le lot S utilise `20261006130000` et le test 15 ; fusionner P3/P4 avant S (le déploiement refuse une migration plus
 ancienne que la dernière appliquée). Le dessin contient aussi les **secteurs de relève** (269 polygones numérotés) :
 piste pour localiser une fuite par le premier bloc de sa référence SRM (à confirmer avec la SRM).
+
+## 8. Essai de charge à 3 000 fuites (2026-10-07)
+
+Rapport : `docs/essai-charge-3000.md` ; outils : `outils/charge/` (base locale `charge_3000`, jamais la production).
+Branche `claude/gracious-bun-8272f1`, PR « essai de charge ».
+
+| Élément | Où | État |
+|---|---|---|
+| Générateur : 3 000 fuites sur 12 mois et sur les secteurs de DEMO, réparations, pièces, réfections, ~4 photos par fuite (lignes seules), un an de balayage (48 461) ; 8 comptes d'essai | `outils/charge/generer-charge.sql`, `preparer-base.sh` | fait |
+| Mesures : SQL sous RLS, lectures de chaque page (avant / après), navigateur (profils bureau et tablette 4G), carte avec tout le réseau | `outils/charge/mesurer-*.{sql,mjs}`, `relais.mjs` | fait |
+| Migration `20261007120000_essai_charge.sql` : `compter_fuites`, `resume_a_attacher`, `etat_balayage_compact` (SECURITY INVOKER) ; test 17 (22 tests) | `supabase/` | 648 tests pgTAP verts en local ; **à déployer** |
+| Panneau web : `lireTout` 3 pages à la fois et avertissement « Affichage incomplet » au plafond, colonnes réduites, alertes filtrées, comptes et reste à attacher par la base, état de balayage complet, horloge des alertes isolée, courbe des réfections corrigée | `web/` | tsc, build, 9 scripts verts ; vérifié en mode démonstration et sur 12 025 fuites |
+
+**Résultats** (détail dans le rapport) : en profil tablette, liste 2,7 → 1,3 s, alertes 2,1 → 1,1 s, à faire 3,3 → 1,7 s,
+tableau de bord 2,6 → 1,2 s. Carte avec tout le réseau : 64 s et 1,3 Go en profil tablette (inchangé, chantier
+tuiles vectorielles). Base : 120 Mo après un an (500 Mo gratuits) ; photos 2,7 Go par an (1 Go gratuit).
+
+**Ordre de fusion** : la branche `claude/reseau-simplification` a pris `20261007100000` ; la migration de l'essai est
+`20261007120000` : fusionner `reseau-simplification` d'abord (le déploiement refuse une migration plus ancienne que la
+dernière appliquée). Les deux branches touchent `web/src/lib/reseau/donnees.ts` à des endroits différents.
+
+**À faire par Issam** : sur la production, ouvrir la liste des fuites avec l'onglet Réseau du navigateur pour
+confirmer que l'API compresse (gzip ou br) ; suivre la page « Usage » de Supabase ; activer R2 avant le 4e mois de
+photos.

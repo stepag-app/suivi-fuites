@@ -8,7 +8,7 @@ import { BarreApp, Bouton, Carte, COULEURS, s } from './ui';
 
 // Adresse publique du panneau web (aucun secret). Les jetons de session vont dans le fragment « # », que la
 // WebView n'envoie jamais au serveur ; ils ne sont jamais journalisés.
-const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://suivi-fuites-web.vercel.app').replace(/\/+$/, '');
+const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
 const PAGE_SESSION = `${PANNEAU}/session`;
 const SUITE = encodeURIComponent('/carte?mode=balayage');

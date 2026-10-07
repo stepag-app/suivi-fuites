@@ -2,8 +2,8 @@
 // gardées sur la tablette). Jamais de prix ni de quantités du bordereau.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import { useCallback, useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { chargerServeur, cleFiche, fuiteLocale, type Donnees } from './fiche-donnees';
 import {
   ajouterEnvoi, estFuite, fuiteDe, lireAttente, surChangement, synchroniser,
@@ -18,7 +18,11 @@ import {
   EMPLACEMENTS, MATERIAUX, OUVRAGES, RESULTATS_REPARATION, TYPES_PHOTO,
   type FicheFuite, type Refection, type Reparation, type TypePhoto,
 } from './types';
-import { Alerte, BarreApp, Bouton, BoutonYAller, Carte, s, Statut, Vignettes } from './ui';
+import { Icone, type NomIcone } from './icones';
+import {
+  Alerte, AnneauStatut, BarreApp, Bouton, BoutonYAller, Carte, COULEURS, Info, LARGEUR_LARGE, Message, POLICE, s, Statut,
+  TeteCarte, useBas, Vide, Vignettes,
+} from './ui';
 
 export const dateHeure = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '—';
@@ -50,6 +54,8 @@ export function Fiche({ id, retour, saisir }: {
 }) {
   const { marche, peut } = useSession();
   const parametres = useParametres(marche?.id);
+  const large = useWindowDimensions().width >= LARGEUR_LARGE;
+  const bas = useBas();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
   const [locaux, setLocaux] = useState<Envoi[]>([]);
   const [urls, setUrls] = useState<Record<string, string>>({});
@@ -94,7 +100,10 @@ export function Fiche({ id, retour, saisir }: {
     return (
       <View style={s.ecran}>
         <BarreApp titre="Fiche de la fuite" retour={retour} />
-        <View style={s.contenu}><Text style={s.discret}>Chargement…</Text></View>
+        <View style={[s.contenu, { flex: 1, alignItems: 'center', justifyContent: 'center' }]}>
+          <ActivityIndicator size="large" color={COULEURS.principal} />
+          <Text style={s.discret}>Chargement…</Text>
+        </View>
       </View>
     );
   }
@@ -102,11 +111,11 @@ export function Fiche({ id, retour, saisir }: {
     return (
       <View style={s.ecran}>
         <BarreApp titre="Fiche de la fuite" retour={retour} />
-        <View style={s.contenu}>
-          <Text style={s.erreur}>
+        <View style={s.defile}>
+          <Message ton="erreur" icone={horsLigne ? 'wifi-off' : undefined}>
             {horsLigne ? 'Fiche jamais ouverte sur cette tablette : elle sera disponible au retour du réseau.' : 'Fuite introuvable ou accès refusé.'}
-          </Text>
-          <Bouton titre="← Liste des fuites" onPress={retour} />
+          </Message>
+          <Bouton titre="Liste des fuites" icone="arrow-left" onPress={retour} style={{ alignSelf: 'flex-start' }} />
         </View>
       </View>
     );
@@ -187,50 +196,77 @@ export function Fiche({ id, retour, saisir }: {
   })));
   const nbPhotos = photosServeur.length + photosLocales.length;
 
+  const sigle = marche?.client_sigle?.trim();
+  const resume = [
+    fuite.reference_srm && `Réf. ${sigle ? `${sigle} ` : ''}${fuite.reference_srm}`, fuite.secteur, fuite.adresse,
+  ].filter(Boolean).join(' · ') || 'Sans référence ni adresse';
+
   return (
     <View style={s.ecran}>
-      <BarreApp titre={libelle} sousTitre={marche?.code} retour={retour} />
-      <ScrollView contentContainerStyle={s.defile}>
-        {horsLigne && <Text style={s.attention}>Hors ligne : dernière version connue de la fiche.</Text>}
-        {envoiFuite && <Text style={s.attention}>Cette fuite est encore sur la tablette : elle partira au retour du réseau.</Text>}
+      <BarreApp titre={libelle} sousTitre={`Fuites · ${marche?.code ?? ''}`} retour={retour} />
+      <ScrollView contentContainerStyle={[f.page, { paddingBottom: 40 + bas }]}>
+        {horsLigne && <Message ton="attention" icone="wifi-off">Hors ligne : dernière version connue de la fiche.</Message>}
+        {envoiFuite && <Message ton="attention" icone="clock">Cette fuite est encore sur la tablette : elle partira au retour du réseau.</Message>}
         {!!fuite.verrouillee_le && (
-          <Text style={s.attention}>
+          <Message ton="attention" icone="lock">
             Fuite verrouillée le {dateHeure(fuite.verrouillee_le)} (lot d&apos;attachement arrêté)
             {verrouillee ? ' : saisie et modification réservées au responsable.' : '.'}
-          </Text>
+          </Message>
         )}
 
-        <Carte>
-          <View style={[s.ligne, { justifyContent: 'space-between', alignItems: 'center' }]}>
-            <Statut statut={fuite.statut} gros />
-            {fuite.alerte_non_reparee && <Alerte texte={`Non réparée > ${marche?.delai_alerte_reparation_h ?? 48} h`} />}
+        {/* En-tête du modèle « Profile » du panneau : anneau d'avancement, titre, badges, « Y aller ». */}
+        <Carte style={f.profil}>
+          <View style={f.identite}>
+            <AnneauStatut statut={fuite.statut} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={f.titre}>{libelle}</Text>
+              <Text style={s.discret}>{resume}</Text>
+              <View style={[s.ligne, { gap: 8, marginTop: 8 }]}>
+                <Statut statut={fuite.statut} carre />
+                {fuite.alerte_non_reparee && <Alerte texte={`Non réparée > ${marche?.delai_alerte_reparation_h ?? 48} h`} carre />}
+              </View>
+            </View>
           </View>
-          <Info libelle={libelleReference} valeur={fuite.reference_srm} />
-          <Info libelle="Secteur" valeur={fuite.secteur ? `${fuite.secteur}${fuite.zone ? ` (${fuite.zone})` : ''}` : null} />
-          <Info libelle="Adresse / repère" valeur={fuite.adresse} />
-          <Info libelle="Ouvrage" valeur={fuite.ouvrage ? OUVRAGES[fuite.ouvrage] ?? fuite.ouvrage : null} />
-          <Info libelle="Détectée" valeur={`${dateHeure(fuite.date_detection)}${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''}`} />
-          {fuite.latitude != null && fuite.longitude != null && (
-            <Info libelle="Position" valeur={`${fuite.latitude.toFixed(6)}, ${fuite.longitude.toFixed(6)}`} />
-          )}
-          {!!fuite.fuite_liee_id && <Info libelle="Re-détection" valeur="liée à une fuite déjà signalée" />}
-          {!!fuite.motif_sans_reparation && <Info libelle="Motif" valeur={fuite.motif_sans_reparation} />}
-          {!!fuite.observation && <Info libelle="Observation" valeur={fuite.observation} />}
-          <BoutonYAller latitude={fuite.latitude} longitude={fuite.longitude} libelle={libelle} />
+          <BoutonYAller latitude={fuite.latitude} longitude={fuite.longitude} libelle={libelle} grand />
         </Carte>
 
-        <Carte>
-          <Text style={s.sousTitre}>Photos ({nbPhotos})</Text>
-          {nbPhotos === 0 && <Text style={s.discret}>Aucune photo.</Text>}
-          <Vignettes photos={[...photosServeur, ...photosLocales]} />
-          {peutPhoto && (
-            <Bouton titre="📷 Ajouter une photo de la fuite" onPress={() => void ajouterPhoto('detection')} occupe={photoEnCours} />
-          )}
-        </Carte>
+        <View style={large ? f.colonnes : { gap: 14 }}>
+          <Carte style={large && { flex: 5 }}>
+            <TeteCarte titre="Identification" />
+            <View style={s.grille}>
+              <Info libelle={libelleReference} valeur={fuite.reference_srm} />
+              <Info libelle="Ouvrage" valeur={fuite.ouvrage ? OUVRAGES[fuite.ouvrage] ?? fuite.ouvrage : null} />
+              <Info libelle="Secteur" valeur={fuite.secteur ? `${fuite.secteur}${fuite.zone ? ` (${fuite.zone})` : ''}` : null} />
+              <Info libelle="Adresse / repère" valeur={fuite.adresse} />
+              <Info libelle="Détectée" valeur={`${dateHeure(fuite.date_detection)}${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ''}`} />
+              <Info
+                libelle="Position"
+                valeur={fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)}, ${fuite.longitude.toFixed(6)}` : null}
+              />
+              {!!fuite.fuite_liee_id && <Info libelle="Re-détection" valeur="liée à une fuite déjà signalée" />}
+              {!!fuite.motif_sans_reparation && <Info libelle="Motif" valeur={fuite.motif_sans_reparation} large />}
+              {!!fuite.observation && <Info libelle="Observation" valeur={fuite.observation} large />}
+            </View>
+          </Carte>
+
+          <Carte style={large && { flex: 4 }}>
+            <TeteCarte titre="Photos" compteur={nbPhotos} />
+            {nbPhotos === 0 && <Vide texte="Aucune photo." />}
+            <Vignettes photos={[...photosServeur, ...photosLocales]} />
+            {peutPhoto && (
+              <Bouton titre="Ajouter une photo de la fuite" icone="camera" onPress={() => void ajouterPhoto('detection')} occupe={photoEnCours} />
+            )}
+          </Carte>
+        </View>
 
         <Carte>
-          <Text style={s.sousTitre}>Réparations</Text>
-          {blocs.length === 0 && <Text style={s.discret}>Aucune réparation saisie.</Text>}
+          <TeteCarte
+            titre="Réparations"
+            compteur={blocs.length}
+            description="Interventions saisies sur le terrain ou au bureau."
+            action={peutSaisir ? <Bouton titre="Saisir une réparation" icone="plus" primaire onPress={() => saisir('reparation', contexte)} /> : undefined}
+          />
+          {blocs.length === 0 && <Vide texte="Aucune réparation saisie." />}
           {blocs.map((b) => (
             <BlocReparation
               key={b.id} b={b} parametres={parametres} occupe={photoEnCours}
@@ -240,35 +276,29 @@ export function Fiche({ id, retour, saisir }: {
                 : undefined}
             />
           ))}
-          {peutSaisir && <Bouton titre="+ Saisir une réparation" primaire onPress={() => saisir('reparation', contexte)} />}
         </Carte>
 
         {(blocs.length > 0 || blocsRefection.length > 0) && (
           <Carte>
-            <Text style={s.sousTitre}>Réfections</Text>
-            {blocsRefection.length === 0 && <Text style={s.discret}>Aucune réfection saisie.</Text>}
+            <TeteCarte
+              titre="Réfections"
+              compteur={blocsRefection.length}
+              description="Remise en état du revêtement après la réparation."
+              action={peutSaisir && blocs.length > 0
+                ? <Bouton titre="Saisir une réfection" icone="plus" primaire onPress={() => saisir('refection', contexte)} />
+                : undefined}
+            />
+            {blocsRefection.length === 0 && <Vide texte="Aucune réfection saisie." />}
             {blocsRefection.map(({ r, local }) => (
               <BlocRefection
                 key={r.id} r={r} parametres={parametres} local={local} occupe={photoEnCours}
                 photo={peutPhoto ? () => void ajouterPhoto('refection', { refection_id: r.id }) : undefined}
               />
             ))}
-            {peutSaisir && blocs.length > 0 && (
-              <Bouton titre="+ Saisir une réfection" primaire onPress={() => saisir('refection', contexte)} />
-            )}
           </Carte>
         )}
-        <Bouton titre="← Liste des fuites" onPress={retour} />
+        <Bouton titre="Liste des fuites" icone="arrow-left" onPress={retour} style={{ alignSelf: 'flex-start' }} />
       </ScrollView>
-    </View>
-  );
-}
-
-function Info({ libelle, valeur }: { libelle: string; valeur: string | null | undefined }) {
-  return (
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', columnGap: 12 }}>
-      <Text style={[s.discret, { width: 160, fontSize: 16 }]}>{libelle}</Text>
-      <Text style={[s.texte, { flex: 1, minWidth: 180 }]}>{valeur || '—'}</Text>
     </View>
   );
 }
@@ -276,16 +306,35 @@ function Info({ libelle, valeur }: { libelle: string; valeur: string | null | un
 function EtatEnvoi({ local }: { local?: Envoi }) {
   if (!local) return null;
   return local.erreur
-    ? <Text style={s.erreur}>Pas encore envoyée : {local.erreur}</Text>
-    : <Text style={s.attention}>Sur la tablette, envoi au retour du réseau.</Text>;
+    ? <Message ton="erreur">Pas encore envoyée : {local.erreur}</Message>
+    : <Message ton="attention" icone="clock">Sur la tablette, envoi au retour du réseau.</Message>;
 }
 
 function EtatModification({ modifs }: { modifs: EnvoiModification[] }) {
   if (!modifs.length) return null;
   const erreur = modifs.find((m) => m.erreur)?.erreur;
   return erreur
-    ? <Text style={s.erreur}>Modification pas encore envoyée : {erreur}</Text>
-    : <Text style={s.attention}>Modification sur la tablette, envoi au retour du réseau.</Text>;
+    ? <Message ton="erreur">Modification pas encore envoyée : {erreur}</Message>
+    : <Message ton="attention" icone="clock">Modification sur la tablette, envoi au retour du réseau.</Message>;
+}
+
+/** Une intervention (réparation ou réfection) : carte intérieure avec icône, titre, date et détails. */
+function Bloc({ icone, titre, sousTitre, action, children }: {
+  icone: NomIcone; titre: string; sousTitre: string; action?: ReactNode; children: ReactNode;
+}) {
+  return (
+    <View style={f.bloc}>
+      <View style={f.teteBloc}>
+        <View style={f.iconeBloc}><Icone nom={icone} taille={18} couleur={COULEURS.discret} /></View>
+        <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 200, gap: 2 }}>
+          <Text style={s.texteFort}>{titre}</Text>
+          <Text style={s.discret}>{sousTitre}</Text>
+        </View>
+        {action}
+      </View>
+      {children}
+    </View>
+  );
 }
 
 function BlocReparation({ b, parametres, photo, modifier, occupe }: {
@@ -301,42 +350,45 @@ function BlocReparation({ b, parametres, photo, modifier, occupe }: {
   ].filter(Boolean).join(', ');
   const pieces = b.etat.pieces.map((p) => `${nombre(p.quantite)} × ${p.designation}`);
   const ouvriers = b.etat.ouvriers.map((oid) => parametres.ouvriers.find((o) => o.id === oid)?.nom_complet ?? '?');
+  const fouille = r.fouille_longueur_m != null || r.fouille_largeur_m != null || r.fouille_profondeur_m != null;
   return (
-    <View style={s.separateur}>
-      <Text style={s.etiquette}>{RESULTATS_REPARATION[r.resultat]} · {dateHeure(r.realisee_le)}{equipe ? ` · ${equipe}` : ''}</Text>
-      {!!motif && <Text style={s.texte}>Motif : {motif}</Text>}
-      <Text style={s.discret}>
-        {[r.ouvrage ? OUVRAGES[r.ouvrage] : null, r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null]
-          .filter(Boolean).join(' · ') || '—'}
-      </Text>
-      {!!travaux && <Text style={s.texte}>{travaux}{r.longueur_pe_m ? ` · PE ${nombre(r.longueur_pe_m)} m` : ''}</Text>}
-      {(r.fouille_longueur_m != null || r.fouille_largeur_m != null || r.fouille_profondeur_m != null) && (
-        <Text style={s.texte}>
-          Fouille {nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m
-          {r.emplacement ? ` · ${EMPLACEMENTS[r.emplacement] ?? r.emplacement}` : ''}
-        </Text>
-      )}
-      {!!nature && <Text style={s.texte}>Revêtement à refaire : {nature}</Text>}
-      {!!r.representant_srm && <Text style={s.texte}>Représentant présent : {r.representant_srm}</Text>}
-      {pieces.length > 0 && <Text style={s.texte}>Pièces : {pieces.join(' ; ')}</Text>}
-      {ouvriers.length > 0 && <Text style={s.texte}>Ouvriers : {ouvriers.join(', ')}</Text>}
-      {!!r.observation && <Text style={s.discret}>{r.observation}</Text>}
+    <Bloc
+      icone="wrench"
+      titre={RESULTATS_REPARATION[r.resultat]}
+      sousTitre={`${dateHeure(r.realisee_le)}${equipe ? ` · ${equipe}` : ''}`}
+      action={modifier && <Bouton titre="Modifier la réparation" icone="pencil" onPress={modifier} />}
+    >
+      <View style={s.grille}>
+        {!!motif && <Info libelle="Motif" valeur={motif} />}
+        <Info libelle="Ouvrage" valeur={r.ouvrage ? OUVRAGES[r.ouvrage] : null} />
+        <Info
+          libelle="Matériau"
+          valeur={[r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null].filter(Boolean).join(' · ')}
+        />
+        {!!travaux && <Info libelle="Travaux" valeur={`${travaux}${r.longueur_pe_m ? ` · PE ${nombre(r.longueur_pe_m)} m` : ''}`} />}
+        {fouille && (
+          <Info libelle="Fouille" valeur={`${nombre(r.fouille_longueur_m)} × ${nombre(r.fouille_largeur_m)} × ${nombre(r.fouille_profondeur_m)} m`} />
+        )}
+        {!!r.emplacement && <Info libelle="Emplacement" valeur={EMPLACEMENTS[r.emplacement] ?? r.emplacement} />}
+        {!!nature && <Info libelle="Revêtement à refaire" valeur={nature} />}
+        {!!r.representant_srm && <Info libelle="Représentant présent" valeur={r.representant_srm} />}
+        {pieces.length > 0 && <Info libelle="Pièces" valeur={pieces.join(' ; ')} large />}
+        {ouvriers.length > 0 && <Info libelle="Ouvriers" valeur={ouvriers.join(', ')} large />}
+        {!!r.observation && <Info libelle="Observation" valeur={r.observation} large />}
+      </View>
       <EtatEnvoi local={b.creation} />
       <EtatModification modifs={b.modifs} />
       {photo && (
-        <>
-          <Text style={s.discret}>Ajouter une photo :</Text>
+        <View style={{ gap: 8 }}>
+          <Text style={s.petit}>Ajouter une photo :</Text>
           <View style={s.ligne}>
             {(['avant', 'pendant', 'apres'] as const).map((t) => (
-              <View key={t} style={{ flexGrow: 1, flexBasis: 130 }}>
-                <Bouton titre={`📷 ${TYPES_PHOTO[t]}`} onPress={() => photo(t)} desactive={occupe} />
-              </View>
+              <Bouton key={t} titre={TYPES_PHOTO[t]} icone="camera" onPress={() => photo(t)} desactive={occupe} style={{ flexGrow: 1, flexBasis: 130 }} />
             ))}
           </View>
-        </>
+        </View>
       )}
-      {modifier && <Bouton titre="✎ Modifier la réparation" onPress={modifier} />}
-    </View>
+    </Bloc>
   );
 }
 
@@ -345,18 +397,38 @@ function BlocRefection({ r, parametres, local, photo, occupe }: {
 }) {
   const nature = parametres.natures.find((n) => n.id === r.nature_id)?.libelle_fr;
   const motif = parametres.motifs.find((m) => m.id === r.motif_id)?.libelle_fr;
+  const dimensions = r.longueur_m != null || r.largeur_m != null
+    ? `${nombre(r.longueur_m)} × ${nombre(r.largeur_m)} m`
+    : local ? 'dimensions de la fouille' : null;
   return (
-    <View style={s.separateur}>
-      <Text style={s.etiquette}>{r.resultat === 'faite' ? 'Réfection faite' : 'Clôturée sans réfection'} · {dateHeure(r.realisee_le)}</Text>
-      {r.resultat === 'faite' ? (
-        <Text style={s.texte}>
-          {nature ?? (local ? 'Revêtement prévu à la réparation' : '—')}
-          {r.longueur_m != null || r.largeur_m != null ? ` · ${nombre(r.longueur_m)} × ${nombre(r.largeur_m)} m` : local ? ' · dimensions de la fouille' : ''}
-        </Text>
-      ) : <Text style={s.texte}>Motif : {motif ?? '—'}</Text>}
-      {!!r.observation && <Text style={s.discret}>{r.observation}</Text>}
+    <Bloc icone="paint-roller" titre={r.resultat === 'faite' ? 'Réfection faite' : 'Clôturée sans réfection'} sousTitre={dateHeure(r.realisee_le)}>
+      <View style={s.grille}>
+        {r.resultat === 'faite' ? (
+          <>
+            <Info libelle="Nature" valeur={nature ?? (local ? 'Revêtement prévu à la réparation' : null)} />
+            <Info libelle="Dimensions" valeur={dimensions} />
+          </>
+        ) : <Info libelle="Motif" valeur={motif} />}
+        {!!r.observation && <Info libelle="Observation" valeur={r.observation} large />}
+      </View>
       <EtatEnvoi local={local} />
-      {photo && <Bouton titre="📷 Ajouter une photo de réfection" onPress={photo} desactive={occupe} />}
-    </View>
+      {photo && (
+        <Bouton titre="Ajouter une photo de réfection" icone="camera" onPress={photo} desactive={occupe} style={{ alignSelf: 'flex-start' }} />
+      )}
+    </Bloc>
   );
 }
+
+const f = StyleSheet.create({
+  page: { padding: 20, gap: 14, paddingBottom: 40 },
+  profil: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
+  identite: { flexDirection: 'row', alignItems: 'center', gap: 18, flexGrow: 1, flexShrink: 1, flexBasis: 360 },
+  titre: { fontFamily: POLICE, fontSize: 26, lineHeight: 32, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.4 },
+  colonnes: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
+  bloc: { borderWidth: 1, borderColor: COULEURS.bord, borderRadius: 12, padding: 14, gap: 12 },
+  teteBloc: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },
+  iconeBloc: {
+    width: 36, height: 36, borderRadius: 8, borderWidth: 1, borderColor: COULEURS.bord,
+    alignItems: 'center', justifyContent: 'center',
+  },
+});

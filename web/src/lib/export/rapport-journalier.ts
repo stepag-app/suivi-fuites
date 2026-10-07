@@ -53,7 +53,7 @@ import type { Marche } from '@/lib/types';
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
 import { barreEchelle, centreImage, echelleNumerique, metresParMm, type Bornes, type ImageCarte } from './carte-pdf';
 import { construireEntete, type Contexte } from './jeux';
-import { dimensionsLogo, mmEnPixels, nomFichierSur, octetsDataUrl, texteDate, texteNombre, type EnteteDoc, type LogoEntete } from './modele';
+import { dimensionsLogo, lignesEntete, mmEnPixels, nomFichierSur, octetsDataUrl, texteDate, texteNombre, textesArabesEntete, type EnteteDoc, type LogoEntete } from './modele';
 import { BLEU, FOND_GROUPE, GRIS_TRAIT, dessinerEntete } from './pdf';
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
@@ -722,7 +722,7 @@ export async function genererRapportJournalierPdf(
   const composer = options.composerArabe ?? imagesTextes;
 
   // Textes arabes composés par le navigateur (voir arabe.ts)
-  const arabesEntete = [c.entete.titulaireAr, c.entete.clientAr].filter(contientArabe);
+  const arabesEntete = textesArabesEntete(c.entete).filter(contientArabe);
   const arabesCellules = [
     ...c.identification.map(([, v]) => v),
     ...(c.detailSecteurs ?? []).flatMap((l) => [l.zone ?? '', l.secteur ?? '']),
@@ -1030,7 +1030,8 @@ async function reglerImpression(fichier: Blob, nomFeuille: string, titres: [numb
   contenu[chemin] = strToU8(xml);
   const nom = echapperXml(nomFeuille.replace(/'/g, "''"));
   const defini = `<definedName name="_xlnm.Print_Titles" localSheetId="0">'${nom}'!$${titres[0]}:$${titres[1]}</definedName>`;
-  let classeur = strFromU8(contenu['xl/workbook.xml']);
+  // write-excel-file écrit un <definedNames/> vide : un second bloc rendrait le classeur invalide pour Excel.
+  let classeur = strFromU8(contenu['xl/workbook.xml']).replace(/<definedNames\s*\/>/g, '');
   classeur = classeur.includes('<definedNames>')
     ? classeur.replace('<definedNames>', `<definedNames>${defini}`)
     : classeur.replace('</sheets>', `</sheets><definedNames>${defini}</definedNames>`);
@@ -1098,10 +1099,14 @@ export async function genererRapportJournalierXlsx(
     const hauteurPx = Math.max(...logos.map((l) => mmEnPixels(dimensionsLogo(l).hauteurMm)));
     pleine('', { height: Math.ceil(hauteurPx * 0.75) + 6 });
   }
-  c.entete.titulaire.forEach((t, i) => pleine(t, i === 0 ? { fontWeight: 'bold', fontSize: 12 } : { textColor: '#5B6B77' }));
-  if (c.entete.titulaireAr) pleine(c.entete.titulaireAr, { fontWeight: 'bold', align: 'left' });
-  c.entete.client.forEach((t, i) => pleine(t, i === 0 ? { fontWeight: 'bold', fontSize: 12 } : { textColor: '#5B6B77' }));
-  if (c.entete.clientAr) pleine(c.entete.clientAr, { fontWeight: 'bold', align: 'left' });
+  for (const { nom, details, ar } of [
+    lignesEntete(c.entete.titulaire, c.entete.titulaireAr, c.entete.logoTitulaire),
+    lignesEntete(c.entete.client, c.entete.clientAr, c.entete.logoMaitreOuvrage),
+  ]) {
+    if (nom) pleine(nom, { fontWeight: 'bold', fontSize: 12 });
+    details.forEach((t) => pleine(t, { textColor: '#5B6B77' }));
+    if (ar) pleine(ar, { fontWeight: 'bold', align: 'left' });
+  }
   vide();
   pleine(c.titre, { fontWeight: 'bold', fontSize: 14, align: 'center', height: 24 });
   c.entete.infos.forEach((t) => pleine(t));

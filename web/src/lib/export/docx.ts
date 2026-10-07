@@ -2,7 +2,7 @@
 // de droite à gauche ; la police Amiri est embarquée dans le fichier si besoin.
 import { chargerFichiersAmiri, contientArabe } from './arabe';
 import {
-  dimensionsLogo, etendueLibelle, mmEnPixels, octetsDataUrl, parcourir, texteCellule, texteDate,
+  dimensionsLogo, etendueLibelle, lignesEntete, mmEnPixels, octetsDataUrl, parcourir, texteCellule, texteDate, textesArabesEntete,
   type DocumentExport, type LogoEntete, type SectionDoc,
 } from './modele';
 
@@ -13,7 +13,7 @@ export async function genererDocx(d: DocumentExport): Promise<Blob> {
     Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, VerticalAlign, WidthType,
   } = x;
 
-  const avecArabe = [d.entete.titulaireAr, d.entete.clientAr].some(contientArabe)
+  const avecArabe = textesArabesEntete(d.entete).some(contientArabe)
     || d.sections.some((s) => s.lignes.some((l) => l.cellules.some(contientArabe) || contientArabe(l.libelle)));
   const amiri = avecArabe ? await chargerFichiersAmiri() : null;
 
@@ -57,16 +57,19 @@ export async function genererDocx(d: DocumentExport): Promise<Blob> {
       })],
     });
   };
-  const colonneEntete = (lignes: string[], ar: string | null | undefined, logo: LogoEntete | null | undefined, alignement: 'left' | 'right') =>
-    new TableCell({
+  const colonneEntete = (lignes: string[], arabe: string | null | undefined, logo: LogoEntete | null | undefined, alignement: 'left' | 'right') => {
+    const { nom, details, ar } = lignesEntete(lignes, arabe, logo);
+    return new TableCell({
       borders: bordures,
       width: { size: 50, type: WidthType.PERCENTAGE },
       children: [
         ...(hauteurLogos ? [paragrapheLogo(logo, alignement)] : []),
-        ...lignes.map((t, i) => paragraphe(t, { gras: i === 0, taille: i === 0 ? 21 : 16, alignement, couleur: i === 0 ? undefined : '5B6B77' })),
+        ...(nom ? [paragraphe(nom, { gras: true, taille: 21, alignement })] : []),
+        ...details.map((t) => paragraphe(t, { taille: 16, alignement, couleur: '5B6B77' })),
         ...(ar ? [paragraphe(ar, { gras: true, taille: 22, alignement })] : []),
       ],
     });
+  };
   const entete = new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
     borders: { ...bordures, insideHorizontal: sansBordure, insideVertical: sansBordure },

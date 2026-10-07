@@ -3,7 +3,7 @@
 // réseau simulés (mocks/supabase-simule.js). Depuis mobile/ :
 //   node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
 import fs from 'node:fs';
-import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, synchroniser } from '../src/file-attente.ts';
+import { abandonner, ajouterEnvoi, dependants, lireAttente, mettreEnAttente, surChangement, synchroniser } from '../src/file-attente.ts';
 import { appliquer, aucunChangement, differences } from '../src/modification.ts';
 import { simulation as sim } from './mocks/supabase-simule.js';
 
@@ -154,6 +154,33 @@ verifier(l7.length === 1 && l7[0].type === 'photos' && !l7[0].reparation_id && f
 sim.reseau = true;
 reste = await synchroniser();
 verifier(reste === 0 && fs.readdirSync(D).length === 0, 'la photo de la fuite part au retour du réseau');
+
+console.log('8. Les écrans ne rechargent qu\'à un vrai changement de la file (synchro des 30 s au repos)');
+let prevenus = 0;
+const arreter = surChangement(() => { prevenus += 1; });
+sim.journal = [];
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 0 && sim.journal.length === 0, 'file vide : aucune requête, aucun écran prévenu', { prevenus, journal: sim.journal });
+sim.reseau = false;
+await mettreEnAttente({ id: uuid(), marche_id: M, position: null, photos: [], ligne: { adresse: 'Sans réseau' } });
+prevenus = 0;
+reste = await synchroniser();
+verifier(reste === 1 && prevenus === 0, 'sans réseau : file inchangée, aucun écran prévenu', prevenus);
+sim.reseau = true;
+reste = await synchroniser();
+verifier(reste === 0 && prevenus === 1, 'envoi fait : écrans prévenus une fois (statuts recalculés par le serveur)', prevenus);
+sim.verrouillees.add(F);
+await ajouterEnvoi({ ...modif, id: uuid(), photos: [], changements: { ...VIDE, ligne: { observation: 'refusée' } } });
+await ajouterEnvoi({ type: 'photos', id: uuid(), marche_id: M, fuite_id: F, fuite_libelle: 'x', photos: [photo('detection')] });
+prevenus = 0;
+await synchroniser();
+const auRefus = prevenus;
+await synchroniser();
+await synchroniser();
+verifier(auRefus === 1 && prevenus === 1, 'saisie refusée : prévenus au refus, pas à chaque nouvel essai (même erreur, rien de réécrit)', { auRefus, prevenus });
+for (const e of await lireAttente()) await abandonner(e.id);
+sim.verrouillees.clear();
+arreter();
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 process.exit(ko ? 1 : 0);

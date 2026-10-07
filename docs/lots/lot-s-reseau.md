@@ -220,7 +220,7 @@ sur données fictives (MapLibre réel, Supabase simulé) si possible.
 ## 6. APK (S4)
 
 - Dépendance `react-native-webview` (version du `bundledNativeModules.json` de l'Expo installé).
-- Écran **Balayage** : WebView plein écran sur `${EXPO_PUBLIC_WEB_URL ?? 'https://suivi-fuites-web.vercel.app'}/session#access_token=…&refresh_token=…&suite=/carte?mode=balayage`
+- Écran **Balayage** : WebView plein écran sur `${EXPO_PUBLIC_WEB_URL ?? 'https://fuites.stepag.ma'}/session#access_token=…&refresh_token=…&suite=/carte?mode=balayage`
   (jetons de la session Supabase courante, dans le **fragment**, jamais en paramètre de requête) ; bouton retour
   Android ; géolocalisation autorisée dans la WebView ; message clair sans réseau (la carte a besoin de la connexion).
 - Bouton « Balayage » dans la barre de la liste, visible avec le droit `balayage / lire` ; `types.ts` : `'balayage'`

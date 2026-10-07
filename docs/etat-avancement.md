@@ -3,10 +3,11 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-06 (session 8 : **nouvelle interface « Studio Admin » (shadcn/ui) adoptée**, **lot S** (réseau,
-balayage par tronçon, rapport journalier) et **lot T** (articles Dolibarr, ajusté : activation par l'admin ou le responsable,
-plus de pièce libre) réunis dans la PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39), fusionnée et déployée ;
-reste à faire par Issam : importer `produits.csv` et activer les articles, puis importer le réseau ; voir § 2 et § 7).
+Dernière mise à jour : 2026-10-07 (session 9 : **plan du réseau recalé sur les rues OSM** (5,7 m ouest, 6,6 m nord),
+**dossier d'import prêt** `data-private/IMPORT-RESEAU/` (fichiers numérotés + aperçu en double-clic), import guidé et
+compteur de la carte corrigés (branche `claude/reseau-simplification`, PR à ouvrir), **note de briefing** « Briefing Réseau
+et balayage » (Claude Docs) ; reste à faire par Issam : importer le réseau (§ 7), importer `produits.csv` et activer les
+articles (§ 2)).
 
 ## 1. Fait
 
@@ -305,12 +306,20 @@ encore en production** : import par Paramètres > Réseau (administrateur), avec
 | Matrice des droits : lignes Balayage (voir, cocher, annuler les siens, annuler ceux des autres) | `web/src/app/(app)/utilisateurs/matrice.ts` | vérifié |
 | **Essai de bout en bout en local** : vrai réseau importé dans une base PostgreSQL 17 servie par PostgREST, panneau web de la branche : carte et coloration, carte de zonage (8 862 tronçons affectés d'un coup), balayage enregistré depuis la carte, journal, rapport PDF de 2 pages avec extrait de plan ; correctif « Enregistrer… » | `data-private/essai-web/` (hors dépôt) | fait le 2026-10-06 ; reste l'essai sur l'aperçu Vercel avec la vraie base |
 
+**Session 9 (2026-10-07)** : décalage systématique constaté par Issam à fort zoom ; mesuré par fenêtres de 800 m
+(`outils/reseau/recaler.py`) : translation de **5,7 m vers l'ouest et 6,6 m vers le nord** (transformation Merchich
+annoncée à 7 m) ; corrections locales et affines essayées, écartées par validation croisée (fenêtres bruitées de ± 4 m) ;
+vérifié à l'œil (centre, Lazaret, Oued Loukous) ; Sidi Yahya : plan et OSM divergent, non corrigeable. L'ancien contrôle
+(`controler_calage.py`, « 1 à 2 m ») sous-estimait le décalage. Sorties recalées : `data-private/reseau/recale/` ;
+dossier d'import : `data-private/IMPORT-RESEAU/` (`preparer_import.py`). Causes de « je ne vois rien » : aucun import
+encore ; `apercu.html` ouvert en `file://` (fetch bloqué) ; `outils/reseau/secteurs.json` choisi au lieu du GeoJSON.
+
 **À faire par Issam (lot S)** :
-1. Relire le zonage sur l'aperçu (`data-private/reseau/apercu.html`, `python3 -m http.server 8765` dans ce dossier)
-   et dire si les noms et contours des 34 secteurs sont justes (planches comprises).
-2. Laisser passer la CI, essayer l'aperçu Vercel, puis « fusionner ». Ensuite, **avec son accord**, importer le
-   réseau en production : Paramètres > Réseau > Import (`secteurs.geojson`, `troncons.geojson`, `noeuds.geojson`),
-   puis affecter les 229 km non zonés sur la carte de zonage.
+1. Relire le zonage : double-clic sur `data-private/IMPORT-RESEAU/APERCU-RESEAU.html` (plan recalé) ; dire si les
+   noms et contours des 34 secteurs sont justes.
+2. Importer le réseau (DEMO d'abord conseillé, puis SRM) : Paramètres > Réseau > Importer le GeoJSON,
+   `1-contours-secteurs.geojson`, `2-troncons.geojson`, `3-noeuds.geojson` du même dossier ; puis affecter les
+   229 km non zonés sur la carte de zonage. Mode d'emploi détaillé : note « Briefing Réseau et balayage ».
 3. Essayer l'APK (artefact de la CI) : bouton Balayage, cocher quelques tronçons, rapport du jour.
 4. Questions : le chef de réparation doit-il voir le journal des balayages ? (non pour l'instant) ; le linéaire
    payé par secteur doit-il venir du dessin (`v_lineaire_secteurs`) ou d'un relevé contradictoire ? ; la SRM

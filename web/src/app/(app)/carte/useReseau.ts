@@ -187,6 +187,8 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     if (secteurId === SANS_SECTEUR) return contexte.sansSecteur ? `${contexte.sansSecteur.nb_troncons}:${contexte.sansSecteur.lineaire_m}` : '0';
     return contexte.lignes.find((l) => l.secteur_id === secteurId)?.modifie_le ?? null;
   }, [contexte]);
+  const estampilleCourante = useRef(estampille);
+  estampilleCourante.current = estampille;
 
   // Chargement des tronçons des secteurs cochés (3 à la fois), nœuds à partir du zoom 15.
   useEffect(() => {
@@ -199,22 +201,26 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     const taches: (() => Promise<void>)[] = [
       ...aCharger.map((id) => async () => {
         enCours.current.add(`t:${id}`);
+        const e = estampille(id);
         try {
-          const data = await chargerTronconsSecteur(marcheId, id, estampille(id));
-          if (annule) return;
+          const data = await chargerTronconsSecteur(marcheId, id, e);
+          // Arrivé après une annulation (zoom, case décochée), le résultat reste bon tant que la géométrie du
+          // secteur n'a pas changé : on le garde, car l'effet suivant ne l'a pas redemandé (il était en cours).
+          if (estampilleCourante.current(id) !== e) return;
           troncons.current.set(id, data);
           for (const [k, v] of indexerTroncons(data.features)) index.current.set(k, v);
-        } catch (e) {
-          if (!annule) setErreur(messageReseau(e));
+        } catch (erreurChargement) {
+          if (!annule) setErreur(messageReseau(erreurChargement));
         } finally {
           enCours.current.delete(`t:${id}`);
         }
       }),
       ...noeudsACharger.map((id) => async () => {
         enCours.current.add(`n:${id}`);
+        const e = estampille(id);
         try {
-          const data = await chargerNoeudsSecteur(marcheId, id, estampille(id));
-          if (!annule) noeuds.current.set(id, data);
+          const data = await chargerNoeudsSecteur(marcheId, id, e);
+          if (estampilleCourante.current(id) === e) noeuds.current.set(id, data);
         } catch {
           /* les nœuds sont accessoires */
         } finally {
@@ -223,23 +229,23 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
       }),
     ];
     if (!taches.length) return;
-    setNbEnChargement((n) => n + taches.length);
-    (async () => {
-      const file = [...taches];
-      const ouvrier = async () => {
-        while (file.length) {
-          const t = file.shift()!;
-          await t();
-          if (!annule) {
-            setNbEnChargement((n) => Math.max(0, n - 1));
-            setVersion((v) => v + 1);
-          }
-        }
-      };
-      await Promise.all(Array.from({ length: Math.min(CHARGEMENTS_PARALLELES, file.length) }, ouvrier));
-    })();
+    const file = [...taches];
+    setNbEnChargement((n) => n + file.length);
+    // Chaque tâche lancée est décomptée, même annulée ; à l'annulation (zoom, case décochée), la file restante
+    // est abandonnée et décomptée d'un coup : l'effet suivant la reprend. Sinon le compteur ne redescend jamais.
+    const ouvrier = async () => {
+      while (file.length && !annule) {
+        const t = file.shift()!;
+        await t();
+        setNbEnChargement((n) => Math.max(0, n - 1));
+        setVersion((v) => v + 1);
+      }
+    };
+    void Promise.all(Array.from({ length: Math.min(CHARGEMENTS_PARALLELES, file.length) }, ouvrier));
     return () => {
       annule = true;
+      setNbEnChargement((n) => Math.max(0, n - file.length));
+      file.length = 0;
     };
   }, [actif, marcheId, contexte, choisis, zoom, estampille]);
 

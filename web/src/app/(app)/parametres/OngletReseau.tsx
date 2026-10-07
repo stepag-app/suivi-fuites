@@ -1,7 +1,8 @@
 'use client';
 
 // Paramètres > Réseau (administrateur ou « paramètres / modifier ») : tableau des secteurs depuis
-// v_lineaire_secteurs (tronçons, linéaire, % balayé, linéaire du contrat, écart), ligne « Non zonés »,
+// v_lineaire_secteurs (tronçons, linéaire, % balayé, linéaire du contrat, écart), sous-total par zone
+// (le CPS ne fixe le linéaire du contrat que par zone), ligne « Non zonés »,
 // carte de zonage plein écran, import GeoJSON (administrateur).
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -48,7 +49,15 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
   const lignes = useMemo(() => new Map((contexte?.lignes ?? []).map((l) => [l.secteur_id, l])), [contexte]);
   const totalTroncons = arbre.reduce((t, z) => t + z.nbTroncons, 0) + (Number(contexte?.sansSecteur?.nb_troncons) || 0);
   const totalLineaire = arbre.reduce((t, z) => t + z.lineaire, 0) + (Number(contexte?.sansSecteur?.lineaire_m) || 0);
-  const totalContrat = (contexte?.lignes ?? []).reduce((t, l) => t + (Number(l.lineaire_contrat_m) || 0), 0);
+  const contratZones = useMemo(() => new Map((contexte?.zones ?? []).map((z) => [z.id, z.lineaire_m != null ? Number(z.lineaire_m) : null])), [contexte]);
+  // Le contrat de la zone prime ; à défaut, somme des secteurs renseignés.
+  const contratZone = (z: { id: string; secteurs: { id: string }[] }) => {
+    const c = contratZones.get(z.id);
+    if (c != null && c > 0) return c;
+    const somme = z.secteurs.reduce((t, s) => t + (Number(lignes.get(s.id)?.lineaire_contrat_m) || 0), 0);
+    return somme > 0 ? somme : null;
+  };
+  const totalContrat = arbre.reduce((t, z) => t + (contratZone(z) ?? 0), 0);
   const nbSans = Number(contexte?.sansSecteur?.nb_troncons) || 0;
 
   const ecart = (reel: number, contrat: number | null) => {
@@ -104,7 +113,7 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
                 </tr>
               </thead>
               <tbody>
-                {arbre.flatMap((z) => z.secteurs.map((s, i) => {
+                {arbre.flatMap((z) => [...z.secteurs.map((s, i) => {
                   const l = lignes.get(s.id);
                   const statut = l?.statut_balayage ?? 'a_balayer';
                   return (
@@ -124,7 +133,17 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
                       <td className="num">{nombre(Number(l?.nb_noeuds) || 0, 0)}</td>
                     </tr>
                   );
-                }))}
+                }), (
+                  <tr key={`${z.id}-total`} className={styles['total-zone']}>
+                    <td colSpan={3}>Total zone {z.numero}</td>
+                    <td className="num">{nombre(z.nbTroncons, 0)}</td>
+                    <td className="num">{formaterLineaire(z.lineaire)}</td>
+                    <td className="num">{z.lineaire > 0 ? `${nombre(z.pct, 1)} %` : '—'}</td>
+                    <td className="num">{contratZone(z) != null ? formaterLineaire(contratZone(z) ?? 0) : '—'}</td>
+                    <td className="num">{ecart(z.lineaire, contratZone(z))}</td>
+                    <td className="num">{nombre(z.secteurs.reduce((t, s) => t + (Number(lignes.get(s.id)?.nb_noeuds) || 0), 0), 0)}</td>
+                  </tr>
+                )])}
                 <tr className={nbSans > 0 ? '' : 'discret'}>
                   <td>—</td>
                   <td>Non zonés</td>
@@ -139,7 +158,7 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
                   <td colSpan={3}>Total du marché</td>
                   <td className="num">{nombre(totalTroncons, 0)}</td>
                   <td className="num">{formaterLineaire(totalLineaire)}</td>
-                  <td className="num">—</td>
+                  <td className="num">{totalLineaire > 0 ? `${nombre((arbre.reduce((t, z) => t + z.lineaireBalaye, 0) / totalLineaire) * 100, 1)} %` : '—'}</td>
                   <td className="num">{totalContrat > 0 ? formaterLineaire(totalContrat) : '—'}</td>
                   <td className="num">{ecart(totalLineaire, totalContrat > 0 ? totalContrat : null)}</td>
                   <td className="num">{nombre((contexte?.lignes ?? []).reduce((t, l) => t + (Number(l.nb_noeuds) || 0), 0), 0)}</td>

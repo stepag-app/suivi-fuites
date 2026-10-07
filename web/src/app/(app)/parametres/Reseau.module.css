@@ -223,3 +223,8 @@
     border-bottom: 1px solid var(--bord);
   }
 }
+
+.total-zone td {
+  font-weight: 600;
+  background: var(--zebre);
+}

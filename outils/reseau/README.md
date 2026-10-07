@@ -4,23 +4,35 @@ Chaîne locale, sur le Mac, sans service payant ni outil externe à l'exécution
 du plan (DWG, DXF, GeoJSON produits) restent **hors du dépôt**, dans `data-private/reseau/` (ignoré par git).
 Seuls ces scripts et les tables de correspondance sont versionnés.
 
-## Système de coordonnées (vérifié le 2026-10-06)
+## Système de coordonnées (vérifié le 2026-10-06, recalé le 2026-10-07)
 
 Le dessin `Reseau aep oujda.dwg` est en **Lambert Nord Maroc, datum Merchich (EPSG:26191)**, le système le plus
 utilisé dans le nord du Maroc (Oujda est dans la zone Nord). Conversion vers WGS84 (le système du GPS des
 tablettes et de la carte) par la transformation EPSG standard « Merchich to WGS 84 (1) » (translation
 31, 146, 47 m ; précision annoncée 7 m).
 
-Contrôle sur 4 000 sommets de conduites comparés aux rues d'OpenStreetMap :
+**Recalage (2026-10-07)** : la transformation n'est annoncée qu'à 7 m près et le dessin converti gardait un
+décalage systématique visible à fort zoom (conduites à côté des rues). `recaler.py` cherche la translation qui
+met le plus de conduites **sur** les rues OSM (critère 1 − exp(−d² / 2σ²), σ = 3 m, estimé par fenêtres de
+800 m) : **5,7 m vers l'ouest et 6,6 m vers le nord** (8,8 m). Corrections locales (champ lissé, puis modèle
+affine) essayées et écartées : les fenêtres sont bruitées de ± 4 m (conduites sous un trottoir ou sous les
+deux) et la validation croisée ne montre aucun gain.
 
-| Mesure | Valeur |
-|---|---|
-| Distance médiane conduite → axe de la rue | 4,0 m (conduites sous trottoir ou chaussée) |
-| 90 % des sommets à moins de | 12 m |
-| Décalage moyen systématique | 1 à 2 m (négligeable) |
+| Distance conduite → rue OSM la plus proche | Avant | Après recalage |
+|---|---:|---:|
+| Médiane | 5,0 m | 4,5 m |
+| À moins de 2 m | 24 % | 25 % |
+| À moins de 3 m | 34 % | 36 % |
+| À moins de 5 m | 50 % | 54 % |
 
-Un point GPS de la tablette (précision 3 à 5 m en ville) tombe donc sur la bonne conduite ou sa voisine
-immédiate. Aucun recalage n'est nécessaire.
+Vérifié à l'œil (centre-ville, Lazaret, quartier Oued Loukous / Oum Rabia) : les conduites tombent sur les
+rues. L'écart restant (quelques mètres) vient du dessin lui-même (conduites sous trottoir, tracés schématiques
+du SIG) et de la précision d'OSM ; à Sidi Yahya, le plan et OSM ne dessinent pas les rues de la même façon.
+Un point GPS de la tablette (3 à 5 m en ville) tombe sur la bonne conduite ou sa voisine immédiate.
+
+`controler_calage.py` moyenne le vecteur vers la rue la plus proche : les conduites des deux trottoirs se
+compensent, il sous-estime un décalage systématique (il annonçait 1 à 2 m avant recalage). Il sert à
+télécharger les rues OSM ; la mesure qui fait foi est le rapport de `recaler.py` (`recale/recalage.md`).
 
 ## Pré-requis (une fois)
 
@@ -52,12 +64,20 @@ python3 outils/reseau/zoner.py --extrait data-private/reseau/extrait.pkl \
 python3 outils/reseau/convertir.py --extrait data-private/reseau/extrait.pkl --secteurs outils/reseau/secteurs.json \
   --zonage data-private/reseau/zonage.json --planches data-private/reseau/planches/planches.geojson \
   --sortie data-private/reseau
-# 6. Contrôle du calage sur OpenStreetMap
+# 6. Contrôle du calage sur OpenStreetMap (télécharge aussi les rues dans rues-osm.geojson)
 python3 outils/reseau/controler_calage.py data-private/reseau/troncons.geojson
+# 7. Recalage fin sur les rues OSM (translation globale ; corrections locales si la validation croisée y gagne ; cinq minutes)
+python3 outils/reseau/recaler.py --source data-private/reseau --sortie data-private/reseau/recale
+# 8. Dossier d'import prêt à l'emploi (fichiers numérotés + aperçu ouvrable d'un double-clic)
+python3 outils/reseau/preparer_import.py --source data-private/reseau/recale
 ```
 
-Aperçu : `apercu.html` copié dans `data-private/reseau/`, servi par `python3 -m http.server 8765` dans ce
-dossier (configuration `apercu-reseau` de `.claude/launch.json`).
+**Import** : `data-private/IMPORT-RESEAU/` contient `1-contours-secteurs.geojson`, `2-troncons.geojson`,
+`3-noeuds.geojson` (à choisir dans cet ordre dans Paramètres > Réseau > Importer le GeoJSON), `LISEZ-MOI.txt`
+et `APERCU-RESEAU.html` : un double-clic l'ouvre dans Chrome, sans serveur (les données sont dans
+`donnees-apercu.js`, chargé par une balise `<script>` ; `fetch` est bloqué en `file://`). L'aperçu marche
+aussi servi par `python3 -m http.server 8765` dans `data-private/reseau/` (configuration `apercu-reseau`
+de `.claude/launch.json`).
 
 ## Ce que contient le dessin
 

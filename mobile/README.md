@@ -87,6 +87,19 @@ d'environ 20 à 13 min. Un émulateur x86_64 (PC Windows, Mac Intel) ne la lance
 Android 11 et plus, plus lent) et la refuse sur les images plus anciennes (`INSTALL_FAILED_NO_MATCHING_ABIS`) : pour
 un tel essai, rajouter `x86_64` à la liste le temps d'une compilation.
 
+**Bibliothèques natives compressées** (depuis le 2026-10-07) : `useLegacyPackaging: true` d'`expo-build-properties` dans
+`app.json`, repris dans `expo.useLegacyPackaging` de `android/gradle.properties`. Les `.so` sont rangés compressés dans
+l'APK (`Defl:N` dans `unzip -v`) : bibliothèques ARM de 29,1 à 10,8 Mo, APK de 42,6 à **24,1 Mo**, soit 18,5 Mo de
+moins à faire passer sur la tablette (l'artefact zippé de GitHub ne change presque pas, 21,9 puis 21,5 Mo : le zip
+compressait déjà les `.so`). Le compromis : Android extrait les bibliothèques à l'installation (`extractNativeLibs`),
+mais seulement celles de l'architecture de l'appareil, 17,2 Mo en `arm64-v8a` (11,9 Mo sur un Android 32 bits) ; l'APK
+qu'il garde ayant maigri de 18,5 Mo, la place prise par l'appli ne grossit pas (émulateur : APK et bibliothèques de
+42,6 à 41,2 Mo, taille de l'appli dans les Réglages de 65,9 à 64,8 Mo). L'extraction prend de 0,2 à 2,9 s selon la
+charge de l'émulateur (journal d'Android) ; la durée d'installation dépend surtout de la compilation du code par
+Android, la même pour les deux versions, et le démarrage à froid ne change pas de façon mesurable (comparaison
+alternée sur l'émulateur : médiane 2,6 s contre 3,6 s avant, de 1,2 à 4,6 s d'un essai à l'autre). Pour revenir aux
+`.so` non compressés : retirer la clé (ou la mettre à `false`).
+
 L'APK est **signé avec la clé de test d'Expo** : suffisant pour les essais sur la tablette de test.
 **Avant toute distribution aux agents**, créer un keystore de production **hors du dépôt**, en deux copies
 (sans lui, plus aucune mise à jour possible par-dessus une version installée) et le brancher dans le workflow.

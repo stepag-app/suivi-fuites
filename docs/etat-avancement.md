@@ -106,9 +106,24 @@ Vérifié par l'essai sans pile avec le vrai client Supabase (25 vérifications,
 - « Quitter » : écran Connexion en moins de 3 s ;
 - APK d'origine remise ensuite.
 
-**Reste lent** : sans réseau, auth-js réessaie le renouvellement près de 25 s (44 s sur l'émulateur) avant d'ouvrir la
-liste. La PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54) (autre session, même défaut, correctif partiel)
-est à fermer si la #56 est fusionnée.
+**Ouverture rapide : PR [#57](https://github.com/stepag-app/suivi-fuites/pull/57), empilée sur la #56, à fusionner
+après elle, sur accord d'Issam.** Avec la #56 seule, l'ouverture restait lente : auth-js réessaie le renouvellement
+près de 25 s avant de rendre la main, et les requêtes de la liste attendaient ce jeton. Sur l'émulateur (DNS en panne),
+la liste arrivait 80 à 100 s après le lancement. Avec la #57 :
+- l'appli n'attend le renouvellement que 1,5 s, puis s'ouvre sur les copies de la tablette (contexte, liste, fiches,
+  paramètres, secteurs) ; aucune requête ne part tant que le jeton n'est pas renouvelé ;
+- « Quitter » et « Enregistrer » répondent aussitôt, même pendant les reprises d'auth-js ;
+- mesures : liste au bout de 1,5 s simulées (25,4 s avant) ; sur l'émulateur, 3,7 s après le début du JS (68,6 et
+  89,0 s avant), soit 14,9 s après le lancement, dont 11 s de démarrage lent de l'émulateur (Mac sur batterie presque
+  vide) ;
+- essai sans pile : 38 vérifications.
+
+**Conflit à résoudre avant la fusion de la #56** : la PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54)
+(autre session, correctif partiel du même défaut) a été **fusionnée** le 2026-10-07 à 13 h 33 UTC au lieu d'être
+fermée. La #56 (et donc la #57) est en conflit avec `main` sur deux fichiers :
+- `mobile/src/session.tsx` : garder la version de la #56 ;
+- `mobile/src/supabase.ts` : garder `CLE_SESSION` et retirer `cleSessionStockee` (même valeur, plus utilisée).
+
 Sur l'émulateur du Mac, la première connexion à un nouveau nom d'hôte prend une dizaine de secondes (DNS du routeur
 local) : premier chargement, vignettes et carte du Balayage lents à l'ouverture, sans lien avec l'appli.
 

@@ -19,3 +19,6 @@ export const supabase = createClient(url || 'https://exemple.supabase.co', cle |
   // Toute requête (API, connexion, photos) abandonnée passé un délai : voir reseau.ts.
   global: { fetch: fetchAvecDelai },
 });
+
+// Clé de la session dans le stockage (convention de supabase-js), pour la relire sans réseau.
+export const cleSessionStockee = `sb-${new URL(url || 'https://exemple.supabase.co').hostname.split('.')[0]}-auth-token`;

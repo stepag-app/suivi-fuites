@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { configurationManquante, supabase } from './supabase';
+import { cleSessionStockee, configurationManquante, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
 
 type Action = 'lire' | 'creer' | 'valider' | 'modifier' | 'supprimer';
@@ -38,9 +38,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setChargement(false);
       return;
     }
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (!data.session) setChargement(false);
+    supabase.auth.getSession().then(async ({ data }) => {
+      let courante = data.session;
+      if (!courante) {
+        // Jeton expiré et pas de réseau : getSession() renvoie null alors que la session est stockée.
+        // On la relit pour ouvrir la liste hors ligne ; supabase-js la renouvelle au retour du réseau.
+        try {
+          const brut = JSON.parse((await AsyncStorage.getItem(cleSessionStockee)) ?? 'null');
+          if (brut?.user?.id) courante = brut as Session;
+        } catch {
+          courante = null;
+        }
+      }
+      setSession(courante);
+      if (!courante) setChargement(false);
     });
     const { data } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);

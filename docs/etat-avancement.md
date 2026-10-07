@@ -118,6 +118,19 @@ la liste arrivait 80 à 100 s après le lancement. Avec la #57 :
   vide) ;
 - essai sans pile : 38 vérifications.
 
+**Jeton qui expire pendant l'utilisation hors ligne : PR [#58](https://github.com/stepag-app/suivi-fuites/pull/58),
+empilée sur la #57, à fusionner après elle, sur accord d'Issam.** Avec la #57, l'état « jeton à renouveler » n'était
+posé qu'au démarrage. Appli ouverte, réseau perdu, le jeton (valable 1 h) n'est plus renouvelé et auth-js ne prévient
+pas : « Quitter » attendait jusqu'à 25 s, le contrôle des doublons et les lectures attendaient de même, puis partaient
+avec la clé anonyme (refusées). Avec la #58 :
+- 90 s avant l'échéance du jeton (marge d'auth-js), s'il n'a pas été renouvelé, l'appli passe sur les copies de la
+  tablette, sans requête, jusqu'au renouvellement ; contrôle aussi au retour au premier plan (tablette en veille) ;
+- une lecture lancée par un écran pas encore prévenu (mise à jour de la liste au retour sur l'appli, contrôle des
+  doublons) ne part pas non plus ; « Quitter » et « Enregistrer » répondent aussitôt ;
+- avec le réseau, rien ne change : auth-js renouvelle le jeton avant ce moment-là ;
+- essai sans pile : 52 vérifications (cas 9 et 10 ; 9 en échec sur le code de la #57). Pas d'essai sur l'émulateur :
+  il était arrêté.
+
 **Conflit à résoudre avant la fusion de la #56** : la PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54)
 (autre session, correctif partiel du même défaut) a été **fusionnée** le 2026-10-07 à 13 h 33 UTC au lieu d'être
 fermée. La #56 (et donc la #57) est en conflit avec `main` sur deux fichiers :

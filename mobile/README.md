@@ -86,13 +86,16 @@ la base).
   après la création, coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai
   sur une horloge simulée, jamais la clé anonyme).
 - `node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs` : démarrage sans réseau avec un jeton
-  expiré, sur une horloge simulée, 38 vérifications :
+  expiré, sur une horloge simulée, 52 vérifications :
   - durée d'ouverture : liste de la tablette au bout de 1,5 s, contre 25,4 s mesurées pour l'ancien chemin ;
   - « Quitter » et « Enregistrer » pendant les reprises d'auth-js ;
   - rien d'envoyé sans jeton valide, puis envoi après le renouvellement ; arrière-plan et premier plan ;
   - jeton expiré pendant un envoi, refus du serveur, « Quitter » avec et sans réseau ;
   - ouverture avec réseau : jeton valide, expiré renouvelé à temps, réseau lent, refus après le délai, événement
     d'auth-js jamais écrasé par l'état de départ.
+  - jeton qui expire pendant l'utilisation sans réseau : à renouveler 90 s avant l'échéance, aucune requête (même
+    lancée par un écran pas encore prévenu, même réseau revenu avant le renouvellement), « Quitter » aussitôt au réveil
+    de la tablette, retour normal après le renouvellement.
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
 photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications

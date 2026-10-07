@@ -182,10 +182,11 @@ export async function chargerContexte(uid: string, aRenouveler: boolean, affiche
 }
 
 /**
- * « Quitter ». Jeton à renouveler (hors ligne, au démarrage ou en cours d'utilisation) : `signOut` d'auth-js tenterait d'abord un renouvellement (près de 25 s
- * sans réseau), puis rendrait une erreur sans rien effacer. La session est alors retirée de la tablette sans appel au
- * serveur : son jeton de renouvellement n'est pas révoqué, mais la tablette ne le garde plus. L'événement SIGNED_OUT
- * suit, mais pas tout de suite au démarrage (fin des reprises d'auth-js) : l'appelant ferme la session lui-même.
+ * « Quitter ». Jeton à renouveler (hors ligne, au démarrage ou en cours d'utilisation) : `signOut` d'auth-js
+ * tenterait d'abord un renouvellement (près de 25 s sans réseau), puis rendrait une erreur sans rien effacer. La session
+ * est alors retirée de la tablette sans appel au serveur : son jeton de renouvellement n'est pas révoqué, mais la
+ * tablette ne le garde plus. L'événement SIGNED_OUT suit, mais pas tout de suite pendant les reprises d'auth-js :
+ * l'appelant ferme la session lui-même.
  */
 export async function fermerSession(aRenouveler: boolean) {
   if (!aRenouveler && !jetonARenouveler() && !(await supabase.auth.signOut()).error) return;

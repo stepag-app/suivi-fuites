@@ -11,7 +11,8 @@ export const DELAI_PHOTO_MS = 3 * 60 * 1000;
 const delaiDe = (init?: RequestInit) => (init?.body == null || typeof init.body === 'string' ? DELAI_API_MS : DELAI_PHOTO_MS);
 
 // Nommée AbortError, comme un abandon : supabase-js ne relance pas la requête (une lecture le serait trois fois de plus,
-// sur la même connexion morte). « timeout » la classe en coupure dans la file d'attente (`erreurReseau`).
+// sur la même connexion morte). « timeout » la classe en coupure dans la file d'attente (`erreurReseau`) : message
+// technique, jamais affiché aux agents, à ne pas passer par t() (traduit, il perdrait ce mot).
 function delaiDepasse(ms: number) {
   const e = new Error(`timeout : pas de réponse du serveur en ${ms / 1000} s`);
   e.name = 'AbortError';

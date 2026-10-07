@@ -1,7 +1,7 @@
 // Dictionnaire de l'APK : la clé est le texte français affiché dans le code (avec {repères} remplis à l'affichage).
 // `ar` : arabe classique ; `hyb` : mode hybride, absent = comme `ar`. Règle d'Issam (2026-10-07) : en hybride, une
-// phrase arabe ne garde un mot français que s'il s'agit de « Réfection » ; les libellés entièrement en français
-// (Balayage, Secteur, listes de choix…) restent en français. Tout relu et validé par Issam dans l'artefact
+// phrase arabe ne garde un mot français que s'il s'agit de « Réfection » (et « Polyethylene », version d'Issam) ;
+// les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent, sauf ceux des fuites (en arabe). Tout relu et validé par Issam dans l'artefact
 // « Dictionnaire arabe APK » (docs/traduction/).
 
 export interface Entree { ar: string; hyb?: string }
@@ -32,7 +32,7 @@ export const TRADUCTIONS = {
   'Connexion…': { ar: 'جارٍ الدخول…' },
 
   // Liste des fuites
-  'Fuites · {code}': { ar: 'التسربات · {code}', hyb: 'Fuites · {code}' },
+  'Fuites · {code}': { ar: 'التسربات · {code}' },
   'Balayage': { ar: 'مسح الشبكة', hyb: 'Balayage' },
   'Hors ligne : dernière liste connue.': { ar: 'دون اتصال: آخر قائمة محفوظة.' },
   'Aucune fuite.': { ar: 'لا يوجد أي تسرب.' },
@@ -44,7 +44,7 @@ export const TRADUCTIONS = {
   'Y aller': { ar: 'الذهاب إلى الموقع' },
   'Y aller (pas de position GPS)': { ar: 'الذهاب إلى الموقع (لا يوجد موقع GPS)' },
   'Référence client': { ar: 'مرجع الزبون' },
-  'Fuites': { ar: 'التسربات', hyb: 'Fuites' },
+  'Fuites': { ar: 'التسربات' },
   'Toutes': { ar: 'الكل' },
   '{n} fuites': { ar: 'عدد التسربات: {n}' },
   '{n} affichées sur {total}': { ar: 'المعروضة: {n} من {total}' },
@@ -235,7 +235,7 @@ export const TRADUCTIONS = {
   'Collier PEC changé': { ar: 'طوق التفريع مُستبدَل' },
   'Bouche à clé mise à niveau': { ar: 'غطاء المحبس مُسوّى مع السطح' },
   'Élément de conduite remplacé': { ar: 'عنصر من القناة مُستبدَل' },
-  'Longueur de PE posée (m)': { ar: 'طول أنبوب البولي إيثيلين المُركَّب (م)' },
+  'Longueur de PE posée (m)': { ar: 'طول أنبوب البولي إيثيلين المُركَّب (م)', hyb: 'طول الـ Polyethylene المُركَّب (م)' },
   'Fouille': { ar: 'الحفرة', hyb: 'Fouille' },
   'Longueur (m)': { ar: 'الطول (م)' },
   'Largeur (m)': { ar: 'العرض (م)' },

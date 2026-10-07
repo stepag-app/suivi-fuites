@@ -94,7 +94,7 @@ td.note textarea { margin-top: 0; font-size: .88rem }
       <li><span class="ph">{n}</span>, <span class="ph">{date}</span>… sont des valeurs remplies par l'application (nombre, date, numéro). Gardez-les dans vos variantes.</li>
       <li>« identique à l'arabe » : la phrase ne contient aucun terme du glossaire, le mode hybride affiche donc la version arabe.</li>
       <li>Si vous décochez un terme du glossaire, je reprendrai les phrases hybrides qui le contiennent : inutile de les corriger une par une.</li>
-      <li><b>Règle appliquée le 7 octobre :</b> en mode hybride, une phrase en arabe ne garde un mot français que s'il s'agit de « Réfection » ; toutes les autres phrases mêlant arabe et français passent en arabe complet. Les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent en français. Les 49 nouveaux libellés (Z01 à Z49) sont acceptés.</li>
+      <li><b>Règle appliquée le 7 octobre :</b> en mode hybride, une phrase en arabe ne garde un mot français que s'il s'agit de « Réfection » ; toutes les autres phrases mêlant arabe et français passent en arabe complet. Exceptions : votre version « Polyethylene » (R24) est gardée, et les titres des fuites (« Fuites », « Fuites · marché ») passent en arabe. Les autres libellés entièrement en français (Balayage, Secteur, listes de choix…) restent en français. Les 49 nouveaux libellés (Z01 à Z49) sont acceptés.</li>
       <li>Hors de ce dictionnaire : les listes saisies dans le panneau (natures de revêtement, motifs, équipes) et les désignations des articles Dolibarr. Je les traiterai à part.</li>
     </ul>
   </div>
@@ -191,7 +191,7 @@ const LIBELLES = [
   ["A13","Général","Annuler",null,"إلغاء"],
   ["A14","Général","Oui / Non",null,"نعم / لا"],
 
-  ["L01","Liste des fuites","Fuites · {marché}","Fuites · {marché}","التسربات · {marché}"],
+  ["L01", "Liste des fuites", "Fuites · {marché}", null, "التسربات · {marché}"],
   ["L02", "Liste des fuites", "+ Nouvelle fuite", null, "+ تسرب جديد"],
   ["L03","Liste des fuites","Balayage","Balayage","مسح الشبكة"],
   ["L04","Liste des fuites","{n} envoi(s) en attente",null,"في انتظار الإرسال: {n}"],
@@ -343,7 +343,7 @@ const LIBELLES = [
   ["R21", "Saisie réparation", "Collier PEC changé", null, "طوق التفريع مُستبدَل"],
   ["R22", "Saisie réparation", "Bouche à clé mise à niveau", null, "غطاء المحبس مُسوّى مع السطح"],
   ["R23", "Saisie réparation", "Élément de conduite remplacé", null, "عنصر من القناة مُستبدَل"],
-  ["R24", "Saisie réparation", "Longueur de PE posée (m)", null, "طول أنبوب البولي إيثيلين المُركَّب (م)"],
+  ["R24", "Saisie réparation", "Longueur de PE posée (m)", "طول الـ Polyethylene المُركَّب (م)", "طول أنبوب البولي إيثيلين المُركَّب (م)"],
   ["R25","Saisie réparation","Fouille","Fouille","الحفرة"],
   ["R26","Saisie réparation","Longueur (m)",null,"الطول (م)"],
   ["R27","Saisie réparation","Largeur (m)",null,"العرض (م)"],
@@ -428,7 +428,7 @@ const LIBELLES = [
   ["Z04","Nouveaux libellés","ex. agent1",null,"مثال: agent1"],
   ["Z05","Nouveaux libellés","La session reste ouverte sur cette tablette jusqu'à « Quitter ».",null,"تبقى الجلسة مفتوحة على هذا الجهاز اللوحي إلى أن تضغط «خروج»."],
   ["Z06","Nouveaux libellés","Connexion…",null,"جارٍ الدخول…"],
-  ["Z07","Nouveaux libellés","Fuites","Fuites","التسربات"],
+  ["Z07", "Nouveaux libellés", "Fuites", null, "التسربات"],
   ["Z08","Nouveaux libellés","Toutes",null,"الكل"],
   ["Z09", "Nouveaux libellés", "{n} fuites", null, "عدد التسربات: {n}"],
   ["Z10","Nouveaux libellés","{n} affichées sur {total}",null,"المعروضة: {n} من {total}"],

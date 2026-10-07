@@ -9,6 +9,7 @@ await esbuild.build({
   plugins: [{ name: 'substituts', setup(b) {
     b.onResolve({ filter: /^@react-native-async-storage\/async-storage$/ }, () => ({ path: `${M}/as.js` }));
     b.onResolve({ filter: /^expo-file-system\/legacy$/ }, () => ({ path: `${M}/fs.js` }));
+    b.onResolve({ filter: /^react-native$/ }, () => ({ path: `${M}/react-native.js` }));
     b.onResolve({ filter: /^\.\/supabase$/ }, () => ({ path: `${M}/supabase.js` }));
     b.onResolve({ filter: /^expo-(crypto|image-manipulator|image-picker|location)$/ }, () => ({ path: `${M}/expo.js` }));
   } }],

@@ -16,6 +16,7 @@ import { t, tx, useLangue } from './langue';
 import { chargerListe } from './liste-donnees';
 import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
+import { jetonARenouveler } from './session-donnees';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { Proche, Secteur, StatutFuite, VFuite } from './types';
 import {
@@ -468,7 +469,7 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     (async () => {
       const copie = await AsyncStorage.getItem(cle).catch(() => null);
       if (copie && !annule) setSecteurs(JSON.parse(copie));
-      if (aRenouveler) return;
+      if (aRenouveler || jetonARenouveler()) return;
       const { data, error } = await supabase.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId)
         .eq('actif', true).order('libelle');
       if (error || !data || annule) return;
@@ -514,6 +515,12 @@ export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouv
     }
     let annule = false;
     const delai = setTimeout(async () => {
+      // Jeton entré dans la marge d'auth-js pendant la saisie, écran pas encore prévenu : même cas.
+      if (jetonARenouveler()) {
+        setProches([]);
+        setControle('hors_ligne');
+        return;
+      }
       setControle('en_cours');
       try {
         const { data, error } = await supabase.rpc('rechercher_fuites_proches', {

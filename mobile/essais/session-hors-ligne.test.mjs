@@ -49,6 +49,11 @@ async function avancer(ms) {
   maintenant = fin;
   await promesses();
 }
+/** Tablette en veille `ms` : l'heure avance, les minuteurs de React Native restent en retard (horloge monotone). */
+function mettreEnVeille(ms) {
+  maintenant += ms;
+  for (const m of minuteurs.values()) m.echeance += ms;
+}
 /** Fait passer le temps jusqu'à ce que `condition` soit vraie ; renvoie la durée simulée, en secondes. */
 async function attendreQue(condition, limite = 10 * 60 * 1000) {
   const debut = maintenant;
@@ -365,8 +370,76 @@ verifier(a8g.etat().session && !a8g.etat().aRenouveler && a8g.etats.every((e) =>
 a8g.arreter();
 verifier(sim.sansJeton.length === sansJetonAvant, 'aucune requête partie sans jeton valide à ces ouvertures', sim.sansJeton);
 
-verifier(sim.sansJeton.length === 1 && avertissements.every((a) => /AuthRetryableFetchError|Network request failed|Invalid Refresh Token/.test(a)),
-  'hors l\'envoi de la section 4, aucune requête de données partie sans jeton valide ; avertissements d\'auth-js attendus seulement',
+console.log('9. Jeton qui expire pendant l\'utilisation, sans réseau');
+const sansJeton9 = sim.sansJeton.length;
+attendue = nouvelleAuServeur();
+const s9 = await sim.connecter(UID, 600); // jeton valide encore 10 min
+const a9 = ouvrir();
+await attendreQue(() => enTete(a9) === attendue);
+verifier(!a9.etat().aRenouveler && a9.repondu, 'ouverture avec le réseau, jeton valide : liste du serveur');
+sim.reseau = false;
+const requetes9 = sim.journal.length;
+const perte = await attendreQue(() => a9.etat().aRenouveler, 15 * 60 * 1000).catch(() => null);
+const avantEcheance = Math.round(s9.expires_at - maintenant / 1000);
+verifier(a9.etat().session?.access_token === s9.access_token && avantEcheance === 90 && sim.journal.length === requetes9,
+  `réseau perdu : jeton à renouveler ${perte} s plus tard, ${avantEcheance} s avant son échéance (marge d'auth-js : les requêtes attendraient les reprises), sans requête`);
+// Écran Liste : mise à jour de fond (minuteur de 5 min, retour au premier plan) lancée avant que l'écran soit prévenu.
+const lireAvant = () => attendre(chargerListe(MARCHE.id, { copie: false, aRenouveler: false, delaiMs: 20000, afficher: () => false }));
+let [repondu9, lecture9] = await lireAvant();
+verifier(repondu9 === false && lecture9 < 1 && sim.journal.length === requetes9,
+  `lecture lancée avec l'état d'avant : rien ne part, « Hors ligne » en ${lecture9} s`);
+const F3 = crypto.randomUUID();
+await mettreEnAttente({ id: F3, marche_id: MARCHE.id, position: null, photos: [], ligne: { adresse: 'Saisie après la perte du réseau' } });
+[reste, synchro] = await attendre(synchroniser());
+verifier(reste === 1 && synchro < 1 && sim.journal.length === requetes9 && !(await lireAttente())[0].erreur,
+  `« Enregistrer » : la fuite reste sur la tablette, synchro rendue en ${synchro} s, sans message`);
+await avancer(5 * 60 * 1000);
+verifier(a9.etat().aRenouveler && a9.etat().session?.access_token === s9.access_token && sim.journal.length === requetes9,
+  '5 min plus tard (jeton expiré, reprises d\'auth-js) : toujours à renouveler, aucune requête');
+// Réseau revenu, renouvellement pas encore passé (pause de 60 s d'auth-js après un échec ; ici, serveur
+// d'authentification injoignable) : supabase-js enverrait la clé anonyme.
+sim.reseau = true;
+sim.authEnPanne = true;
+[repondu9, lecture9] = await lireAvant();
+verifier(repondu9 === false && lecture9 < 1 && sim.journal.length === requetes9 && sim.sansJeton.length === sansJeton9,
+  'réseau revenu, jeton pas encore renouvelé : toujours rien ne part (pas de clé anonyme)');
+const [seule9, attente9] = await attendre(supabase.from('v_fuites').select('*').eq('marche_id', MARCHE.id));
+verifier(seule9.error && sim.sansJeton.at(-1) === 'v_fuites:select:anonyme',
+  `auth-js seul : la même lecture part au bout de ${attente9} s avec la clé anonyme (refusée)`, sim.sansJeton);
+attendue = nouvelleAuServeur(); // signalée entre-temps par une autre équipe
+sim.authEnPanne = false;
+const renouvele9 = await attendreQue(() => !a9.etat().aRenouveler);
+verifier(a9.etat().session?.access_token !== s9.access_token && renouvele9 <= 90,
+  `jeton renouvelé ${renouvele9} s après le retour du serveur (TOKEN_REFRESHED) : session normale`);
+[reste] = await attendre(synchroniser());
+await attendreQue(() => enTete(a9) === attendue && a9.repondu === true);
+verifier(reste === 0 && sim.tables.fuites.some((f) => f.id === F3) && sim.sansJeton.length === sansJeton9 + 1,
+  'retour normal : la fuite saisie hors ligne part, liste rechargée du serveur, aucune autre requête sans jeton valide');
+
+console.log('10. Jeton expiré tablette en veille, sans réseau : « Quitter » au réveil');
+changerEtat('background');
+sim.reseau = false;
+mettreEnVeille(2 * 3600 * 1000);
+const requetes10 = sim.journal.length;
+changerEtat('active');
+await promesses();
+verifier(a9.etat().aRenouveler, 'retour au premier plan : jeton à renouveler aussitôt (minuteur en retard pendant la veille)');
+[repondu9, lecture9] = await lireAvant();
+verifier(repondu9 === false && lecture9 < 1 && sim.journal.length === requetes10,
+  `mise à jour de la Liste au retour au premier plan : rien ne part, « Hors ligne » en ${lecture9} s`);
+const [seulQuitter, attenteQuitter] = await attendre(supabase.auth.signOut());
+verifier(seulQuitter.error && (await stockee())?.user.id === UID && attenteQuitter >= 10,
+  `auth-js seul : signOut() rend une erreur au bout de ${attenteQuitter} s, sans rien effacer (l'attente de « Quitter » avant ce correctif)`);
+const [, quitter10] = await attendre(fermerSession(false));
+a9.etats.push({ session: null, aRenouveler: false });
+verifier(quitter10 < 1 && (await stockee()) === null, `« Quitter » (même lancé avec l'état d'avant) : session retirée en ${quitter10} s, écran Connexion`);
+await avancer(5 * 60 * 1000);
+verifier(evenements.at(-1) === 'SIGNED_OUT:aucune' && a9.etat().session === null && (await stockee()) === null,
+  'SIGNED_OUT ; la session ne revient pas', evenements.slice(-3));
+a9.arreter();
+
+verifier(sim.sansJeton.join() === 'fuites:insert:expire,v_fuites:select:anonyme' && avertissements.every((a) => /AuthRetryableFetchError|Network request failed|Invalid Refresh Token/.test(a)),
+  'hors l\'envoi de la section 4 et la lecture « auth-js seul » de la section 9, aucune requête de données partie sans jeton valide ; avertissements d\'auth-js attendus seulement',
   { sansJeton: sim.sansJeton, avertissements });
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 process.exit(ko ? 1 : 0);

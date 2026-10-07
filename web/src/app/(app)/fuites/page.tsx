@@ -8,6 +8,7 @@ import {
   useReactTable, type VisibilityState,
 } from "@tanstack/react-table";
 import { CalendarDays, Clock3, Download, Droplets, FileText, MapPin, Plus, RefreshCw, Rows3, Search, Siren, SquareKanban, Wrench, X } from "lucide-react";
+import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { CarteIndicateur, GrilleIndicateurs } from "@/components/carte-indicateur";
 import { EnTetePage } from "@/components/en-tete-page";
 import { ORDRE_STATUTS, PointStatut, STATUT_STYLE } from "@/components/statut";
@@ -22,12 +23,13 @@ import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { COLONNES_LISTE, compterFuites, type FuiteListe } from "@/lib/colonnes-fuites";
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from "@/lib/export/jeux";
 import { PanneauExport } from "@/lib/export/PanneauExport";
 import { libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
-import { getSupabase, lireTout } from "@/lib/supabase";
-import type { Secteur, StatutFuite, VFuite } from "@/lib/types";
+import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
+import type { Secteur, StatutFuite } from "@/lib/types";
 import { delaiReparation, fuitesDuMois, nonReparees, refectionsAFaire } from "@/lib/ui/indicateurs";
 import { cn } from "@/lib/utils";
 import { LIBELLES_COLONNES, colonnesFuites } from "./colonnes";
@@ -49,7 +51,8 @@ function ListeFuites() {
   const { marche, peut } = useSession();
   const router = useRouter();
   const libelles = libellesMarche(marche);
-  const [fuites, setFuites] = useState<VFuite[]>([]);
+  const [fuites, setFuites] = useState<Lignes<FuiteListe>>([]);
+  const [comptes, setComptes] = useState<Partial<Record<StatutFuite, number>> | null>(null);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [secteursDe, setSecteursDe] = useState<string | null>(null);
   const [erreur, setErreur] = useState("");
@@ -66,14 +69,17 @@ function ListeFuites() {
     setChargement(true);
     setErreur("");
     const sb = getSupabase();
-    const [f, s] = await Promise.all([
-      lireTout<VFuite>((de, a) => sb.from("v_fuites").select("*").eq("marche_id", marcheId).order("numero", { ascending: false }).range(de, a), 1000, 10000)
+    const [f, s, c] = await Promise.all([
+      lireTout<FuiteListe>((de, a) => sb.from("v_fuites").select(COLONNES_LISTE).eq("marche_id", marcheId).order("numero", { ascending: false })
+        .range(de, a) as unknown as PromiseLike<{ data: FuiteListe[] | null; error: { message: string } | null }>, 1000, 10000)
         .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
       sb.from("secteurs").select("id, zone_id, code, libelle").eq("marche_id", marcheId).order("libelle"),
+      compterFuites(marcheId).catch(() => null),
     ]);
     if (demande !== derniereDemande.current) return;
     if (f.error) setErreur(messageErreur(f.error));
     setFuites(f.data ?? []);
+    setComptes(c && Object.fromEntries(c.map((l) => [l.statut, l.nb])));
     setSecteurs((s.data as Secteur[] | null) ?? []);
     setSecteursDe(s.error ? null : marcheId);
     setChargement(false);
@@ -99,7 +105,7 @@ function ListeFuites() {
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const peutRapport = peut("exports", "lire");
 
-  async function rapportsPdf(cibles: VFuite[]) {
+  async function rapportsPdf(cibles: FuiteListe[]) {
     if (!marcheId || !cibles.length) return;
     const n = cibles.length;
     const photos = cibles.reduce((s, f) => s + f.nb_photos, 0);
@@ -153,11 +159,15 @@ function ListeFuites() {
     alertesSeules && "alertes seulement",
   ].filter(Boolean).join(", ");
 
+  // Comptes de la base (exacts même au-delà du plafond de lecture), sinon ceux des lignes chargées.
   const compteurs = useMemo(() => {
-    const c: Record<string, number> = {};
+    if (comptes) return comptes;
+    const c: Partial<Record<StatutFuite, number>> = {};
     fuites.forEach((f) => (c[f.statut] = (c[f.statut] ?? 0) + 1));
     return c;
-  }, [fuites]);
+  }, [fuites, comptes]);
+  const total = comptes ? Object.values(comptes).reduce((t, n) => t + (n ?? 0), 0) : fuites.length;
+  const incomplet = !erreur && (!!fuites.tronque || total > fuites.length);
   const compteursSecteurs = useMemo(() => {
     const c: Record<string, number> = {};
     fuites.forEach((f) => { if (f.secteur_id) c[f.secteur_id] = (c[f.secteur_id] ?? 0) + 1; });
@@ -176,7 +186,7 @@ function ListeFuites() {
     <div className="flex flex-col gap-4">
       <EnTetePage
         titre="Fuites"
-        description={`${filtrees.length.toLocaleString("fr-FR")} affichée${filtrees.length > 1 ? "s" : ""} sur ${fuites.length.toLocaleString("fr-FR")} · ${marche?.code ?? ""}${descriptionListe ? ` · ${descriptionListe}` : ""}`}
+        description={`${filtrees.length.toLocaleString("fr-FR")} affichée${filtrees.length > 1 ? "s" : ""} sur ${total.toLocaleString("fr-FR")} · ${marche?.code ?? ""}${descriptionListe ? ` · ${descriptionListe}` : ""}`}
         actions={
           <>
             <Button variant="outline" size="icon" onClick={charger} disabled={chargement} aria-label="Actualiser">
@@ -200,6 +210,8 @@ function ListeFuites() {
           </>
         }
       />
+
+      {incomplet && <AvertissementPlafond lues={fuites.length} total={total} conseil="Ce sont les plus récentes. Le bouton « Exporter » lit toute la base." />}
 
       {fuites.length > 0 && (
         <GrilleIndicateurs>
@@ -247,7 +259,7 @@ function ListeFuites() {
         <div className="scrollbar-none touch-pan-x overflow-x-auto overscroll-x-contain border-b">
           <TabsList variant="line" className="w-max min-w-full justify-start gap-2 ps-0 *:data-[slot=tabs-trigger]:flex-none">
             <TabsTrigger value="toutes">
-              Toutes <span className="ml-1 rounded-sm bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{fuites.length}</span>
+              Toutes <span className="ml-1 rounded-sm bg-muted px-1.5 text-xs text-muted-foreground tabular-nums">{total}</span>
             </TabsTrigger>
             {ORDRE_STATUTS.map((s) => (
               <TabsTrigger key={s} value={s}>

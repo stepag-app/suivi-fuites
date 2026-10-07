@@ -22,6 +22,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
+import { compterFuites } from "@/lib/colonnes-fuites";
 import { getSupabase, lireTout } from "@/lib/supabase";
 import type { Profil, StatutFuite } from "@/lib/types";
 import { cn, pourcent } from "@/lib/utils";
@@ -52,7 +53,7 @@ export default function Marches() {
   const [liste, setListe] = useState<MarcheLigne[]>([]);
   const [profils, setProfils] = useState<Profil[]>([]);
   const [affectations, setAffectations] = useState<Affectation[]>([]);
-  const [statuts, setStatuts] = useState<{ marche_id: string; statut: StatutFuite }[]>([]);
+  const [statuts, setStatuts] = useState<{ marche_id: string; statut: StatutFuite; nb: number }[]>([]);
   const [erreur, setErreur] = useState("");
   const [info, setInfo] = useState("");
   const [creation, setCreation] = useState(false);
@@ -69,7 +70,10 @@ export default function Marches() {
         .order("actif", { ascending: false }).order("date_commencement", { ascending: false, nullsFirst: false }).order("code"),
       sb.from("profils").select("id, identifiant, nom_complet, telephone, langue, est_admin, actif").order("nom_complet"),
       sb.from("affectations").select("id, profil_id, marche_id, roles, actif"),
-      lireTout<{ marche_id: string; statut: StatutFuite }>((de, a2) => sb.from("v_fuites").select("marche_id, statut").order("numero").range(de, a2), 1000, 50000)
+      // Comptes par marché et statut calculés par la base ; sans la fonction (migration à venir, démonstration) : une ligne par fuite.
+      compterFuites()
+        .then((c) => c ?? lireTout<{ marche_id: string; statut: StatutFuite }>((de, a2) => sb.from("v_fuites").select("id, marche_id, statut")
+          .order("id").range(de, a2), 1000, 50000).then((l) => l.map((x) => ({ marche_id: x.marche_id, statut: x.statut, nb: 1 }))))
         .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
     ]);
     setErreur(m.error ? messageErreur(m.error) : "");
@@ -161,7 +165,7 @@ export default function Marches() {
           <Badge variant="outline" className="h-auto gap-1 rounded-sm px-1.5 py-0.5"><Briefcase />{liste.length} marché{liste.length > 1 ? "s" : ""}</Badge>
           <Badge variant="outline" className="h-auto gap-1 rounded-sm px-1.5 py-0.5"><span className="size-2 rounded-full bg-green-600 dark:bg-green-500" />{actifs} actif{actifs > 1 ? "s" : ""}</Badge>
           <Badge variant="outline" className="h-auto gap-1 rounded-sm px-1.5 py-0.5"><Users />{agents} agent{agents > 1 ? "s" : ""} affecté{agents > 1 ? "s" : ""}</Badge>
-          <Badge variant="outline" className="h-auto gap-1 rounded-sm px-1.5 py-0.5">{statuts.length.toLocaleString("fr-FR")} fuites au total</Badge>
+          <Badge variant="outline" className="h-auto gap-1 rounded-sm px-1.5 py-0.5">{statuts.reduce((t, s) => t + s.nb, 0).toLocaleString("fr-FR")} fuites au total</Badge>
         </div>
       </div>
 
@@ -188,10 +192,11 @@ export default function Marches() {
         {filtres.map((m) => {
           const siennes = affectations.filter((a) => a.marche_id === m.id);
           const fuites = statuts.filter((s) => s.marche_id === m.id);
-          const n = fuites.length;
-          const reparees = fuites.filter((s) => s.statut === "reparee" || s.statut === "achevee").length;
-          const achevees = fuites.filter((s) => s.statut === "achevee" || s.statut === "sans_reparation").length;
-          const enAttente = fuites.filter((s) => s.statut === "detectee" || s.statut === "en_reparation").length;
+          const somme = (...st: StatutFuite[]) => fuites.reduce((t, s) => t + (st.includes(s.statut) ? s.nb : 0), 0);
+          const n = fuites.reduce((t, s) => t + s.nb, 0);
+          const reparees = somme("reparee", "achevee");
+          const achevees = somme("achevee", "sans_reparation");
+          const enAttente = somme("detectee", "en_reparation");
           return (
             <Collapsible key={m.id} defaultOpen={m.actif} className="flex flex-col overflow-hidden rounded-xl border bg-card py-3 text-card-foreground data-[state=open]:gap-3 data-[state=open]:pb-0">
               <div className="flex flex-col gap-2 px-4 sm:flex-row sm:items-center">

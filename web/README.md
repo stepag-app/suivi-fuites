@@ -218,6 +218,23 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
 - Limite : la session reste valable tant que le jeton se rafraîchit ; après une très longue coupure,
   il faut se reconnecter en ligne (les envois en attente sont conservés).
 
+## Tenue en charge (essai à 3 000 fuites)
+
+Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
+
+- `lireTout` (`src/lib/supabase.ts`) lit 1 000 lignes par appel (plafond de l'API Supabase) ; après une première page
+  pleine, les suivantes partent 3 par 3. Au plafond (10 000 fuites pour la liste, « Alertes », « À faire » ; 50 000
+  ailleurs), le résultat porte `tronque = true` et la page affiche « Affichage incomplet » (`AvertissementPlafond`) ;
+  les pages lisent par numéro décroissant, donc ce sont les fuites les plus anciennes qui manquent. Un export refuse
+  de sortir un fichier tronqué.
+- Colonnes : `src/lib/colonnes-fuites.ts` (`COLONNES_LISTE`, `COLONNES_ALERTES`, types qui suivent la liste) ; jamais
+  `select('*')` sur `v_fuites` pour une liste.
+- Agrégats calculés par la base (RLS de l'appelant) : `compter_fuites` (onglets de la liste, page des marchés),
+  `resume_a_attacher` (tableau de bord), `etat_balayage_compact` (carte : un seul document JSON, non plafonné). Si la
+  fonction manque (migration pas encore déployée, mode démonstration), la page retombe sur l'ancienne lecture.
+- « Alertes » ne lit que les fuites en alerte et celles des courbes des 14 derniers jours.
+- Vérification : `node scripts/verifier-essai-charge.mjs` (11).
+
 ## Variables d'environnement (Vercel et `web/.env.local`)
 
 | Variable | Valeur |

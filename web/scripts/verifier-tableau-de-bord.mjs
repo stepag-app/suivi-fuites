@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {
   activite, ajouterJours, graduations, jourCasa, libellePeriode, lundiDe, mediane, parGroupe, parSemaine, periodePour,
-  recapAttachements, repartitionStatuts, resumeAnomalies, resumeLots, semaineIso, situation, trierGroupes,
+  recapAttachements, repartitionStatuts, resumeAnomalies, resumeLots, resumerUnites, semaineIso, situation, trierGroupes,
 } from '../src/lib/ui/tableau-de-bord.ts';
 
 let n = 0;
@@ -201,7 +201,7 @@ ok('attachements : cumul attaché au prix figé, reste au prix actuel, % du marc
     { fuite_id: 'f2', prix_id: 'p3', reste: -0.5, brouillon_id: 'x' },
     { fuite_id: 'f2', prix_id: 'p9', reste: 1, brouillon_id: null },
   ];
-  const r = recapAttachements(articles, lignes, unites);
+  const r = recapAttachements(articles, lignes, resumerUnites(unites));
   assert.deepEqual(r.articles.map((a) => a.article.numero), ['1', '3', 'HB1']);
   const p3 = r.articles.find((a) => a.article.id === 'p3');
   assert.equal(p3.attachee, 10.16);
@@ -220,7 +220,7 @@ ok('attachements : cumul attaché au prix figé, reste au prix actuel, % du marc
 });
 
 ok('attachements : rien d\'attaché', () => {
-  const r = recapAttachements([], [], []);
+  const r = recapAttachements([], [], resumerUnites([]));
   assert.deepEqual([r.montantAttache, r.montantReste, r.avancement, r.articles.length], [0, 0, null, 0]);
 });
 

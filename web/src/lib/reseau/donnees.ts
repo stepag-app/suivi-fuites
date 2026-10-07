@@ -111,7 +111,7 @@ export interface ContexteReseau {
 export async function chargerContexteReseau(marcheId: string): Promise<ContexteReseau> {
   const sb = getSupabase();
   const [z, s] = await Promise.all([
-    sb.from('zones').select('id, numero, code, libelle, geom').eq('marche_id', marcheId).eq('actif', true).order('numero'),
+    sb.from('zones').select('id, numero, code, libelle, lineaire_m, geom').eq('marche_id', marcheId).eq('actif', true).order('numero'),
     sb.from('secteurs').select('id, zone_id, code, libelle, ordre, statut_balayage, geom').eq('marche_id', marcheId).eq('actif', true).order('ordre').order('code'),
   ]);
   if (z.error) throw z.error;
@@ -194,13 +194,33 @@ export async function chargerReseauComplet(marcheId: string, tolerance = 0.00000
 
 /** Relu à chaque ouverture ; sans droit `balayage / lire` la base renvoie zéro ligne. */
 export async function chargerEtatBalayage(marcheId: string): Promise<EtatBalayageTroncon[]> {
-  const { data, error } = await getSupabase().rpc('etat_balayage', { p_marche: marcheId });
+  // Un seul document JSON : une réponse en lignes serait plafonnée à 1 000 tronçons par l'API (essai de charge).
+  const { data, error } = await getSupabase().rpc('etat_balayage_compact', { p_marche: marcheId });
   if (error) {
     if (codeDe(error) === '42501') return [];
+    if (codeDe(error) === 'PGRST202' || codeDe(error) === '42883') return chargerEtatBalayageEnLignes(marcheId);
     throw error;
   }
-  return (data as EtatBalayageTroncon[] | null) ?? [];
+  return data ? deplierEtatBalayage(data as EtatBalayageCompact) : [];
 }
+
+/** Forme en colonnes de `etat_balayage_compact` (e / a : rang dans equipes / agents). */
+export interface EtatBalayageCompact {
+  t: string[]; p: string[]; d: string[]; n: number[]; e: (number | null)[]; a: (number | null)[];
+  equipes: string[]; agents: string[];
+}
+
+export function deplierEtatBalayage(c: EtatBalayageCompact): EtatBalayageTroncon[] {
+  return c.t.map((troncon_id, i) => ({
+    troncon_id, premier_le: c.p[i], dernier_le: c.d[i], nb_passages: c.n[i],
+    equipe_id: c.e[i] == null ? null : c.equipes[c.e[i]!], agent_id: c.a[i] == null ? null : c.agents[c.a[i]!],
+  }));
+}
+
+// Base sans la migration 20261007120000 : lecture page par page de `etat_balayage`.
+const chargerEtatBalayageEnLignes = (marcheId: string) =>
+  lireTout<EtatBalayageTroncon>((de, a) => getSupabase().rpc('etat_balayage', { p_marche: marcheId })
+    .order('troncon_id').range(de, a) as unknown as PromiseLike<{ data: EtatBalayageTroncon[] | null; error: { message: string } | null }>);
 
 export async function chargerEquipes(marcheId: string): Promise<EquipeReseau[]> {
   const { data, error } = await getSupabase().from('equipes').select('id, type, numero, libelle, actif')

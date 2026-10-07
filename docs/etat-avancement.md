@@ -4,12 +4,17 @@
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
 Dernière mise à jour : 2026-10-07 (**APK en trois langues** : français, hybride, arabe ; bouton en haut de chaque écran ;
-PR empilée sur la #43, voir la ligne « Langues de l'APK » du § 1). Avant : 2026-10-07 (**APK au style « Studio Admin »** du panneau, Balayage sur `https://fuites.stepag.ma`,
+PR empilée sur la #43, voir la ligne « Langues de l'APK » du § 1).
+Précédente : 2026-10-07 (**essai de charge à 3 000 fuites**, § 8 et `docs/essai-charge-3000.md` : pages de suivi
+sous 2 s après correctifs, état de balayage tronqué à 1 000 tronçons corrigé, carte avec tout le réseau trop lourde
+pour la tablette → tuiles vectorielles, photos au-delà du 1 Go gratuit vers le 4e mois → R2).
+Précédente : 2026-10-07 (session 9 : **plan du réseau recalé sur les rues OSM** (5,7 m ouest, 6,6 m nord),
+**dossier d'import prêt** `data-private/IMPORT-RESEAU/` (fichiers numérotés + aperçu en double-clic), import guidé et
+compteur de la carte corrigés (branche `claude/reseau-simplification`, PR à ouvrir), **note de briefing** « Briefing Réseau
+et balayage » (Claude Docs) ; reste à faire par Issam : importer le réseau (§ 7), importer `produits.csv` et activer les
+articles (§ 2)).
+Précédente : 2026-10-07 (**APK au style « Studio Admin »** du panneau, Balayage sur `https://fuites.stepag.ma`,
 PR [#43](https://github.com/stepag-app/suivi-fuites/pull/43), voir la ligne « Interface Studio Admin de l'APK » du § 1).
-Précédente : 2026-10-06 (session 8 : **nouvelle interface « Studio Admin » (shadcn/ui) adoptée**, **lot S** (réseau,
-balayage par tronçon, rapport journalier) et **lot T** (articles Dolibarr, ajusté : activation par l'admin ou le responsable,
-plus de pièce libre) réunis dans la PR [#39](https://github.com/stepag-app/suivi-fuites/pull/39), fusionnée et déployée ;
-reste à faire par Issam : importer `produits.csv` et activer les articles, puis importer le réseau ; voir § 2 et § 7).
 
 ## 1. Fait
 
@@ -22,7 +27,7 @@ reste à faire par Issam : importer `produits.csv` et activer les articles, puis
 | Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé et **vérifié** (`issam | true | true`) |
 | Réglages Auth Supabase : fournisseur e-mail activé, « Confirm email » désactivé | tableau de bord Supabase | vérifié sur captures (2026-10-04) |
 | Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
-| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://fuites.stepag.ma depuis le 2026-10-07 (CNAME Cloudflare vers Vercel ; l'ancienne adresse https://suivi-fuites-web.vercel.app reste active ; Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
+| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://fuites.stepag.ma (domaine branché le 2026-10-07 : CNAME `fuites` dans Cloudflare, DNS only, vers Vercel ; Supabase Auth : Site URL et Redirect URL mises à jour) ; ancienne adresse https://suivi-fuites-web.vercel.app toujours active (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
 | Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
 | Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | **active** (secret créé le 2026-10-05, premières exécutions réussies) ; essai de restauration à faire |
@@ -220,6 +225,7 @@ gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° d
   équipe (Q-37, vue `v_pieces_posees`).
 - Photos facultatives, alerte si aucune.
 - Sondage négatif payé en terrassement (hypothèse Q-08, réglable : `motifs.terrassement_paye`).
+- **Linéaire du contrat** (2026-10-07) : 1 466 km vérifiés (CPS tableau n° 1, F056 p.19), donné **par zone seulement** (358, 362, 228, 399, 119 km). Aucun linéaire par secteur dans le marché : `secteurs.lineaire_m` reste vide (« — » dans Paramètres > Réseau) ; la comparaison plan / contrat se fait sur la ligne « Total zone » et le total du marché. À reprendre si la SRM fournit un linéaire par secteur.
 
 ## 4. Emplacement réservé : plan du réseau (DWG → DXF → tronçons)
 
@@ -327,12 +333,24 @@ encore en production** : import par Paramètres > Réseau (administrateur), avec
 | Matrice des droits : lignes Balayage (voir, cocher, annuler les siens, annuler ceux des autres) | `web/src/app/(app)/utilisateurs/matrice.ts` | vérifié |
 | **Essai de bout en bout en local** : vrai réseau importé dans une base PostgreSQL 17 servie par PostgREST, panneau web de la branche : carte et coloration, carte de zonage (8 862 tronçons affectés d'un coup), balayage enregistré depuis la carte, journal, rapport PDF de 2 pages avec extrait de plan ; correctif « Enregistrer… » | `data-private/essai-web/` (hors dépôt) | fait le 2026-10-06 ; reste l'essai sur l'aperçu Vercel avec la vraie base |
 
+**Session 9 (2026-10-07)** : décalage systématique constaté par Issam à fort zoom ; mesuré par fenêtres de 800 m
+(`outils/reseau/recaler.py`) : translation de **5,7 m vers l'ouest et 6,6 m vers le nord** (transformation Merchich
+annoncée à 7 m) ; corrections locales et affines essayées, écartées par validation croisée (fenêtres bruitées de ± 4 m) ;
+vérifié à l'œil (centre, Lazaret, Oued Loukous) ; Sidi Yahya : plan et OSM divergent, non corrigeable. L'ancien contrôle
+(`controler_calage.py`, « 1 à 2 m ») sous-estimait le décalage. Sorties recalées : `data-private/reseau/recale/` ;
+dossier d'import : `data-private/IMPORT-RESEAU/` (`preparer_import.py`). **Codes de secteur courts** (migration `20261007100000`) :
+`qods_haut_chu_mouhoub_iriss` → `QODS-H`, etc. (table dans la migration), libellés en capitales, formulaire Secteurs en
+capitales ; `secteurs.json`, `zoner.py` et les fichiers de `data-private/reseau/` remappés : le dossier d'import porte les
+**nouveaux** codes, à importer dans un marché **après** le déploiement de la migration (avant : codes inconnus, non zonés).
+Import déjà fait dans DEMO avec les anciens codes : sans effet (tronçons rattachés par `secteur_id`). Causes de « je ne vois rien » : aucun import
+encore ; `apercu.html` ouvert en `file://` (fetch bloqué) ; `outils/reseau/secteurs.json` choisi au lieu du GeoJSON.
+
 **À faire par Issam (lot S)** :
-1. Relire le zonage sur l'aperçu (`data-private/reseau/apercu.html`, `python3 -m http.server 8765` dans ce dossier)
-   et dire si les noms et contours des 34 secteurs sont justes (planches comprises).
-2. Laisser passer la CI, essayer l'aperçu Vercel, puis « fusionner ». Ensuite, **avec son accord**, importer le
-   réseau en production : Paramètres > Réseau > Import (`secteurs.geojson`, `troncons.geojson`, `noeuds.geojson`),
-   puis affecter les 229 km non zonés sur la carte de zonage.
+1. Relire le zonage : double-clic sur `data-private/IMPORT-RESEAU/APERCU-RESEAU.html` (plan recalé) ; dire si les
+   noms et contours des 34 secteurs sont justes.
+2. Importer le réseau (DEMO d'abord conseillé, puis SRM) : Paramètres > Réseau > Importer le GeoJSON,
+   `1-contours-secteurs.geojson`, `2-troncons.geojson`, `3-noeuds.geojson` du même dossier ; puis affecter les
+   229 km non zonés sur la carte de zonage. Mode d'emploi détaillé : note « Briefing Réseau et balayage ».
 3. Essayer l'APK (artefact de la CI) : bouton Balayage, cocher quelques tronçons, rapport du jour.
 4. Questions : le chef de réparation doit-il voir le journal des balayages ? (non pour l'instant) ; le linéaire
    payé par secteur doit-il venir du dessin (`v_lineaire_secteurs`) ou d'un relevé contradictoire ? ; la SRM
@@ -342,3 +360,27 @@ encore en production** : import par Paramètres > Réseau (administrateur), avec
 le lot S utilise `20261006130000` et le test 15 ; fusionner P3/P4 avant S (le déploiement refuse une migration plus
 ancienne que la dernière appliquée). Le dessin contient aussi les **secteurs de relève** (269 polygones numérotés) :
 piste pour localiser une fuite par le premier bloc de sa référence SRM (à confirmer avec la SRM).
+
+## 8. Essai de charge à 3 000 fuites (2026-10-07)
+
+Rapport : `docs/essai-charge-3000.md` ; outils : `outils/charge/` (base locale `charge_3000`, jamais la production).
+Branche `claude/gracious-bun-8272f1`, PR « essai de charge ».
+
+| Élément | Où | État |
+|---|---|---|
+| Générateur : 3 000 fuites sur 12 mois et sur les secteurs de DEMO, réparations, pièces, réfections, ~4 photos par fuite (lignes seules), un an de balayage (48 461) ; 8 comptes d'essai | `outils/charge/generer-charge.sql`, `preparer-base.sh` | fait |
+| Mesures : SQL sous RLS, lectures de chaque page (avant / après), navigateur (profils bureau et tablette 4G), carte avec tout le réseau | `outils/charge/mesurer-*.{sql,mjs}`, `relais.mjs` | fait |
+| Migration `20261007120000_essai_charge.sql` : `compter_fuites`, `resume_a_attacher`, `etat_balayage_compact` (SECURITY INVOKER) ; test 17 (22 tests) | `supabase/` | 648 tests pgTAP verts en local ; **à déployer** |
+| Panneau web : `lireTout` 3 pages à la fois et avertissement « Affichage incomplet » au plafond, colonnes réduites, alertes filtrées, comptes et reste à attacher par la base, état de balayage complet, horloge des alertes isolée, courbe des réfections corrigée | `web/` | tsc, build, 9 scripts verts ; vérifié en mode démonstration et sur 12 025 fuites |
+
+**Résultats** (détail dans le rapport) : en profil tablette, liste 2,7 → 1,3 s, alertes 2,1 → 1,1 s, à faire 3,3 → 1,7 s,
+tableau de bord 2,6 → 1,2 s. Carte avec tout le réseau : 64 s et 1,3 Go en profil tablette (inchangé, chantier
+tuiles vectorielles). Base : 120 Mo après un an (500 Mo gratuits) ; photos 2,7 Go par an (1 Go gratuit).
+
+**Ordre de fusion** : la branche `claude/reseau-simplification` a pris `20261007100000` ; la migration de l'essai est
+`20261007120000` : fusionner `reseau-simplification` d'abord (le déploiement refuse une migration plus ancienne que la
+dernière appliquée). Les deux branches touchent `web/src/lib/reseau/donnees.ts` à des endroits différents.
+
+**À faire par Issam** : sur la production, ouvrir la liste des fuites avec l'onglet Réseau du navigateur pour
+confirmer que l'API compresse (gzip ou br) ; suivre la page « Usage » de Supabase ; activer R2 avant le 4e mois de
+photos.

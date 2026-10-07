@@ -36,17 +36,17 @@ LARGEUR_FRONTIERE = 7.0   # m de part et d'autre : referme les pointillés (tire
 
 # Noms écrits sur les planches → code du secteur du marché.
 NOMS_PLANCHES = {
-    "qods haut chu mouhoub irriss": "qods_haut_chu_mouhoub_iriss", "qods haut chu mouhoub irri": "qods_haut_chu_mouhoub_iriss",
-    "andalous": "andalous", "sidi maafa bas": "maafa_bekay_bas", "sidi maafa ba": "maafa_bekay_bas",
-    "unisit colline partie h ain serrak": "ballaoui_bas_irfane", "bellaoui haut": "ballaoui_bas_irfane",
-    "qods bas": "qods_bas", "chateau sidi aissa": "chateau_sidi_aissa", "au sidi aissa": "chateau_sidi_aissa",
-    "azengot": "azengot", "maksam kharoub": "maksam_kharoub", "maksam": "maksam_kharoub",
-    "lazaret bas": "lazaret_bas", "tairet bas": "tairet", "tairet haut": "tairet", "mbasso": "mbasso",
-    "tennis 2": "tennis_2", "ennis 2": "tennis_2", "sidi driss": "sidi_driss", "tazaghine": "tazaghine",
-    "el boustane": "el_boustane", "ghar el baroud zone industrielle": "ghar_el_baroud_zone_industrielle",
-    "pam": "pam", "lazaret haut": "lazaret_haut", "abdellah gunoun bas": "abdellah_guenoun",
-    "abdellah gunoun haut": "abdellah_guenoun", "tennis 1": "tennis_1", "aounia": "aounia",
-    "belhoucine": "lieutenant_belhoucine", "t belhoucine": "lieutenant_belhoucine",
+    "qods haut chu mouhoub irriss": "QODS-H", "qods haut chu mouhoub irri": "QODS-H",
+    "andalous": "ANDALOUS", "sidi maafa bas": "MAAFA", "sidi maafa ba": "MAAFA",
+    "unisit colline partie h ain serrak": "BALLAOUI", "bellaoui haut": "BALLAOUI",
+    "qods bas": "QODS-B", "chateau sidi aissa": "CHATEAU", "au sidi aissa": "CHATEAU",
+    "azengot": "AZENGOT", "maksam kharoub": "MAKSAM", "maksam": "MAKSAM",
+    "lazaret bas": "LAZARET-B", "tairet bas": "TAIRET", "tairet haut": "TAIRET", "mbasso": "MBASSO",
+    "tennis 2": "TENNIS-2", "ennis 2": "TENNIS-2", "sidi driss": "S-DRISS", "tazaghine": "TAZAGHINE",
+    "el boustane": "BOUSTANE", "ghar el baroud zone industrielle": "GHAR-ZI",
+    "pam": "PAM", "lazaret haut": "LAZARET-H", "abdellah gunoun bas": "GUENOUN",
+    "abdellah gunoun haut": "GUENOUN", "tennis 1": "TENNIS-1", "aounia": "AOUNIA",
+    "belhoucine": "BELHOUCINE", "t belhoucine": "BELHOUCINE",
 }
 
 

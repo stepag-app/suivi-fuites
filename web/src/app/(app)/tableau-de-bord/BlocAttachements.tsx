@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { quantite } from "@/lib/attachements";
 import { montant } from "@/lib/format";
 import {
-  jourLong, recapAttachements, resumeLots, type ArticleTdb, type LigneAttacheeTdb, type LotTdb, type UniteResteTdb,
+  jourLong, recapAttachements, resumeLots, type ArticleTdb, type LigneAttacheeTdb, type LotTdb, type ResteAAttacher,
 } from "@/lib/ui/tableau-de-bord";
 import { cn, pluriel } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ export interface DonneesAttachements {
   lots: LotTdb[];
   articles: ArticleTdb[];
   lignes: LigneAttacheeTdb[];
-  unites: UniteResteTdb[];
+  aAttacher: ResteAAttacher;
 }
 
 const pct = (n: number | null) => (n == null ? "—" : `${n.toLocaleString("fr-FR")} %`);
@@ -42,7 +42,7 @@ function Cellule({ titre, valeur, note, badge, className }: { titre: string; val
 // Cumul attaché = lots arrêtés (au prix figé à l'arrêt) ; reste à attacher = exécuté − attaché (au prix actuel),
 // régularisations comprises. Montants HT au prix du bordereau, sans majoration.
 export function BlocAttachements({ donnees, devise }: { donnees: DonneesAttachements; devise: string }) {
-  const recap = useMemo(() => recapAttachements(donnees.articles, donnees.lignes, donnees.unites), [donnees]);
+  const recap = useMemo(() => recapAttachements(donnees.articles, donnees.lignes, donnees.aAttacher), [donnees]);
   const lots = useMemo(() => resumeLots(donnees.lots), [donnees.lots]);
   const dernier = lots.dernier;
   const vert = "bg-green-500/10 text-green-700 dark:bg-green-500/15 dark:text-green-300";

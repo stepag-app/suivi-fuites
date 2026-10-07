@@ -27,8 +27,11 @@
   <div id="legende"></div>
 </div>
 <div id="info">Cliquez sur un tronçon.</div>
+<!-- Données embarquées par preparer_import.py : double-clic possible (fetch est bloqué en file://). -->
+<script src="donnees-apercu.js" onerror="void 0"></script>
 <script>
-// Aperçu local : python3 -m http.server 8765 dans data-private/reseau/ (où ce fichier a été copié).
+// Aperçu local : double-clic dans data-private/IMPORT-RESEAU/ (preparer_import.py), ou
+// python3 -m http.server 8765 dans data-private/reseau/ (où ce fichier a été copié).
 const params = new URLSearchParams(location.search);
 const fichier = params.get('troncons') || 'troncons.geojson';
 const couleurs = ['#0b5d8a','#b44f00','#256f3a','#8b1a89','#aa0808','#0064d9','#6b5b00','#007f7f','#9c4b00','#4b4b9c',
@@ -39,7 +42,9 @@ const carte = new maplibregl.Map({ container: 'carte', style: 'https://tiles.ope
 carte.addControl(new maplibregl.NavigationControl());
 carte.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
 carte.on('load', async () => {
-  const [tr, se, no] = await Promise.all([
+  const vide = { type: 'FeatureCollection', features: [] };
+  const D = window.DONNEES_APERCU;
+  const [tr, se, no] = D ? [D.troncons, D.secteurs || vide, D.noeuds || vide] : await Promise.all([
     fetch(fichier).then(r => r.json()),
     fetch('secteurs.geojson').then(r => r.ok ? r.json() : { type: 'FeatureCollection', features: [] }).catch(() => ({ type: 'FeatureCollection', features: [] })),
     fetch('noeuds.geojson').then(r => r.ok ? r.json() : { type: 'FeatureCollection', features: [] }).catch(() => ({ type: 'FeatureCollection', features: [] })),

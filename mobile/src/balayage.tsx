@@ -4,15 +4,16 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { supabase } from './supabase';
-import { BarreApp, Bouton, Carte, COULEURS, s } from './ui';
+import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
 // Adresse publique du panneau web (aucun secret). Les jetons de session vont dans le fragment « # », que la
 // WebView n'envoie jamais au serveur ; ils ne sont jamais journalisés.
-const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://suivi-fuites-web.vercel.app').replace(/\/+$/, '');
+const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
 const PAGE_SESSION = `${PANNEAU}/session`;
 const SUITE = encodeURIComponent('/carte?mode=balayage');
-const DELAI_SONDE_MS = 8000;
+// Large : sur un réseau lent, la première connexion à un nom d'hôte peut prendre une dizaine de secondes (DNS).
+const DELAI_SONDE_MS = 15000;
 // Le panneau garde sa propre copie de la session et la renouvelle lui-même ~1,5 min avant l'échéance, avec le
 // même jeton de rafraîchissement que la tablette ; un jeton réutilisé déconnecte les deux côtés (rotation
 // Supabase). La tablette renouvelle donc la première, 5 min avant, puis recharge la WebView avec les nouveaux jetons.
@@ -25,12 +26,15 @@ const adresse = (session: Session) =>
 const estPanneau = (url: string) => url === ORIGINE || url.startsWith(`${ORIGINE}/`);
 const estPageSession = (url: string) => url.split(/[#?]/)[0].replace(/\/$/, '') === PAGE_SESSION;
 
-/** Le panneau répond-il ? Sans jeton : un simple HEAD sur la page de session. */
+/**
+ * Le panneau répond-il ? Sans jeton : un simple GET de la page de session. Pas de HEAD : sur la tablette, sa réponse
+ * n'arrive qu'après une dizaine de secondes (constaté le 2026-10-07, aussi sur l'ancienne adresse), au-delà du délai.
+ */
 async function panneauJoignable() {
   const controleur = new AbortController();
   const delai = setTimeout(() => controleur.abort(), DELAI_SONDE_MS);
   try {
-    await fetch(PAGE_SESSION, { method: 'HEAD', cache: 'no-store', signal: controleur.signal });
+    await fetch(PAGE_SESSION, { cache: 'no-store', signal: controleur.signal });
     return true;
   } catch {
     return false;
@@ -49,6 +53,7 @@ const Chargement = () => (
 /** Carte du réseau et balayage par tronçon : le panneau web, ouvert dans une WebView avec la session de la tablette. */
 export function Balayage({ retour }: { retour: () => void }) {
   const web = useRef<WebView>(null);
+  const bas = useBas();
   const [uri, setUri] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [cle, setCle] = useState(0);
@@ -132,14 +137,14 @@ export function Balayage({ retour }: { retour: () => void }) {
   };
 
   return (
-    <View style={s.ecran}>
+    <View style={[s.ecran, { paddingBottom: bas }]}>
       <BarreApp titre="Balayage" sousTitre="Carte du réseau" retour={retour} />
       {message ? (
-        <View style={s.contenu}>
+        <View style={s.defile}>
           <Carte>
-            <Text style={s.erreur}>{message}</Text>
-            <Bouton titre="Réessayer" primaire onPress={() => void charger()} />
-            <Bouton titre="Retour à la liste" onPress={retour} />
+            <Message ton="erreur" icone={message === HORS_LIGNE ? 'wifi-off' : undefined}>{message}</Message>
+            <Bouton titre="Réessayer" icone="refresh-cw" primaire grand onPress={() => void charger()} />
+            <Bouton titre="Retour à la liste" icone="arrow-left" onPress={retour} />
           </Carte>
         </View>
       ) : !uri ? (

@@ -92,7 +92,8 @@ fiche du marché (titulaire, maître d'ouvrage, n° du marché, objet, OS) ; un 
 **Logos** (Paramètres > Marché) repris en tête des PDF (exports, lots, rapport par fuite, carte), Word et Excel :
 titulaire à gauche, maître d'ouvrage à droite, 14 mm de haut, proportions conservées. Chargés avec le contexte du
 marché (`chargerLogosEntete` de `src/lib/logos.ts`) et transmis par l'en-tête (`logoTitulaire`, `logoMaitreOuvrage`) ;
-`dessinerEntete` les dessine pour tout PDF. Pas de logo en CSV. Vérification : `node scripts/essai-logos.mjs`.
+`dessinerEntete` les dessine pour tout PDF. Un logo remplace le nom et le nom arabe de sa colonne (`lignesEntete` de
+`src/lib/export/modele.ts`) ; sans logo, le nom reste écrit. Pas de logo en CSV. Vérification : `node scripts/essai-logos.mjs`.
 
 Fichiers fabriqués **dans le navigateur** (aucun coût serveur), bibliothèques chargées seulement au moment
 de l'export (mesures minifiées + gzip) :

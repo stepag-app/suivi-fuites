@@ -5,13 +5,14 @@ import * as Crypto from 'expo-crypto';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ajouterEnvoi, effacerPhotos, synchroniser, type PhotoAttente, type PieceAttente } from './file-attente';
+import { Icone } from './icones';
 import type { ContexteSaisie } from './fiche';
 import { aucunChangement, differences } from './modification';
 import { useParametres, type Parametres } from './parametres';
 import { prendrePhoto } from './photos';
 import { useSession } from './session';
 import { EMPLACEMENTS, MATERIAUX, OUVRAGES, RESULTATS_REPARATION, TYPES_PHOTO, type ResultatReparation, type TypePhoto } from './types';
-import { BarreApp, Bouton, Carte, Case, Champ, COULEURS, Puces, s, Saisie, Vignettes } from './ui';
+import { BarreApp, Bouton, Carte, Case, Champ, COULEURS, Message, Puces, s, Saisie, TeteCarte, useBas, Vignettes } from './ui';
 
 const nombreOuNul = (t: string) => {
   const n = Number(t.trim().replace(',', '.'));
@@ -75,7 +76,7 @@ function DateHeure({ d }: { d: ReturnType<typeof useDateHeure> }) {
       <View style={s.ligne}>
         <Saisie style={{ flexGrow: 1, flexBasis: 150 }} value={d.jour} onChangeText={d.setJour} keyboardType="number-pad" placeholder="JJ/MM/AAAA" maxLength={10} />
         <Saisie style={{ flexGrow: 1, flexBasis: 100 }} value={d.heure} onChangeText={d.setHeure} keyboardType="number-pad" placeholder="HH:MM" maxLength={5} />
-        <Bouton titre="Maintenant" onPress={d.remettre} />
+        <Bouton titre="Maintenant" icone="clock" onPress={d.remettre} />
       </View>
     </View>
   );
@@ -125,15 +126,16 @@ function usePhotos() {
 function BlocPhotos({ ph, types }: { ph: ReturnType<typeof usePhotos>; types: TypePhoto[] }) {
   return (
     <Carte>
-      <Text style={s.sousTitre}>Photos ({ph.photos.length})</Text>
+      <TeteCarte titre="Photos" compteur={ph.photos.length} />
       <View style={s.ligne}>
         {types.map((t) => (
-          <View key={t} style={{ flexGrow: 1, flexBasis: 150 }}>
-            <Bouton titre={`📷 ${TYPES_PHOTO[t]} (${ph.photos.filter((p) => p.type === t).length})`} onPress={() => ph.prendre(t)} />
-          </View>
+          <Bouton
+            key={t} titre={`${TYPES_PHOTO[t]} (${ph.photos.filter((p) => p.type === t).length})`} icone="camera"
+            onPress={() => ph.prendre(t)} style={{ flexGrow: 1, flexBasis: 150 }}
+          />
         ))}
       </View>
-      {!!ph.erreur && <Text style={s.erreur}>{ph.erreur}</Text>}
+      {!!ph.erreur && <Message ton="erreur">{ph.erreur}</Message>}
       <Vignettes photos={ph.photos.map((p) => ({ id: p.id, uri: p.fichier, legende: TYPES_PHOTO[p.type ?? 'autre'] }))} retirer={ph.retirer} />
     </Carte>
   );
@@ -147,6 +149,7 @@ interface PieceForm extends PieceAttente { texte: string }
 export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
   const { marche, peut } = useSession();
   const parametres = useParametres(marche?.id);
+  const bas = useBas();
   const m = contexte.modification;
   const init: Record<string, unknown> = m?.etat.ligne ?? {};
   const chaine = (k: string) => (typeof init[k] === 'string' ? (init[k] as string) : '');
@@ -274,7 +277,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
   return (
     <View style={s.ecran}>
       <BarreApp titre={m ? 'Modifier la réparation' : 'Nouvelle réparation'} sousTitre={contexte.libelle} retour={retour} />
-      <ScrollView contentContainerStyle={s.defile} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         {m && (
           <Text style={s.discret}>
             Corrigez ce qui doit l&apos;être, puis « Enregistrer les modifications ». Les photos prises ici s&apos;ajoutent à celles déjà envoyées.
@@ -327,7 +330,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
             <Champ libelle="Profondeur (m)" valeur={fP} onChange={setFP} nombre />
           </View>
           {longueur != null && longueur > 2 && !elementRemplace && (
-            <Text style={s.attention}>Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.</Text>
+            <Message ton="attention">Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.</Message>
           )}
           <Text style={s.etiquette}>Revêtement à refaire</Text>
           <Puces facultatif options={parametres.natures.map((n) => ({ valeur: n.id, libelle: n.libelle_fr }))} valeur={natureId} onChange={choisirNature} />
@@ -341,7 +344,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
           {pieces.map((p) => (
             <View key={p.id} style={[s.ligne, { alignItems: 'center' }]}>
               <Saisie
-                style={[{ width: 92 }, !peutRequantifier(p.id) && { backgroundColor: COULEURS.fond }]}
+                style={{ width: 92 }}
                 value={p.texte}
                 onChangeText={(texte) => setPieces(pieces.map((x) => (x.id === p.id ? { ...x, texte } : x)))}
                 keyboardType="decimal-pad"
@@ -350,7 +353,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
               />
               <Text style={[s.texte, { flex: 1, minWidth: 160 }]}>× {p.designation}{p.produit_id != null ? '' : ' (libre)'}</Text>
               {peutRetirer(p.id)
-                ? <Bouton titre="Retirer" danger onPress={() => setPieces(pieces.filter((x) => x.id !== p.id))} />
+                ? <Bouton titre="Retirer" icone="trash" danger onPress={() => setPieces(pieces.filter((x) => x.id !== p.id))} />
                 : <Text style={s.discret}>Retrait : responsable</Text>}
             </View>
           ))}
@@ -368,10 +371,11 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                 <Pressable
                   key={p.id}
                   onPress={() => ajouterPiece(p.id, p.designation)}
-                  style={({ pressed }) => [s.case, pressed && { backgroundColor: COULEURS.survol, borderColor: COULEURS.principal }]}
+                  style={({ pressed }) => [s.case, pressed && s.appuye]}
                   accessibilityRole="button"
                 >
-                  <Text style={[s.texte, { flex: 1 }]}>+ {p.designation}</Text>
+                  <Icone nom="plus" couleur={COULEURS.discret} />
+                  <Text style={[s.texte, { flex: 1 }]}>{p.designation}</Text>
                   <Text style={s.discret}>{p.unite || 'u'}</Text>
                 </Pressable>
               ))}
@@ -400,7 +404,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
                     accessibilityRole="checkbox"
                     accessibilityState={{ checked: actif }}
                   >
-                    <Text style={[s.textePuce, actif && { color: '#fff' }]}>{o.nom_complet}</Text>
+                    <Text style={[s.textePuce, actif && { color: COULEURS.principalTexte }]}>{o.nom_complet}</Text>
                   </Pressable>
                 );
               })}
@@ -414,8 +418,8 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
           <Champ libelle="Observation" valeur={observation} onChange={setObservation} multiligne />
         </Carte>
 
-        {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
-        <Bouton titre={m ? 'Enregistrer les modifications' : 'Enregistrer la réparation'} primaire onPress={enregistrer} occupe={occupe} />
+        {!!erreur && <Message ton="erreur">{erreur}</Message>}
+        <Bouton titre={m ? 'Enregistrer les modifications' : 'Enregistrer la réparation'} primaire grand onPress={enregistrer} occupe={occupe} />
         <Bouton titre="Annuler" onPress={retour} desactive={occupe} />
       </ScrollView>
     </View>
@@ -428,6 +432,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
 export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
   const { marche } = useSession();
   const parametres = useParametres(marche?.id);
+  const bas = useBas();
   const [resultat, setResultat] = useState<'faite' | 'non_faite' | ''>('faite');
   const [natureId, setNatureId] = useState('');
   const [longueurT, setLongueurT] = useState('');
@@ -483,7 +488,7 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
   return (
     <View style={s.ecran}>
       <BarreApp titre="Nouvelle réfection" sousTitre={contexte.libelle} retour={retour} />
-      <ScrollView contentContainerStyle={s.defile} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         <Carte>
           <Puces
             options={[{ valeur: 'faite' as const, libelle: 'Réfection faite' }, { valeur: 'non_faite' as const, libelle: 'Non faite (motif)' }]}
@@ -516,8 +521,8 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
         <Carte>
           <Champ libelle="Observation" valeur={observation} onChange={setObservation} multiligne />
         </Carte>
-        {!!erreur && <Text style={s.erreur}>{erreur}</Text>}
-        <Bouton titre="Enregistrer la réfection" primaire onPress={enregistrer} occupe={occupe} />
+        {!!erreur && <Message ton="erreur">{erreur}</Message>}
+        <Bouton titre="Enregistrer la réfection" primaire grand onPress={enregistrer} occupe={occupe} />
         <Bouton titre="Annuler" onPress={retour} desactive={occupe} />
       </ScrollView>
     </View>

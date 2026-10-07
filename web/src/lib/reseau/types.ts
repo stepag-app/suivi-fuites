@@ -33,6 +33,8 @@ export interface ZoneReseau {
   numero: number;
   code: string;
   libelle: string;
+  /** Linéaire du contrat (tableau n° 1 du CPS), en mètres ; le CPS ne le donne que par zone. */
+  lineaire_m: number | null;
   geom: Polygon | MultiPolygon | null;
 }
 

@@ -111,7 +111,7 @@ export interface ContexteReseau {
 export async function chargerContexteReseau(marcheId: string): Promise<ContexteReseau> {
   const sb = getSupabase();
   const [z, s] = await Promise.all([
-    sb.from('zones').select('id, numero, code, libelle, geom').eq('marche_id', marcheId).eq('actif', true).order('numero'),
+    sb.from('zones').select('id, numero, code, libelle, lineaire_m, geom').eq('marche_id', marcheId).eq('actif', true).order('numero'),
     sb.from('secteurs').select('id, zone_id, code, libelle, ordre, statut_balayage, geom').eq('marche_id', marcheId).eq('actif', true).order('ordre').order('code'),
   ]);
   if (z.error) throw z.error;

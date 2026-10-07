@@ -31,6 +31,11 @@ Deux envois de plus : `photos` (ajoutées depuis la fiche) et `modification` (se
 réparation, `src/modification.ts` : champs, pièces ajoutées / retirées / requantifiées, ouvriers ajoutés / retirés ;
 chaque étape rejouable sans effet de plus) ; ils partent après la saisie qu'ils complètent si elle attend encore ;
 abandonner une réparation emporte ses modifications et ses photos ajoutées.
+**Délai des requêtes** (`src/reseau.ts`, `global.fetch` du client Supabase) : le fetch de l'APK n'en a aucun, et une
+requête restée sans réponse (connexion 4G morte) bloquait la synchro, une seule à la fois, jusqu'à l'expiration TCP
+(souvent un quart d'heure). Toute requête est abandonnée après **60 s**, **3 min** pour l'envoi d'une photo ; l'abandon
+compte comme une coupure : la saisie reste sur la tablette, sans message, et repart à la synchro suivante. Une requête
+qui porte déjà son propre signal d'abandon le garde.
 
 **Style** : celui du panneau web, interface « Studio Admin » (shadcn/ui, depuis le 2026-10-07 ; maquettes validées par
 Issam : liste en tableau comme le panneau, fiche sur une seule page). Jetons de `web/src/app/globals.css` (préréglage
@@ -53,8 +58,8 @@ reprise, photos typées et rattachées, réfection reprise de la fouille, statut
 verrouillée, doublons, droits détection / chef, aucun prix visible).
 Essai **sans pile** (ni Docker ni installation) : `node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs`
 depuis `mobile/` (Node ≥ 22.18) : vrai code de la file d'attente, base, stockage et réseau simulés
-(`essais/mocks/supabase-simule.js`) ; 28 vérifications (photos depuis la fiche, modification après la création,
-coupures, renvoi sans doublon, droits, verrou, abandon).
+(`essais/mocks/supabase-simule.js`) ; 38 vérifications (photos depuis la fiche, modification après la création,
+coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai sur une horloge simulée).
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
 photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications

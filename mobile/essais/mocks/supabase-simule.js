@@ -5,6 +5,9 @@
 //  * portée « siennes » sur une ligne saisie par un autre → « Modification non autorisée » (42501) ;
 //  * retrait (supprime_le) sans droit « supprimer » → « Suppression non autorisée » (42501) ;
 //  * fuite verrouillée → « Fuite verrouillée : modification réservée au responsable » (42501).
+// Chaque requête passe par le vrai délai de l'appli (src/reseau.ts, `global.fetch` du vrai client).
+import { avecDelai } from '../../src/reseau.ts';
+
 const TABLES = ['fuites', 'reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers', 'photos'];
 const INTERVENTIONS = ['reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers'];
 
@@ -14,6 +17,8 @@ export const simulation = {
   journal: [], // « table:operation » de chaque requête reçue, dans l'ordre
   reseau: true,
   coupureDans: null, // nombre de requêtes acceptées avant la coupure (coupure en plein envoi)
+  sansReponseDans: null, // nombre de requêtes servies avant celle qui n'aura jamais de réponse (connexion 4G morte)
+  sansReponse: 0, // requêtes en attente d'une réponse qui ne viendra pas
   utilisateur: 'chef',
   droits: { modifier: 'siennes', supprimer: 'non' },
   verrouillees: new Set(),
@@ -23,6 +28,7 @@ export const simulation = {
     this.journal = [];
     this.reseau = true;
     this.coupureDans = null;
+    this.sansReponseDans = null;
     this.verrouillees.clear();
   },
 };
@@ -37,6 +43,23 @@ function reseauOk() {
   }
   return simulation.reseau;
 }
+
+// Le serveur simulé répond aussitôt, sauf à la requête « sans réponse » : rien ne revient, seul l'abandon par le délai
+// de l'appli la fait tomber (même erreur que le fetch de l'APK, expo/fetch).
+function serveur(_adresse, init) {
+  if (simulation.sansReponseDans == null) return Promise.resolve();
+  if (simulation.sansReponseDans > 0) {
+    simulation.sansReponseDans -= 1;
+    return Promise.resolve();
+  }
+  simulation.sansReponseDans = null;
+  simulation.sansReponse += 1;
+  return new Promise((_, ko) => init?.signal?.addEventListener('abort', () => {
+    simulation.sansReponse -= 1;
+    ko(new Error('fetch failed: Fetch request has been canceled'));
+  }));
+}
+const transport = avecDelai(serveur);
 
 function fuiteDe(table, ligne) {
   if (table === 'reparation_pieces' || table === 'reparation_ouvriers') {
@@ -113,7 +136,12 @@ class Requete {
     if (this.operation === 'delete') return supprimer(this.table, cibles);
     return { data: cibles, error: null };
   }
-  then(ok, ko) { return Promise.resolve().then(() => this.executer()).then(ok, ko); }
+  then(ok, ko) {
+    return transport(`/rest/v1/${this.table}`, { body: this.valeur === undefined ? undefined : JSON.stringify(this.valeur) })
+      // Requête abandonnée : erreur mise en forme comme par postgrest-js (« nom: message »).
+      .then(() => this.executer(), (e) => ({ data: null, error: { message: `${e.name}: ${e.message}`, code: '' } }))
+      .then(ok, ko);
+  }
 }
 
 export const supabase = {
@@ -121,7 +149,12 @@ export const supabase = {
   auth: { getSession: async () => ({ data: { session: { user: { id: simulation.utilisateur } } } }) },
   storage: {
     from: () => ({
-      upload: async (chemin) => {
+      upload: async (chemin, octets) => {
+        try {
+          await transport(`/storage/v1/object/photos/${chemin}`, { body: octets });
+        } catch (e) {
+          return { data: null, error: { name: 'StorageUnknownError', message: e.message } }; // comme storage-js
+        }
         if (!reseauOk()) return coupure();
         simulation.journal.push('stockage:upload');
         if (simulation.fichiers.has(chemin)) return { data: null, error: { statusCode: '409', message: 'The resource already exists' } };

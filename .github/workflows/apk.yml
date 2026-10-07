@@ -46,9 +46,53 @@ jobs:
           node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
           node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
       - run: npx expo prebuild --platform android --no-install
-      - name: Compilation (release, signature de test)
+      - name: Signature de production (si le keystore est disponible)
+        id: signature
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KS_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          if [ -z "$KS_B64" ] || [ -z "$KS_PASS" ] || [ -z "$KS_ALIAS" ]; then
+            echo "mode=test" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/suivi-fuites.keystore"
+          python3 - <<'PY'
+          import re
+          p = 'android/app/build.gradle'
+          s = open(p).read()
+          bloc = """        release {
+              storeFile file(System.getenv('KS_FILE'))
+              storePassword System.getenv('KS_PASS')
+              keyAlias System.getenv('KS_ALIAS')
+              keyPassword System.getenv('KS_PASS')
+              storeType 'PKCS12'
+          }
+          """
+          s, n = re.subn(r'(signingConfigs \{[^\n]*\n)', lambda m: m.group(1) + bloc, s, count=1)
+          assert n == 1, 'signingConfigs introuvable'
+          m = re.search(r'buildTypes \{.*?release \{(.*?)\n        \}', s, re.S)
+          assert m, 'buildTypes.release introuvable'
+          corps = re.sub(r'signingConfig signingConfigs\.\w+', 'signingConfig signingConfigs.release', m.group(1))
+          assert 'signingConfigs.release' in corps, 'signingConfig absent du build release'
+          s = s[:m.start(1)] + corps + s[m.end(1):]
+          open(p, 'w').write(s)
+          PY
+          echo "KS_FILE=$RUNNER_TEMP/suivi-fuites.keystore" >> "$GITHUB_ENV"
+          echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
+          echo "KS_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
+          echo "mode=production" >> "$GITHUB_OUTPUT"
+      - name: Compilation (release)
         working-directory: mobile/android
         run: ./gradlew assembleRelease --no-daemon
+      - name: Vérifier la signature
+        if: steps.signature.outputs.mode == 'production'
+        run: |
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          "$BT/apksigner" verify --print-certs "$APK" | tee certs.txt
+          grep -q "CN=STEPAG APP" certs.txt || { echo "APK non signé avec la clé de production"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
           name: suivi-fuites-apk

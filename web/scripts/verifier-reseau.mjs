@@ -407,7 +407,7 @@ ok('fichier d\'une autre étape refusé avec le nom du bon fichier ; table de co
   assert.throws(() => importReseau.lireFeatureCollection(contours, 'troncons'), /étape « 1\. Contours des secteurs ».*prenez « 2-troncons\.geojson »/);
   assert.throws(() => importReseau.lireFeatureCollection(lignes, 'noeuds'), /étape « 2\. Tronçons »/);
   assert.throws(() => importReseau.lireFeatureCollection(points, 'troncons'), /étape « 3\. Nœuds » \(3-noeuds\.geojson\)/);
-  assert.throws(() => importReseau.lireContoursSecteurs('{"QODS HAUT":"qods_haut_chu_mouhoub_iriss"}', SECTEURS),
+  assert.throws(() => importReseau.lireContoursSecteurs('{"QODS HAUT":"QODS-H"}', SECTEURS),
     /1-contours-secteurs\.geojson.*IMPORT-RESEAU.*table de noms/);
   assert.equal(importReseau.lireFeatureCollection(lignes, 'troncons').features.length, 1, 'bon fichier : accepté');
 });

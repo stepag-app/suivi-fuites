@@ -20,7 +20,7 @@ articles (§ 2)).
 | Compte administrateur `issam` (`issam@agents.stepag.ma`) | Supabase Auth | créé et **vérifié** (`issam | true | true`) |
 | Réglages Auth Supabase : fournisseur e-mail activé, « Confirm email » désactivé | tableau de bord Supabase | vérifié sur captures (2026-10-04) |
 | Fonction serveur de gestion des comptes | `supabase/functions/gerer-utilisateurs/` | écrite, compilée ; déployée par le workflow à la fusion |
-| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://suivi-fuites-web.vercel.app (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
+| Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://fuites.stepag.ma (domaine branché le 2026-10-07 : CNAME `fuites` dans Cloudflare, DNS only, vers Vercel ; Supabase Auth : Site URL et Redirect URL mises à jour) ; ancienne adresse https://suivi-fuites-web.vercel.app toujours active (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
 | Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
 | Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | **active** (secret créé le 2026-10-05, premières exécutions réussies) ; essai de restauration à faire |
@@ -311,7 +311,11 @@ encore en production** : import par Paramètres > Réseau (administrateur), avec
 annoncée à 7 m) ; corrections locales et affines essayées, écartées par validation croisée (fenêtres bruitées de ± 4 m) ;
 vérifié à l'œil (centre, Lazaret, Oued Loukous) ; Sidi Yahya : plan et OSM divergent, non corrigeable. L'ancien contrôle
 (`controler_calage.py`, « 1 à 2 m ») sous-estimait le décalage. Sorties recalées : `data-private/reseau/recale/` ;
-dossier d'import : `data-private/IMPORT-RESEAU/` (`preparer_import.py`). Causes de « je ne vois rien » : aucun import
+dossier d'import : `data-private/IMPORT-RESEAU/` (`preparer_import.py`). **Codes de secteur courts** (migration `20261007100000`) :
+`qods_haut_chu_mouhoub_iriss` → `QODS-H`, etc. (table dans la migration), libellés en capitales, formulaire Secteurs en
+capitales ; `secteurs.json`, `zoner.py` et les fichiers de `data-private/reseau/` remappés : le dossier d'import porte les
+**nouveaux** codes, à importer dans un marché **après** le déploiement de la migration (avant : codes inconnus, non zonés).
+Import déjà fait dans DEMO avec les anciens codes : sans effet (tronçons rattachés par `secteur_id`). Causes de « je ne vois rien » : aucun import
 encore ; `apercu.html` ouvert en `file://` (fetch bloqué) ; `outils/reseau/secteurs.json` choisi au lieu du GeoJSON.
 
 **À faire par Issam (lot S)** :

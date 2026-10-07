@@ -60,8 +60,8 @@ Lots K, L, M fusionnés le 2026-10-05 ; Q, R, P1 et intégration fusionnés et d
 1. Cloudflare → **R2 Object Storage** → **Create bucket** : nom `suivi-fuites-photos`, emplacement
    automatique avec l'indication **Western Europe (WEUR)**, classe Standard. **Accès public : désactivé**
    (ni r2.dev ni domaine public : les photos restent privées).
-2. Le compartiment → **Settings → CORS policy** : origines `https://fuites.stepag.ma` (adresse du panneau
-   depuis le 2026-10-07) et `https://suivi-fuites-web.vercel.app` (tant qu'elle reste active), méthodes `GET`, `PUT`, `HEAD`, en-tête `Content-Type`,
+2. Le compartiment → **Settings → CORS policy** : origine `https://suivi-fuites-web.vercel.app`
+   (plus tard `https://fuites.stepag.ma`), méthodes `GET`, `PUT`, `HEAD`, en-tête `Content-Type`,
    durée 3600 s. Le lot E ajustera si besoin.
 3. R2 → **Manage API tokens** → **Create API token** : permission **Object Read & Write**, limité au
    seul compartiment `suivi-fuites-photos`. Noter tout de suite, dans le gestionnaire de mots de passe :

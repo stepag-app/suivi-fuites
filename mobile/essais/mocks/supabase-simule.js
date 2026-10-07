@@ -48,6 +48,18 @@ class Requete {
 export const supabase = {
   from: (table) => new Requete(table),
   auth: client.auth,
+  // Fonction serveur photos-r2 : le serveur simulé répond « non configuré », la tablette retombe sur Supabase Storage.
+  functions: {
+    invoke: async (nom, { body } = {}) => {
+      try {
+        const r = await client.fetch(`${API}/functions/v1/${nom}`, { method: 'POST', body: JSON.stringify(body) });
+        if (r.ok) return { data: await r.json(), error: null };
+        return { data: null, error: Object.assign(new Error('Edge Function returned a non-2xx status code'), { name: 'FunctionsHttpError', context: r }) };
+      } catch (e) {
+        return { data: null, error: Object.assign(new Error(e.message), { name: 'FunctionsFetchError' }) }; // comme functions-js
+      }
+    },
+  },
   storage: {
     from: () => ({
       upload: async (chemin, octets) => {

@@ -190,6 +190,16 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
 - Limites : légende du PDF de la carte en pastilles (pas en traits) ; rectangle et lasso essayés par événements
   simulés seulement ; jamais essayé sur la tablette ni contre la base de production.
 
+## Photos : Cloudflare R2 et Supabase Storage
+
+Seul point d'accès aux fichiers : `src/lib/photo.ts`. `deposerPhoto` demande une URL de dépôt à la fonction serveur
+`photos-r2` (droits vérifiés côté serveur, clés R2 jamais dans le navigateur), envoie le JPEG directement dans le
+compartiment privé R2, et renvoie `stockage = 'r2'` ; si la fonction répond « non configuré », refuse, ou si le dépôt
+échoue, le fichier va sur Supabase Storage (`stockage = 'supabase'`) : rien n'est perdu. `urlsPhotos` lit les deux
+stockages (URL signées 1 h, 10 min pour le rapport PDF). Utilisé par la fiche, la file hors ligne (`hors-ligne.ts`),
+la copie hors ligne et le rapport PDF. Mise en service : `docs/feuille-de-route.md` § 3 ; essai des clés :
+`node scripts/essai-r2.mjs` (`--forme` sans clés).
+
 ## Mode hors ligne léger
 
 - **Nouvelle fuite** : toujours enregistrée d'abord sur la tablette (IndexedDB : fiche + photos déjà

@@ -203,6 +203,15 @@ globalThis.fetch = async (entree, init = {}) => {
   if (simulation.lenteur) await new Promise((ok) => setTimeout(ok, simulation.lenteur));
   if (!reseauOk()) throw new TypeError('Network request failed');
   const jeton = jetonDe(init);
+  // Fonction serveur photos-r2 sans secrets R2 : 503 « r2_non_configure » (la tablette retombe sur Supabase Storage).
+  if (pathname === '/functions/v1/photos-r2') {
+    if (jeton !== 'valide') {
+      simulation.sansJeton.push(`fonction:photos-r2:${jeton}`);
+      return json({ erreur: 'Session invalide', code: 'non_authentifie' }, 401);
+    }
+    simulation.journal.push('fonction:photos-r2');
+    return json({ erreur: 'Stockage R2 non configuré', code: 'r2_non_configure' }, 503);
+  }
   if (pathname.startsWith('/storage/v1/object/photos/')) {
     if (jeton !== 'valide') {
       simulation.sansJeton.push(`stockage:upload:${jeton}`);

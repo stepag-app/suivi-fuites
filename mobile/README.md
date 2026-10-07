@@ -152,3 +152,10 @@ L'APK est **signé avec la clé de test d'Expo** : suffisant pour les essais sur
 Télécharger l'artefact `suivi-fuites-apk` (onglet Actions du dépôt), le copier sur la tablette, autoriser
 l'installation depuis cette source. Sur Samsung : exclure l'appli de l'optimisation batterie
 (Réglages > Batterie > Applications jamais en veille) pour le futur suivi GPS.
+
+## Photos : stockage
+
+`src/photos.ts` regroupe tout : prise (1 600 px, qualité 70, dossier privé), dépôt et lecture. Le dépôt demande une URL
+signée à la fonction serveur `photos-r2` et envoie le fichier tel quel dans le compartiment privé Cloudflare R2
+(`FileSystem.uploadAsync`, sans passer par la mémoire) ; si R2 n'est pas configuré ou refuse, repli sur Supabase Storage.
+La ligne `photos` porte le `stockage` réel ; `urlsPhotos` lit les deux. Aucune clé R2 dans l'APK.

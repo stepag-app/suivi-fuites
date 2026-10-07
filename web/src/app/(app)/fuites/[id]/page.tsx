@@ -30,7 +30,7 @@ import {
 } from "@/lib/format";
 import { estErreurReseau, noterConsultation, oublierFiche } from "@/lib/hors-ligne";
 import { lienItineraire } from "@/lib/itineraire";
-import { preparerPhoto } from "@/lib/photo";
+import { deposerPhoto, preparerPhoto } from "@/lib/photo";
 import { useSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabase";
 import type { Motif, Nature, PhotoLigne, Piece, Profil, Quantite, Refection, Reparation, StatutFuite, VFuite } from "@/lib/types";
@@ -703,11 +703,9 @@ function Photos({ photos, fuiteId, marcheId, peutAjouter, horsLigne, onChange, o
       for (const fichier of liste) {
         const prete = await preparerPhoto(fichier);
         const photoId = crypto.randomUUID();
-        const chemin = `${marcheId}/${fuiteId}/${photoId}.jpg`;
-        const up = await sb.storage.from("photos").upload(chemin, prete.blob, { contentType: "image/jpeg" });
-        if (up.error) throw up.error;
+        const { stockage, chemin } = await deposerPhoto(prete.blob, { marche_id: marcheId, fuite_id: fuiteId, id: photoId });
         const ligne = await sb.from("photos").insert({
-          id: photoId, marche_id: marcheId, fuite_id: fuiteId, type, chemin,
+          id: photoId, marche_id: marcheId, fuite_id: fuiteId, type, stockage, chemin,
           largeur_px: prete.largeur, hauteur_px: prete.hauteur, taille_octets: prete.blob.size,
         });
         if (ligne.error) throw ligne.error;

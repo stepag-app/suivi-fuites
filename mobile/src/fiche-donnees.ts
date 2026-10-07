@@ -19,7 +19,7 @@ const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, equipe_id, ouv
 export async function chargerServeur(id: string): Promise<Donnees | null> {
   const [f, ph, rp, rf] = await Promise.all([
     supabase.from('v_fuites').select(COLONNES_FUITE).eq('id', id).maybeSingle(),
-    supabase.from('photos').select('id, type, chemin, prise_le, reparation_id, refection_id').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
+    supabase.from('photos').select('id, type, chemin, stockage, prise_le, reparation_id, refection_id').eq('fuite_id', id).is('supprime_le', null).order('prise_le'),
     supabase.from('reparations').select(COLONNES_REPARATION).eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),
     supabase.from('refections').select('id, resultat, motif_id, realisee_le, nature_id, longueur_m, largeur_m, equipe_id, observation')
       .eq('fuite_id', id).is('supprime_le', null).order('realisee_le'),

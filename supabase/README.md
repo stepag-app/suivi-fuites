@@ -33,6 +33,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261006110000_droits_auteur_inconnu.sql` | correctif : `private.peut` renvoie `false` (et non `null`) pour une portée « siennes » quand la saisie n'a ni auteur terrain ni `saisi_par` ; `avant_modification_saisie` bloque donc bien les saisies sans auteur (importées, de démonstration, générées) |
 | `config.toml` | configuration minimale de la CLI Supabase |
 | `functions/gerer-utilisateurs/` | fonction serveur (création des comptes, mot de passe, révocation, rôles), déployée par le workflow |
+| `functions/photos-r2/` | fonction serveur des photos sur Cloudflare R2 : vérifie le compte (JWT) et ses droits (`marches_photos`, RLS de `photos`), puis signe des URL S3 de courte durée (dépôt `PUT` 15 min, lecture `GET` 1 h, 200 chemins par appel) ; secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (`R2_BUCKET` facultatif) posés par le workflow depuis les secrets GitHub ; sans eux, répond 503 `r2_non_configure` et les clients restent sur Supabase Storage |
 | `tests/database/01_rls_et_regles.test.sql` | 64 tests pgTAP (isolation, droits, verrou, statuts, prix, re-détection, photos, journal) ; depuis le lot R, la correction de quantité du responsable porte un motif |
 | `tests/database/02_parametres_marche.test.sql` | 49 tests de l'étape A (fiche, versions de prix, avenants, arrêts et délai, événements, libellés du client) |
 | `tests/database/03_lots_attachement.test.sql` | 41 tests de l'étape B (solde, brouillons, arrêt, régularisations, anticipation, forçage, réouverture, droits) ; correction avec motif depuis le lot R |
@@ -49,6 +50,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/15_reseau_balayage.test.sql` | 115 tests du lot S2 (droits par rôle, isolation, import idempotent, longueur, zonage automatique et manuel, contours, premier passage et annulation, statut du secteur, vues, marché désactivé, `copier_marche` inchangée) |
 | `migrations/20261007120000_essai_charge.sql` | essai de charge à 3 000 fuites (`docs/essai-charge-3000.md`) : `compter_fuites` (fuites par marché et statut), `resume_a_attacher` (reste à attacher par article), `etat_balayage_compact` (état de balayage en un seul document JSON : `etat_balayage` en lignes était plafonné à 1 000 tronçons par l'API) ; toutes SECURITY INVOKER (RLS de l'appelant) |
 | `tests/database/17_essai_charge.test.sql` | 22 tests : privilèges, comptages identiques à `v_fuites` sous la RLS de chaque rôle, reste à attacher identique à `v_a_attacher`, état compact identique à `etat_balayage` au-delà de 1 000 tronçons |
+| `migrations/20261007130000_photos_r2.sql` | lot N : `marches_photos(p_action)` (marchés où le compte a le droit « photos » lire / creer / supprimer ; même règle que la RLS de `photos` et du compartiment Storage), lue par la fonction serveur `photos-r2` ; `anon` sans accès ; commentaire de `photos.stockage` |
+| `tests/database/16_photos_r2.test.sql` | 10 tests du lot N : privilèges de `marches_photos`, rien sans compte ni sans affectation, marché de l'agent en lecture et en dépôt, action inconnue refusée, administrateur sur tous les marchés, marché désactivé sans dépôt |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma

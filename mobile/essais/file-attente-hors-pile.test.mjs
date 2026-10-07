@@ -71,7 +71,7 @@ sim.reseau = false;
 let reste = await synchroniser();
 verifier(reste === 5 && (await lireAttente()).every((e) => !e.erreur), 'sans réseau : 5 envois gardés, aucune erreur');
 sim.reseau = true;
-sim.coupureDans = 9; // la 10e requête (pièce ajoutée par la modification) tombe
+sim.coupureDans = 11; // la 12e requête (pièce ajoutée par la modification) tombe ; l'appel à photos-r2 d'une photo compte
 reste = await synchroniser();
 const coupe = await lireAttente();
 verifier(reste === 3 && coupe[0].type === 'modification' && coupe[0].fait?.ligne === true && coupe.every((e) => !e.erreur),
@@ -219,7 +219,7 @@ reste = await synchroniser();
 verifier(reste === 0 && sim.tables.fuites.some((f) => f.id === F3) && fs.readdirSync(D).length === 0, 'synchro suivante : la fuite et sa photo partent');
 const F4 = uuid();
 await mettreEnAttente({ id: F4, marche_id: M, position: null, photos: [photo('detection')], ligne: { adresse: 'Photo sans réponse' } });
-sim.sansReponseDans = 1; // la fuite passe, l'envoi de sa photo reste sans réponse
+sim.sansReponseDans = 2; // la fuite et l'appel à photos-r2 (« non configuré ») passent, le dépôt de la photo reste sans réponse
 const lente = synchroniser();
 const s2 = suivre(lente);
 await attendreBlocage();

@@ -79,7 +79,7 @@ export async function chargerContexte(uid: string, serveur: boolean): Promise<Co
       const profil = p.data as Profil | null;
       if (profil && !profil.actif) return 'inactif';
       const contexte: Contexte = { profil, marches: (m.data as Marche[]) ?? [], droits: (d.data as Droit[]) ?? [] };
-      await AsyncStorage.setItem(cleContexte(uid), JSON.stringify(contexte));
+      await AsyncStorage.setItem(cleContexte(uid), JSON.stringify(contexte)).catch(() => undefined);
       return contexte;
     }
   }
@@ -91,8 +91,9 @@ export async function chargerContexte(uid: string, serveur: boolean): Promise<Co
 }
 
 /**
- * « Quitter ». Jeton à renouveler (hors ligne) : `signOut` d'auth-js attendrait un renouvellement voué à l'échec, puis
- * rendrait une erreur sans rien effacer. La session est alors retirée de la tablette sans appel au serveur.
+ * « Quitter ». Jeton à renouveler (hors ligne) : `signOut` d'auth-js tenterait d'abord un renouvellement (près de 25 s
+ * sans réseau), puis rendrait une erreur sans rien effacer. La session est alors retirée de la tablette sans appel au
+ * serveur : son jeton de renouvellement n'est pas révoqué, mais la tablette ne le garde plus.
  */
 export async function fermerSession(aRenouveler: boolean) {
   if (!aRenouveler && !(await supabase.auth.signOut()).error) return;

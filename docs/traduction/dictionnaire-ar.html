@@ -1,0 +1,672 @@
+<title>Dictionnaire arabe APK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400&display=swap">
+<style>
+/* Layout : en-tête de revue, barre de filtres collante, deux tableaux (glossaire puis libellés) dans des conteneurs défilants */
+:root {
+  --bg: #f5f6f7; --surface: #ffffff; --fg: #1d2d3e; --muted: #556b82; --line: #d9dde3; --soft: #eef2f6;
+  --accent: #0064d9; --accent-soft: #ebf3fd; --ok: #256f3a; --ok-soft: #e7f4ea; --warn: #b44f00; --warn-soft: #fff3e0;
+  --edited: #7a4fd0; --edited-soft: #f2edfc;
+  --f-ui: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-ar: "IBM Plex Sans Arabic", "Noto Sans Arabic", "Geeza Pro", "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12171d; --surface: #1b222b; --fg: #e6ecf2; --muted: #9aabbd; --line: #2f3a46; --soft: #222b35;
+  --accent: #5aa2ff; --accent-soft: #1c2c42; --ok: #6fcf8a; --ok-soft: #1a2e22; --warn: #ffb066; --warn-soft: #33261a;
+  --edited: #b99cff; --edited-soft: #2a2340; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #12171d; --surface: #1b222b; --fg: #e6ecf2; --muted: #9aabbd; --line: #2f3a46; --soft: #222b35;
+  --accent: #5aa2ff; --accent-soft: #1c2c42; --ok: #6fcf8a; --ok-soft: #1a2e22; --warn: #ffb066; --warn-soft: #33261a;
+  --edited: #b99cff; --edited-soft: #2a2340; color-scheme: dark }
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--fg); font-family: var(--f-ui); font-size: 15px; line-height: 1.5 }
+.wrap { max-width: 1320px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 64px; display: grid; gap: 22px }
+h1 { font-size: 1.6rem; font-weight: 600; margin: 0; text-wrap: balance }
+h2 { font-size: 1.15rem; font-weight: 600; margin: 0; text-wrap: balance }
+p { margin: 0; max-width: 72ch }
+.muted { color: var(--muted) }
+.ar { font-family: var(--f-ar); direction: rtl; text-align: right; font-size: 1.05rem; line-height: 1.7 }
+.modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px }
+.mode { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; display: grid; gap: 6px; min-width: 0 }
+.mode b { font-size: .8rem; letter-spacing: .06em; text-transform: uppercase; color: var(--accent) }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 10px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid var(--line) }
+.progress { flex: 1 1 260px; display: grid; gap: 4px; min-width: 0 }
+.track { height: 8px; background: var(--soft); border-radius: 4px; overflow: hidden; display: flex }
+.track i { display: block; height: 100% }
+.track .p-ok { background: var(--ok) } .track .p-ed { background: var(--edited) }
+.legend { font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums }
+.legend span::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: middle }
+.legend .l-ok::before { background: var(--ok) } .legend .l-ed::before { background: var(--edited) } .legend .l-todo::before { background: var(--soft); border: 1px solid var(--line) }
+select, input[type="search"], button { font: inherit; color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px }
+button { cursor: pointer; font-weight: 500 }
+button:hover { border-color: var(--accent) }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--surface) }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px }
+label.chk { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; cursor: pointer }
+.status { font-size: .85rem; color: var(--muted) }
+.status.err { color: var(--warn) }
+.scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px }
+table { border-collapse: collapse; width: 100%; min-width: 980px }
+th { text-align: left; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding: 10px 12px; border-bottom: 1px solid var(--line); background: var(--soft); position: sticky; top: 0 }
+td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top }
+tr:last-child td { border-bottom: 0 }
+tr.is-ok td { background: var(--ok-soft) }
+tr.is-ed td { background: var(--edited-soft) }
+td.num { font-family: var(--f-mono); font-size: .8rem; color: var(--muted); white-space: nowrap }
+td.fr { width: 22% }
+td.prop { width: 24% }
+.screen { display: inline-block; font-size: .72rem; color: var(--muted); border: 1px solid var(--line); border-radius: 10px; padding: 0 7px; margin-top: 4px }
+.same { font-size: .8rem; color: var(--muted); font-style: italic }
+.ph { font-family: var(--f-mono); font-size: .85em; color: var(--accent); background: var(--accent-soft); border-radius: 3px; padding: 0 3px; direction: ltr; unicode-bidi: isolate }
+textarea { width: 100%; font: inherit; color: var(--fg); background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 6px 8px; resize: vertical; min-height: 38px; margin-top: 6px }
+textarea.ar { font-family: var(--f-ar) }
+textarea:not(:placeholder-shown) { border-style: solid; border-color: var(--edited); background: var(--surface) }
+textarea::placeholder { color: var(--muted); font-family: var(--f-ui); font-size: .82rem; direction: ltr; text-align: left }
+td.okc { text-align: center; width: 64px }
+td.okc input { width: 20px; height: 20px; accent-color: var(--ok) }
+td.note { width: 14% }
+td.note textarea { margin-top: 0; font-size: .88rem }
+.keep { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem }
+.keep input { width: 18px; height: 18px; accent-color: var(--accent) }
+.tag-fr { font-size: .75rem; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 1px 6px }
+.note-box { background: var(--warn-soft); border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; display: grid; gap: 6px }
+.note-box ul { margin: 0; padding-left: 20px; display: grid; gap: 4px }
+.copied { color: var(--ok) }
+@media (prefers-reduced-motion: no-preference) { tr td { transition: background-color .2s } }
+</style>
+
+<div class="wrap">
+  <header style="display:grid;gap:10px">
+    <h1>Dictionnaire arabe de l'application tablette</h1>
+    <p class="muted">Tous les libellés de l'APK des agents de détection et de réparation, avec ma proposition pour chacun des trois modes. Le panneau web reste en français. Cochez <b>OK</b> quand une proposition vous convient, ou tapez votre variante dans le champ en dessous : elle est enregistrée dès que vous quittez le champ, et je la relis avant d'intégrer.</p>
+  </header>
+
+  <section class="modes" aria-label="Les trois modes">
+    <div class="mode"><b>Mode hybride</b><span>Phrases en arabe, termes techniques du métier gardés en français (ceux cochés dans le glossaire).</span><span class="ar">تسجيل الـ Fuite</span></div>
+    <div class="mode"><b>100 % français</b><span>L'application telle qu'elle est aujourd'hui. Aucune traduction.</span><span>Enregistrer la fuite</span></div>
+    <div class="mode"><b>100 % arabe</b><span>Arabe classique (فصحى), y compris les termes techniques.</span><span class="ar">تسجيل التسرب</span></div>
+  </section>
+
+  <div class="note-box">
+    <strong>Comment lire le tableau</strong>
+    <ul>
+      <li><span class="ph">{n}</span>, <span class="ph">{date}</span>… sont des valeurs remplies par l'application (nombre, date, numéro). Gardez-les dans vos variantes.</li>
+      <li>« identique à l'arabe » : la phrase ne contient aucun terme du glossaire, le mode hybride affiche donc la version arabe.</li>
+      <li>Si vous décochez un terme du glossaire, je reprendrai les phrases hybrides qui le contiennent : inutile de les corriger une par une.</li>
+      <li><b>Nouveau :</b> 49 libellés ajoutés par la nouvelle interface de l'APK (écran « Nouveaux libellés », N° Z01 à Z49) attendent votre relecture. Vos validations précédentes sont conservées.</li>
+      <li>Hors de ce dictionnaire : les listes saisies dans le panneau (natures de revêtement, motifs, équipes) et les désignations des articles Dolibarr. Je les traiterai à part.</li>
+    </ul>
+  </div>
+
+  <div class="bar" role="region" aria-label="Avancement et filtres">
+    <div class="progress">
+      <div class="track" aria-hidden="true"><i class="p-ok" id="pOk"></i><i class="p-ed" id="pEd"></i></div>
+      <div class="legend" id="legend"></div>
+    </div>
+    <select id="fEcran" aria-label="Filtrer par écran"></select>
+    <input type="search" id="fTexte" placeholder="Chercher un mot…" aria-label="Chercher un mot">
+    <label class="chk"><input type="checkbox" id="fTodo"> À vérifier seulement</label>
+    <button id="btnCopier" type="button">Copier mes corrections</button>
+    <span class="status" id="status" aria-live="polite">Connexion à l'enregistrement…</span>
+  </div>
+
+  <section style="display:grid;gap:10px" id="secGlossaire">
+    <h2>1. Glossaire des termes techniques</h2>
+    <p class="muted">Cochée, la case « Garder en français » laisse le terme en français en mode hybride. La traduction arabe sert au mode 100 % arabe.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>N°</th><th>Terme</th><th>Mode hybride</th><th>Arabe proposé · votre variante</th><th>OK</th><th>Remarque</th></tr></thead>
+      <tbody id="tGlossaire"></tbody>
+    </table></div>
+  </section>
+
+  <section style="display:grid;gap:10px" id="secLibelles">
+    <h2>2. Libellés des écrans</h2>
+    <div class="scroll"><table>
+      <thead><tr><th>N°</th><th>Français</th><th>Hybride proposé · votre variante</th><th>Arabe proposé · votre variante</th><th>OK</th><th>Remarque</th></tr></thead>
+      <tbody id="tLibelles"></tbody>
+    </table></div>
+  </section>
+</div>
+
+<script>
+const GLOSSAIRE = [
+  ["G01","Fuite","تسرب",true],
+  ["G02","Réparation","إصلاح",true],
+  ["G03","Réfection","إعادة الرصف",true],
+  ["G04","Balayage","مسح الشبكة",true],
+  ["G05","Détection / Détectée","الكشف",true],
+  ["G06","Re-détection","إعادة الكشف",true],
+  ["G07","Secteur","القطاع",true],
+  ["G08","Marché","الصفقة",true],
+  ["G09","Référence (client / SRM)","المرجع",true],
+  ["G10","Attachement","كشف الأشغال المنجزة",true],
+  ["G11","Ouvrage","المنشأة",true],
+  ["G12","Fouille","الحفرة",true],
+  ["G13","Revêtement","طبقة الرصف",true],
+  ["G14","Branchement","الربط",true],
+  ["G15","Branchement clandestin","ربط غير قانوني",true],
+  ["G16","Conduite","القناة",true],
+  ["G17","Élément de conduite","عنصر من القناة",true],
+  ["G18","Tuyau","الأنبوب",true],
+  ["G19","Pièce spéciale","قطعة خاصة",true],
+  ["G20","Vanne","الصمام",true],
+  ["G21","Compteur","العداد",true],
+  ["G22","Bouche d'incendie","فوهة إطفاء الحريق",true],
+  ["G23","Bouche à clé","غطاء المحبس",true],
+  ["G24","Robinet PEC","محبس التفريع",true],
+  ["G25","Collier PEC","طوق التفريع",true],
+  ["G26","PE · PVC · PPR","بولي إيثيلين · بي في سي · بولي بروبيلين",true],
+  ["G27","Amiante-ciment","الأسمنت الأميانتي",true],
+  ["G28","Fonte ductile · Fonte grise","الحديد الزهر المرن · الحديد الزهر الرمادي",true],
+  ["G29","Acier galvanisé","الفولاذ المجلفن",true],
+  ["G30","Trottoir","الرصيف",true],
+  ["G31","Chaussée","الطريق المعبّد",true],
+  ["G32","DE / DN (diamètre)","القطر الخارجي / القطر الاسمي",true],
+  ["G33","GPS","GPS",true],
+  ["G34","Matériau","المادة",false],
+  ["G35","Équipe","الفريق",false],
+  ["G36","Motif","السبب",false],
+  ["G37","Article (liste des pièces)","الصنف",false],
+  ["G38","Responsable","المسؤول",false],
+  ["G39","Tablette","الجهاز اللوحي",false],
+  ["G40","Réseau (connexion internet)","الاتصال بالإنترنت",false],
+  ["G41","Photo","صورة",false],
+];
+
+// [id, écran, français, hybride (null = identique à l'arabe), arabe]
+const LIBELLES = [
+  ["A01","Général","Suivi des fuites","تتبع الـ Fuites","تتبع التسربات"],
+  ["A02","Général","Application non configurée (adresse du serveur absente).",null,"التطبيق غير مُهيّأ (عنوان الخادم غير موجود)."],
+  ["A03","Général","Aucun marché n'est affecté à votre compte. Contactez l'administrateur.","لا يوجد أي Marché مرتبط بحسابك. اتصل بمسؤول النظام.","لا توجد أي صفقة مرتبطة بحسابك. اتصل بمسؤول النظام."],
+  ["A04","Général","Connexion",null,"تسجيل الدخول"],
+  ["A05","Général","Identifiant",null,"اسم المستخدم"],
+  ["A06","Général","Mot de passe",null,"كلمة المرور"],
+  ["A07","Général","Se connecter",null,"دخول"],
+  ["A08","Général","Identifiant ou mot de passe incorrect.",null,"اسم المستخدم أو كلمة المرور غير صحيحة."],
+  ["A09","Général","Connexion impossible : vérifiez le réseau.",null,"تعذّر الدخول: تحقّق من الاتصال بالإنترنت."],
+  ["A10","Général","Retour",null,"رجوع"],
+  ["A11","Général","Chargement…",null,"جارٍ التحميل…"],
+  ["A12","Général","Quitter",null,"خروج"],
+  ["A13","Général","Annuler",null,"إلغاء"],
+  ["A14","Général","Oui / Non",null,"نعم / لا"],
+
+  ["L01","Liste des fuites","Fuites · {marché}","Fuites · {marché}","التسربات · {marché}"],
+  ["L02","Liste des fuites","+ Nouvelle fuite","+ Fuite جديدة","+ تسرب جديد"],
+  ["L03","Liste des fuites","Balayage","Balayage","مسح الشبكة"],
+  ["L04","Liste des fuites","{n} envoi(s) en attente",null,"في انتظار الإرسال: {n}"],
+  ["L05","Liste des fuites","Hors ligne : dernière liste connue.",null,"دون اتصال: آخر قائمة محفوظة."],
+  ["L06","Liste des fuites","Aucune fuite.","لا توجد أي Fuite.","لا يوجد أي تسرب."],
+  ["L07","Liste des fuites","À envoyer · {référence}",null,"للإرسال · {référence}"],
+  ["L08","Liste des fuites","{date} · gardée sur la tablette",null,"{date} · محفوظة على الجهاز اللوحي"],
+  ["L09","Liste des fuites","N° {numéro}",null,"رقم {numéro}"],
+  ["L10","Liste des fuites","{n} photo(s)",null,"الصور: {n}"],
+  ["L11","Liste des fuites","Non réparée depuis plus de {délai} h","بدون Réparation منذ أكثر من {délai} ساعة","لم يُصلَح منذ أكثر من {délai} ساعة"],
+  ["L12","Liste des fuites","Fuite N° {numéro}","Fuite رقم {numéro}","التسرب رقم {numéro}"],
+  ["L13","Liste des fuites","➜ Y aller",null,"➜ الذهاب إلى الموقع"],
+  ["L14","Liste des fuites","Y aller (pas de position GPS)",null,"الذهاب إلى الموقع (لا يوجد موقع GPS)"],
+
+  ["S01","Statuts","Détectée, non réparée","Détectée، بدون Réparation","تم الكشف، لم يتم الإصلاح"],
+  ["S02","Statuts","Réparation en cours","Réparation جارية","الإصلاح جارٍ"],
+  ["S03","Statuts","Réparée",null,"تم الإصلاح"],
+  ["S04","Statuts","Achevée",null,"مكتمل"],
+  ["S05","Statuts","Sans réparation","بدون Réparation","بدون إصلاح"],
+
+  ["N01","Nouvelle fuite","Nouvelle fuite","Fuite جديدة","تسرب جديد"],
+  ["N02","Nouvelle fuite","Position",null,"الموقع"],
+  ["N03","Nouvelle fuite","Recherche de la position…",null,"جارٍ تحديد الموقع…"],
+  ["N04","Nouvelle fuite","Actualiser la position",null,"تحديث الموقع"],
+  ["N05","Nouvelle fuite","Position refusée : autorisez la localisation dans les réglages de la tablette.",null,"تم رفض تحديد الموقع: فعّل خاصية الموقع في إعدادات الجهاز اللوحي."],
+  ["N06","Nouvelle fuite","Position introuvable. Sortez à l'air libre et réessayez.",null,"تعذّر تحديد الموقع. اخرج إلى مكان مكشوف وأعد المحاولة."],
+  ["N07","Nouvelle fuite","Référence client (libellé par défaut, modifiable par marché)","Référence الزبون","مرجع الزبون"],
+  ["N08","Nouvelle fuite","Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu'elle n'est pas déjà signalée.","لا يوجد اتصال: لا يمكن التحقق من التكرار. تأكّد في عين المكان أن هذه الـ Fuite لم يُبلَّغ عنها من قبل.","لا يوجد اتصال: لا يمكن التحقق من التكرار. تأكّد في عين المكان أن هذا التسرب لم يُبلَّغ عنه من قبل."],
+  ["N09","Nouvelle fuite","Fuite déjà signalée ici ?","هل سبق الإبلاغ عن Fuite هنا؟","هل سبق الإبلاغ عن تسرب هنا؟"],
+  ["N10","Nouvelle fuite","· même référence","· نفس الـ Référence","· نفس المرجع"],
+  ["N11","Nouvelle fuite","· à {n} m",null,"· على بُعد {n} م"],
+  ["N12","Nouvelle fuite","C'est la même fuite","إنها نفس الـ Fuite","إنه نفس التسرب"],
+  ["N13","Nouvelle fuite","Nouvelle fuite liée","Fuite جديدة مرتبطة","تسرب جديد مرتبط"],
+  ["N14","Nouvelle fuite","Elle sera enregistrée comme nouvelle fuite liée au N° {numéro}.","ستُسجَّل كـ Fuite جديدة مرتبطة بالرقم {numéro}.","سيُسجَّل كتسرب جديد مرتبط بالرقم {numéro}."],
+  ["N15","Nouvelle fuite","Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.","بدون اختيار، ستُسجَّل كـ Fuite جديدة مستقلة.","بدون اختيار، سيُسجَّل كتسرب جديد مستقل."],
+  ["N16","Nouvelle fuite","Même fuite (titre de la fenêtre)","نفس الـ Fuite","نفس التسرب"],
+  ["N17","Nouvelle fuite","La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?",null,"لن يُحتفَظ بالإدخال الحالي وصوره. هل تريد فتح البطاقة الموجودة؟"],
+  ["N18","Nouvelle fuite","Oui, ouvrir la fiche",null,"نعم، افتح البطاقة"],
+  ["N19","Nouvelle fuite","Secteur","Secteur","القطاع"],
+  ["N20","Nouvelle fuite","— Choisir —",null,"— اختر —"],
+  ["N21","Nouvelle fuite","Choisir le secteur","اختر الـ Secteur","اختر القطاع"],
+  ["N22","Nouvelle fuite","— Aucun —",null,"— لا شيء —"],
+  ["N23","Nouvelle fuite","Adresse / repère",null,"العنوان / معلم قريب"],
+  ["N24","Nouvelle fuite","Observation",null,"ملاحظة"],
+  ["N25","Nouvelle fuite","Photos ({n})",null,"الصور ({n})"],
+  ["N26","Nouvelle fuite","📷 Prendre une photo",null,"📷 التقاط صورة"],
+  ["N27","Nouvelle fuite","Enregistrer la fuite","تسجيل الـ Fuite","تسجيل التسرب"],
+  ["N28","Nouvelle fuite","Indiquez au moins la position GPS, la {référence} ou l'adresse.",null,"أدخل على الأقل موقع GPS أو {référence} أو العنوان."],
+  ["N29","Nouvelle fuite","Enregistrement sur la tablette…",null,"جارٍ الحفظ على الجهاز اللوحي…"],
+  ["N30","Nouvelle fuite","Envoi…",null,"جارٍ الإرسال…"],
+  ["N31","Nouvelle fuite","Photo impossible : {erreur}",null,"تعذّر التقاط الصورة: {erreur}"],
+  ["N32","Nouvelle fuite","Appareil photo refusé : autorisez-le dans les réglages de la tablette.",null,"تم رفض الوصول إلى الكاميرا: اسمح به في إعدادات الجهاز اللوحي."],
+
+  ["P01","Types de photo","Détection","Détection","الكشف"],
+  ["P02","Types de photo","Avant",null,"قبل"],
+  ["P03","Types de photo","Pendant",null,"أثناء"],
+  ["P04","Types de photo","Après",null,"بعد"],
+  ["P05","Types de photo","Réfection","Réfection","إعادة الرصف"],
+  ["P06","Types de photo","Autre",null,"أخرى"],
+
+  ["E01","Envois en attente","Envois en attente",null,"الإرسالات المعلّقة"],
+  ["E02","Envois en attente","{n} saisie(s) sur la tablette",null,"إدخالات على الجهاز اللوحي: {n}"],
+  ["E03","Envois en attente","Ces saisies sont gardées sur la tablette. Elles partent dans l'ordre dès que le réseau revient ; ne désinstallez pas l'application avant.",null,"هذه الإدخالات محفوظة على الجهاز اللوحي، وتُرسَل بالترتيب فور عودة الاتصال. لا تحذف التطبيق قبل ذلك."],
+  ["E04","Envois en attente","Envoyer maintenant",null,"أرسِل الآن"],
+  ["E05","Envois en attente","Tout est envoyé.",null,"تم إرسال كل شيء."],
+  ["E06","Envois en attente","Envoi impossible pour le moment.",null,"تعذّر الإرسال حاليًا."],
+  ["E07","Envois en attente","{n} envoi(s) restent à traiter.",null,"إرسالات متبقية: {n}"],
+  ["E08","Envois en attente","Saisie le {date} · {n} photo(s) en attente",null,"أُدخِل في {date} · صور في الانتظار: {n}"],
+  ["E09","Envois en attente","Supprimer de la tablette",null,"حذف من الجهاز اللوحي"],
+  ["E10","Envois en attente","Supprimer de la tablette ?",null,"حذف من الجهاز اللوحي؟"],
+  ["E11","Envois en attente","Cette saisie et ses photos seront définitivement perdues.",null,"سيُفقَد هذا الإدخال وصوره نهائيًا."],
+  ["E12","Envois en attente","… et {n} saisie(s) liée(s) (réparation, réfection, modification, photos)","… ومعه {n} إدخالات مرتبطة (Réparation، Réfection، تعديل، صور)","… ومعه {n} إدخالات مرتبطة (إصلاح، إعادة رصف، تعديل، صور)"],
+  ["E13","Envois en attente","Garder",null,"احتفِظ"],
+  ["E14","Envois en attente","Supprimer",null,"احذف"],
+  ["E15","Envois en attente","Réparation · {fuite}","Réparation · {fuite}","إصلاح · {fuite}"],
+  ["E16","Envois en attente","Réfection · {fuite}","Réfection · {fuite}","إعادة الرصف · {fuite}"],
+  ["E17","Envois en attente","Modification de réparation · {fuite}","تعديل الـ Réparation · {fuite}","تعديل الإصلاح · {fuite}"],
+  ["E18","Envois en attente","Photo(s) ajoutée(s) · {fuite}",null,"صور مضافة · {fuite}"],
+  ["E19","Envois en attente","Nouvelle fuite · {référence}","Fuite جديدة · {référence}","تسرب جديد · {référence}"],
+  ["E20","Envois en attente","sans référence","بدون Référence","بدون مرجع"],
+
+  ["F01","Fiche de la fuite","Fiche de la fuite","بطاقة الـ Fuite","بطاقة التسرب"],
+  ["F02","Fiche de la fuite","Fuite à envoyer ({référence})","Fuite للإرسال ({référence})","تسرب للإرسال ({référence})"],
+  ["F03","Fiche de la fuite","Fiche jamais ouverte sur cette tablette : elle sera disponible au retour du réseau.",null,"لم تُفتح هذه البطاقة من قبل على هذا الجهاز اللوحي: ستكون متاحة عند عودة الاتصال."],
+  ["F04","Fiche de la fuite","Fuite introuvable ou accès refusé.","Fuite غير موجودة أو الوصول مرفوض.","التسرب غير موجود أو الوصول مرفوض."],
+  ["F05","Fiche de la fuite","← Liste des fuites","→ قائمة الـ Fuites","→ قائمة التسربات"],
+  ["F06","Fiche de la fuite","Hors ligne : dernière version connue de la fiche.",null,"دون اتصال: آخر نسخة محفوظة من البطاقة."],
+  ["F07","Fiche de la fuite","Cette fuite est encore sur la tablette : elle partira au retour du réseau.","هذه الـ Fuite ما زالت على الجهاز اللوحي: ستُرسَل عند عودة الاتصال.","هذا التسرب ما زال على الجهاز اللوحي: سيُرسَل عند عودة الاتصال."],
+  ["F08","Fiche de la fuite","Fuite verrouillée le {date} (lot d'attachement arrêté)","Fuite مُقفَلة بتاريخ {date} (Attachement مُغلَق)","تسرب مُقفَل بتاريخ {date} (دفعة كشف الأشغال مُغلَقة)"],
+  ["F09","Fiche de la fuite","… : saisie et modification réservées au responsable.",null,"… : الإدخال والتعديل مخصّصان للمسؤول."],
+  ["F10","Fiche de la fuite","Non réparée > {délai} h","بدون Réparation > {délai} ساعة","لم يُصلَح > {délai} ساعة"],
+  ["F11","Fiche de la fuite","Ouvrage","Ouvrage","المنشأة"],
+  ["F12","Fiche de la fuite","Détectée (date de détection)","Détectée","تاريخ الكشف"],
+  ["F13","Fiche de la fuite","par {agent}",null,"بواسطة {agent}"],
+  ["F14","Fiche de la fuite","Re-détection","Re-détection","إعادة الكشف"],
+  ["F15","Fiche de la fuite","liée à une fuite déjà signalée","مرتبطة بـ Fuite مُبلَّغ عنها سابقًا","مرتبط بتسرب مُبلَّغ عنه سابقًا"],
+  ["F16","Fiche de la fuite","Motif",null,"السبب"],
+  ["F17","Fiche de la fuite","Motif : {motif}",null,"السبب: {motif}"],
+  ["F18","Fiche de la fuite","Aucune photo.",null,"لا توجد صور."],
+  ["F19","Fiche de la fuite","📷 Ajouter une photo de la fuite","📷 إضافة صورة للـ Fuite","📷 إضافة صورة للتسرب"],
+  ["F20","Fiche de la fuite","Photo",null,"صورة"],
+  ["F21","Fiche de la fuite","{type} (à envoyer)",null,"{type} (للإرسال)"],
+  ["F22","Fiche de la fuite","Visible avec le réseau",null,"تظهر عند توفّر الاتصال"],
+  ["F23","Fiche de la fuite","Retirer",null,"إزالة"],
+  ["F24","Fiche de la fuite","Réparations","Réparations","الإصلاحات"],
+  ["F25","Fiche de la fuite","Aucune réparation saisie.","لم تُدخَل أي Réparation.","لم يُدخَل أي إصلاح."],
+  ["F26","Fiche de la fuite","+ Saisir une réparation","+ إدخال Réparation","+ إدخال إصلاح"],
+  ["F27","Fiche de la fuite","Réfections","Réfections","أشغال إعادة الرصف"],
+  ["F28","Fiche de la fuite","Aucune réfection saisie.","لم تُدخَل أي Réfection.","لم تُدخَل أي إعادة رصف."],
+  ["F29","Fiche de la fuite","+ Saisir une réfection","+ إدخال Réfection","+ إدخال إعادة رصف"],
+  ["F30","Fiche de la fuite","Sur la tablette, envoi au retour du réseau.",null,"على الجهاز اللوحي، يُرسَل عند عودة الاتصال."],
+  ["F31","Fiche de la fuite","Modification sur la tablette, envoi au retour du réseau.",null,"تعديل على الجهاز اللوحي، يُرسَل عند عودة الاتصال."],
+  ["F32","Fiche de la fuite","tuyau réparé","Tuyau مُصلَح","أنبوب مُصلَح"],
+  ["F33","Fiche de la fuite","robinet PEC changé","Robinet PEC مُستبدَل","محبس التفريع مُستبدَل"],
+  ["F34","Fiche de la fuite","collier PEC changé","Collier PEC مُستبدَل","طوق التفريع مُستبدَل"],
+  ["F35","Fiche de la fuite","bouche à clé mise à niveau","Bouche à clé مُسوّاة مع السطح","غطاء المحبس مُسوّى مع السطح"],
+  ["F36","Fiche de la fuite","élément remplacé","Élément مُستبدَل","عنصر مُستبدَل"],
+  ["F37","Fiche de la fuite","Fouille {L} × {l} × {p} m","Fouille {L} × {l} × {p} م","الحفرة {L} × {l} × {p} م"],
+  ["F38","Fiche de la fuite","Ø {d} mm",null,"Ø {d} مم"],
+  ["F39","Fiche de la fuite","· PE {n} m","· PE {n} م","· بولي إيثيلين {n} م"],
+  ["F40","Fiche de la fuite","Ajouter une photo :",null,"إضافة صورة:"],
+  ["F41","Fiche de la fuite","✎ Modifier la réparation","✎ تعديل الـ Réparation","✎ تعديل الإصلاح"],
+  ["F42","Fiche de la fuite","Réfection faite","Réfection مُنجَزة","تمت إعادة الرصف"],
+  ["F43","Fiche de la fuite","Clôturée sans réfection","مُغلَقة بدون Réfection","أُغلِق بدون إعادة رصف"],
+  ["F44","Fiche de la fuite","Revêtement prévu à la réparation","الـ Revêtement المُقرَّر عند الـ Réparation","طبقة الرصف المُقرَّرة عند الإصلاح"],
+  ["F45","Fiche de la fuite","· dimensions de la fouille","· أبعاد الـ Fouille","· أبعاد الحفرة"],
+  ["F46","Fiche de la fuite","📷 Ajouter une photo de réfection","📷 إضافة صورة Réfection","📷 إضافة صورة إعادة الرصف"],
+
+  ["R01","Saisie réparation","Nouvelle réparation","Réparation جديدة","إصلاح جديد"],
+  ["R02","Saisie réparation","Modifier la réparation","تعديل الـ Réparation","تعديل الإصلاح"],
+  ["R03","Saisie réparation","Corrigez ce qui doit l'être, puis « Enregistrer les modifications ». Les photos prises ici s'ajoutent à celles déjà envoyées.",null,"صحّح ما يلزم، ثم اضغط «حفظ التعديلات». الصور الملتقطة هنا تُضاف إلى الصور المُرسَلة سابقًا."],
+  ["R04","Saisie réparation","Résultat",null,"النتيجة"],
+  ["R05","Saisie réparation","En cours / reste à finir",null,"جارٍ / لم يكتمل بعد"],
+  ["R06","Saisie réparation","Non réparée","بدون Réparation","لم يتم الإصلاح"],
+  ["R07","Saisie réparation","Motif (obligatoire)",null,"السبب (إجباري)"],
+  ["R08","Saisie réparation","Date et heure des travaux",null,"تاريخ وساعة الأشغال"],
+  ["R09","Saisie réparation","JJ/MM/AAAA",null,"يوم/شهر/سنة"],
+  ["R10","Saisie réparation","HH:MM",null,"ساعة:دقيقة"],
+  ["R11","Saisie réparation","Maintenant",null,"الآن"],
+  ["R12","Saisie réparation","Date ou heure invalide (JJ/MM/AAAA et HH:MM).",null,"تاريخ أو ساعة غير صالحة (يوم/شهر/سنة و ساعة:دقيقة)."],
+  ["R13","Saisie réparation","La date est dans le futur : vérifiez-la.",null,"التاريخ في المستقبل: تحقّق منه."],
+  ["R14","Saisie réparation","Équipe",null,"الفريق"],
+  ["R15","Saisie réparation","Constat",null,"المعاينة"],
+  ["R16","Saisie réparation","Matériau",null,"المادة"],
+  ["R17","Saisie réparation","Diamètre (mm) : DE pour le PE, DN pour les conduites","القطر (مم): DE للـ PE، و DN للـ Conduites","القطر (مم): القطر الخارجي لأنابيب البولي إيثيلين، والقطر الاسمي للقنوات"],
+  ["R18","Saisie réparation","Travaux réalisés",null,"الأشغال المنجزة"],
+  ["R19","Saisie réparation","Tuyau / conduite réparé(e)","Tuyau / Conduite مُصلَح","أنبوب / قناة مُصلَحة"],
+  ["R20","Saisie réparation","Robinet PEC changé","Robinet PEC مُستبدَل","محبس التفريع مُستبدَل"],
+  ["R21","Saisie réparation","Collier PEC changé","Collier PEC مُستبدَل","طوق التفريع مُستبدَل"],
+  ["R22","Saisie réparation","Bouche à clé mise à niveau","Bouche à clé مُسوّاة مع السطح","غطاء المحبس مُسوّى مع السطح"],
+  ["R23","Saisie réparation","Élément de conduite remplacé","Élément de conduite مُستبدَل","عنصر من القناة مُستبدَل"],
+  ["R24","Saisie réparation","Longueur de PE posée (m)","طول الـ PE المُركَّب (م)","طول أنبوب البولي إيثيلين المُركَّب (م)"],
+  ["R25","Saisie réparation","Fouille","Fouille","الحفرة"],
+  ["R26","Saisie réparation","Longueur (m)",null,"الطول (م)"],
+  ["R27","Saisie réparation","Largeur (m)",null,"العرض (م)"],
+  ["R28","Saisie réparation","Profondeur (m)",null,"العمق (م)"],
+  ["R29","Saisie réparation","Longueur supérieure à 2 m : à justifier par un élément de conduite remplacé.","طول يتجاوز 2 م: يجب تبريره بـ Élément de conduite مُستبدَل.","طول يتجاوز 2 م: يجب تبريره باستبدال عنصر من القناة."],
+  ["R30","Saisie réparation","Revêtement à refaire","الـ Revêtement المطلوب إعادته","طبقة الرصف المطلوب إعادتها"],
+  ["R31","Saisie réparation","Emplacement",null,"المكان"],
+  ["R32","Saisie réparation","Représentant {sigle} présent (nom)",null,"ممثل {sigle} الحاضر (الاسم)"],
+  ["R33","Saisie réparation","du maître d'ouvrage (si le client n'a pas de sigle)",null,"صاحب المشروع"],
+  ["R34","Saisie réparation","Pièces posées",null,"القطع المُركَّبة"],
+  ["R35","Saisie réparation","Quantité : {article}",null,"الكمية: {article}"],
+  ["R36","Saisie réparation","(libre)",null,"(حرّة)"],
+  ["R37","Saisie réparation","Retrait : responsable",null,"الإزالة: المسؤول فقط"],
+  ["R38","Saisie réparation","Rechercher un article",null,"البحث عن صنف"],
+  ["R39","Saisie réparation","ex. collier 63 (la recherche se fait sur les désignations Dolibarr, en français)",null,"مثال: collier 63"],
+  ["R40","Saisie réparation","Quantité",null,"الكمية"],
+  ["R41","Saisie réparation","Liste des articles pas encore chargée sur cette tablette : connectez-la au réseau.",null,"قائمة الأصناف لم تُحمَّل بعد على هذا الجهاز اللوحي: اربطه بالإنترنت."],
+  ["R42","Saisie réparation","Ouvriers (facultatif)",null,"العمال (اختياري)"],
+  ["R43","Saisie réparation","Enregistrer la réparation","حفظ الـ Réparation","حفظ الإصلاح"],
+  ["R44","Saisie réparation","Enregistrer les modifications",null,"حفظ التعديلات"],
+  ["R45","Saisie réparation","Choisissez le résultat.",null,"اختر النتيجة."],
+  ["R46","Saisie réparation","Fuite non réparée : choisissez le motif.","Fuite بدون Réparation: اختر السبب.","تسرب لم يُصلَح: اختر السبب."],
+  ["R47","Saisie réparation","Valeur numérique invalide : « {valeur} ».",null,"قيمة رقمية غير صالحة: «{valeur}»."],
+  ["R48","Saisie réparation","Diamètre : un nombre entier de millimètres.",null,"القطر: عدد صحيح بالمليمتر."],
+  ["R49","Saisie réparation","Quantité de « {article} » : un nombre supérieur à 0.",null,"كمية «{article}»: عدد أكبر من 0."],
+  ["R50","Saisie réparation","Quantité de la pièce : un nombre supérieur à 0.",null,"كمية القطعة: عدد أكبر من 0."],
+  ["R51","Saisie réparation","Aucune modification à enregistrer.",null,"لا توجد تعديلات للحفظ."],
+  ["R52","Saisie réparation","Enregistrement sur la tablette impossible : {erreur}",null,"تعذّر الحفظ على الجهاز اللوحي: {erreur}"],
+
+  ["X01","Saisie réfection","Nouvelle réfection","Réfection جديدة","إعادة رصف جديدة"],
+  ["X02","Saisie réfection","Non faite (motif)",null,"غير مُنجَزة (السبب)"],
+  ["X03","Saisie réfection","Nature","نوع الـ Revêtement","نوع طبقة الرصف"],
+  ["X04","Saisie réfection","(vide : {nature}, prévue à la réparation)","(فارغ: {nature}، المُقرَّرة عند الـ Réparation)","(فارغ: {nature}، المُقرَّرة عند الإصلاح)"],
+  ["X05","Saisie réfection","Laissées vides, longueur et largeur sont reprises de la fouille.","إذا تُرك الطول والعرض فارغَين، تُعتمَد أبعاد الـ Fouille.","إذا تُرك الطول والعرض فارغَين، تُعتمَد أبعاد الحفرة."],
+  ["X06","Saisie réfection","{valeur} (fouille)","{valeur} (Fouille)","{valeur} (الحفرة)"],
+  ["X07","Saisie réfection","Indiquez si la réfection est faite.","حدّد هل الـ Réfection مُنجَزة.","حدّد هل تمت إعادة الرصف."],
+  ["X08","Saisie réfection","Choisissez la nature de la réfection (aucune n'est prévue à la réparation).","اختر نوع الـ Réfection (لم يُحدَّد أي نوع عند الـ Réparation).","اختر نوع إعادة الرصف (لم يُحدَّد أي نوع عند الإصلاح)."],
+  ["X09","Saisie réfection","Réfection non faite : choisissez le motif.","Réfection غير مُنجَزة: اختر السبب.","إعادة الرصف غير مُنجَزة: اختر السبب."],
+  ["X10","Saisie réfection","Longueur ou largeur invalide.",null,"طول أو عرض غير صالح."],
+  ["X11","Saisie réfection","Enregistrer la réfection","حفظ الـ Réfection","حفظ إعادة الرصف"],
+
+  ["C01","Listes de choix","Branchement","Branchement","ربط"],
+  ["C02","Listes de choix","Conduite","Conduite","قناة"],
+  ["C03","Listes de choix","Pièce spéciale","Pièce spéciale","قطعة خاصة"],
+  ["C04","Listes de choix","Bouche d'incendie","Bouche d'incendie","فوهة إطفاء الحريق"],
+  ["C05","Listes de choix","Vanne","Vanne","صمام"],
+  ["C06","Listes de choix","Compteur","Compteur","عداد"],
+  ["C07","Listes de choix","Branchement clandestin","Branchement clandestin","ربط غير قانوني"],
+  ["C08","Listes de choix","PE","PE","بولي إيثيلين (PE)"],
+  ["C09","Listes de choix","Amiante-ciment","Amiante-ciment","أسمنت أميانتي"],
+  ["C10","Listes de choix","PVC","PVC","بي في سي (PVC)"],
+  ["C11","Listes de choix","Fonte ductile","Fonte ductile","حديد زهر مرن"],
+  ["C12","Listes de choix","Fonte grise","Fonte grise","حديد زهر رمادي"],
+  ["C13","Listes de choix","Acier galvanisé","Acier galvanisé","فولاذ مجلفن"],
+  ["C14","Listes de choix","PPR","PPR","بولي بروبيلين (PPR)"],
+  ["C15","Listes de choix","Trottoir","Trottoir","رصيف"],
+  ["C16","Listes de choix","Chaussée","Chaussée","طريق معبّد"],
+  ["C17","Listes de choix","Terrain naturel",null,"أرض طبيعية"],
+
+  ["B01","Balayage","Carte du réseau",null,"خريطة الشبكة"],
+  ["B02","Balayage","La carte du réseau a besoin de la connexion.",null,"خريطة الشبكة تحتاج إلى الاتصال بالإنترنت."],
+  ["B03","Balayage","Chargement de la carte…",null,"جارٍ تحميل الخريطة…"],
+  ["B04","Balayage","Session expirée : reconnectez-vous.",null,"انتهت الجلسة: سجّل الدخول من جديد."],
+  ["B05","Balayage","Réessayer",null,"إعادة المحاولة"],
+  ["B06","Balayage","Retour à la liste",null,"العودة إلى القائمة"],
+  ["B07","Balayage","Le panneau web ne répond pas (erreur {code}). Réessayez dans un instant.",null,"الموقع لا يستجيب (خطأ {code}). أعد المحاولة بعد لحظة."],
+  ["B08","Balayage","La carte s'est arrêtée. Réessayez.",null,"توقّفت الخريطة. أعد المحاولة."],
+
+  ["M01","Messages d'envoi","Fuite verrouillée (lot d'attachement arrêté) : seul le responsable peut encore la compléter ou la modifier.","Fuite مُقفَلة (Attachement مُغلَق): المسؤول وحده يمكنه إتمامها أو تعديلها.","تسرب مُقفَل (دفعة كشف الأشغال مُغلَقة): المسؤول وحده يمكنه إتمامه أو تعديله."],
+  ["M02","Messages d'envoi","Rien n'est perdu : prévenez le responsable, puis « Envoyer maintenant ».",null,"لم يضِع شيء: أخبِر المسؤول، ثم اضغط «أرسِل الآن»."],
+  ["M03","Messages d'envoi","Droit insuffisant sur ce marché pour cette saisie. Rien n'est perdu : voyez avec l'administrateur.","صلاحيات غير كافية على هذا الـ Marché لهذا الإدخال. لم يضِع شيء: راجِع مسؤول النظام.","صلاحيات غير كافية على هذه الصفقة لهذا الإدخال. لم يضِع شيء: راجِع مسؤول النظام."],
+  ["M04","Messages d'envoi","Fuite ou paramètre introuvable sur le serveur (supprimé entre-temps ?).","Fuite أو إعداد غير موجود على الخادم (ربما حُذف؟).","التسرب أو الإعداد غير موجود على الخادم (ربما حُذف؟)."],
+  ["M05","Messages d'envoi","Pièce sans article de la liste (ancienne désignation libre) refusée : retirez-la et choisissez un article proposé.",null,"قطعة غير موجودة في قائمة الأصناف (تسمية حرّة قديمة) مرفوضة: أزِلها واختر صنفًا من القائمة."],
+  ["M06","Messages d'envoi","Saisie incomplète refusée par le serveur ({détail}).",null,"إدخال ناقص رفضه الخادم ({détail})."],
+  ["M07","Messages d'envoi","Modification non autorisée",null,"تعديل غير مسموح به"],
+  ["M08","Messages d'envoi","En attente : une saisie précédente de cette fuite n'est pas encore passée.","في الانتظار: إدخال سابق لهذه الـ Fuite لم يُرسَل بعد.","في الانتظار: إدخال سابق لهذا التسرب لم يُرسَل بعد."],
+
+  // Libellés ajoutés par l'interface « Studio Admin » (PR #43), à relire
+  ["Z01","Nouveaux libellés","Bonjour",null,"مرحبًا"],
+  ["Z02","Nouveaux libellés","Connectez-vous pour continuer",null,"سجّل الدخول للمتابعة"],
+  ["Z03","Nouveaux libellés","Entrez l'identifiant et le mot de passe remis par l'administrateur.",null,"أدخل اسم المستخدم وكلمة المرور اللذين سلّمهما لك مسؤول النظام."],
+  ["Z04","Nouveaux libellés","ex. agent1",null,"مثال: agent1"],
+  ["Z05","Nouveaux libellés","La session reste ouverte sur cette tablette jusqu'à « Quitter ».",null,"تبقى الجلسة مفتوحة على هذا الجهاز اللوحي إلى أن تضغط «خروج»."],
+  ["Z06","Nouveaux libellés","Connexion…",null,"جارٍ الدخول…"],
+  ["Z07","Nouveaux libellés","Fuites","Fuites","التسربات"],
+  ["Z08","Nouveaux libellés","Toutes",null,"الكل"],
+  ["Z09","Nouveaux libellés","{n} fuites","عدد الـ Fuites: {n}","عدد التسربات: {n}"],
+  ["Z10","Nouveaux libellés","{n} affichées sur {total}",null,"المعروضة: {n} من {total}"],
+  ["Z11","Nouveaux libellés","À envoyer",null,"للإرسال"],
+  ["Z12","Nouveaux libellés","Gardée sur la tablette",null,"محفوظة على الجهاز اللوحي"],
+  ["Z13","Nouveaux libellés","N°, référence ou adresse","الرقم أو الـ Référence أو العنوان","الرقم أو المرجع أو العنوان"],
+  ["Z14","Nouveaux libellés","Rechercher une fuite","البحث عن Fuite","البحث عن تسرب"],
+  ["Z15","Nouveaux libellés","Effacer la recherche",null,"مسح البحث"],
+  ["Z16","Nouveaux libellés","N°",null,"رقم"],
+  ["Z17","Nouveaux libellés","Secteur · adresse","Secteur · العنوان","القطاع · العنوان"],
+  ["Z18","Nouveaux libellés","Détectée le","تاريخ الـ Détection","تاريخ الكشف"],
+  ["Z19","Nouveaux libellés","Statut",null,"الحالة"],
+  ["Z20","Nouveaux libellés","Alertes",null,"التنبيهات"],
+  ["Z21","Nouveaux libellés","Photos",null,"الصور"],
+  ["Z22","Nouveaux libellés","Chargement des fuites…","جارٍ تحميل الـ Fuites…","جارٍ تحميل التسربات…"],
+  ["Z23","Nouveaux libellés","Aucune fuite ne correspond.","لا توجد أي Fuite مطابقة.","لا يوجد أي تسرب مطابق."],
+  ["Z24","Nouveaux libellés","Secteur non renseigné","Secteur غير محدد","القطاع غير محدد"],
+  ["Z25","Nouveaux libellés","Réparée, réfection à faire","تم الإصلاح، الـ Réfection متبقية","تم الإصلاح، إعادة الرصف متبقية"],
+  ["Z26","Nouveaux libellés","Détectée","Détectée","تم الكشف"],
+  ["Z27","Nouveaux libellés","En cours",null,"جارٍ"],
+  ["Z28","Nouveaux libellés","Identification",null,"بيانات التعريف"],
+  ["Z29","Nouveaux libellés","Facultatives ; un appui sur une photo la retire.",null,"اختيارية؛ اضغط على صورة لإزالتها."],
+  ["Z30","Nouveaux libellés","{n} secteurs","عدد الـ Secteurs: {n}","عدد القطاعات: {n}"],
+  ["Z31","Nouveaux libellés","{n} saisies sur la tablette",null,"إدخالات على الجهاز اللوحي: {n}"],
+  ["Z32","Nouveaux libellés","Aucune saisie en attente.",null,"لا توجد إدخالات في الانتظار."],
+  ["Z33","Nouveaux libellés","Refusée par le serveur : {erreur}",null,"رفضها الخادم: {erreur}"],
+  ["Z34","Nouveaux libellés","Réf. {ref}","Réf. {ref}","المرجع {ref}"],
+  ["Z35","Nouveaux libellés","Sans référence ni adresse","بدون Référence ولا عنوان","بدون مرجع ولا عنوان"],
+  ["Z36","Nouveaux libellés","Interventions saisies sur le terrain ou au bureau.",null,"التدخلات المُدخلة في الميدان أو في المكتب."],
+  ["Z37","Nouveaux libellés","Remise en état du revêtement après la réparation.","إعادة الـ Revêtement إلى حالته بعد الـ Réparation.","إعادة طبقة الرصف إلى حالتها بعد الإصلاح."],
+  ["Z38","Nouveaux libellés","Pas encore envoyée : {erreur}",null,"لم تُرسَل بعد: {erreur}"],
+  ["Z39","Nouveaux libellés","Modification pas encore envoyée : {erreur}",null,"التعديل لم يُرسَل بعد: {erreur}"],
+  ["Z40","Nouveaux libellés","Travaux",null,"الأشغال"],
+  ["Z41","Nouveaux libellés","Représentant présent",null,"الممثل الحاضر"],
+  ["Z42","Nouveaux libellés","Pièces",null,"القطع"],
+  ["Z43","Nouveaux libellés","Ouvriers",null,"العمال"],
+  ["Z44","Nouveaux libellés","Dimensions",null,"الأبعاد"],
+  ["Z45","Nouveaux libellés","{l} × {la} m",null,"{l} × {la} م"],
+  ["Z46","Nouveaux libellés","Pièce",null,"قطعة"],
+  ["Z47","Nouveaux libellés","Aucun article ne correspond. S'il manque, notez-le en observation : le responsable demandera sa création dans Dolibarr.",null,"لا يوجد صنف مطابق. إذا كان ناقصًا، دوّنه في الملاحظة: سيطلب المسؤول إضافته في Dolibarr."],
+  ["Z48","Nouveaux libellés","{legende} : retirer la photo",null,"{legende}: إزالة الصورة"],
+  ["Z49","Nouveaux libellés","Avancement {progression} %",null,"التقدّم {progression} %"],
+];
+
+const etat = {};          // id -> { hyb, ar, ok, note, garder }
+const enCours = {};       // id -> promesse d'écriture (une à la fois par document)
+let db = null;
+const CLE_LOCALE = "dico-ar-revues";
+
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const marque = (t) => esc(t).replace(/\{[^}]+\}/g, (m) => `<span class="ph">${m}</span>`);
+
+function lireLocal() { try { return JSON.parse(localStorage.getItem(CLE_LOCALE) || "{}"); } catch { return {}; } }
+function ecrireLocal() { try { localStorage.setItem(CLE_LOCALE, JSON.stringify(etat)); } catch {} }
+
+function statut(texte, erreur) { const el = $("status"); el.textContent = texte; el.classList.toggle("err", !!erreur); }
+
+function estModifie(e) { return !!(e && ((e.hyb || "").trim() || (e.ar || "").trim() || (e.note || "").trim())); }
+function estGlossaireModifie(id, e) {
+  const g = GLOSSAIRE.find((x) => x[0] === id);
+  return !!(e && ((e.ar || "").trim() || (e.note || "").trim() || (typeof e.garder === "boolean" && e.garder !== g[3])));
+}
+
+function ligneGlossaire([id, fr, ar, garder]) {
+  const e = etat[id] || {};
+  const g = typeof e.garder === "boolean" ? e.garder : garder;
+  return `<tr data-id="${id}" data-ecran="Glossaire" data-txt="${esc((fr + " " + ar).toLowerCase())}">
+    <td class="num">${id}</td>
+    <td class="fr"><b>${esc(fr)}</b></td>
+    <td><label class="keep"><input type="checkbox" data-champ="garder" ${g ? "checked" : ""}> Garder en français</label></td>
+    <td class="prop"><div class="ar">${esc(ar)}</div><textarea class="ar" dir="rtl" rows="1" data-champ="ar" placeholder="Votre variante en arabe…">${esc(e.ar || "")}</textarea></td>
+    <td class="okc"><input type="checkbox" aria-label="Proposition validée" data-champ="ok" ${e.ok ? "checked" : ""}></td>
+    <td class="note"><textarea rows="1" data-champ="note" placeholder="Remarque…">${esc(e.note || "")}</textarea></td>
+  </tr>`;
+}
+
+function ligneLibelle([id, ecran, fr, hyb, ar]) {
+  const e = etat[id] || {};
+  const hybHtml = hyb === null ? `<div class="same">identique à l'arabe</div>` : `<div class="ar">${marque(hyb)}</div>`;
+  return `<tr data-id="${id}" data-ecran="${esc(ecran)}" data-txt="${esc((fr + " " + (hyb || "") + " " + ar).toLowerCase())}">
+    <td class="num">${id}</td>
+    <td class="fr">${marque(fr)}<br><span class="screen">${esc(ecran)}</span></td>
+    <td class="prop">${hybHtml}<textarea class="ar" dir="rtl" rows="1" data-champ="hyb" placeholder="Votre variante hybride…">${esc(e.hyb || "")}</textarea></td>
+    <td class="prop"><div class="ar">${marque(ar)}</div><textarea class="ar" dir="rtl" rows="1" data-champ="ar" placeholder="Votre variante en arabe…">${esc(e.ar || "")}</textarea></td>
+    <td class="okc"><input type="checkbox" aria-label="Proposition validée" data-champ="ok" ${e.ok ? "checked" : ""}></td>
+    <td class="note"><textarea rows="1" data-champ="note" placeholder="Remarque…">${esc(e.note || "")}</textarea></td>
+  </tr>`;
+}
+
+function rendre() {
+  $("tGlossaire").innerHTML = GLOSSAIRE.map(ligneGlossaire).join("");
+  $("tLibelles").innerHTML = LIBELLES.map(ligneLibelle).join("");
+  document.querySelectorAll("tr[data-id]").forEach(peindreLigne);
+  filtrer();
+  compter();
+}
+
+function peindreLigne(tr) {
+  const id = tr.dataset.id, e = etat[id];
+  const mod = id.startsWith("G") && /^G\d/.test(id) && GLOSSAIRE.some((g) => g[0] === id) ? estGlossaireModifie(id, e) : estModifie(e);
+  tr.classList.toggle("is-ok", !!(e && e.ok) && !mod);
+  tr.classList.toggle("is-ed", mod);
+}
+
+// Rafraîchit les valeurs d'une ligne depuis l'état sans toucher au champ en cours de saisie.
+function rafraichirLigne(id) {
+  const tr = document.querySelector(`tr[data-id="${id}"]`);
+  if (!tr) return;
+  const e = etat[id] || {};
+  tr.querySelectorAll("[data-champ]").forEach((el) => {
+    if (el === document.activeElement) return;
+    const c = el.dataset.champ;
+    if (el.type === "checkbox") {
+      if (c === "garder") { const g = GLOSSAIRE.find((x) => x[0] === id); el.checked = typeof e.garder === "boolean" ? e.garder : g[3]; }
+      else el.checked = !!e[c];
+    } else el.value = e[c] || "";
+  });
+  peindreLigne(tr);
+}
+
+function compter() {
+  const ids = [...GLOSSAIRE.map((g) => g[0]), ...LIBELLES.map((l) => l[0])];
+  let ok = 0, ed = 0;
+  ids.forEach((id) => {
+    const e = etat[id];
+    const mod = GLOSSAIRE.some((g) => g[0] === id) ? estGlossaireModifie(id, e) : estModifie(e);
+    if (mod) ed++; else if (e && e.ok) ok++;
+  });
+  const t = ids.length;
+  $("pOk").style.width = (ok / t * 100) + "%";
+  $("pEd").style.width = (ed / t * 100) + "%";
+  $("legend").innerHTML = `<span class="l-ok">${ok} validées</span> · <span class="l-ed">${ed} corrigées</span> · <span class="l-todo">${t - ok - ed} à vérifier</span> sur ${t}`;
+}
+
+function filtrer() {
+  const ec = $("fEcran").value, q = $("fTexte").value.trim().toLowerCase(), todo = $("fTodo").checked;
+  document.querySelectorAll("tr[data-id]").forEach((tr) => {
+    const id = tr.dataset.id, e = etat[id];
+    let vis = (!ec || tr.dataset.ecran === ec) && (!q || tr.dataset.txt.includes(q));
+    if (todo) vis = vis && !(e && (e.ok || (GLOSSAIRE.some((g) => g[0] === id) ? estGlossaireModifie(id, e) : estModifie(e))));
+    tr.hidden = !vis;
+  });
+  $("secGlossaire").hidden = !!ec && ec !== "Glossaire";
+  $("secLibelles").hidden = ec === "Glossaire";
+}
+
+async function sauver(id) {
+  ecrireLocal();
+  if (!db) { statut("Gardé dans ce navigateur seulement : utilisez « Copier mes corrections ».", true); return; }
+  const corps = { ...etat[id], maj: new Date().toISOString() };
+  const avant = enCours[id] || Promise.resolve();
+  enCours[id] = avant.then(async () => {
+    statut("Enregistrement…");
+    try { await db.collection("revues").doc(id).set(corps); statut("Enregistré"); }
+    catch (err) {
+      if (err && err.code === "unavailable") {
+        await new Promise((r) => setTimeout(r, 600 + Math.random() * 800));
+        try { await db.collection("revues").doc(id).set(corps); statut("Enregistré"); return; } catch {}
+      }
+      statut("Non enregistré en ligne (gardé dans ce navigateur). Réessayez plus tard.", true);
+    }
+  });
+  return enCours[id];
+}
+
+function surChangement(ev) {
+  const el = ev.target, tr = el.closest("tr[data-id]");
+  if (!tr || !el.dataset.champ) return;
+  const id = tr.dataset.id, c = el.dataset.champ;
+  etat[id] = { ...(etat[id] || {}) };
+  etat[id][c] = el.type === "checkbox" ? el.checked : el.value;
+  peindreLigne(tr);
+  compter();
+  sauver(id);
+}
+
+function copier() {
+  const lignes = [];
+  GLOSSAIRE.forEach(([id, fr, ar, garder]) => {
+    const e = etat[id]; if (!e) return;
+    const p = [];
+    if (typeof e.garder === "boolean" && e.garder !== garder) p.push(e.garder ? "garder en français" : "traduire en hybride");
+    if ((e.ar || "").trim()) p.push("arabe : " + e.ar.trim());
+    if ((e.note || "").trim()) p.push("remarque : " + e.note.trim());
+    if (p.length) lignes.push(`${id} ${fr} → ${p.join(" | ")}`); else if (e.ok) lignes.push(`${id} OK`);
+  });
+  LIBELLES.forEach(([id, , fr]) => {
+    const e = etat[id]; if (!e) return;
+    const p = [];
+    if ((e.hyb || "").trim()) p.push("hybride : " + e.hyb.trim());
+    if ((e.ar || "").trim()) p.push("arabe : " + e.ar.trim());
+    if ((e.note || "").trim()) p.push("remarque : " + e.note.trim());
+    if (p.length) lignes.push(`${id} « ${fr} » → ${p.join(" | ")}`); else if (e.ok) lignes.push(`${id} OK`);
+  });
+  const texte = lignes.length ? lignes.join("\n") : "Aucune correction pour l'instant.";
+  const fin = () => { const b = $("btnCopier"); b.textContent = "Copié"; b.classList.add("copied"); setTimeout(() => { b.textContent = "Copier mes corrections"; b.classList.remove("copied"); }, 1800); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texte).then(fin).catch(() => repli(texte));
+  } else repli(texte);
+}
+function repli(texte) {
+  const ta = document.createElement("textarea");
+  ta.value = texte; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch {}
+  ta.remove();
+  statut("Texte sélectionné : collez-le dans le chat.");
+}
+
+function initFiltres() {
+  const ecrans = ["Glossaire", ...new Set(LIBELLES.map((l) => l[1]))];
+  $("fEcran").innerHTML = `<option value="">Tous les écrans</option>` + ecrans.map((e) => `<option>${esc(e)}</option>`).join("");
+  $("fEcran").addEventListener("change", filtrer);
+  $("fTexte").addEventListener("input", filtrer);
+  $("fTodo").addEventListener("change", filtrer);
+  $("btnCopier").addEventListener("click", copier);
+  document.addEventListener("change", surChangement);
+}
+
+Object.assign(etat, lireLocal());
+initFiltres();
+rendre();
+
+(async () => {
+  try { db = window.claude && window.claude.use ? await window.claude.use("db") : null; } catch { db = null; }
+  if (!db) { statut("Enregistrement en ligne indisponible ici : vos saisies restent dans ce navigateur.", true); return; }
+  statut("Connecté");
+  db.collection("revues").onSnapshot((snap) => {
+    snap.docChanges().forEach((ch) => {
+      if (ch.type === "removed") return;
+      const d = ch.doc.data() || {};
+      const { maj, ...champs } = d;
+      etat[ch.doc.id] = champs;
+      rafraichirLigne(ch.doc.id);
+    });
+    ecrireLocal();
+    compter();
+  }, () => statut("Synchronisation interrompue : rechargez la page.", true));
+})();
+</script>

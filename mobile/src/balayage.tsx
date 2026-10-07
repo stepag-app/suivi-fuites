@@ -3,6 +3,7 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
+import { t, tx, useLangue } from './langue';
 import { supabase } from './supabase';
 import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
@@ -46,7 +47,7 @@ async function panneauJoignable() {
 const Chargement = () => (
   <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: COULEURS.fond }]}>
     <ActivityIndicator size="large" color={COULEURS.principal} />
-    <Text style={s.discret}>Chargement de la carte…</Text>
+    <Text style={s.discret}>{t('Chargement de la carte…')}</Text>
   </View>
 );
 
@@ -54,6 +55,7 @@ const Chargement = () => (
 export function Balayage({ retour }: { retour: () => void }) {
   const web = useRef<WebView>(null);
   const bas = useBas();
+  useLangue();
   const [uri, setUri] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [cle, setCle] = useState(0);
@@ -138,13 +140,13 @@ export function Balayage({ retour }: { retour: () => void }) {
 
   return (
     <View style={[s.ecran, { paddingBottom: bas }]}>
-      <BarreApp titre="Balayage" sousTitre="Carte du réseau" retour={retour} />
+      <BarreApp titre={t('Balayage')} sousTitre={t('Carte du réseau')} retour={retour} />
       {message ? (
         <View style={s.defile}>
           <Carte>
-            <Message ton="erreur" icone={message === HORS_LIGNE ? 'wifi-off' : undefined}>{message}</Message>
-            <Bouton titre="Réessayer" icone="refresh-cw" primaire grand onPress={() => void charger()} />
-            <Bouton titre="Retour à la liste" icone="arrow-left" onPress={retour} />
+            <Message ton="erreur" icone={message === HORS_LIGNE ? 'wifi-off' : undefined}>{tx(message)}</Message>
+            <Bouton titre={t('Réessayer')} icone="refresh-cw" primaire grand onPress={() => void charger()} />
+            <Bouton titre={t('Retour à la liste')} icone="arrow-left" onPress={retour} />
           </Carte>
         </View>
       ) : !uri ? (
@@ -169,7 +171,9 @@ export function Balayage({ retour }: { retour: () => void }) {
           onNavigationStateChange={surNavigation}
           onError={() => setMessage(HORS_LIGNE)}
           onHttpError={(e) => {
-            if (e.nativeEvent.statusCode >= 500) setMessage(`Le panneau web ne répond pas (erreur ${e.nativeEvent.statusCode}). Réessayez dans un instant.`);
+            if (e.nativeEvent.statusCode >= 500) {
+              setMessage(t('Le panneau web ne répond pas (erreur {code}). Réessayez dans un instant.', { code: e.nativeEvent.statusCode }));
+            }
           }}
           onRenderProcessGone={() => setMessage("La carte s'est arrêtée. Réessayez.")}
         />

@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TABLES = ['fuites', 'reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers', 'photos', 'profils', 'marches', 'droits'];
+const TABLES = ['fuites', 'reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers', 'photos', 'profils', 'marches', 'droits', 'v_fuites'];
 const INTERVENTIONS = ['reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers'];
 // Clé de la session dans le stockage de la tablette (CLE_SESSION de src/supabase.ts, pour l'adresse de l'essai).
 export const CLE_SESSION = `sb-${new URL(process.env.EXPO_PUBLIC_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
@@ -32,6 +32,7 @@ export const simulation = {
   sansReponse: 0, // requêtes en attente d'une réponse qui ne viendra pas
   lenteur: 0, // ms avant la réponse de chaque requête de données (horloge de l'essai)
   authEnPanne: false, // /auth/v1 injoignable alors que l'API répond
+  lenteurAuth: 0, // ms avant la réponse de /auth/v1 (réseau lent ; horloge de l'essai)
   utilisateur: 'chef',
   droits: { modifier: 'siennes', supprimer: 'non' },
   verrouillees: new Set(),
@@ -47,6 +48,7 @@ export const simulation = {
     this.sansReponseDans = null;
     this.lenteur = 0;
     this.authEnPanne = false;
+    this.lenteurAuth = 0;
     this.verrouillees.clear();
   },
   /** Session ouverte par le serveur ; `duree` en secondes (négative : jeton d'accès déjà expiré). */
@@ -169,9 +171,10 @@ function sansReponse(init) {
   }));
 }
 
-function serveurAuth(chemin, parametres, init) {
+async function serveurAuth(chemin, parametres, init) {
   simulation.auth.push(chemin.slice('/auth/v1/'.length));
   if (!simulation.reseau || simulation.authEnPanne) throw new TypeError('Network request failed');
+  if (simulation.lenteurAuth) await new Promise((ok) => setTimeout(ok, simulation.lenteurAuth));
   if (chemin === '/auth/v1/token' && parametres.get('grant_type') === 'refresh_token') {
     const ancien = JSON.parse(init.body).refresh_token;
     const uid = simulation.renouvellements.get(ancien);

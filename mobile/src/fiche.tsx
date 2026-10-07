@@ -1,10 +1,9 @@
 // Fiche d'une fuite : informations, statut, photos, réparations et réfections (serveur + saisies
 // gardées sur la tablette). Jamais de prix ni de quantités du bordereau.
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { chargerServeur, cleFiche, fuiteLocale, type Donnees } from './fiche-donnees';
+import { chargerFiche, fuiteLocale, type Donnees } from './fiche-donnees';
 import {
   ajouterEnvoi, estFuite, fuiteDe, lireAttente, surChangement, synchroniser,
   type Envoi, type EnvoiModification, type EnvoiRefection, type EnvoiReparation,
@@ -55,9 +54,9 @@ interface BlocRep {
 export function Fiche({ id, retour, saisir }: {
   id: string; retour: () => void; saisir: (type: 'reparation' | 'refection', contexte: ContexteSaisie) => void;
 }) {
-  const { marche, peut } = useSession();
+  const { marche, peut, aRenouveler } = useSession();
   useLangue();
-  const parametres = useParametres(marche?.id);
+  const parametres = useParametres(marche?.id, aRenouveler);
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const bas = useBas();
   const [donnees, setDonnees] = useState<Donnees | null>(null);
@@ -67,14 +66,21 @@ export function Fiche({ id, retour, saisir }: {
   const [chargement, setChargement] = useState(true);
   const [photoEnCours, setPhotoEnCours] = useState(false);
 
+  // Version affichée (copie de la tablette ou serveur) : la copie n'est lue qu'à l'ouverture de la fiche.
+  const affichee = useRef(false);
   const charger = useCallback(async () => {
     const attente = (await lireAttente()).filter((e) => fuiteDe(e) === id);
     setLocaux(attente);
-    const serveur = await chargerServeur(id).catch(() => null);
+    const serveur = await chargerFiche(id, {
+      copie: !affichee.current, aRenouveler,
+      afficher: (d) => {
+        affichee.current = true;
+        setDonnees(d);
+        setChargement(false);
+      },
+    });
     if (serveur) {
       setHorsLigne(false);
-      setDonnees(serveur);
-      AsyncStorage.setItem(cleFiche(id), JSON.stringify(serveur)).catch(() => undefined);
       if (serveur.photos.length) {
         const signees = await supabase.storage.from('photos').createSignedUrls(serveur.photos.map((p) => p.chemin), 3600);
         const table: Record<string, string> = {};
@@ -84,13 +90,9 @@ export function Fiche({ id, retour, saisir }: {
         }
         setUrls(table);
       }
-    } else {
-      setHorsLigne(true);
-      const copie = await AsyncStorage.getItem(cleFiche(id)).catch(() => null);
-      if (copie) setDonnees(JSON.parse(copie) as Donnees);
-    }
+    } else setHorsLigne(true);
     setChargement(false);
-  }, [id]);
+  }, [id, aRenouveler]);
 
   useEffect(() => {
     charger();

@@ -148,9 +148,9 @@ function BlocPhotos({ ph, types }: { ph: ReturnType<typeof usePhotos>; types: Ty
 interface PieceForm extends PieceAttente { texte: string }
 
 export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
-  const { marche, peut } = useSession();
+  const { marche, peut, aRenouveler } = useSession();
   useLangue();
-  const parametres = useParametres(marche?.id);
+  const parametres = useParametres(marche?.id, aRenouveler);
   const bas = useBas();
   const m = contexte.modification;
   const init: Record<string, unknown> = m?.etat.ligne ?? {};
@@ -432,9 +432,9 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
 // Réfection
 // ---------------------------------------------------------------------------
 export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie; retour: () => void }) {
-  const { marche } = useSession();
+  const { marche, aRenouveler } = useSession();
   useLangue();
-  const parametres = useParametres(marche?.id);
+  const parametres = useParametres(marche?.id, aRenouveler);
   const bas = useBas();
   const [resultat, setResultat] = useState<'faite' | 'non_faite' | ''>('faite');
   const [natureId, setNatureId] = useState('');

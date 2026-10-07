@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { chargerContexte, cleContexte, fermerSession, suivreSession } from './session-donnees';
+import { chargerContexte, cleContexte, fermerSession, suivreSession, type Contexte as ContexteAgent, type EtatSession } from './session-donnees';
 import { configurationManquante, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
 
@@ -10,6 +10,8 @@ type Action = 'lire' | 'creer' | 'valider' | 'modifier' | 'supprimer';
 interface Etat {
   chargement: boolean;
   session: Session | null;
+  /** Jeton expiré pas encore renouvelé (hors ligne) : écrans sur les copies de la tablette, aucune requête. */
+  aRenouveler: boolean;
   profil: Profil | null;
   marche: Marche | null;
   marches: Marche[];
@@ -24,51 +26,58 @@ interface Etat {
 
 const Contexte = createContext<Etat | null>(null);
 const cleMarche = (id: string) => `suivi-fuites:marche:${id}`;
+const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [chargement, setChargement] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
-  // Jeton expiré pas encore renouvelé (démarrage hors ligne) : contexte de la copie gardée sur la tablette.
   const [aRenouveler, setARenouveler] = useState(false);
   const [profil, setProfil] = useState<Profil | null>(null);
   const [marches, setMarches] = useState<Marche[]>([]);
   const [droits, setDroits] = useState<Droit[]>([]);
   const [marcheChoisi, setMarcheChoisi] = useState<string | null>(null);
 
+  const appliquer = useCallback((etat: EtatSession) => {
+    setSession(etat.session);
+    setARenouveler(etat.aRenouveler);
+    if (!etat.session) {
+      setProfil(null);
+      setMarches([]);
+      setDroits([]);
+      setChargement(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (configurationManquante) {
       setChargement(false);
       return;
     }
-    return suivreSession((etat) => {
-      setSession(etat.session);
-      setARenouveler(etat.aRenouveler);
-      if (!etat.session) {
-        setProfil(null);
-        setMarches([]);
-        setDroits([]);
-        setChargement(false);
-      }
-    });
-  }, []);
+    return suivreSession(appliquer);
+  }, [appliquer]);
 
-  // Profil, marchés et droits ; jeton à renouveler : copie de la tablette, puis serveur une fois le jeton renouvelé.
+  // Profil, marchés et droits : copie de la tablette d'abord, puis serveur (après le renouvellement du jeton s'il est
+  // à renouveler). Un contexte inchangé garde ses objets : la liste ne se recharge pas pour rien.
   const uid = session?.user.id;
   useEffect(() => {
     if (!uid) return;
     let annule = false;
-    (async () => {
-      AsyncStorage.getItem(cleMarche(uid)).then((id) => !annule && setMarcheChoisi(id)).catch(() => undefined);
-      const contexte = await chargerContexte(uid, !aRenouveler);
+    const afficher = (c: ContexteAgent) => {
       if (annule) return;
-      if (contexte === 'inactif') {
+      setProfil((x) => (memes(x, c.profil) ? x : c.profil));
+      setMarches((x) => (memes(x, c.marches) ? x : c.marches));
+      setDroits((x) => (memes(x, c.droits) ? x : c.droits));
+      setChargement(false);
+    };
+    (async () => {
+      const choisi = await AsyncStorage.getItem(cleMarche(uid)).catch(() => null);
+      if (annule) return;
+      setMarcheChoisi(choisi);
+      const fin = await chargerContexte(uid, aRenouveler, afficher);
+      if (annule) return;
+      if (fin === 'inactif') {
         await supabase.auth.signOut();
         return;
-      }
-      if (contexte) {
-        setProfil(contexte.profil);
-        setMarches(contexte.marches);
-        setDroits(contexte.droits);
       }
       setChargement(false);
     })();
@@ -104,11 +113,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const deconnecter = useCallback(async () => {
     if (uid) await AsyncStorage.removeItem(cleContexte(uid));
     await fermerSession(aRenouveler);
-  }, [uid, aRenouveler]);
+    // Écran Connexion sans attendre SIGNED_OUT, qui suit la fin des reprises d'auth-js au démarrage hors ligne.
+    appliquer({ session: null, aRenouveler: false });
+  }, [uid, aRenouveler, appliquer]);
 
   const valeur = useMemo(
-    () => ({ chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter }),
-    [chargement, session, profil, marche, marches, choisirMarche, peut, deconnecter],
+    () => ({ chargement, session, aRenouveler, profil, marche, marches, choisirMarche, peut, deconnecter }),
+    [chargement, session, aRenouveler, profil, marche, marches, choisirMarche, peut, deconnecter],
   );
   return <Contexte.Provider value={valeur}>{children}</Contexte.Provider>;
 }

@@ -8,9 +8,9 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Écran | Contenu |
 |---|---|
 | Connexion | identifiant + mot de passe (compte créé par l'administrateur) |
-| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; sinon mise à jour **en silence** (sans le rond de rafraîchissement, rien de redessiné si rien n'a changé) toutes les 5 min, au retour sur l'appli et après un envoi ; chargement abandonné après 20 s sans réponse (dernière liste connue) ; dernière liste gardée hors ligne ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche ; **onglets par statut** avec compteurs et **recherche** (N° exact, référence, aussi par ses chiffres, adresse), comme le panneau, faits sur la tablette sans requête de plus ; tableau en paysage, lignes empilées en portrait |
+| Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; sinon mise à jour **en silence** (sans le rond de rafraîchissement, rien de redessiné si rien n'a changé) toutes les 5 min, au retour sur l'appli et après un envoi ; dernière liste gardée sur la tablette, affichée dès l'ouverture puis remplacée par celle du serveur ; chargement abandonné après 20 s sans réponse, attente du jeton comprise (« Hors ligne : dernière liste connue ») ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche ; **onglets par statut** avec compteurs et **recherche** (N° exact, référence, aussi par ses chiffres, adresse), comme le panneau, faits sur la tablette sans requête de plus ; tableau en paysage, lignes empilées en portrait |
 | Nouvelle fuite | GPS, référence SRM, secteur, adresse, observation, photos (redimensionnées à 1 600 px, qualité 70, stockées dans le dossier privé de l'appli, jamais dans la galerie) ; **contrôle des doublons** (`rechercher_fuites_proches`) : « C'est la même fuite » ouvre la fiche existante, « Nouvelle fuite liée » remplit `fuite_liee_id` ; sans réseau, pas de contrôle (signalé) |
-| Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée hors ligne ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
+| Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée sur la tablette, affichée aussitôt puis remplacée par celle du serveur ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
 | Saisir une réparation | résultat (réparée, en cours, non réparée + motif), date et heure, équipe, ouvrage, matériau, diamètre, travaux (cases), longueur PE, fouille L × l × p (alerte > 2 m), revêtement à refaire, emplacement, représentant du maître d'ouvrage, pièces posées (recherche dans les articles Dolibarr activés, quantité ; plus de désignation libre : un article absent se note en observation), ouvriers, observation, photos avant / pendant / après ; même écran, pré-rempli, pour **modifier** une réparation envoyée (quantités modifiables ; retrait d'une pièce déjà envoyée seulement avec « interventions / supprimer », que le chef n'a pas) |
 | Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date, équipe, photos de réfection |
 | Balayage | bouton « Balayage » de la liste (droit « balayage / lire ») : carte du réseau du panneau web dans une **WebView** (`react-native-webview` 13.16.1), ouverte avec la session de la tablette par `/session#access_token=…&refresh_token=…` (jetons dans le fragment, jamais en paramètre ni journalisés), directement en **mode balayage** (toucher, lasso, prolonger, enregistrer ; file d'attente hors ligne du panneau) ; position GPS autorisée ; seuls les liens du panneau restent dans la WebView (itinéraire Google Maps : application de cartes) ; retour Android : historique de la WebView puis liste ; avant d'ouvrir la carte, la tablette vérifie que le panneau répond (simple GET de `/session`, 15 s au plus ; pas de HEAD, dont la réponse arrive après une dizaine de secondes sur la tablette) ; sans réseau : « La carte du réseau a besoin de la connexion » et « Réessayer » ; la tablette renouvelle elle-même la session 5 min avant l'échéance et recharge la carte (environ une fois par heure). Adresse du panneau : `EXPO_PUBLIC_WEB_URL` (défaut `https://fuites.stepag.ma`) |
@@ -20,17 +20,22 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 photos) saisit ; l'agent de détection (interventions en lecture) voit les fiches sans les boutons.
 
 **Session hors ligne** (`src/session-donnees.ts`) : la session reste sur la tablette jusqu'à « Quitter ». Au démarrage
-sans réseau avec un jeton expiré (plus d'une heure), auth-js garde la session en stockage mais `getSession()` rend
-`null` tant que le renouvellement échoue (avant le 2026-10-07 : écran Connexion). La session est alors relue du
-stockage (`CLE_SESSION`, clé par défaut de supabase-js) et l'appli s'ouvre sur la liste hors ligne avec le dernier
-contexte connu (profil, marchés, droits). Rien ne part sans jeton valide (supabase-js enverrait la clé anonyme, sans
-aucun droit) ; un refus reçu pendant que le jeton expirait n'est pas compté, la saisie repart ensuite. Renouvellement :
-minuteur d'auth-js toutes les 30 s au premier plan (pause de 60 s après un échec), essai aussitôt au retour sur l'appli,
-rien en arrière-plan (`AppState`, `src/supabase.ts`) ; une fois le jeton renouvelé, la file repart et le contexte est
-rechargé du serveur. Seuls « Quitter » (sans réseau : session retirée de la tablette sans appel au serveur) et un
-renouvellement refusé par le serveur (jeton révoqué) ramènent à l'écran Connexion. Encore lent : sans réseau, auth-js
-réessaie le renouvellement près de 25 s avant de rendre la main (44 s sur l'émulateur, DNS en panne) ; l'appli affiche
-le chargement pendant ce temps.
+avec un jeton expiré (plus d'une heure) ou presque (moins de 90 s, marge d'auth-js), auth-js tente d'abord de le
+renouveler : sans réseau, ses reprises durent près de 25 s (davantage quand le DNS échoue lentement), puis
+`getSession()` rend `null`. Avant le 2026-10-07 : écran Connexion, puis (PR #56) liste au bout de 25 s à 1 min 40.
+L'appli n'attend plus que 1,5 s (`DELAI_DEPART_MS`) : passé ce délai, la session gardée (`CLE_SESSION`, clé par
+défaut de supabase-js) est rendue, « jeton à renouveler », et l'appli s'ouvre sur les copies de la tablette.
+- **Copies d'abord, puis serveur** : contexte (profil, marchés, droits), liste (`src/liste-donnees.ts`), fiches,
+  paramètres de saisie, secteurs. Avec un jeton valide, la réponse du serveur remplace la copie à son arrivée.
+- **Jeton à renouveler** : aucune requête ne part, car elle attendrait les reprises d'auth-js puis partirait avec la
+  clé anonyme, sans aucun droit. Bandeau « Hors ligne » aussitôt, pas de contrôle des doublons. La synchro de la
+  file d'attente rend la main tout de suite (jeton gardé expiré : `getSession()` n'est pas appelé).
+- **Suite** : les événements d'auth-js. `TOKEN_REFRESHED` (minuteur toutes les 30 s au premier plan, pause de 60 s
+  après un échec, essai aussitôt au retour sur l'appli, rien en arrière-plan : `AppState`, `src/supabase.ts`) : la
+  file repart, contexte et liste sont rechargés du serveur. `SIGNED_OUT` (jeton révoqué) : écran Connexion.
+- Un refus reçu pendant que le jeton expirait n'est pas compté : la saisie repart ensuite.
+- **« Quitter » sans réseau** : la session est retirée de la tablette sans appel au serveur, avec retour immédiat à
+  l'écran Connexion, même pendant les reprises d'auth-js.
 
 **Hors ligne** (`src/file-attente.ts`) : chaque saisie (fuite, réparation, réfection) et ses photos sont
 d'abord écrites sur la tablette, puis envoyées (ouverture de l'appli, retour au premier plan, toutes les 30 s,
@@ -86,9 +91,13 @@ la base).
   après la création, coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai
   sur une horloge simulée, jamais la clé anonyme).
 - `node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs` : démarrage sans réseau avec un jeton
-  expiré, sur une horloge simulée, 25 vérifications (liste hors ligne au lieu de Connexion, rien d'envoyé sans jeton
-  valide puis envoi après le renouvellement, arrière-plan et premier plan, jeton expiré pendant un envoi, refus du
-  serveur, « Quitter » avec et sans réseau).
+  expiré, sur une horloge simulée, 38 vérifications :
+  - durée d'ouverture : liste de la tablette au bout de 1,5 s, contre 25,4 s mesurées pour l'ancien chemin ;
+  - « Quitter » et « Enregistrer » pendant les reprises d'auth-js ;
+  - rien d'envoyé sans jeton valide, puis envoi après le renouvellement ; arrière-plan et premier plan ;
+  - jeton expiré pendant un envoi, refus du serveur, « Quitter » avec et sans réseau ;
+  - ouverture avec réseau : jeton valide, expiré renouvelé à temps, réseau lent, refus après le délai, événement
+    d'auth-js jamais écrasé par l'état de départ.
 
 **Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
 photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications

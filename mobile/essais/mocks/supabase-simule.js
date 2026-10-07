@@ -28,12 +28,14 @@ class Requete {
   is(c, v) { this.filtres.push((l) => (l[c] ?? null) === v); return this; }
   in(c, v) { this.filtres.push((l) => v.includes(l[c])); return this; }
   order() { return this; }
+  limit() { return this; }
+  abortSignal(signal) { this.signal = signal; return this; }
   maybeSingle() { this.unique = true; return this; }
   then(ok, ko) {
     const id = String(++numero);
     enVol.set(id, this);
     return client.fetch(`${API}/rest/v1/${this.table}`, {
-      method: METHODES[this.operation], headers: { 'x-requete': id },
+      method: METHODES[this.operation], headers: { 'x-requete': id }, signal: this.signal,
       body: this.valeur === undefined ? undefined : JSON.stringify(this.valeur),
     })
       // Requête abandonnée ou coupure : erreur mise en forme comme par postgrest-js (« nom: message »).

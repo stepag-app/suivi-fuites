@@ -79,6 +79,14 @@ Workflow `.github/workflows/apk.yml` : types, `expo prebuild`, `gradlew assemble
 (14 jours). Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour
 Vercel) ; sans lui l'APK se compile mais ne peut pas se connecter.
 
+**Architectures** (depuis le 2026-10-07) : bibliothèques natives compilées pour **ARM seulement**, `armeabi-v7a` et
+`arm64-v8a` (`buildArchs` d'`expo-build-properties` dans `app.json`, repris dans `reactNativeArchitectures` de
+`android/gradle.properties`) : les tablettes Samsung et l'émulateur du Mac sont ARM. Sans x86 ni x86_64, l'APK passe
+de 79,0 à 42,6 Mo (bibliothèques ARM inchangées : 17,2 Mo en `arm64-v8a`, 11,9 Mo en `armeabi-v7a`) et la compilation
+d'environ 20 à 13 min. Un émulateur x86_64 (PC Windows, Mac Intel) ne la lance que par traduction ARM (images
+Android 11 et plus, plus lent) et la refuse sur les images plus anciennes (`INSTALL_FAILED_NO_MATCHING_ABIS`) : pour
+un tel essai, rajouter `x86_64` à la liste le temps d'une compilation.
+
 L'APK est **signé avec la clé de test d'Expo** : suffisant pour les essais sur la tablette de test.
 **Avant toute distribution aux agents**, créer un keystore de production **hors du dépôt**, en deux copies
 (sans lui, plus aucune mise à jour possible par-dessus une version installée) et le brancher dans le workflow.

@@ -227,11 +227,14 @@ function envoyer(e: Envoi) {
 
 const ATTENTE_PRECEDENT = "En attente : une saisie précédente de cette fuite n'est pas encore passée.";
 
+// Jeton de la session, sans lequel rien ne part : supabase-js enverrait la clé anonyme, qui n'a aucun droit (la base
+// refuserait la saisie, affichée comme un droit insuffisant). Absent : pas de session, ou jeton expiré pas encore
+// renouvelé (hors ligne) ; tout repart à la synchro qui suit le renouvellement.
+const jeton = async () => (await supabase.auth.getSession()).data.session?.access_token ?? null;
+
 async function executer(): Promise<number> {
   // Cas courant (toutes les 30 s) : rien à envoyer, rien d'autre à lire.
   if (!(await lireAttente()).length) return 0;
-  const { data } = await supabase.auth.getSession();
-  if (!data.session) return (await lireAttente()).length;
 
   const bloquees = new Set<string>();
   for (const e of await lireAttente()) {
@@ -240,11 +243,16 @@ async function executer(): Promise<number> {
       await majEnvoi(e.id, (x) => ({ ...x, erreur: ATTENTE_PRECEDENT }));
       continue;
     }
+    const avant = await jeton();
+    if (!avant) break;
     try {
       await envoyer(e);
       await modifier((l) => l.filter((x) => x.id !== e.id));
     } catch (err) {
       if (erreurReseau(err)) break; // on réessaiera au retour du réseau, rien n'est perdu
+      // Jeton expiré ou renouvelé pendant l'envoi : le refus peut venir d'une requête partie sans jeton valide, pas
+      // des droits. On réessaiera à la synchro suivante.
+      if ((await jeton()) !== avant) break;
       bloquees.add(fuite);
       await majEnvoi(e.id, (x) => ({ ...x, erreur: messageClair(err) }));
     }

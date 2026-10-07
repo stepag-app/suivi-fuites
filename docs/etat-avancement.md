@@ -72,6 +72,14 @@ APK au style « Studio Admin » (PR [#43](https://github.com/stepag-app/suivi-fu
 
 ## 2. En attente d'Issam
 
+**Keystore de production (2026-10-07)** : créé (PKCS12, alias `stepag`, valable jusqu'en 2056, SHA-256 `94:09:38:AF:…:78:0A`),
+stocké hors dépôt dans `~/Documents/STEPAG-KEYSTORE/` sur le Mac d'Issam ; mot de passe noté sur papier. Secrets GitHub
+`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` ; `apk.yml` signe et vérifie le certificat
+(PR [#55](https://github.com/stepag-app/suivi-fuites/pull/55), CI verte). Les APK signés avec la clé de test d'Expo (émulateur)
+sont incompatibles : désinstaller avant d'installer. **Sans ce fichier, plus de mise à jour possible** : copie sur clé USB
+à faire. PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54) : liste hors ligne avec jeton expiré (non testée sur appareil).
+**En stand by (attente d'une vraie tablette)** : test terrain, Vercel Pro, désactivation de DEMO. Réseau et articles : importés.
+
 **Langues de l'APK (2026-10-07)** : dictionnaire entièrement validé ; essayer les trois modes sur la tablette avec
 l'APK de la PR [#45](https://github.com/stepag-app/suivi-fuites/pull/45) (empilée sur la #43 : fusionner la #43 d'abord). Les listes paramétrées (natures de revêtement, motifs, équipes)
 restent en français tant qu'une colonne arabe n'est pas ajoutée en base (à décider).

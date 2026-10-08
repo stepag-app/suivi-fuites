@@ -66,6 +66,10 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/25_referentiels_terrain.test.sql` | 44 tests : libellés arabes complets, natures F5, diamètres (standard, réseau, droits, isolation), représentants, champs obligatoires (création, fuite ancienne, champ vidé, RLS, contexte serveur), copie |
 | `tests/database/26_rues_suggestions.test.sql` | 27 tests : rues d'Oujda chargées, import (administrateur, idempotent), rayon selon la précision, ordre et regroupement des rues, secteur par contour ou par tronçon, tronçon et matériau normalisé, rien autour, précision insuffisante, droits |
 | `tests/database/27_non_reparee_anticipation.test.sql` | 42 tests : lignes d'une non réparée, réfection attendue (S1 : validation, notification, `v_a_refectionner`), réfections dues, panier, case du marché, propositions, refus (hors panier, déjà exécuté, seconde anticipation), « Attaché par anticipation », exécution réelle et régularisations, total attaché = exécuté |
+| `migrations/20261009300000_inventaire_fournitures.sql` | chantier v2, X3 (lot P3) : `v_inventaire_fournitures` (une ligne par pièce de l'inventaire réel `v_pieces_reelles`, article Dolibarr, famille, mois, provenance terrain / correction ; droit « quantités / lire », security_invoker) ; `resume_fournitures(marché, du, au)` (quantités par article sur une période, pour le widget du tableau de bord de S6) |
+| `migrations/20261009300100_rapprochement_dolibarr.sql` | chantier v2, X3 (lot P4) : `mouvements_dolibarr` (mouvements de stock, quantités signées, **sans prix** ; lecture : administrateur, ou « quantités / lire » sur un marché dont c'est l'entrepôt), `imports_mouvements_dolibarr` (journal), `importer_mouvements_dolibarr` (administrateur ou serveur pour X8, idempotent par rowid, lignes modifiées mises à jour), `marches.entrepot_dolibarr_id` (administrateur seulement, déclencheur `proteger_entrepot_dolibarr` ; 76 pour le marché 4500004453 ; non copié) et `marches.seuil_ecart_fournitures_pct` (10 % par défaut, « paramètres / modifier »), `rapprochement_fournitures(marché, du, au)` (période × article : transféré, consommé, posé, écart, cumuls, seuil) |
+| `tests/database/13_inventaire_fournitures.test.sql` | 17 tests du lot P3 (privilèges, aucun prix ni référence, inventaire réel avec corrections, remplacées / retirées / réparation supprimée exclues, résumé par période, droits : responsable et administrateur seulement, isolation) |
+| `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -323,6 +327,29 @@ Les produits Dolibarr sont le seul référentiel des pièces posées, commun à 
 Article du bordereau suggéré pour une pièce (contrôles de l'attachement) : Paramètres > Bordereau > « Article suggéré pour
 les pièces posées », règle par article ou par famille, propre à chaque marché. Le réparateur ne voit jamais de code. L'API REST de Dolibarr n'accepte que les adresses du réseau local (`API_RESTRICT_ON_IP`) : pas d'appel
 depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par envoi depuis le serveur.
+
+## Fournitures posées et rapprochement Dolibarr (chantier v2, X3 : lots P3 et P4)
+
+- **Inventaire** (`v_inventaire_fournitures`) : l'inventaire réel de `v_pieces_reelles` (pièces du terrain ni remplacées ni
+  retirées, corrections du bureau), regroupé par `produit_id` ; famille = préfixe de la référence du produit. Lecture :
+  droit « quantités / lire » (responsable, administrateur), en plus de la RLS des pièces. Aucun prix.
+- **Widget du tableau de bord (S6)** : `select * from resume_fournitures(:marche_id, :du, :au)` (jours de réparation à
+  l'heure du Maroc, bornes comprises, nulles = sans limite) → `produit_id, designation, famille, unite, quantite, pieces,
+  fuites, corrections`, triés par quantité décroissante. Total des pièces et part des corrections : sommes de ces colonnes.
+- **Mouvements Dolibarr** : import du CSV `mouvements_chantier*.csv` dans le navigateur (Fournitures > Rapprochement
+  Dolibarr, administrateur) ; `importer_mouvements_dolibarr(jsonb)` ne lit que les clés utiles (jamais prix, valeur, PMP),
+  idempotent par rowid. Importer **les deux fichiers** (courant et dotation initiale du 2026-09-30) : sur l'export du
+  2026-10-05, 93 mouvements, 16 lignes d'annulation, 45 références, **143,5 unités transférées** (égal au stock de
+  l'entrepôt 76 relevé dans Dolibarr). L'envoi automatique depuis le serveur Dolibarr (X8) appellera la même fonction en
+  `service_role`.
+- **Calcul** (`rapprochement_fournitures`) : transféré = somme signée des mouvements de l'entrepôt du marché hors
+  consommations (retours déduits, paires « CANCEL » neutralisées) ; consommé = sortie de type 1 sans entrepôt de
+  contrepartie, hors annulation ; posé = inventaire réel par jour de réparation ; écart = transféré − consommé − posé, sur la
+  période et en cumul jusqu'à la fin de la période ; « au-delà du seuil » si |écart cumulé| > seuil % du transféré cumulé
+  (tout écart si rien n'a été transféré). Indicatif, jamais bloquant.
+- **Dépendance** : `v_inventaire_fournitures` et `rapprochement_fournitures` lisent `v_pieces_reelles` ; une migration qui
+  la supprime et la recrée doit d'abord supprimer puis recréer `v_inventaire_fournitures` (la fonction, en SQL, est
+  recompilée à l'appel).
 
 ## Marché de démonstration `DEMO` (données fictives)
 

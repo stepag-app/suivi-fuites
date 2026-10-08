@@ -1,0 +1,139 @@
+/* Inventaire des fournitures posées (lot P3) et rapprochement Dolibarr (lot P4) : puces de filtres, tableau croisé
+   (première colonne et en-têtes figés au défilement), couleurs des jetons de globals.css. */
+
+.intro { margin: 0 0 0.9rem; }
+
+/* Filtres rapides */
+.filtres { display: grid; gap: 0.55rem; }
+.saisies { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1rem; }
+.saisies label { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0; font-weight: 400; color: var(--discret); white-space: nowrap; }
+.saisies label > input { width: auto; min-width: 9.5rem; margin: 0; color: var(--texte); }
+.saisies label > input.numero { min-width: 6.5rem; width: 6.5rem; }
+.rangee { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem 0.4rem; }
+.rangee > span:first-child { color: var(--discret); font-size: 0.86rem; min-width: 5.5rem; }
+.puce {
+  display: inline-flex; align-items: center; gap: 0.35rem; min-height: var(--h-cmd); padding: 0.1rem 0.7rem;
+  border: 1px solid var(--bord); border-radius: 999px; background: var(--carte); color: var(--texte);
+  font-size: 0.9rem; font-weight: 400; line-height: 1.2; cursor: pointer;
+}
+.puce:hover { border-color: var(--principal); background: var(--survol); }
+.puce[aria-pressed='true'] { border-color: var(--principal); background: var(--principal-clair); color: var(--principal-fonce); font-weight: 600; box-shadow: inset 0 0 0 1px var(--principal); }
+.puce b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--discret); }
+.puce[aria-pressed='true'] b { color: var(--principal-fonce); }
+.puce.vide { color: var(--discret); border-style: dashed; }
+.puceCorrection[aria-pressed='true'] { border-color: var(--st-info); background: var(--info-fond); color: var(--st-info); box-shadow: inset 0 0 0 1px var(--st-info); }
+.effacer { margin-left: auto; }
+
+/* Indicateurs : la quantité posée liste ses unités dans le commentaire */
+.unites { display: block; }
+
+/* Tableau croisé */
+.tete { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.5rem 1rem; margin-bottom: 0.6rem; }
+.tete h2 { margin: 0; }
+.dimensions { display: flex; flex-wrap: wrap; gap: 0.5rem 1.2rem; }
+.dimensions > div { display: inline-flex; align-items: center; gap: 0.5rem; }
+.dimensions > div > span { color: var(--discret); font-size: 0.86rem; }
+.segments { display: inline-flex; flex-wrap: wrap; gap: 1px; border: 1px solid var(--bord); border-radius: var(--rayon); background: var(--bord); overflow: hidden; }
+.segments button { border: 0; border-radius: 0; font-weight: 600; min-height: var(--h-cmd); }
+.segments button[aria-pressed='true'] { background: var(--principal); color: var(--carte); }
+
+.defilement { overflow: auto; max-height: 70vh; }
+.croise { border-collapse: separate; border-spacing: 0; }
+.croise th, .croise td { white-space: nowrap; }
+.croise thead th { position: sticky; top: 0; z-index: 2; background: var(--carte); }
+.croise th:first-child, .croise td:first-child { position: sticky; left: 0; z-index: 1; background: var(--carte); white-space: normal; min-width: 14rem; max-width: 24rem; }
+.croise thead th:first-child { z-index: 3; }
+.croise tbody tr:hover > td { background: var(--survol); }
+.croise td.num, .croise th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.croise td.total, .croise th.total { font-weight: 700; border-left: 1px solid var(--bord); }
+.croise tfoot td { position: sticky; bottom: 0; background: var(--carte); font-weight: 700; border-top: 1px solid var(--bord); }
+.croise tfoot td:first-child { z-index: 2; }
+.detail { display: block; font-size: 0.82rem; font-weight: 400; color: var(--discret); white-space: normal; }
+.vide { color: var(--discret); font-weight: 400; }
+.lien { font-weight: 600; text-decoration: none; padding: 0.1rem 0.3rem; margin: -0.1rem -0.3rem; border-radius: var(--rayon-petit); }
+.lien:hover { text-decoration: underline; background: var(--principal-clair); }
+@media (pointer: coarse) { .lien { padding: 0.3rem 0.45rem; margin: -0.3rem -0.45rem; } }
+.note { margin: 0.6rem 0 0; }
+
+@media (max-width: 640px) {
+  .saisies label { flex: 1 1 100%; justify-content: space-between; }
+  .rangee > span:first-child { flex: 1 1 100%; min-width: 0; }
+  .croise th:first-child, .croise td:first-child { min-width: 10rem; max-width: 14rem; }
+  .effacer { margin-left: 0; }
+}
+
+/* Rapprochement Dolibarr (lot P4) */
+
+.alerte td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.negatif { color: var(--danger); font-weight: 600; }
+.badgeSeuil { display: inline-block; padding: 0 0.45rem; border-radius: 999px; background: var(--danger); color: var(--carte); font-size: 0.78rem; font-weight: 600; }
+.reglages { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1rem; }
+.reglages label { display: inline-flex; align-items: center; gap: 0.4rem; margin: 0; font-weight: 400; color: var(--discret); }
+.reglages input { width: 6.5rem; margin: 0; color: var(--texte); }
+.apercu { margin: 0.5rem 0 0; padding-left: 1.1rem; }
+.resume {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0.6rem 0 0.9rem;
+}
+
+.chiffre {
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--bord-doux);
+  border-radius: var(--rayon-petit);
+  background: var(--zebre);
+}
+
+.chiffre strong {
+  display: block;
+  font-size: 1.45rem;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+
+.chiffre span {
+  color: var(--discret);
+  font-size: 0.86rem;
+}
+
+.fichier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fichier input[type='file'] {
+  width: auto;
+  min-height: 0;
+  padding: 0.3rem;
+}
+
+.confidentiel {
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.7rem;
+  border-left: 3px solid var(--principal);
+  background: var(--principal-clair);
+  border-radius: var(--rayon-petit);
+  font-size: 0.9rem;
+}
+
+.rejets {
+  margin: 0.3rem 0 0;
+  padding-left: 1.2rem;
+  font-size: 0.88rem;
+  color: var(--discret);
+}
+
+.entrepots {
+  margin: 0.2rem 0 0.6rem;
+  padding-left: 1.2rem;
+  font-size: 0.9rem;
+}
+
+.entrepots .marche {
+  color: var(--st-positif);
+  font-weight: 600;
+}
+

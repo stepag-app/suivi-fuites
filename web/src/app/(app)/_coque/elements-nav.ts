@@ -1,5 +1,5 @@
 import {
-  Briefcase, CloudUpload, Droplets, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
+  Boxes, Briefcase, CloudUpload, Droplets, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
 
@@ -91,6 +91,13 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
 
   const marche: NavMainItem[] = [
     ...(peut("attachements", "lire") ? [{ id: "attachements", title: "Attachements", url: "/attachements", icon: ReceiptText }] : []),
+    ...(peut("quantites", "lire") ? [{
+      id: "fournitures", title: "Fournitures", icon: Boxes,
+      subItems: [
+        { id: "fournitures-inventaire", title: "Inventaire", url: "/fournitures" },
+        { id: "fournitures-rapprochement", title: "Rapprochement Dolibarr", url: "/fournitures/rapprochement" },
+      ],
+    }] : []),
     ...(ongletsVisibles.length ? [{
       id: "parametres", title: "Paramètres", icon: Settings2,
       subItems: ongletsVisibles.map(([k, t]) => ({ id: `parametres-${k}`, title: t, url: `/parametres?onglet=${k}` })),

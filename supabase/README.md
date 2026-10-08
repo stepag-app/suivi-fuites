@@ -52,6 +52,24 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/17_essai_charge.test.sql` | 22 tests : privilèges, comptages identiques à `v_fuites` sous la RLS de chaque rôle, reste à attacher identique à `v_a_attacher`, état compact identique à `etat_balayage` au-delà de 1 000 tronçons |
 | `migrations/20261007130000_photos_r2.sql` | lot N : `marches_photos(p_action)` (marchés où le compte a le droit « photos » lire / creer / supprimer ; même règle que la RLS de `photos` et du compartiment Storage), lue par la fonction serveur `photos-r2` ; `anon` sans accès ; commentaire de `photos.stockage` |
 | `tests/database/16_photos_r2.test.sql` | 10 tests du lot N : privilèges de `marches_photos`, rien sans compte ni sans affectation, marché de l'agent en lecture et en dépôt, action inconnue refusée, administrateur sur tous les marchés, marché désactivé sans dépôt |
+| `migrations/20261009100000_type_donnee_refections.sql` | chantier v2, S1 : type de donnée `refections` (fichier séparé, valeur d'énumération) |
+| `migrations/20261009100100_comptes_roles.sql` | S1, R1 à R7 : rôle `refection` (modèle, contraintes, droits `interventions` recopiés sur `refections`, rôle ajouté aux `chef_reparation`), RLS des réfections sur `refections` ; `profils.nom`, `prenom` (nom complet « NOM Prénom »), `matricule` (unique), `entreprise` (STEPAG) ; `ouvriers.matricule` ; `modifier_roles`, `compte_supprimable`, suppression d'un profil refusée s'il a la moindre saisie ; pièces « correction » lues par le bureau seulement, `v_pieces_terrain` |
+| `migrations/20261009100200_validation.sql` | S1, V1 à V7 : `validee_le` / `validee_par` (fuites, réparations, réfections), `valider_etapes`, `v_a_valider`, `v_a_refectionner`, étape validée réservée au droit « valider », photos antérieures à la validation, motif des corrections (date, référence, position), « détectée par », `saisie_differee`, ajout après un lot arrêté et reverrouillage au lot suivant |
+| `migrations/20261009100300_notifications.sql` | S1, N1 / N3 : `notifications` (les siennes, lu / non lu, temps réel), `notifications_circuit`, déclencheurs du circuit, `generer_alertes_reparation` (pg_cron 15 min si disponible), `appareils_push` et ses fonctions |
+| `tests/database/30_s1_comptes_roles.test.sql` | 47 tests S1 : rôle réfection, droits par rôle, `modifier_roles`, nom / matricule / entreprise, suppression de compte, corrections du bureau invisibles du terrain |
+| `tests/database/31_s1_validation.test.sql` | 58 tests S1 : validation par étape, ajout seulement après validation, photos, motif, « détectée par », saisie différée, réfections à faire, ajout après lot arrêté |
+| `tests/database/32_s1_notifications.test.sql` | 37 tests S1 : circuit (destinataires, jamais l'auteur, révoqués et autres marchés exclus), lecture des siennes, lu / non lu, alerte 48 h, circuit réglable, appareils push |
+| `migrations/20261009200000_referentiels_terrain.sql` | chantier v2, S2 : `libelles_listes` (libellés FR / AR des listes de saisie, X4), natures Carrelage, Carreaux de ciment (REVSOL), Faïence, Pavé ciment (SRM, DEMO, F5), `diametres_materiau` (diamètres par matériau, standard + réseau, P2), `representants_srm` et `reparations.representant_srm_id` (P7), `fuites.nature_degradation_id`, `diametre_mm`, `materiau`, `troncon_id` (F2, F4), `marches.champs_obligatoires_fuite` contrôlé à la création (F1), copie par `copier_marche` |
+| `migrations/20261009200100_rues_suggestions.sql` | chantier v2, S2 : table `rues` (OSM, ODbL), `importer_rues` (administrateur), `suggestions_localisation` (rues proches, secteur, tronçon le plus proche avec diamètre et matériau ; rayon selon la précision GPS) |
+| `migrations/20261009200110_rues_oujda.sql` | 3 274 voies nommées d'Oujda (© contributeurs OpenStreetMap, ODbL 1.0), produites par `outils/reseau/extraire_rues.py` |
+| `migrations/20261009200200_non_reparee_anticipation.sql` | chantier v2, S2 : réparation non réparée attachée (terrassement et travaux, P8), `private.refection_attendue` et `notifier_reparation` (S1) élargies aux non réparées avec fouille, `v_refections_dues`, `private.refection_due` ; anticipation généralisée (A1) : `prix.anticipable` (panier), contrôles (case du marché, panier, ni exécuté ni déjà attaché), `v_propositions_anticipation`, `v_a_attacher` (`en_attente_execution`), `fuites_anticipees` |
+| `tests/database/25_referentiels_terrain.test.sql` | 44 tests : libellés arabes complets, natures F5, diamètres (standard, réseau, droits, isolation), représentants, champs obligatoires (création, fuite ancienne, champ vidé, RLS, contexte serveur), copie |
+| `tests/database/26_rues_suggestions.test.sql` | 27 tests : rues d'Oujda chargées, import (administrateur, idempotent), rayon selon la précision, ordre et regroupement des rues, secteur par contour ou par tronçon, tronçon et matériau normalisé, rien autour, précision insuffisante, droits |
+| `tests/database/27_non_reparee_anticipation.test.sql` | 42 tests : lignes d'une non réparée, réfection attendue (S1 : validation, notification, `v_a_refectionner`), réfections dues, panier, case du marché, propositions, refus (hors panier, déjà exécuté, seconde anticipation), « Attaché par anticipation », exécution réelle et régularisations, total attaché = exécuté |
+| `migrations/20261009300000_inventaire_fournitures.sql` | chantier v2, X3 (lot P3) : `v_inventaire_fournitures` (une ligne par pièce de l'inventaire réel `v_pieces_reelles`, article Dolibarr, famille, mois, provenance terrain / correction ; droit « quantités / lire », security_invoker) ; `resume_fournitures(marché, du, au)` (quantités par article sur une période, pour le widget du tableau de bord de S6) |
+| `migrations/20261009300100_rapprochement_dolibarr.sql` | chantier v2, X3 (lot P4) : `mouvements_dolibarr` (mouvements de stock, quantités signées, **sans prix** ; lecture : administrateur, ou « quantités / lire » sur un marché dont c'est l'entrepôt), `imports_mouvements_dolibarr` (journal), `importer_mouvements_dolibarr` (administrateur ou serveur pour X8, idempotent par rowid, lignes modifiées mises à jour), `marches.entrepot_dolibarr_id` (administrateur seulement, déclencheur `proteger_entrepot_dolibarr` ; 76 pour le marché 4500004453 ; non copié) et `marches.seuil_ecart_fournitures_pct` (10 % par défaut, « paramètres / modifier »), `rapprochement_fournitures(marché, du, au)` (période × article : transféré, consommé, posé, écart, cumuls, seuil) |
+| `tests/database/13_inventaire_fournitures.test.sql` | 17 tests du lot P3 (privilèges, aucun prix ni référence, inventaire réel avec corrections, remplacées / retirées / réparation supprimée exclues, résumé par période, droits : responsable et administrateur seulement, isolation) |
+| `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -60,8 +78,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
   `(id, marche_id)` empêchent de rattacher une donnée à un paramètre d'un autre marché.
 - **Droits** : table `droits` (utilisateur × marché × type de donnée) avec lire / créer /
   modifier (non, siennes, toutes) / supprimer (non, siennes, toutes) / valider.
-  Les modèles `detection`, `chef_reparation`, `responsable` s'appliquent avec
-  `appliquer_modele_role(profil, marché, rôle)` et se cumulent. L'administrateur
+  Les modèles `detection`, `chef_reparation` (« Réparation »), `refection` (« Réfection », chantier v2) et
+  `responsable` s'appliquent avec `appliquer_modele_role(profil, marché, rôle)` et se cumulent ; `modifier_roles`
+  remplace les rôles d'un compte dans un marché. Les réfections ont leur propre type de donnée `refections`. L'administrateur
   (`profils.est_admin`) voit et fait tout, sauf ce qu'il a verrouillé.
 - **Verrous de sécurité** (lot Q) : l'administrateur peut se retirer un droit (`verrous_admin` : objet = type de
   donnée ou `marches` / `comptes`, action = colonne de `droits` ou `rouvrir`, `forcer`, `desactiver`, `copier`,
@@ -73,7 +92,12 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 - **Suppression** : jamais physique ; `supprime_le` rempli si l'utilisateur a le droit
   « supprimer ». Tout est tracé dans `journal` (qui, quand, valeurs avant / après).
 - **Verrou** : le responsable (droit « valider ») verrouille une fuite validée ; ni elle ni ses
-  réparations, réfections, photos ou quantités ne changent ensuite, sauf par un responsable.
+  réparations, réfections, photos ou quantités ne changent ensuite, sauf par un responsable. Depuis le
+  chantier v2, un agent peut encore y **ajouter** réparation, réfection et photo (la fuite revient dans
+  « À attacher ») ; un nouvel arrêt de lot reverrouille.
+- **Validation par étape** (chantier v2, contrat `docs/lots/chantier-v2-base-s1.md`) : détection, chaque
+  réparation, chaque réfection ; avant validation l'auteur modifie, après il ajoute seulement.
+- **Notifications** : table `notifications` remplie par déclencheurs selon `notifications_circuit`.
 - **Statut automatique** (avance seulement ; le responsable peut le changer à la main) :
   réparation « en cours » → `en_reparation` ; « réparée » → `reparee` (ou `achevee` si terrain
   naturel) ; « non réparée » + motif → `sans_reparation` ; réfection faite ou close sans
@@ -126,50 +150,111 @@ Les comptes des agents seront créés depuis le panneau web par une Edge Functio
 
 ## Sauvegarde et restauration
 
-Workflow `.github/workflows/sauvegarde-base.yml` : chaque nuit (02:17 UTC) et à la demande, export du
-schéma, des données `public` et des comptes `auth`, chiffré (AES-256) puis conservé **30 jours** en
-artefact GitHub. Une fois : créer le secret `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le
-gestionnaire de mots de passe, copie hors ligne ; jamais dans le dépôt ni dans le chat), puis lancer le
-workflow à la main pour valider la première sauvegarde.
+Workflow `.github/workflows/sauvegarde-base.yml` (scripts dans `outils/sauvegarde/`) : chaque nuit (02:17 UTC)
+et à la demande (Actions > Sauvegarde de la base > Run workflow), il exporte puis chiffre (AES-256) une archive
+`sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg` qui contient :
 
-**Test de restauration** (lot K, PR #27) : le workflow `.github/workflows/test-restauration.yml` tourne chaque
-lundi à 04:07 UTC, et à la demande (Actions > Test de restauration > Run workflow). Il prend la dernière
-sauvegarde réussie de `main`, la déchiffre avec `SAUVEGARDE_PASSPHRASE`, la restaure dans une base Supabase
-locale et vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la
-production), puis compare table par table les lignes de la sauvegarde à celles de la base restaurée.
-Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ; aucune donnée n'est
-affichée. Premier essai (2026-10-05) : 65 tables, 91 comparaisons, toutes égales.
+| Fichier | Contenu |
+|---|---|
+| `schema.sql` | structure : tables, fonctions, règles RLS (`supabase db dump`) |
+| `donnees.sql` | données de **tous** les schémas dumpés : `public`, comptes `auth`, enregistrements `storage` (`buckets`, `objects`) ; sans `storage.buckets_vectors` ni `storage.vector_indexes` (tables internes non restaurables, exclues par `-x`) |
+| `complement.sql` | ce que l'export ne peut pas voir, car il vit dans `auth` et `storage` : le déclencheur `creer_profil_apres_inscription` sur `auth.users` et les règles de `storage.objects` (photos, evenements, logos) ; généré depuis la base vivante par `outils/sauvegarde/generer-complement.sql` ; rejouable |
+| `migrations_appliquees.txt` | versions de migrations déjà appliquées (pour `supabase migration repair`) |
+| `LISEZMOI.txt` | rappel de l'ordre de restauration |
+
+L'archive est conservée **à deux endroits** (le secret `SAUVEGARDE_PASSPHRASE` n'est jamais copié) :
+1. **GitHub** : artefact `sauvegarde-base`, 30 jours ;
+2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-photos/sauvegardes/base/<archive>`, copie vérifiée par empreinte
+   SHA-256. Le workflow supprime lui-même les archives de plus de 30 jours (en gardant toujours au moins 7
+   archives récentes), parce que le jeton R2 (Object Read & Write) ne peut pas régler de règle de cycle de vie.
+
+**Fichiers de Supabase Storage (photos comprises)** : le même workflow copie dans R2, sous
+`sauvegardes/stockage-supabase/<compartiment>/<chemin>`, tout fichier encore stocké dans Supabase Storage
+(`photos`, `evenements`, `logos`), seulement s'il manque ou si sa taille diffère ; rien n'est jamais supprimé de R2,
+donc un fichier effacé de Supabase reste récupérable. Les photos prises depuis le lot N sont déjà dans R2
+(`photos.stockage = 'r2'`, préfixe racine du compartiment) : elles ne dépendent plus de Supabase. **Reste hors
+sauvegarde** : les photos R2 elles-mêmes (une panne ou une erreur de suppression sur R2 les perdrait) ; à traiter
+si un second emplacement est souhaité (compartiment R2 miroir, ou export vers le Drive du compte `stepag.app`).
+
+### Test de restauration
+
+Workflow `.github/workflows/test-restauration.yml` : chaque lundi à 04:07 UTC, à la demande (Actions > Test de
+restauration > Run workflow ; champ facultatif : numéro d'une exécution de « Sauvegarde de la base »), et sur toute
+PR qui modifie les workflows de sauvegarde ou `outils/sauvegarde/` (une sauvegarde complète est alors réalisée
+d'abord). Il déchiffre l'archive, vérifie que la copie R2 est identique à l'artefact GitHub, restaure avec
+`outils/sauvegarde/restaurer.sh` (le **même script** que la procédure manuelle) dans une base Supabase locale et
+vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la production), puis compare
+table par table les lignes de la sauvegarde à celles de la base restaurée et vérifie le retour du déclencheur et des
+règles de `storage.objects`. **Aucun contournement** : une table non restaurable, un écart de lignes ou un objet
+manquant font échouer le test. Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ;
+aucune donnée n'est affichée.
 
 Si le test échoue :
 - « aucune exécution réussie » ou « plus de 48 h » : la sauvegarde nocturne ne tourne plus ; vérifier
   Actions > Sauvegarde de la base, puis la relancer ;
+- « copie R2 introuvable » ou « diffère » : la copie hors de GitHub ne s'est pas faite ; lire l'étape
+  « Copie hors de GitHub (R2) » de la sauvegarde (secrets R2, jeton, compartiment) ;
 - échec du déchiffrement : `SAUVEGARDE_PASSPHRASE` ne correspond plus ;
 - échec de restauration ou écart de lignes : la sauvegarde n'est pas fiable ; relancer une sauvegarde puis
   le test, et corriger avant toute opération risquée sur la base.
 
-**Défauts de la sauvegarde actuelle** (révélés par le test, **à corriger**, voir `docs/feuille-de-route.md`) :
-1. `donnees_public.sql` contient `storage.buckets_vectors` et `storage.vector_indexes`, non inscriptibles
-   (`permission denied`) : les exclure de l'export (`-x storage.buckets_vectors -x storage.vector_indexes`).
-2. `donnees_public.sql` contient déjà les comptes (`auth`) : `donnees_auth.sql` fait doublon et l'ancienne
-   procédure (auth puis public) échoue sur des doublons.
-3. `schema.sql` n'a ni le déclencheur `creer_profil_apres_inscription` (sur `auth.users`) ni les règles de
-   `storage.objects` (photos, evenements, logos) : une base restaurée ne crée plus de profil et refuse les
-   fichiers.
+### Restaurer pour de vrai
 
-Restauration réelle (sur un projet Supabase **vierge**, jamais sur la production sans décision explicite),
-en attendant la correction de l'export :
-```bash
-gpg --decrypt sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg | tar -xzf -     # schema.sql, donnees_*.sql
-psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f schema.sql
-# retirer d'abord de donnees_public.sql les deux blocs COPY vides storage.buckets_vectors / vector_indexes
-psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f donnees_public.sql   # comptes compris
-```
-Puis recréer le déclencheur `creer_profil_apres_inscription` (migration `20261004090100`) et les règles de
-`storage.objects` (migrations `20261004090600`, `20261004180100`, `20261005120000`), et marquer les
-migrations comme appliquées (`supabase migration repair --status applied …`) avant tout `db push`.
+Sur un projet Supabase **neuf et vierge**, jamais sur la production sans décision explicite (le script refuse une
+base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `psql` (version 17 de préférence),
+`aws` (AWS CLI) et `jq`.
 
-**Limites** : les photos (Storage) ne sont pas incluses ; 30 jours de rétention ; l'historique des migrations
-n'est pas sauvegardé.
+1. **Récupérer l'archive** : artefact GitHub (Actions > exécution de « Sauvegarde de la base » > `sauvegarde-base`),
+   ou R2 (copie hors de GitHub) :
+   ```bash
+   export AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… AWS_DEFAULT_REGION=auto   # clés R2 du gestionnaire de mots de passe
+   export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+   R2="--endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com"
+   aws s3 ls $R2 s3://suivi-fuites-photos/sauvegardes/base/
+   aws s3 cp $R2 s3://suivi-fuites-photos/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
+   ```
+2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument) :
+   ```bash
+   read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE
+   bash outils/sauvegarde/restaurer.sh dechiffrer sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg ./restauration
+   ```
+3. **Créer le projet Supabase neuf** (même région, PostGIS disponible) et relever sa chaîne de connexion
+   « Session pooler » (Project Settings > Database), avec son mot de passe, dans `URL_BASE_NEUVE` :
+   ```bash
+   export URL_BASE_NEUVE='postgresql://postgres.<projet>:<mot de passe>@aws-0-<région>.pooler.supabase.com:5432/postgres'
+   bash outils/sauvegarde/restaurer.sh charger ./restauration     # schema.sql, donnees.sql, complement.sql
+   ```
+   Le script charge chaque fichier en une transaction (`ON_ERROR_STOP=1`) et n'affiche aucune donnée.
+4. **Migrations** : lier le dépôt au projet neuf puis déclarer les migrations comme appliquées, avant tout
+   `db push` :
+   ```bash
+   supabase link --project-ref <projet>
+   supabase migration repair --status applied $(cat restauration/migrations_appliquees.txt)
+   ```
+5. **Fichiers de Supabase Storage** (les lignes `storage.objects` sont revenues avec `donnees.sql`, pas les
+   fichiers) : télécharger puis renvoyer dans le projet neuf (clé de service du projet **neuf**) :
+   ```bash
+   aws s3 sync $R2 s3://suivi-fuites-photos/sauvegardes/stockage-supabase/ ./restauration/fichiers/
+   SUPABASE_URL=https://<projet>.supabase.co SUPABASE_SERVICE_ROLE_KEY=… \
+     bash outils/sauvegarde/restaurer-photos.sh ./restauration/fichiers
+   ```
+   Les photos stockées dans R2 (`stockage = 'r2'`) n'ont rien à restaurer : elles sont toujours dans le
+   compartiment.
+6. **Reconnecter l'application** : nouveau `SUPABASE_PROJECT_ID`, URL et clé anon dans les secrets GitHub et
+   les variables Vercel, puis « Déploiement de la base » (fonctions, secrets R2). Les comptes reviennent avec
+   leurs mots de passe ; les sessions ouvertes sont invalidées (nouveau secret JWT), les agents se reconnectent.
+
+### Réglage à faire une fois dans Cloudflare (facultatif)
+
+Le workflow supprime déjà les archives de plus de 30 jours. Pour doubler cette règle côté Cloudflare : R2 >
+`suivi-fuites-photos` > **Settings** > **Object lifecycle rules** > **Add rule** : nom `sauvegardes-base-30-jours`,
+préfixe `sauvegardes/base/`, action **Delete uploaded objects** après **30 jours**. Ne **pas** mettre de règle sur
+`sauvegardes/stockage-supabase/` (copie des fichiers, à garder) ni sur le reste du compartiment (photos).
+
+**Limites** : 30 jours de rétention des archives de base ; l'historique des migrations est seulement listé
+(`migrations_appliquees.txt`) ; la copie de Storage vers R2 est nocturne (un fichier déposé depuis la dernière
+nuit n'y est pas encore) ; les secrets de l'application (clés, fonctions Edge, variables Vercel) ne sont pas dans
+la sauvegarde : ils sont dans le gestionnaire de mots de passe d'Issam et dans les paramètres GitHub / Vercel.
 
 ## Application « standard » (étape A)
 
@@ -243,6 +328,29 @@ Article du bordereau suggéré pour une pièce (contrôles de l'attachement) : P
 les pièces posées », règle par article ou par famille, propre à chaque marché. Le réparateur ne voit jamais de code. L'API REST de Dolibarr n'accepte que les adresses du réseau local (`API_RESTRICT_ON_IP`) : pas d'appel
 depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par envoi depuis le serveur.
 
+## Fournitures posées et rapprochement Dolibarr (chantier v2, X3 : lots P3 et P4)
+
+- **Inventaire** (`v_inventaire_fournitures`) : l'inventaire réel de `v_pieces_reelles` (pièces du terrain ni remplacées ni
+  retirées, corrections du bureau), regroupé par `produit_id` ; famille = préfixe de la référence du produit. Lecture :
+  droit « quantités / lire » (responsable, administrateur), en plus de la RLS des pièces. Aucun prix.
+- **Widget du tableau de bord (S6)** : `select * from resume_fournitures(:marche_id, :du, :au)` (jours de réparation à
+  l'heure du Maroc, bornes comprises, nulles = sans limite) → `produit_id, designation, famille, unite, quantite, pieces,
+  fuites, corrections`, triés par quantité décroissante. Total des pièces et part des corrections : sommes de ces colonnes.
+- **Mouvements Dolibarr** : import du CSV `mouvements_chantier*.csv` dans le navigateur (Fournitures > Rapprochement
+  Dolibarr, administrateur) ; `importer_mouvements_dolibarr(jsonb)` ne lit que les clés utiles (jamais prix, valeur, PMP),
+  idempotent par rowid. Importer **les deux fichiers** (courant et dotation initiale du 2026-09-30) : sur l'export du
+  2026-10-05, 93 mouvements, 16 lignes d'annulation, 45 références, **143,5 unités transférées** (égal au stock de
+  l'entrepôt 76 relevé dans Dolibarr). L'envoi automatique depuis le serveur Dolibarr (X8) appellera la même fonction en
+  `service_role`.
+- **Calcul** (`rapprochement_fournitures`) : transféré = somme signée des mouvements de l'entrepôt du marché hors
+  consommations (retours déduits, paires « CANCEL » neutralisées) ; consommé = sortie de type 1 sans entrepôt de
+  contrepartie, hors annulation ; posé = inventaire réel par jour de réparation ; écart = transféré − consommé − posé, sur la
+  période et en cumul jusqu'à la fin de la période ; « au-delà du seuil » si |écart cumulé| > seuil % du transféré cumulé
+  (tout écart si rien n'a été transféré). Indicatif, jamais bloquant.
+- **Dépendance** : `v_inventaire_fournitures` et `rapprochement_fournitures` lisent `v_pieces_reelles` ; une migration qui
+  la supprime et la recrée doit d'abord supprimer puis recréer `v_inventaire_fournitures` (la fonction, en SQL, est
+  recompilée à l'appel).
+
 ## Marché de démonstration `DEMO` (données fictives)
 
 Créé par `20261004230000_marche_demo.sql` pour les essais, sans rien écrire dans le marché SRM :
@@ -289,6 +397,23 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
   (modèle détection : voir, cocher, annuler les siens ; responsable : tout). Le chef de réparation n'a pas le
   droit « balayage » (il voit le réseau sur la carte, pas le journal).
 
+## Chantier v2 : saisie terrain et anticipation (S2)
+
+Contrat complet : `docs/lots/chantier-v2-base-s2.md`.
+
+- **Nouvelle fuite** : champs exigés par `marches.champs_obligatoires_fuite` (SRM, DEMO : tournée, secteur, ouvrage,
+  visibilité, nature de dégradation), contrôlés à la création ; les fuites antérieures restent valides ; un champ exigé
+  rempli ne se vide plus. Nouveaux champs : nature de dégradation, diamètre, matériau, tronçon.
+- **Suggestions** (`suggestions_localisation`) : rues OSM proches, secteur, tronçon le plus proche ; jamais pré-remplies.
+  Rues d'Oujda : © contributeurs OpenStreetMap, licence ODbL 1.0 (mention à afficher avec les suggestions).
+- **Listes** : diamètres par matériau et représentants du maître d'ouvrage réglables par marché ; libellés arabes des
+  listes à valeurs fixes dans `libelles_listes` (à relire par Issam).
+- **Non réparée** : terrassement et travaux attachés quel que soit le motif ; fouille sur revêtement → réfection
+  attendue (`v_a_refectionner` une fois validée, notification à l'équipe de réfection ; `v_refections_dues`).
+- **Anticipation** : case du marché (`parametres_attachement.refection_anticipee`), panier (`prix.anticipable`, réfection
+  par défaut), propositions (surface de fouille), une seule anticipation par unité et jamais d'un travail déjà exécuté ;
+  à l'exécution, solde exécuté − attaché (pas de double paiement).
+
 ## Règles pour les migrations suivantes
 
 - `alter table … enable row level security` juste après chaque `create table`.
@@ -304,4 +429,4 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
 - **M3** : attachements faits (étape B). Factures, majoration, retenue de garantie, pénalités et
   révision des prix **ne seront pas calculées** (décision d'Issam du 2026-10-04 : facture à la main
   sur Excel à partir des attachements).
-- **M4** : traces GPS (un tracé par agent et par jour), notifications push, révision des prix.
+- **M4** : traces GPS (un tracé par agent et par jour), envoi des notifications push (base posée par S1 : `notifications`, `appareils_push`), révision des prix.

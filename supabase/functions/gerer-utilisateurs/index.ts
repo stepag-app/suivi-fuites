@@ -3,16 +3,20 @@
 // elle n'est jamais envoyée au navigateur ni à la tablette.
 //
 // Actions (corps JSON, champ « action ») :
-//   creer         { identifiant, nom_complet, mot_de_passe, telephone?, affectations: [{ marche_id, roles[] }] }
+//   creer         { identifiant, nom_complet, mot_de_passe, telephone?, nom?, prenom?, matricule?, entreprise?,
+//                   affectations: [{ marche_id, roles[] }] }
 //   mot_de_passe  { profil_id, mot_de_passe }
 //   activer       { profil_id, actif }          (révoque ou rétablit l'accès)
 //   affecter      { profil_id, marche_id, role } (applique un modèle de rôle, cumulable)
+//   supprimer     { profil_id }                  (seulement sans aucune saisie : règle vérifiée en base,
+//                                                 sinon 409 avec la raison ; la révocation reste « activer »)
+// Rôles d'un compte existant : RPC modifier_roles depuis le panneau (administrateur connecté).
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 // Domaine technique des identifiants (même valeur que NEXT_PUBLIC_DOMAINE_AGENTS du panneau).
 const DOMAINE_AGENTS = Deno.env.get('DOMAINE_AGENTS') || 'agents.stepag.ma';
-const ROLES = ['detection', 'chef_reparation', 'responsable'];
+const ROLES = ['detection', 'chef_reparation', 'refection', 'responsable'];
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -72,7 +76,13 @@ Deno.serve(async (req) => {
           email: `${identifiant}@${DOMAINE_AGENTS}`,
           password: motDePasse,
           email_confirm: true,
-          user_metadata: { identifiant, nom_complet: nom },
+          user_metadata: {
+            identifiant, nom_complet: nom,
+            nom: String(corps.nom ?? '').trim() || undefined,
+            prenom: String(corps.prenom ?? '').trim() || undefined,
+            matricule: String(corps.matricule ?? '').trim() || undefined,
+            entreprise: String(corps.entreprise ?? '').trim() || undefined,
+          },
         });
         if (error || !cree.user) {
           const deja = /already|exist|registered/i.test(error?.message ?? '');
@@ -109,6 +119,18 @@ Deno.serve(async (req) => {
 
       case 'affecter': {
         await appliquerRoles(String(corps.profil_id), String(corps.marche_id), [String(corps.role)]);
+        return reponse(200, { ok: true });
+      }
+
+      case 'supprimer': {
+        const profilId = String(corps.profil_id);
+        if (profilId === appelant.user.id) return reponse(400, { erreur: 'Vous ne pouvez pas supprimer votre propre compte' });
+        const { data: etat, error: erreurEtat } = await admin.rpc('compte_supprimable', { p_profil: profilId });
+        if (erreurEtat) return reponse(400, { erreur: erreurEtat.message });
+        if (!etat?.supprimable) return reponse(409, { erreur: etat?.raison ?? 'Suppression refusée', saisies: etat?.saisies });
+        // La base refuse encore la suppression si une saisie est arrivée entre-temps (déclencheur sur profils).
+        const { error } = await admin.auth.admin.deleteUser(profilId);
+        if (error) return reponse(409, { erreur: `Suppression refusée : ${error.message}` });
         return reponse(200, { ok: true });
       }
 

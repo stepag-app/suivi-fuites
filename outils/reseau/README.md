@@ -72,6 +72,18 @@ python3 outils/reseau/recaler.py --source data-private/reseau --sortie data-priv
 python3 outils/reseau/preparer_import.py --source data-private/reseau/recale
 ```
 
+```bash
+# 9. Rues nommées d'OSM pour les suggestions d'adresse (F3) : emprise des tronçons + 500 m ; facultatif : migration
+python3 outils/reseau/extraire_rues.py --migration supabase/migrations/AAAAMMJJHHMMSS_rues_oujda.sql
+```
+
+**Rues** (`extraire_rues.py`) : voies nommées (« name », « name:ar » ou « name:fr ») téléchargées une fois par l'API
+Overpass (cache `data-private/IMPORT-RESEAU/rues-osm-noms.json`), géométries simplifiées à 1 m, nom bilingue séparé en
+`nom_fr` / `nom_ar` ; sortie `4-rues.geojson` (pour `importer_rues`) et, avec `--migration`, une migration qui les charge
+(c'est ainsi que les 3 274 voies d'Oujda sont arrivées en base, `20261009200110`). Données © contributeurs
+OpenStreetMap, licence ODbL 1.0 : la mention accompagne le fichier et la migration, et doit apparaître avec les
+suggestions à l'écran.
+
 **Import** : `data-private/IMPORT-RESEAU/` contient `1-contours-secteurs.geojson`, `2-troncons.geojson`,
 `3-noeuds.geojson` (à choisir dans cet ordre dans Paramètres > Réseau > Importer le GeoJSON), `LISEZ-MOI.txt`
 et `APERCU-RESEAU.html` : un double-clic l'ouvre dans Chrome, sans serveur (les données sont dans

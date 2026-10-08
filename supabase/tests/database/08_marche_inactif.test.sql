@@ -15,6 +15,8 @@ insert into auth.users (id, email, raw_user_meta_data) values
 update profils set est_admin = true where identifiant = 'issam';
 select appliquer_modele_role('00000000-0000-0000-0000-00000000000b', 'de000000-0000-4000-8000-000000000000', 'detection');
 select appliquer_modele_role('00000000-0000-0000-0000-00000000000d', 'de000000-0000-4000-8000-000000000000', 'responsable');
+-- Champs obligatoires d'une nouvelle fuite (chantier v2, F1) testés dans 25_referentiels_terrain.
+update marches set champs_obligatoires_fuite = '{}' where id = 'de000000-0000-4000-8000-000000000000';
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);

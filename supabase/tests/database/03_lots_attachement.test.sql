@@ -79,7 +79,7 @@ select lives_ok($$ insert into attachement_lignes (marche_id, attachement_id, na
 select throws_ok($$ insert into attachement_lignes (marche_id, attachement_id, nature, fuite_id, prix_id, quantite, motif) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-7777-0000-0000-000000000001', 'anticipation',
    'aaaaaaaa-1111-0000-0000-000000000002', 'aaaaaaaa-4444-0000-0000-000000000006', 1, 'x') $$,
-  '23514', 'Seule une réfection peut être attachée par anticipation', 'anticipation : réfection seulement');
+  '23514', 'Article hors du panier d''anticipation du marché', 'anticipation : articles du panier seulement (réfection par défaut)');
 select throws_ok($$ insert into attachement_lignes (marche_id, attachement_id, nature, fuite_id, prix_id, quantite, motif) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-7777-0000-0000-000000000001', 'forcage',
    'aaaaaaaa-1111-0000-0000-000000000001', 'aaaaaaaa-4444-0000-0000-000000000006', 1, 'x') $$,

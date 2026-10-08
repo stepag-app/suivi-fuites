@@ -8,18 +8,19 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(38);
+select plan(42);
 
 -- -----------------------------------------------------------------------------
 -- Jeu d'essai : a = admin, b = détection A, c = chef réparation A, d = responsable A,
--- e = détection B
+-- e = détection B, f = réfection A (rôle S1)
 -- -----------------------------------------------------------------------------
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-00000000000a', 'issam@test.local',   '{"identifiant": "issam", "nom_complet": "Issam"}'),
   ('00000000-0000-0000-0000-00000000000b', 'agent.a@test.local', '{"identifiant": "agent.a", "nom_complet": "Agent A"}'),
   ('00000000-0000-0000-0000-00000000000c', 'chef.a@test.local',  '{"identifiant": "chef.a", "nom_complet": "Chef A"}'),
   ('00000000-0000-0000-0000-00000000000d', 'resp.a@test.local',  '{"identifiant": "resp.a", "nom_complet": "Responsable A"}'),
-  ('00000000-0000-0000-0000-00000000000e', 'agent.b@test.local', '{"identifiant": "agent.b", "nom_complet": "Agent B"}');
+  ('00000000-0000-0000-0000-00000000000e', 'agent.b@test.local', '{"identifiant": "agent.b", "nom_complet": "Agent B"}'),
+  ('00000000-0000-0000-0000-00000000000f', 'refec.a@test.local', '{"identifiant": "refec.a", "nom_complet": "Réfection A"}');
 update profils set est_admin = true where identifiant = 'issam';
 
 insert into marches (id, code, numero, intitule, client) values
@@ -29,6 +30,7 @@ select appliquer_modele_role('00000000-0000-0000-0000-00000000000b', 'aaaaaaaa-0
 select appliquer_modele_role('00000000-0000-0000-0000-00000000000c', 'aaaaaaaa-0000-0000-0000-000000000001', 'chef_reparation');
 select appliquer_modele_role('00000000-0000-0000-0000-00000000000d', 'aaaaaaaa-0000-0000-0000-000000000001', 'responsable');
 select appliquer_modele_role('00000000-0000-0000-0000-00000000000e', 'bbbbbbbb-0000-0000-0000-000000000001', 'detection');
+select appliquer_modele_role('00000000-0000-0000-0000-00000000000f', 'aaaaaaaa-0000-0000-0000-000000000001', 'refection');
 
 insert into prix (id, marche_id, numero, ordre, designation, unite, quantite_marche, pu_ht, famille) values
   ('aaaaaaaa-4444-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', '3', 3, 'Terrassement', 'm3', 100, 50, 'terrassement'),
@@ -91,12 +93,28 @@ select results_eq($$ select resultat_reparation::text, surface_fouille_m2, prix_
 select ok(private.refection_due('aaaaaaaa-1111-0000-0000-000000000001') and not private.refection_due('aaaaaaaa-1111-0000-0000-000000000002'),
   'refection_due : vraie pour la non réparée sur béton, fausse en terrain naturel');
 
+-- Validation (S1) de la non réparée : réfection attendue, équipe de réfection prévenue
+update reparations set validee_le = now() where fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001';
+select ok(private.refection_attendue((select id from reparations where fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001'))
+          and not private.refection_attendue((select id from reparations where fuite_id = 'aaaaaaaa-1111-0000-0000-000000000002')),
+  'refection_attendue (S1) : vraie pour la non réparée sur béton, fausse en terrain naturel');
+select results_eq($$ select destinataire_id, titre from notifications
+                      where evenement = 'reparation_validee' and fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001'
+                      order by destinataire_id $$,
+  $$ values ('00000000-0000-0000-0000-00000000000a'::uuid, 'Fuite N° 1 non réparée, fouille validée : réfection à faire'::text),
+            ('00000000-0000-0000-0000-00000000000f'::uuid, 'Fuite N° 1 non réparée, fouille validée : réfection à faire'::text) $$,
+  'non réparée validée : l''équipe de réfection (et l''administrateur) prévenues');
+select is((select array_agg(fuite_numero) from v_a_refectionner where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'), array[1],
+  'v_a_refectionner (S1, validées seulement) : la non réparée y entre');
+
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
-select is((select count(*)::int from v_refections_dues), 3, 'équipe de réparation / réfection : voit les réfections dues');
+select is((select count(*)::int from v_refections_dues), 3, 'équipe de réparation : voit les réfections dues');
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000f", "role": "authenticated"}', true);
+select is((select count(*)::int from v_refections_dues), 3, 'équipe de réfection : voit les réfections dues');
 select lives_ok($$ insert into refections (marche_id, fuite_id) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-000000000001') $$,
-  'réfection saisie sur une fuite non réparée');
+  'équipe de réfection : réfection saisie sur une fuite non réparée');
 reset role;
 select results_eq($$ select p.numero, l.quantite from lignes_quantites l join prix p on p.id = l.prix_id
                       where l.fuite_id = 'aaaaaaaa-1111-0000-0000-000000000001' and l.refection_id is not null $$,

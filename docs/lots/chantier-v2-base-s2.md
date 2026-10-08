@@ -2,7 +2,7 @@
 
 > Publié par la session S2 (vague 1). Les sessions de la vague 2 (S5 panneau, S6 attachements, S7 APK, S10 cartes)
 > s'y fient. Source des tâches : `docs/lots/chantier-v2.md` (F1 à F5, P2, P7, P8, X4, A1).
-> Migrations : `20261009200000` à `20261009200200` ; tests pgTAP `25`, `26`, `27` (109 tests).
+> Migrations : `20261009200000` à `20261009200200` ; tests pgTAP `25`, `26`, `27` (113 tests).
 
 ## 1. Ce qui change pour les écrans
 
@@ -15,7 +15,7 @@
 | F5 | données : 4 natures (SRM, DEMO) | rien (listes lues en base) |
 | P2 | table `diametres_materiau` | liste des diamètres selon le matériau (S5, S7) ; Paramètres > Marché (S5 ou S6) |
 | P7 | table `representants_srm`, `reparations.representant_srm_id` | liste du représentant (S5, S7) ; Paramètres > Marché |
-| P8 | lignes automatiques des non réparées ; vue `v_refections_dues` ; `private.refection_due` | liste « Réfections à faire » (S5, S7) ; notifications (S1/N3) |
+| P8 | lignes automatiques des non réparées ; `private.refection_attendue` (S1) élargie ; vue `v_refections_dues` | `v_a_refectionner` (S1) couvre les non réparées validées ; suivi du responsable (S5) |
 | X4 | table `libelles_listes` | APK et panneau lisent les libellés arabes en base (S7) |
 | A1 | `prix.anticipable`, case `parametres_attachement.refection_anticipee`, vues `v_propositions_anticipation`, `v_a_attacher` (colonnes ajoutées), fonction `fuites_anticipees` | colonne de propositions dans le lot, badge « Anticipé », priorité (S6) ; panier dans Paramètres > Bordereau |
 
@@ -109,14 +109,19 @@ recopié dans `reparations.representant_srm` (texte des exports existants).
   motif ne compte plus : `motifs.terrassement_paye` n'est plus consulté), robinet / collier PEC, bouche à clé, tuyau
   si coché. `en_cours` : toujours aucune ligne.
 - Le statut ne change pas : « sans réparation ».
-- **Réfection due** : dernière réparation réparée ou non réparée avec une fouille (L et l > 0), sur une nature qui
-  nécessite une réfection (ou, sans nature, un emplacement autre que terrain naturel), aucune réfection saisie (faite
-  ou close sans réfection), fuite non achevée et non supprimée. Vue `v_refections_dues` (RLS de l'appelant ; l'équipe
-  de réfection la lit) : `fuite_id`, `fuite_numero`, `reference_srm`, `adresse`, `statut`, `zone_id`, `secteur_id`,
-  `reparation_id`, `resultat_reparation`, `reparee_le`, `equipe_id`, `emplacement`, `nature_revetement_id`,
-  `nature_code`, `nature_libelle_fr`, `nature_libelle_ar`, `prix_refection_id`, `fouille_longueur_m`,
-  `fouille_largeur_m`, `surface_fouille_m2`, `jours_depuis_reparation`. Fonction `private.refection_due(fuite)`
-  (booléen) pour les déclencheurs (notifications S1).
+- **Réfection due** : `private.refection_attendue(reparation)` (créée par S1) est redéfinie : une réparation
+  `reparee`, ou `non_reparee` avec une fouille (L et l > 0), hors terrain naturel, sur un revêtement à refaire (nature
+  inconnue : oui). Effets : la vue S1 `v_a_refectionner` (réparations **validées**, liste de l'équipe de réfection) et
+  la notification `reparation_validee` (titre « Fuite N° n non réparée, fouille validée : réfection à faire ») couvrent
+  aussi les non réparées.
+- Vue `v_refections_dues` (validées ou non ; RLS de l'appelant, droit S1 « refections / lire » compris) : dernière
+  réparation qui appelle une réfection, sans réfection saisie depuis, fuite non achevée et non supprimée. Colonnes :
+  `marche_id`, `fuite_id`, `fuite_numero`, `reference_srm`, `adresse`, `statut`, `zone_id`, `secteur_id`,
+  `reparation_id`, `resultat_reparation`, `reparee_le`, `reparation_validee_le`, `equipe_id`, `emplacement`,
+  `nature_revetement_id`, `nature_code`, `nature_libelle_fr`, `nature_libelle_ar`, `prix_refection_id`,
+  `fouille_longueur_m`, `fouille_largeur_m`, `surface_fouille_m2`, `jours_depuis_reparation`. Usage : suivi du
+  responsable et propositions d'anticipation ; l'équipe de réfection garde `v_a_refectionner` (S1). Fonction
+  `private.refection_due(fuite)` (booléen).
 - La saisie d'une réfection sur une fuite « sans réparation » est permise et génère sa ligne de prix.
 
 ## 6. Anticipation généralisée (A1)
@@ -146,8 +151,8 @@ recopié dans `reparations.representant_srm` (texte des exports existants).
 - **Badge « Anticipé » et priorité** : `fuites_anticipees(p_marche uuid)` → `fuite_id`, `fuite_numero`, `premier_lot`,
   `attachee_le` (date d'arrêt du lot), `articles` ; fuites attachées par anticipation dont l'exécution manque, triées
   de la plus ancienne. Droit « fuites / lire » (tous les rôles de terrain), sans quantités ni prix.
-- **Dépendance S1 (V6)** : les fuites d'un lot arrêté sont verrouillées ; l'exécution réelle d'une réfection anticipée
-  suppose que l'agent puisse encore saisir sa réfection après l'arrêt (tâche V6 de S1).
+- **Exécution après l'arrêt** : les fuites d'un lot arrêté sont verrouillées ; l'agent peut encore y ajouter sa
+  réfection réelle grâce à V6 (S1), et l'unité revient dans « À attacher » en régularisation.
 
 ## 7. Libellés arabes des listes (X4)
 
@@ -171,4 +176,5 @@ Arabe à relire par Issam.
 
 `private.generer_lignes_reparation`, `private.v_prix_proposes`, `private.controler_ligne_attachement`,
 `public.v_a_attacher`, `private.copier_parametres_marche` (corps du lot T + `private.copier_parametres_terrain` à la
-fin). Toute redéfinition ultérieure doit reprendre ces corps.
+fin) ; objets de S1 : `private.refection_attendue`, `private.notifier_reparation` (corps S1, résultat élargi à
+`non_reparee`). Toute redéfinition ultérieure doit reprendre ces corps.

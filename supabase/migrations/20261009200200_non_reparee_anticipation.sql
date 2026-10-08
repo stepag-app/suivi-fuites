@@ -7,11 +7,11 @@
 --    lignes de prix automatiques sont proposées comme pour une réparation faite
 --    (terrassement dès qu'il y a une fouille, quel que soit le motif ; motifs.terrassement_paye
 --    n'est plus consulté). private.v_prix_proposes suit la même règle ;
---  * réfection due : fouille sur un revêtement autre que terrain naturel (nature qui
---    nécessite une réfection, ou emplacement autre que terrain naturel sans nature) et aucune
---    réfection saisie, que la fuite soit réparée ou non : private.refection_due, vue
---    v_refections_dues (« réfections à faire »). Le statut de la fuite ne change pas
---    (« sans réparation » reste « sans réparation »).
+--  * réfection due : private.refection_attendue (S1) redéfinie : une non réparée avec fouille
+--    hors terrain naturel, sur un revêtement à refaire, appelle une réfection comme une réparée ;
+--    v_a_refectionner (S1, validées) et la notification « reparation_validee » en tiennent compte ;
+--    v_refections_dues (validées ou non) et private.refection_due. Le statut de la fuite ne
+--    change pas (« sans réparation » reste « sans réparation »).
 --
 -- A1 :
 --  * case du marché « le maître d'ouvrage accepte l'attachement par anticipation » :
@@ -111,7 +111,31 @@ comment on column public.motifs.terrassement_paye is
 
 -- -----------------------------------------------------------------------------
 -- 2. P8 : réfections dues (y compris fuite non réparée)
+--    private.refection_attendue (S1, 20261009100200) est redéfinie : une réparation non réparée
+--    avec une fouille (L et l > 0) hors terrain naturel appelle aussi une réfection. Elle sert
+--    v_a_refectionner (S1 : réparations validées, équipe de réfection), la notification
+--    « reparation_validee » et v_refections_dues (toutes, validées ou non).
 -- -----------------------------------------------------------------------------
+create or replace function private.refection_attendue(p_reparation uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select coalesce((
+    select (r.resultat = 'reparee'
+            or (r.resultat = 'non_reparee'
+                and coalesce(r.fouille_longueur_m, 0) > 0 and coalesce(r.fouille_largeur_m, 0) > 0))
+           and r.supprime_le is null
+           and r.emplacement is distinct from 'terrain_naturel'
+           and coalesce(n.necessite_refection, true)
+      from public.reparations r
+      left join public.natures_refection n on n.id = r.nature_revetement_id
+     where r.id = p_reparation
+  ), false)
+$$;
+
 create view public.v_refections_dues with (security_invoker = true) as
 select f.marche_id,
        f.id as fuite_id,
@@ -124,6 +148,7 @@ select f.marche_id,
        r.id as reparation_id,
        r.resultat as resultat_reparation,
        r.realisee_le as reparee_le,
+       r.validee_le as reparation_validee_le,
        r.equipe_id,
        r.emplacement,
        r.nature_revetement_id,
@@ -140,20 +165,18 @@ select f.marche_id,
   cross join lateral (
     select rp.*
       from public.reparations rp
-     where rp.fuite_id = f.id and rp.supprime_le is null and rp.resultat <> 'en_cours'
-       and coalesce(rp.fouille_longueur_m, 0) > 0 and coalesce(rp.fouille_largeur_m, 0) > 0
+     where rp.fuite_id = f.id and rp.supprime_le is null and private.refection_attendue(rp.id)
      order by rp.realisee_le desc, rp.cree_le desc
      limit 1
   ) r
   left join public.natures_refection n on n.id = r.nature_revetement_id
  where f.supprime_le is null
    and f.statut <> 'achevee'
-   and (case when n.id is not null then n.necessite_refection
-             else coalesce(r.emplacement, 'autre') <> 'terrain_naturel' end)
-   and not exists (select 1 from public.refections x where x.fuite_id = f.id and x.supprime_le is null);
+   and not exists (select 1 from public.refections x
+                    where x.fuite_id = f.id and x.supprime_le is null and x.cree_le >= r.cree_le);
 
 comment on view public.v_refections_dues is
-  'Réfections à faire : dernière fouille (réparée ou non réparée) sur un revêtement autre que terrain naturel, sans réfection saisie ; fuites non achevées.';
+  'Réfections à faire, validées ou non : dernière réparation (réparée, ou non réparée avec fouille) hors terrain naturel sur un revêtement à refaire, sans réfection saisie depuis ; fuites non achevées.';
 
 create function private.refection_due(p_fuite uuid)
 returns boolean
@@ -163,6 +186,46 @@ security definer
 set search_path = ''
 as $$
   select exists (select 1 from public.v_refections_dues v where v.fuite_id = p_fuite)
+$$;
+
+-- Notification à l'équipe de réfection : aussi pour une non réparée validée qui appelle une
+-- réfection (corps de 20261009100300, condition sur le résultat élargie, titre selon le résultat).
+create or replace function private.notifier_reparation()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  _numero integer := (select f.numero from public.fuites f where f.id = new.fuite_id);
+  _donnees jsonb := private.donnees_fuite(new.fuite_id) || jsonb_build_object('resultat', new.resultat);
+begin
+  if new.supprime_le is not null then
+    return null;
+  end if;
+  if tg_op = 'INSERT' then
+    perform private.notifier('reparation_saisie', new.marche_id, new.fuite_id, new.id, null,
+      array[auth.uid(), new.saisi_par, new.auteur_terrain_id],
+      format('Réparation saisie : fuite N° %s', _numero),
+      case new.resultat when 'reparee' then 'Réparée' when 'en_cours' then 'En cours' else 'Non réparée' end,
+      _donnees);
+  end if;
+  if new.validee_le is not null and new.resultat in ('reparee', 'non_reparee')
+     and not (tg_op = 'UPDATE' and old.validee_le is not null and old.resultat in ('reparee', 'non_reparee')
+              and old.supprime_le is null)
+     and private.refection_attendue(new.id)
+     and not exists (select 1 from public.refections rf
+                      where rf.fuite_id = new.fuite_id and rf.supprime_le is null and rf.cree_le >= new.cree_le) then
+    perform private.notifier('reparation_validee', new.marche_id, new.fuite_id, new.id, null,
+      array[auth.uid()],
+      case when new.resultat = 'reparee'
+           then format('Fuite N° %s réparée et validée : réfection à faire', _numero)
+           else format('Fuite N° %s non réparée, fouille validée : réfection à faire', _numero) end,
+      (select f.adresse from public.fuites f where f.id = new.fuite_id),
+      _donnees);
+  end if;
+  return null;
+end
 $$;
 
 -- -----------------------------------------------------------------------------
@@ -524,6 +587,7 @@ grant select on private.v_prix_proposes to authenticated, service_role;
 
 revoke execute on function
   private.generer_lignes_reparation(uuid),
+  private.notifier_reparation(),
   private.refection_due(uuid),
   private.anticipable_par_defaut(),
   private.copier_parametres_terrain(uuid, uuid),
@@ -533,6 +597,7 @@ revoke execute on function
   from public, anon, authenticated;
 grant execute on function
   private.refection_due(uuid),
+  private.refection_attendue(uuid),
   private.anticipation_impossible(uuid, uuid)
   to authenticated, service_role;
 grant execute on function public.fuites_anticipees(uuid) to authenticated, service_role;

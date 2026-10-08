@@ -62,10 +62,10 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261009200000_referentiels_terrain.sql` | chantier v2, S2 : `libelles_listes` (libellés FR / AR des listes de saisie, X4), natures Carrelage, Carreaux de ciment (REVSOL), Faïence, Pavé ciment (SRM, DEMO, F5), `diametres_materiau` (diamètres par matériau, standard + réseau, P2), `representants_srm` et `reparations.representant_srm_id` (P7), `fuites.nature_degradation_id`, `diametre_mm`, `materiau`, `troncon_id` (F2, F4), `marches.champs_obligatoires_fuite` contrôlé à la création (F1), copie par `copier_marche` |
 | `migrations/20261009200100_rues_suggestions.sql` | chantier v2, S2 : table `rues` (OSM, ODbL), `importer_rues` (administrateur), `suggestions_localisation` (rues proches, secteur, tronçon le plus proche avec diamètre et matériau ; rayon selon la précision GPS) |
 | `migrations/20261009200110_rues_oujda.sql` | 3 274 voies nommées d'Oujda (© contributeurs OpenStreetMap, ODbL 1.0), produites par `outils/reseau/extraire_rues.py` |
-| `migrations/20261009200200_non_reparee_anticipation.sql` | chantier v2, S2 : réparation non réparée attachée (terrassement et travaux, P8), `v_refections_dues`, `private.refection_due` ; anticipation généralisée (A1) : `prix.anticipable` (panier), contrôles (case du marché, panier, ni exécuté ni déjà attaché), `v_propositions_anticipation`, `v_a_attacher` (`en_attente_execution`), `fuites_anticipees` |
+| `migrations/20261009200200_non_reparee_anticipation.sql` | chantier v2, S2 : réparation non réparée attachée (terrassement et travaux, P8), `private.refection_attendue` et `notifier_reparation` (S1) élargies aux non réparées avec fouille, `v_refections_dues`, `private.refection_due` ; anticipation généralisée (A1) : `prix.anticipable` (panier), contrôles (case du marché, panier, ni exécuté ni déjà attaché), `v_propositions_anticipation`, `v_a_attacher` (`en_attente_execution`), `fuites_anticipees` |
 | `tests/database/25_referentiels_terrain.test.sql` | 44 tests : libellés arabes complets, natures F5, diamètres (standard, réseau, droits, isolation), représentants, champs obligatoires (création, fuite ancienne, champ vidé, RLS, contexte serveur), copie |
 | `tests/database/26_rues_suggestions.test.sql` | 27 tests : rues d'Oujda chargées, import (administrateur, idempotent), rayon selon la précision, ordre et regroupement des rues, secteur par contour ou par tronçon, tronçon et matériau normalisé, rien autour, précision insuffisante, droits |
-| `tests/database/27_non_reparee_anticipation.test.sql` | 38 tests : lignes d'une non réparée, réfections dues, panier, case du marché, propositions, refus (hors panier, déjà exécuté, seconde anticipation), « Attaché par anticipation », exécution réelle et régularisations, total attaché = exécuté |
+| `tests/database/27_non_reparee_anticipation.test.sql` | 42 tests : lignes d'une non réparée, réfection attendue (S1 : validation, notification, `v_a_refectionner`), réfections dues, panier, case du marché, propositions, refus (hors panier, déjà exécuté, seconde anticipation), « Attaché par anticipation », exécution réelle et régularisations, total attaché = exécuté |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -381,8 +381,8 @@ Contrat complet : `docs/lots/chantier-v2-base-s2.md`.
   Rues d'Oujda : © contributeurs OpenStreetMap, licence ODbL 1.0 (mention à afficher avec les suggestions).
 - **Listes** : diamètres par matériau et représentants du maître d'ouvrage réglables par marché ; libellés arabes des
   listes à valeurs fixes dans `libelles_listes` (à relire par Issam).
-- **Non réparée** : terrassement et travaux attachés quel que soit le motif ; fouille sur revêtement → réfection due
-  (`v_refections_dues`), même sans réparation.
+- **Non réparée** : terrassement et travaux attachés quel que soit le motif ; fouille sur revêtement → réfection
+  attendue (`v_a_refectionner` une fois validée, notification à l'équipe de réfection ; `v_refections_dues`).
 - **Anticipation** : case du marché (`parametres_attachement.refection_anticipee`), panier (`prix.anticipable`, réfection
   par défaut), propositions (surface de fouille), une seule anticipation par unité et jamais d'un travail déjà exécuté ;
   à l'exécution, solde exécuté − attaché (pas de double paiement).

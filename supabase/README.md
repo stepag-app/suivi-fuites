@@ -52,6 +52,13 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/17_essai_charge.test.sql` | 22 tests : privilèges, comptages identiques à `v_fuites` sous la RLS de chaque rôle, reste à attacher identique à `v_a_attacher`, état compact identique à `etat_balayage` au-delà de 1 000 tronçons |
 | `migrations/20261007130000_photos_r2.sql` | lot N : `marches_photos(p_action)` (marchés où le compte a le droit « photos » lire / creer / supprimer ; même règle que la RLS de `photos` et du compartiment Storage), lue par la fonction serveur `photos-r2` ; `anon` sans accès ; commentaire de `photos.stockage` |
 | `tests/database/16_photos_r2.test.sql` | 10 tests du lot N : privilèges de `marches_photos`, rien sans compte ni sans affectation, marché de l'agent en lecture et en dépôt, action inconnue refusée, administrateur sur tous les marchés, marché désactivé sans dépôt |
+| `migrations/20261009100000_type_donnee_refections.sql` | chantier v2, S1 : type de donnée `refections` (fichier séparé, valeur d'énumération) |
+| `migrations/20261009100100_comptes_roles.sql` | S1, R1 à R7 : rôle `refection` (modèle, contraintes, droits `interventions` recopiés sur `refections`, rôle ajouté aux `chef_reparation`), RLS des réfections sur `refections` ; `profils.nom`, `prenom` (nom complet « NOM Prénom »), `matricule` (unique), `entreprise` (STEPAG) ; `ouvriers.matricule` ; `modifier_roles`, `compte_supprimable`, suppression d'un profil refusée s'il a la moindre saisie ; pièces « correction » lues par le bureau seulement, `v_pieces_terrain` |
+| `migrations/20261009100200_validation.sql` | S1, V1 à V7 : `validee_le` / `validee_par` (fuites, réparations, réfections), `valider_etapes`, `v_a_valider`, `v_a_refectionner`, étape validée réservée au droit « valider », photos antérieures à la validation, motif des corrections (date, référence, position), « détectée par », `saisie_differee`, ajout après un lot arrêté et reverrouillage au lot suivant |
+| `migrations/20261009100300_notifications.sql` | S1, N1 / N3 : `notifications` (les siennes, lu / non lu, temps réel), `notifications_circuit`, déclencheurs du circuit, `generer_alertes_reparation` (pg_cron 15 min si disponible), `appareils_push` et ses fonctions |
+| `tests/database/30_s1_comptes_roles.test.sql` | 47 tests S1 : rôle réfection, droits par rôle, `modifier_roles`, nom / matricule / entreprise, suppression de compte, corrections du bureau invisibles du terrain |
+| `tests/database/31_s1_validation.test.sql` | 58 tests S1 : validation par étape, ajout seulement après validation, photos, motif, « détectée par », saisie différée, réfections à faire, ajout après lot arrêté |
+| `tests/database/32_s1_notifications.test.sql` | 37 tests S1 : circuit (destinataires, jamais l'auteur, révoqués et autres marchés exclus), lecture des siennes, lu / non lu, alerte 48 h, circuit réglable, appareils push |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -60,8 +67,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
   `(id, marche_id)` empêchent de rattacher une donnée à un paramètre d'un autre marché.
 - **Droits** : table `droits` (utilisateur × marché × type de donnée) avec lire / créer /
   modifier (non, siennes, toutes) / supprimer (non, siennes, toutes) / valider.
-  Les modèles `detection`, `chef_reparation`, `responsable` s'appliquent avec
-  `appliquer_modele_role(profil, marché, rôle)` et se cumulent. L'administrateur
+  Les modèles `detection`, `chef_reparation` (« Réparation »), `refection` (« Réfection », chantier v2) et
+  `responsable` s'appliquent avec `appliquer_modele_role(profil, marché, rôle)` et se cumulent ; `modifier_roles`
+  remplace les rôles d'un compte dans un marché. Les réfections ont leur propre type de donnée `refections`. L'administrateur
   (`profils.est_admin`) voit et fait tout, sauf ce qu'il a verrouillé.
 - **Verrous de sécurité** (lot Q) : l'administrateur peut se retirer un droit (`verrous_admin` : objet = type de
   donnée ou `marches` / `comptes`, action = colonne de `droits` ou `rouvrir`, `forcer`, `desactiver`, `copier`,
@@ -73,7 +81,12 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 - **Suppression** : jamais physique ; `supprime_le` rempli si l'utilisateur a le droit
   « supprimer ». Tout est tracé dans `journal` (qui, quand, valeurs avant / après).
 - **Verrou** : le responsable (droit « valider ») verrouille une fuite validée ; ni elle ni ses
-  réparations, réfections, photos ou quantités ne changent ensuite, sauf par un responsable.
+  réparations, réfections, photos ou quantités ne changent ensuite, sauf par un responsable. Depuis le
+  chantier v2, un agent peut encore y **ajouter** réparation, réfection et photo (la fuite revient dans
+  « À attacher ») ; un nouvel arrêt de lot reverrouille.
+- **Validation par étape** (chantier v2, contrat `docs/lots/chantier-v2-base-s1.md`) : détection, chaque
+  réparation, chaque réfection ; avant validation l'auteur modifie, après il ajoute seulement.
+- **Notifications** : table `notifications` remplie par déclencheurs selon `notifications_circuit`.
 - **Statut automatique** (avance seulement ; le responsable peut le changer à la main) :
   réparation « en cours » → `en_reparation` ; « réparée » → `reparee` (ou `achevee` si terrain
   naturel) ; « non réparée » + motif → `sans_reparation` ; réfection faite ou close sans
@@ -365,4 +378,4 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
 - **M3** : attachements faits (étape B). Factures, majoration, retenue de garantie, pénalités et
   révision des prix **ne seront pas calculées** (décision d'Issam du 2026-10-04 : facture à la main
   sur Excel à partir des attachements).
-- **M4** : traces GPS (un tracé par agent et par jour), notifications push, révision des prix.
+- **M4** : traces GPS (un tracé par agent et par jour), envoi des notifications push (base posée par S1 : `notifications`, `appareils_push`), révision des prix.

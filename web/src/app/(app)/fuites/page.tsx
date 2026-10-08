@@ -17,6 +17,7 @@ import { PaginationTableau } from "@/components/tableau/pagination-tableau";
 import { TableauDonnees } from "@/components/tableau/tableau-donnees";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Progress } from "@/components/ui/progress";
@@ -25,7 +26,9 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { COLONNES_LISTE, compterFuites, type FuiteListe } from "@/lib/colonnes-fuites";
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from "@/lib/export/jeux";
+import { ChoixRubriques } from "@/lib/export/ChoixRubriques";
 import { PanneauExport } from "@/lib/export/PanneauExport";
+import { dernierChoix } from "@/lib/export/rubriques";
 import { libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
@@ -105,18 +108,24 @@ function ListeFuites() {
   const [pagination, setPagination] = useState<PaginationState>({ pageIndex: 0, pageSize: 20 });
   const peutRapport = peut("exports", "lire");
 
+  // Rapports PDF : rubriques à cocher d'abord (dialogue), puis fabrication.
+  const [aImprimer, setAImprimer] = useState<FuiteListe[] | null>(null);
+  const [rubriques, setRubriques] = useState<Set<string>>(new Set());
+  function demanderRapports(cibles: FuiteListe[]) {
+    if (!marcheId || !cibles.length) return;
+    setRubriques(dernierChoix("rapport_fuite", marcheId));
+    setAImprimer(cibles);
+  }
+
   async function rapportsPdf(cibles: FuiteListe[]) {
     if (!marcheId || !cibles.length) return;
-    const n = cibles.length;
-    const photos = cibles.reduce((s, f) => s + f.nb_photos, 0);
-    if (!window.confirm(`Fabriquer un PDF avec les rapports de ${n} fuite${n > 1 ? "s" : ""} (${photos} photo${photos > 1 ? "s" : ""}) ?`
-      + (n > 40 ? "\nCela peut prendre plusieurs minutes : filtrez la liste pour un fichier plus court." : ""))) return;
+    setAImprimer(null);
     setErreur("");
     setRapports({ fait: 0, total: 1, etape: "Chargement des données", enCours: true });
     try {
       const { telechargerRapports } = await import("@/lib/export/rapport-fuite");
       const r = await telechargerRapports(cibles.map((f) => f.id), marcheId, peut("quantites", "lire"),
-        (fait, total, etape) => setRapports({ fait, total, etape, enCours: true }));
+        (fait, total, etape) => setRapports({ fait, total, etape, enCours: true }), rubriques);
       setRapports({ fait: 1, total: 1, enCours: false,
         etape: `${r.fuites} rapport${r.fuites > 1 ? "s" : ""} téléchargé${r.fuites > 1 ? "s" : ""} (${(r.octets / 1048576).toFixed(1)} Mo, ${r.secondes.toFixed(0)} s)` });
     } catch (e) {
@@ -125,7 +134,7 @@ function ListeFuites() {
     }
   }
 
-  const colonnes = useMemo(() => colonnesFuites(libelles, { peutRapport, rapport: (f) => rapportsPdf([f]) }),
+  const colonnes = useMemo(() => colonnesFuites(libelles, { peutRapport, rapport: (f) => demanderRapports([f]) }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [libelles.reference, libelles.sigle, libelles.delaiReparationH, peutRapport, marcheId]);
 
@@ -198,7 +207,7 @@ function ListeFuites() {
               </Button>
             )}
             {peutRapport && (
-              <Button variant="outline" disabled={!ciblesRapports.length || !!rapports?.enCours} onClick={() => rapportsPdf(ciblesRapports)}>
+              <Button variant="outline" disabled={!ciblesRapports.length || !!rapports?.enCours} onClick={() => demanderRapports(ciblesRapports)}>
                 <FileText data-icon="inline-start" />Rapports PDF ({ciblesRapports.length})
               </Button>
             )}
@@ -246,6 +255,30 @@ function ListeFuites() {
           <AlertDescription>{erreur}</AlertDescription>
         </Alert>
       )}
+
+      <Dialog open={!!aImprimer} onOpenChange={(o) => !o && setAImprimer(null)}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Rapports PDF</DialogTitle>
+            <DialogDescription>
+              {aImprimer && (() => {
+                const n = aImprimer.length;
+                const photos = aImprimer.reduce((s, f) => s + f.nb_photos, 0);
+                return `${n} fuite${n > 1 ? "s" : ""}, une par page (${photos} photo${photos > 1 ? "s" : ""}).`
+                  + (n > 40 ? " Cela peut prendre plusieurs minutes : filtrez la liste pour un fichier plus court." : "");
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          {marcheId && (
+            <ChoixRubriques document="rapport_fuite" marcheId={marcheId} valeur={rubriques} changer={setRubriques}
+              droits={{ quantites: peut("quantites", "lire") }} peutEnregistrer={peut("exports", "creer")} />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAImprimer(null)}>Annuler</Button>
+            <Button disabled={!rubriques.size} onClick={() => aImprimer && rapportsPdf(aImprimer)}><FileText data-icon="inline-start" />Fabriquer le PDF</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <PanneauExport
         ouvert={exportOuvert}
@@ -314,7 +347,8 @@ function ListeFuites() {
         ) : (
           <>
             <div className="hidden md:block">
-              <TableauDonnees table={table} vide="Aucune fuite à afficher." onClicLigne={(f) => router.push(`/fuites/${f.id}`)} />
+              <TableauDonnees table={table} vide="Aucune fuite à afficher." onClicLigne={(f) => router.push(`/fuites/${f.id}`)}
+                className="**:data-[slot=table-cell]:px-2.5 **:data-[slot=table-head]:px-2.5" />
             </div>
             <div className="md:hidden">
               <VueCartes lignes={table.getRowModel().rows} libelles={libelles} />

@@ -43,6 +43,9 @@
 //      ({ image: ImageCarte } ou { image: { dataUrl, largeurPx, hauteurPx, bornes? } }). Les fuites sont numérotées
 //      ici d'après leurs coordonnées si l'image est géoréférencée (bornes) et que `fuitesDessinees` n'est pas vrai.
 //      Légende par défaut : LEGENDE_PLAN_DEFAUT (mêmes couleurs que la carte), remplaçable par `legende`.
+//   Période (lot C3) : journee = rj.synthesePeriode(lignes, { du, au }) (lignes et fuites lues sur [du, au]) ; un
+//   seul rapport pour toute la période (du = au : rapport du jour, identique). Rubriques à cocher (X7) :
+//   options.rubriques (rubriques.ts, document « rapport_balayage ») ; absent : tout.
 //   7. blob = await rj.genererRapportJournalierPdf(ctx, journee, fuites, { extrait })
 //      telecharger(blob, `${rj.nomFichierRapportJournalier(ctx, journee)}.pdf`)
 //      blob = await rj.genererRapportJournalierXlsx(ctx, journee, fuites)   // même contenu, sans l'extrait de plan
@@ -99,8 +102,20 @@ export interface LigneSecteurJour {
   nb_fuites: number;
 }
 
+// Linéaire d'un jour de la période (rapport sur plusieurs jours).
+export interface LigneJourPeriode {
+  date: string;
+  equipes: string[];
+  nb_troncons: number;
+  lineaire_m: number;
+  lineaire_repasse_m: number;
+  nb_noeuds: number;
+}
+
 export interface JourneeBalayage {
-  date: string;                   // AAAA-MM-JJ
+  date: string;                   // AAAA-MM-JJ (premier jour d'une période)
+  au?: string;                    // dernier jour d'une période ; absent ou égal à date : une journée
+  parJour?: LigneJourPeriode[];   // période : un élément par jour balayé
   equipes: EquipeJour[];
   agents: string[];
   lignes: LigneSecteurJour[];     // une par zone / secteur
@@ -146,6 +161,7 @@ export interface FuiteJour {
   revetement?: string | null;     // nature de la dégradation (revêtement)
   latitude: number | null;
   longitude: number | null;
+  jour_detection?: string | null; // AAAA-MM-JJ : colonne « Détectée le » d'un rapport sur une période
 }
 
 // ---------------------------------------------------------------------------
@@ -179,6 +195,10 @@ export const COULEURS_PLAN = {
   secteur: '#0b5d8a',
 };
 
+/** Légende de l'extrait de plan d'une période de plusieurs jours (« sur la période » au lieu de « ce jour »). */
+export const legendePlanPeriode = (): EntreeLegendePlan[] =>
+  LEGENDE_PLAN_DEFAUT.map((e) => ({ ...e, libelle: e.libelle.replace('ce jour', 'sur la période') }));
+
 export const LEGENDE_PLAN_DEFAUT: EntreeLegendePlan[] = [
   { libelle: 'Conduites inspectées ce jour (premier passage)', symbole: { forme: 'trait', couleur: COULEURS_PLAN.inspectee, epaisseur: 1 } },
   { libelle: 'Conduites repassées ce jour', symbole: { forme: 'trait', couleur: COULEURS_PLAN.repassee, epaisseur: 1 } },
@@ -195,9 +215,15 @@ export interface OptionsRapportJournalier {
   titre?: string;
   genereLe?: Date;
   composerArabe?: ComposeurArabe; // défaut : composition par le navigateur (arabe.ts)
+  /** Rubriques cochées (rubriques.ts, document « rapport_balayage ») ; absent : tout. */
+  rubriques?: Set<string>;
 }
 
 export const TITRE_RAPPORT_JOURNALIER = 'RAPPORT JOURNALIER DE RECHERCHE DE FUITES';
+export const TITRE_RAPPORT_PERIODE = 'RAPPORT DE RECHERCHE DE FUITES SUR LA PÉRIODE';
+const avecRubrique = (o: Pick<OptionsRapportJournalier, 'rubriques'>, r: string) => !o.rubriques || o.rubriques.has(r);
+/** Période de plusieurs jours (sinon : une journée). */
+export const estPeriode = (j: Pick<JourneeBalayage, 'date' | 'au'>) => !!j.au && j.au !== j.date;
 export const SANS_EQUIPE = 'Sans équipe';
 export const HORS_SECTEUR = 'Hors secteur (non zoné)';
 const SANS_ZONE = 'Sans zone';
@@ -320,6 +346,37 @@ export function syntheseJournee(lignes: LigneVueJournalier[], filtre: { date?: s
   };
 }
 
+// Synthèse d'une période [du, au] (bornes comprises) : mêmes regroupements par zone et secteur que pour une
+// journée, sur tous les jours ; nb_fuites de la vue (par secteur et par jour) additionné jour après jour.
+// Du = au : identique à syntheseJournee. Avec equipeId, seulement cette équipe (`null` = sans équipe).
+export function synthesePeriode(lignes: LigneVueJournalier[], filtre: { du: string; au: string; equipeId?: string | null }): SyntheseJournee {
+  const { du, au } = filtre.du <= filtre.au ? filtre : { ...filtre, du: filtre.au, au: filtre.du };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(du) || !/^\d{4}-\d{2}-\d{2}$/.test(au)) throw new Error(`Période invalide : du « ${du} » au « ${au} » (AAAA-MM-JJ attendu).`);
+  const dansPeriode = lignes.filter((l) => l.date_balayage >= du && l.date_balayage <= au
+    && (filtre.equipeId === undefined || (l.equipe_id ?? null) === filtre.equipeId));
+  if (!dansPeriode.length) throw new Error('Aucun balayage sur la période choisie.');
+  if (du === au) return syntheseJournee(dansPeriode, { date: du });
+  const dates = distincts(dansPeriode.map((l) => l.date_balayage)).sort();
+  const parDate = dates.map((d) => syntheseJournee(dansPeriode, { date: d }));
+  // Toutes les lignes ramenées à une date commune pour réutiliser le regroupement par secteur et par équipe.
+  const base = syntheseJournee(dansPeriode.map((l) => ({ ...l, date_balayage: du })), { date: du });
+  const fuitesParSecteur = new Map<string, number>();
+  const cle = (l: { zone_id: string | null; secteur_id: string | null; secteur: string | null }) =>
+    `${l.zone_id ?? ''}|${l.secteur_id ?? ''}|${l.secteur_id ? '' : normaliser(l.secteur)}`;
+  for (const j of parDate) for (const l of j.lignes) fuitesParSecteur.set(cle(l), (fuitesParSecteur.get(cle(l)) ?? 0) + l.nb_fuites);
+  const lignesSecteurs = base.lignes.map((l) => ({ ...l, nb_fuites: fuitesParSecteur.get(cle(l)) ?? 0 }));
+  return {
+    ...base,
+    au,
+    lignes: lignesSecteurs,
+    totaux: totauxJournee(lignesSecteurs),
+    parJour: parDate.map((j) => ({
+      date: j.date, equipes: j.equipes.map((e) => e.libelle), nb_troncons: j.totaux.nb_troncons,
+      lineaire_m: j.totaux.lineaire_m, lineaire_repasse_m: j.totaux.lineaire_repasse_m, nb_noeuds: j.totaux.nb_noeuds,
+    })),
+  };
+}
+
 export interface RapportEquipe {
   equipe: EquipeJour;
   secteur: { id: string | null; libelle: string } | null;   // seulement avec parSecteur
@@ -378,6 +435,7 @@ export function regrouperParEquipe(
 // ---------------------------------------------------------------------------
 export interface LigneFuiteRapport {
   numero: string;
+  detectee: string;               // JJ/MM/AAAA (période seulement)
   secteur: string;
   adresse: string;                // référence, puis adresse à la ligne
   calibre: number | null;         // mm
@@ -394,8 +452,11 @@ export interface ContenuRapportJournalier {
   societe: string;
   sigleClient: string;
   date: string;
-  jour: string;                   // en toutes lettres
-  jourCourt: string;              // JJ/MM/AAAA
+  jour: string;                   // en toutes lettres ; période : « du … au … »
+  jourCourt: string;              // JJ/MM/AAAA ; période : « JJ/MM/AAAA au JJ/MM/AAAA »
+  periode: boolean;
+  parJour: LigneJourPeriode[] | null;   // période de plusieurs jours
+  avecDate: boolean;              // colonne « Détectée le » dans le tableau des fuites
   equipes: string;
   totaux: TotauxJournee;
   zones: string[];
@@ -423,7 +484,9 @@ export function contenuRapportJournalier(
 ): ContenuRapportJournalier {
   const marche = ctx.marche as unknown as Marche;
   const libelles = libellesMarche(marche);
-  const titre = options.titre ?? TITRE_RAPPORT_JOURNALIER;
+  const periode = estPeriode(journee);
+  const titre = options.titre ?? (periode ? TITRE_RAPPORT_PERIODE : TITRE_RAPPORT_JOURNALIER);
+  const texteJour = periode ? `du ${jourEnLettres(journee.date)} au ${jourEnLettres(journee.au!)}` : jourEnLettres(journee.date);
   const entete = construireEntete(ctx, titre, []);
   const societe = String(ctx.marche.titulaire_nom ?? '').trim() || entete.titulaire[0] || '';
   const totaux = totauxJournee(journee.lignes);
@@ -437,7 +500,8 @@ export function contenuRapportJournalier(
 
   const identification: [string, string, boolean][] = [
     ['Société', societe || '—', false],
-    ['Journée du', jourEnLettres(journee.date), false],
+    periode ? ['Période', texteJour, true] : ['Journée du', texteJour, false],
+    ...(periode ? [['Jours balayés', String(journee.parJour?.length ?? 0), false] as [string, string, boolean]] : []),
     [journee.equipes.length > 1 ? 'Équipes' : 'Équipe N°', equipes, false],
     [journee.agents.length > 1 ? 'Agents' : 'Agent', liste(journee.agents), false],
     ['Zone d\'intervention', liste(zones), false],
@@ -463,6 +527,7 @@ export function contenuRapportJournalier(
     const d = f.diametre_mm == null || f.diametre_mm === '' ? null : nombre(f.diametre_mm) || null;
     return {
       numero: f.numero == null ? '—' : String(f.numero),
+      detectee: f.jour_detection ? jourCourt(f.jour_detection) : '',
       secteur: f.secteur?.trim() || '',
       adresse: [f.reference_srm?.trim(), f.adresse?.trim()].filter(Boolean).join('\n'),
       calibre: d,
@@ -479,6 +544,7 @@ export function contenuRapportJournalier(
   const totalFuites = lignes.length
     ? `Total des fuites détectées : ${lignes.length} (${pluriel(visibles, 'visible')}, ${pluriel(invisibles, 'invisible')}${nonPrecisees ? `, ${nonPrecisees} sans visibilité précisée` : ''})`
     : 'Total des fuites détectées : 0 (R.A.S)';
+  const parJour = periode && journee.parJour?.length ? journee.parJour : null;
 
   return {
     entete,
@@ -486,8 +552,11 @@ export function contenuRapportJournalier(
     societe,
     sigleClient: libelles.sigle,
     date: journee.date,
-    jour: jourEnLettres(journee.date),
-    jourCourt: jourCourt(journee.date),
+    jour: texteJour,
+    jourCourt: periode ? `${jourCourt(journee.date)} au ${jourCourt(journee.au!)}` : jourCourt(journee.date),
+    periode,
+    parJour,
+    avecDate: periode,
     equipes,
     totaux,
     zones,
@@ -509,6 +578,7 @@ export function contenuRapportJournalier(
 
 export function nomFichierRapportJournalier(ctx: Contexte, journee: JourneeBalayage): string {
   const equipe = journee.equipes.length === 1 ? `-${journee.equipes[0].libelle}` : '';
+  if (estPeriode(journee)) return nomFichierSur(`rapport-balayage-${String(ctx.marche.code ?? '')}-${journee.date}-au-${journee.au}${equipe}`);
   return nomFichierSur(`rapport-journalier-${String(ctx.marche.code ?? '')}-${journee.date}${equipe}`);
 }
 
@@ -720,6 +790,8 @@ export async function genererRapportJournalierPdf(
   const c = contenuRapportJournalier(ctx, journee, fuites, options);
   const genereLe = options.genereLe ?? new Date();
   const composer = options.composerArabe ?? imagesTextes;
+  const avec = (r: string) => avecRubrique(options, r);
+  const ceJour = c.periode ? 'sur la période' : 'ce jour';
 
   // Textes arabes composés par le navigateur (voir arabe.ts)
   const arabesEntete = textesArabesEntete(c.entete).filter(contientArabe);
@@ -735,7 +807,7 @@ export async function genererRapportJournalierPdf(
   const imagesLibres = arabesLibres.length ? await composer(arabesLibres, 9, true) : vide();
 
   const pdf: Pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait', compress: true });
-  pdf.setProperties({ title: `${c.titre} : ${c.jourCourt}`, subject: 'Rapport journalier de recherche de fuites', creator: 'Suivi des fuites' });
+  pdf.setProperties({ title: `${c.titre} : ${c.jourCourt}`, subject: c.periode ? 'Rapport de recherche de fuites sur une période' : 'Rapport journalier de recherche de fuites', creator: 'Suivi des fuites' });
   const largeur = pdf.internal.pageSize.getWidth();
   const hauteur = pdf.internal.pageSize.getHeight();
   const { marge } = G;
@@ -762,7 +834,7 @@ export async function genererRapportJournalierPdf(
   let y = dessinerEntete(pdf, c.entete, imagesEntete, marge);
 
   // Identification (gabarit : société, journée, équipe, zone, secteur, linéaire)
-  autoTable(pdf, {
+  if (avec('identification')) autoTable(pdf, {
     ...style,
     startY: y,
     body: paires(c.identification) as RowInput[],
@@ -778,17 +850,43 @@ export async function genererRapportJournalierPdf(
     },
     didDrawCell: arabe.didDrawCell,
   });
-  y = fin() + 5;
+  if (avec('identification')) y = fin() + 5;
 
-  // Détail par secteur (plusieurs secteurs dans la journée)
-  if (c.detailSecteurs) {
+  // Linéaire par jour (période de plusieurs jours)
+  if (c.parJour && avec('detail_jours')) {
+    y = titreSection('Linéaire inspecté par jour', y);
+    const t = c.totaux;
+    const corpsJours: RowInput[] = c.parJour.map((j) => [
+      jourEnLettres(j.date), j.equipes.join(', ') || SANS_EQUIPE, String(j.nb_troncons), texteNombre(kmArrondis(j.lineaire_m), 3),
+      texteNombre(kmArrondis(j.lineaire_repasse_m), 3), String(j.nb_noeuds), String(c.fuites.filter((f) => f.fuite.jour_detection === j.date).length),
+    ]);
+    corpsJours.push([{ content: `Total (${pluriel(c.parJour.length, 'jour')})`, colSpan: 2 }, String(t.nb_troncons), texteNombre(t.lineaire_km, 3),
+      texteNombre(t.lineaire_repasse_km, 3), String(c.parJour.reduce((n, j) => n + j.nb_noeuds, 0)), String(c.fuites.length)]);
+    autoTable(pdf, {
+      ...style,
+      startY: y,
+      head: [['Jour', 'Équipes', 'Tronçons', 'Linéaire (km)', 'Repasse (km)', 'Nœuds', 'Fuites']],
+      body: corpsJours,
+      columnStyles: { 2: { halign: 'right', cellWidth: 18 }, 3: { halign: 'right', cellWidth: 24 }, 4: { halign: 'right', cellWidth: 24 }, 5: { halign: 'right', cellWidth: 16 }, 6: { halign: 'right', cellWidth: 16 } },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.row.index === corpsJours.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = FOND_TOTAL;
+        }
+      },
+    });
+    y = fin() + 5;
+  }
+
+  // Détail par secteur (plusieurs secteurs dans la journée ou la période)
+  if (c.detailSecteurs && avec('detail_secteurs')) {
     y = titreSection('Linéaire inspecté par zone et secteur', y);
     const t = c.totaux;
     const corpsSecteurs: RowInput[] = c.detailSecteurs.map((l) => [
       l.zone ?? SANS_ZONE, l.secteur ?? HORS_SECTEUR, String(l.nb_troncons), texteNombre(kmArrondis(l.lineaire_m), 3),
       texteNombre(kmArrondis(l.lineaire_repasse_m), 3), String(l.nb_noeuds), String(l.fuites),
     ]);
-    if (c.fuitesHorsSecteurs) corpsSecteurs.push([{ content: 'Fuites hors des secteurs balayés ce jour', colSpan: 6 }, String(c.fuitesHorsSecteurs)]);
+    if (c.fuitesHorsSecteurs) corpsSecteurs.push([{ content: `Fuites hors des secteurs balayés ${ceJour}`, colSpan: 6 }, String(c.fuitesHorsSecteurs)]);
     corpsSecteurs.push([{ content: 'Total', colSpan: 2 }, String(t.nb_troncons), texteNombre(t.lineaire_km, 3), texteNombre(t.lineaire_repasse_km, 3),
       String(t.nb_noeuds), String(c.fuites.length)]);
     autoTable(pdf, {
@@ -809,78 +907,89 @@ export async function genererRapportJournalierPdf(
     y = fin() + 5;
   }
 
-  // Tableau des fuites (gabarit 2026)
-  y = titreSection(`Fuites détectées (${c.fuites.length})`, y, 30);
-  const avecSecteur = c.avecSecteur;
-  const iVisible = avecSecteur ? 5 : 4;
-  const n = iVisible + 3;
-  const corps: RowInput[] = c.fuites.map((f) => [
-    f.numero, ...(avecSecteur ? [f.secteur] : []), f.adresse, f.calibre == null ? '' : texteNombre(f.calibre, 0), f.nature,
-    f.visible ? '1' : '', f.invisible ? '1' : '', f.degradation,
-  ]);
-  if (!c.fuites.length) {
-    corps.push([{ content: 'R.A.S : aucune fuite détectée ce jour', colSpan: n, styles: { halign: 'center', fontStyle: 'bold' } }]);
-  }
-  corps.push([{ content: 'TOTAL', colSpan: iVisible, styles: { halign: 'right' } }, String(c.visibles), String(c.invisibles), '']);
-  autoTable(pdf, {
-    ...style,
-    startY: y,
-    head: [
-      [
-        { content: 'N° Fuite', rowSpan: 2 },
-        ...(avecSecteur ? [{ content: 'Secteur', rowSpan: 2 }] : []),
-        { content: c.libelleAdresse, rowSpan: 2 },
-        { content: 'Canalisation prospectée', colSpan: 2 },
-        { content: 'Fuite', colSpan: 2 },
-        { content: 'Nature dégradation', rowSpan: 2 },
+  // Tableau des fuites (gabarit 2026 ; période : colonne « Détectée le » après le N°)
+  if (avec('fuites')) {
+    y = titreSection(`Fuites détectées (${c.fuites.length})`, y, 30);
+    const avecSecteur = c.avecSecteur;
+    const avecDate = c.avecDate;
+    const iSecteur = avecDate ? 2 : 1;
+    const iVisible = 1 + (avecDate ? 1 : 0) + (avecSecteur ? 1 : 0) + 3;
+    const n = iVisible + 3;
+    const corps: RowInput[] = c.fuites.map((f) => [
+      f.numero, ...(avecDate ? [f.detectee] : []), ...(avecSecteur ? [f.secteur] : []), f.adresse, f.calibre == null ? '' : texteNombre(f.calibre, 0), f.nature,
+      f.visible ? '1' : '', f.invisible ? '1' : '', f.degradation,
+    ]);
+    if (!c.fuites.length) {
+      corps.push([{ content: `R.A.S : aucune fuite détectée ${ceJour}`, colSpan: n, styles: { halign: 'center', fontStyle: 'bold' } }]);
+    }
+    corps.push([{ content: 'TOTAL', colSpan: iVisible, styles: { halign: 'right' } }, String(c.visibles), String(c.invisibles), '']);
+    autoTable(pdf, {
+      ...style,
+      startY: y,
+      head: [
+        [
+          { content: 'N° Fuite', rowSpan: 2 },
+          ...(avecDate ? [{ content: 'Détectée le', rowSpan: 2 }] : []),
+          ...(avecSecteur ? [{ content: 'Secteur', rowSpan: 2 }] : []),
+          { content: c.libelleAdresse, rowSpan: 2 },
+          { content: 'Canalisation prospectée', colSpan: 2 },
+          { content: 'Fuite', colSpan: 2 },
+          { content: 'Nature dégradation', rowSpan: 2 },
+        ],
+        ['Calibre (mm)', 'Nature', 'Visibles', 'Invisibles'],
       ],
-      ['Calibre (mm)', 'Nature', 'Visibles', 'Invisibles'],
-    ],
-    body: corps,
-    columnStyles: {
-      0: { halign: 'center', cellWidth: 14 },
-      ...(avecSecteur ? { 1: { cellWidth: 26 } } : {}),
-      [iVisible - 2]: { halign: 'center', cellWidth: 16 },
-      [iVisible - 1]: { cellWidth: 22 },
-      [iVisible]: { halign: 'center', cellWidth: 15 },
-      [iVisible + 1]: { halign: 'center', cellWidth: 15 },
-      [iVisible + 2]: { cellWidth: 26 },
-    },
-    didParseCell: (data) => {
-      if (data.section === 'body' && data.row.index === corps.length - 1) {
-        data.cell.styles.fontStyle = 'bold';
-        data.cell.styles.fillColor = FOND_TOTAL;
-      }
-      arabe.didParseCell(data);
-    },
-    didDrawCell: arabe.didDrawCell,
-  });
-  y = fin() + 4.5;
-  police(pdf, true, 9);
-  pdf.text(c.totalFuites, marge, y);
-  y += 6;
+      body: corps,
+      columnStyles: {
+        0: { halign: 'center', cellWidth: 14 },
+        ...(avecDate ? { 1: { halign: 'center', cellWidth: 19 } } : {}),
+        ...(avecSecteur ? { [iSecteur]: { cellWidth: 26 } } : {}),
+        [iVisible - 2]: { halign: 'center', cellWidth: 16 },
+        [iVisible - 1]: { cellWidth: 22 },
+        [iVisible]: { halign: 'center', cellWidth: 15 },
+        [iVisible + 1]: { halign: 'center', cellWidth: 15 },
+        [iVisible + 2]: { cellWidth: 26 },
+      },
+      didParseCell: (data) => {
+        if (data.section === 'body' && data.row.index === corps.length - 1) {
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fillColor = FOND_TOTAL;
+        }
+        arabe.didParseCell(data);
+      },
+      didDrawCell: arabe.didDrawCell,
+    });
+    y = fin() + 4.5;
+    police(pdf, true, 9);
+    pdf.text(c.totalFuites, marge, y);
+    y += 6;
+  }
 
   // Commentaire et visas, gardés ensemble
   const lignesCommentaire = c.commentaire && !imagesLibres.has(c.commentaire) ? (pdf.splitTextToSize(c.commentaire, utile - 4) as string[]) : [];
   const imgCommentaire = imagesLibres.get(c.commentaire);
   const hCommentaire = Math.max(G.hauteurCommentaire, lignesCommentaire.length * 3.8 + 4, (imgCommentaire?.hauteurMm ?? 0) + 4);
-  if (y + 5 + hCommentaire + 5 + G.hauteurVisa > bas) { pdf.addPage(); y = marge + 4; }
-  police(pdf, true, 9);
-  pdf.text('COMMENTAIRE', marge, y + 1);
-  y += 3;
-  pdf.setDrawColor(...GRIS_TRAIT);
-  pdf.setLineWidth(0.2);
-  pdf.rect(marge, y, utile, hCommentaire);
-  police(pdf, false, G.taille);
-  if (lignesCommentaire.length) pdf.text(lignesCommentaire, marge + 2, y + 4);
-  if (imgCommentaire) {
-    const k = Math.min(1, (utile - 4) / imgCommentaire.largeurMm);
-    pdf.addImage(imgCommentaire.donnees, 'PNG', marge + utile - 2 - imgCommentaire.largeurMm * k, y + 2, imgCommentaire.largeurMm * k, imgCommentaire.hauteurMm * k, imgCommentaire.alias, 'FAST');
+  const avecCommentaire = avec('commentaire');
+  const visas = avec('visas') ? c.visas : [];
+  const hBloc = (avecCommentaire ? 5 + hCommentaire + 5 : 0) + (visas.length ? G.hauteurVisa : 0);
+  if (hBloc && y + hBloc > bas) { pdf.addPage(); y = marge + 4; }
+  if (avecCommentaire) {
+    police(pdf, true, 9);
+    pdf.text('COMMENTAIRE', marge, y + 1);
+    y += 3;
+    pdf.setDrawColor(...GRIS_TRAIT);
+    pdf.setLineWidth(0.2);
+    pdf.rect(marge, y, utile, hCommentaire);
+    police(pdf, false, G.taille);
+    if (lignesCommentaire.length) pdf.text(lignesCommentaire, marge + 2, y + 4);
+    if (imgCommentaire) {
+      const k = Math.min(1, (utile - 4) / imgCommentaire.largeurMm);
+      pdf.addImage(imgCommentaire.donnees, 'PNG', marge + utile - 2 - imgCommentaire.largeurMm * k, y + 2, imgCommentaire.largeurMm * k, imgCommentaire.hauteurMm * k, imgCommentaire.alias, 'FAST');
+    }
+    y += hCommentaire + 5;
   }
-  y += hCommentaire + 5;
-  if (c.visas.length) {
-    const l = utile / c.visas.length;
-    c.visas.forEach((v, i) => {
+  if (visas.length) {
+    const l = utile / visas.length;
+    visas.forEach((v, i) => {
       const x = marge + i * l;
       pdf.setDrawColor(...GRIS_TRAIT);
       pdf.setLineWidth(0.2);
@@ -900,9 +1009,9 @@ export async function genererRapportJournalierPdf(
   }
 
   // Extrait du plan (A4) : sous les visas si la place suffit, sinon page suivante avec l'en-tête du marché.
-  const extrait = options.extrait;
+  const extrait = avec('plan') ? options.extrait : null;
   if (extrait && (extrait.image || extrait.capturer)) {
-    const legende = extrait.legende ?? LEGENDE_PLAN_DEFAUT;
+    const legende = extrait.legende ?? (c.periode ? legendePlanPeriode() : LEGENDE_PLAN_DEFAUT);
     const bande = Math.max(G.bandeCartouche, 5 + 3.6 + legende.length * G.interligne);
     const hTitre = 6;
     let dispo = bas - y - hTitre - G.ecartCartouche - bande;
@@ -910,7 +1019,7 @@ export async function genererRapportJournalierPdf(
     if (pageSuivante) {
       pdf.addPage();
       const entete = construireEntete(ctx, 'EXTRAIT DU PLAN DU RÉSEAU', [
-        `Rapport journalier de recherche de fuites : journée du ${c.jour} · ${c.equipes} · Secteur(s) : ${c.secteurs.join(', ') || '—'}`,
+        `${c.periode ? `Rapport de recherche de fuites : période ${c.jour}` : `Rapport journalier de recherche de fuites : journée du ${c.jour}`} · ${c.equipes} · Secteur(s) : ${c.secteurs.join(', ') || '—'}`,
       ]);
       y = dessinerEntete(pdf, entete, imagesEntete, marge);
       dispo = bas - y - hTitre - G.ecartCartouche - bande;
@@ -919,7 +1028,7 @@ export async function genererRapportJournalierPdf(
     police(pdf, true, 10.5, BLEU);
     pdf.text(pageSuivante ? 'Conduites inspectées et fuites détectées' : 'Extrait du plan du réseau', marge, y + 1);
     police(pdf, false, 7.5, DISCRET);
-    const resume = !c.fuites.length ? 'Aucune fuite détectée ce jour'
+    const resume = !c.fuites.length ? `Aucune fuite détectée ${ceJour}`
       : `${pluriel(placees.length, 'fuite')} géolocalisée${placees.length > 1 ? 's' : ''}${c.fuites.length > placees.length ? `, ${c.fuites.length - placees.length} sans position GPS` : ''}`;
     pdf.text(resume, marge + utile, y + 1, { align: 'right' });
     y += hTitre - 2;
@@ -991,7 +1100,7 @@ export async function genererRapportJournalierPdf(
 
   // Pied de chaque page
   const total = pdf.getNumberOfPages();
-  const pied = `Rapport journalier de recherche de fuites · journée du ${c.jourCourt}${journee.equipes.length === 1 ? ` · ${c.equipes}` : ''} · édité le ${texteDate(genereLe, true)}`;
+  const pied = `${c.periode ? `Rapport de recherche de fuites · période du ${c.jourCourt}` : `Rapport journalier de recherche de fuites · journée du ${c.jourCourt}`}${journee.equipes.length === 1 ? ` · ${c.equipes}` : ''} · édité le ${texteDate(genereLe, true)}`;
   for (let p = 1; p <= total; p++) {
     pdf.setPage(p);
     police(pdf, false, 7.5, DISCRET);
@@ -1013,7 +1122,7 @@ const PIXELS_PAR_CARACTERE = 7;   // Calibri 10, comme xlsx.ts
 const echapperXml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 // Réglages d'impression que write-excel-file n'écrit pas (même procédé que xlsx.ts).
-async function reglerImpression(fichier: Blob, nomFeuille: string, titres: [number, number]): Promise<Blob> {
+async function reglerImpression(fichier: Blob, nomFeuille: string, titres: [number, number] | null): Promise<Blob> {
   const { unzipSync, zipSync, strFromU8, strToU8 } = await import('fflate');
   const contenu = unzipSync(new Uint8Array(await fichier.arrayBuffer()));
   const reglages = '<printOptions horizontalCentered="1"/>'
@@ -1028,6 +1137,7 @@ async function reglerImpression(fichier: Blob, nomFeuille: string, titres: [numb
   if (!xml.includes('<sheetPr')) xml = xml.replace(/(<worksheet[^>]*>)/, '$1<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>');
   xml = xml.replace(/(<drawing[ >]|<legacyDrawing|<tableParts|<extLst|<\/worksheet>)/, `${reglages}$1`);
   contenu[chemin] = strToU8(xml);
+  if (!titres) return new Blob([zipSync(contenu, { level: 6 })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const nom = echapperXml(nomFeuille.replace(/'/g, "''"));
   const defini = `<definedName name="_xlnm.Print_Titles" localSheetId="0">'${nom}'!$${titres[0]}:$${titres[1]}</definedName>`;
   // write-excel-file écrit un <definedNames/> vide : un second bloc rendrait le classeur invalide pour Excel.
@@ -1068,14 +1178,16 @@ function imagesLogos(entete: EnteteDoc, largeurs: number[]) {
 }
 
 export async function genererRapportJournalierXlsx(
-  ctx: Contexte, journee: JourneeBalayage, fuites: FuiteJour[], options: Pick<OptionsRapportJournalier, 'visas' | 'titre'> = {},
+  ctx: Contexte, journee: JourneeBalayage, fuites: FuiteJour[], options: Pick<OptionsRapportJournalier, 'visas' | 'titre' | 'rubriques'> = {},
 ): Promise<Blob> {
   const { default: ecrire } = await import('write-excel-file/browser');
   const c = contenuRapportJournalier(ctx, journee, fuites, options);
-  // Colonnes : N° | (Secteur) | Adresse ou référence | Calibre | Nature | Visibles | Invisibles | Nature dégradation
-  const largeurs = c.avecSecteur ? [8, 16, 28, 9, 14, 9, 9, 16] : [8, 36, 9, 14, 9, 9, 16];
+  const avec = (r: string) => avecRubrique(options, r);
+  const ceJour = c.periode ? 'sur la période' : 'ce jour';
+  // Colonnes : N° | (Détectée le) | (Secteur) | Adresse ou référence | Calibre | Nature | Visibles | Invisibles | Nature dégradation
+  const largeurs = [8, ...(c.avecDate ? [11] : []), ...(c.avecSecteur ? [16] : []), c.avecSecteur ? (c.avecDate ? 24 : 28) : (c.avecDate ? 30 : 36), 9, 14, 9, 9, 16];
   const n = largeurs.length;
-  const iVisible = c.avecSecteur ? 5 : 4;
+  const iVisible = 1 + (c.avecDate ? 1 : 0) + (c.avecSecteur ? 1 : 0) + 3;
   const lignes: CelluleXlsx[][] = [];
   const pleine = (valeur: string, style: Record<string, unknown> = {}) => {
     const l: CelluleXlsx[] = [{ value: valeur, type: String, columnSpan: n, wrap: true, ...style }];
@@ -1113,7 +1225,7 @@ export async function genererRapportJournalierXlsx(
   vide();
 
   // Identification
-  for (const [libelle, valeur] of c.identification) {
+  for (const [libelle, valeur] of avec('identification') ? c.identification : []) {
     if (libelle === 'Linéaire inspecté') {
       libelleValeur('Linéaire inspecté (premiers passages)', { value: c.totaux.lineaire_km, type: Number, format: '#,##0.000" km"', align: 'left' });
     } else if (libelle === 'Linéaire repassé') {
@@ -1125,26 +1237,41 @@ export async function genererRapportJournalierXlsx(
     }
   }
 
-  // Détail par secteur (8 colonnes : Zone sur N° et Secteur, puis une valeur par colonne)
-  if (c.detailSecteurs) {
+  // Tableaux de détail (n colonnes : la première valeur s'étend sur les colonnes en trop, puis une valeur par colonne)
+  const premier = n - 6;
+  const vides = (k: number) => Array.from({ length: k }, () => null);
+  const titre = (v: string, span = 1): CelluleXlsx => ({
+    value: v, type: String, columnSpan: span, fontWeight: 'bold', textColor: '#FFFFFF', backgroundColor: '#0B5D8A', align: 'center', wrap: true, ...BORDURE,
+  });
+  const ligne = (zone: string, secteur: string, v: number[], gras: boolean) => {
+    const s = { ...BORDURE, ...(gras ? { fontWeight: 'bold', backgroundColor: '#F2F2F2' } : {}) };
+    const nb = (x: number, f = '0') => ({ value: x, type: Number, format: f, ...s });
+    lignes.push([
+      { value: zone, type: String, columnSpan: premier, wrap: true, ...s }, ...vides(premier - 1), { value: secteur, type: String, wrap: true, ...s },
+      nb(v[0]), nb(v[1], '#,##0.000'), nb(v[2], '#,##0.000'), nb(v[3]), nb(v[4]),
+    ]);
+  };
+
+  // Linéaire par jour (période de plusieurs jours)
+  if (c.parJour && avec('detail_jours')) {
+    vide();
+    pleine('Linéaire inspecté par jour', { fontWeight: 'bold', fontSize: 11 });
+    lignes.push([titre('Jour', premier), ...vides(premier - 1), titre('Équipes'), titre('Tronçons'), titre('Linéaire (km)'), titre('Repasse (km)'), titre('Nœuds'), titre('Fuites')]);
+    c.parJour.forEach((j) => ligne(jourEnLettres(j.date), j.equipes.join(', ') || SANS_EQUIPE,
+      [j.nb_troncons, kmArrondis(j.lineaire_m), kmArrondis(j.lineaire_repasse_m), j.nb_noeuds, c.fuites.filter((f) => f.fuite.jour_detection === j.date).length], false));
+    const t = c.totaux;
+    ligne(`Total (${pluriel(c.parJour.length, 'jour')})`, '', [t.nb_troncons, t.lineaire_km, t.lineaire_repasse_km, c.parJour.reduce((x, j) => x + j.nb_noeuds, 0), c.fuites.length], true);
+  }
+
+  // Détail par secteur
+  if (c.detailSecteurs && avec('detail_secteurs')) {
     vide();
     pleine('Linéaire inspecté par zone et secteur', { fontWeight: 'bold', fontSize: 11 });
-    const titre = (v: string, span = 1): CelluleXlsx => ({
-      value: v, type: String, columnSpan: span, fontWeight: 'bold', textColor: '#FFFFFF', backgroundColor: '#0B5D8A', align: 'center', wrap: true, ...BORDURE,
-    });
-    lignes.push([titre('Zone', 2), null, titre('Secteur'), titre('Tronçons'), titre('Linéaire (km)'), titre('Repasse (km)'), titre('Nœuds'), titre('Fuites')]);
-    const ligne = (zone: string, secteur: string, v: number[], gras: boolean) => {
-      const s = { ...BORDURE, ...(gras ? { fontWeight: 'bold', backgroundColor: '#F2F2F2' } : {}) };
-      const nb = (x: number, f = '0') => ({ value: x, type: Number, format: f, ...s });
-      lignes.push([
-        { value: zone, type: String, columnSpan: 2, wrap: true, ...s }, null, { value: secteur, type: String, wrap: true, ...s },
-        nb(v[0]), nb(v[1], '#,##0.000'), nb(v[2], '#,##0.000'), nb(v[3]), nb(v[4]),
-      ]);
-    };
+    lignes.push([titre('Zone', premier), ...vides(premier - 1), titre('Secteur'), titre('Tronçons'), titre('Linéaire (km)'), titre('Repasse (km)'), titre('Nœuds'), titre('Fuites')]);
     c.detailSecteurs.forEach((l) => ligne(l.zone ?? SANS_ZONE, l.secteur ?? HORS_SECTEUR,
       [l.nb_troncons, kmArrondis(l.lineaire_m), kmArrondis(l.lineaire_repasse_m), l.nb_noeuds, l.fuites], false));
     if (c.fuitesHorsSecteurs) {
-      const l: CelluleXlsx[] = [{ value: 'Fuites hors des secteurs balayés ce jour', type: String, columnSpan: n - 1, ...BORDURE }];
+      const l: CelluleXlsx[] = [{ value: `Fuites hors des secteurs balayés ${ceJour}`, type: String, columnSpan: n - 1, ...BORDURE }];
       for (let i = 1; i < n - 1; i++) l.push(null);
       l.push({ value: c.fuitesHorsSecteurs, type: Number, format: '0', ...BORDURE });
       lignes.push(l);
@@ -1154,64 +1281,72 @@ export async function genererRapportJournalierXlsx(
   }
 
   // Tableau des fuites : deux lignes de titres (gabarit), répétées à l'impression
-  vide();
-  pleine(`Fuites détectées (${c.fuites.length})`, { fontWeight: 'bold', fontSize: 11 });
-  const tete = (v: string, extra: Record<string, unknown> = {}): CelluleXlsx => ({
-    value: v, type: String, fontWeight: 'bold', textColor: '#FFFFFF', backgroundColor: '#0B5D8A',
-    align: 'center', alignVertical: 'center', wrap: true, ...BORDURE, ...extra,
-  });
-  const premiereTitres = lignes.length + 1;
-  lignes.push([
-    tete('N° Fuite', { rowSpan: 2 }), ...(c.avecSecteur ? [tete('Secteur', { rowSpan: 2 })] : []), tete(c.libelleAdresse, { rowSpan: 2 }),
-    tete('Canalisation prospectée', { columnSpan: 2 }), null, tete('Fuite', { columnSpan: 2 }), null, tete('Nature dégradation', { rowSpan: 2 }),
-  ]);
-  lignes.push([
-    null, ...(c.avecSecteur ? [null] : []), null, tete('Calibre (mm)'), tete('Nature'), tete('Visibles'), tete('Invisibles'), null,
-  ]);
-  const texte = (v: string, extra: Record<string, unknown> = {}): CelluleXlsx => (v ? { value: v, type: String, wrap: true, ...BORDURE, ...extra } : { ...BORDURE, ...extra });
-  const entier = (v: number | null, extra: Record<string, unknown> = {}): CelluleXlsx => (v ? { value: v, type: Number, format: '0', align: 'center', ...BORDURE, ...extra } : { ...BORDURE, ...extra });
-  for (const f of c.fuites) {
+  let premiereTitres = 0;
+  if (avec('fuites')) {
+    vide();
+    pleine(`Fuites détectées (${c.fuites.length})`, { fontWeight: 'bold', fontSize: 11 });
+    const tete = (v: string, extra: Record<string, unknown> = {}): CelluleXlsx => ({
+      value: v, type: String, fontWeight: 'bold', textColor: '#FFFFFF', backgroundColor: '#0B5D8A',
+      align: 'center', alignVertical: 'center', wrap: true, ...BORDURE, ...extra,
+    });
+    premiereTitres = lignes.length + 1;
     lignes.push([
-      f.fuite.numero == null ? texte('—', { align: 'center' }) : entier(f.fuite.numero),
-      ...(c.avecSecteur ? [texte(f.secteur)] : []),
-      texte(f.adresse), entier(f.calibre), texte(f.nature), entier(f.visible), entier(f.invisible), texte(f.degradation),
+      tete('N° Fuite', { rowSpan: 2 }), ...(c.avecDate ? [tete('Détectée le', { rowSpan: 2 })] : []),
+      ...(c.avecSecteur ? [tete('Secteur', { rowSpan: 2 })] : []), tete(c.libelleAdresse, { rowSpan: 2 }),
+      tete('Canalisation prospectée', { columnSpan: 2 }), null, tete('Fuite', { columnSpan: 2 }), null, tete('Nature dégradation', { rowSpan: 2 }),
     ]);
+    lignes.push([
+      null, ...(c.avecDate ? [null] : []), ...(c.avecSecteur ? [null] : []), null, tete('Calibre (mm)'), tete('Nature'), tete('Visibles'), tete('Invisibles'), null,
+    ]);
+    const texte = (v: string, extra: Record<string, unknown> = {}): CelluleXlsx => (v ? { value: v, type: String, wrap: true, ...BORDURE, ...extra } : { ...BORDURE, ...extra });
+    const entier = (v: number | null, extra: Record<string, unknown> = {}): CelluleXlsx => (v ? { value: v, type: Number, format: '0', align: 'center', ...BORDURE, ...extra } : { ...BORDURE, ...extra });
+    for (const f of c.fuites) {
+      lignes.push([
+        f.fuite.numero == null ? texte('—', { align: 'center' }) : entier(f.fuite.numero),
+        ...(c.avecDate ? [texte(f.detectee, { align: 'center' })] : []),
+        ...(c.avecSecteur ? [texte(f.secteur)] : []),
+        texte(f.adresse), entier(f.calibre), texte(f.nature), entier(f.visible), entier(f.invisible), texte(f.degradation),
+      ]);
+    }
+    if (!c.fuites.length) {
+      const l: CelluleXlsx[] = [{ value: `R.A.S : aucune fuite détectée ${ceJour}`, type: String, columnSpan: n, align: 'center', fontWeight: 'bold', ...BORDURE }];
+      for (let i = 1; i < n; i++) l.push(null);
+      lignes.push(l);
+    }
+    const gras = { fontWeight: 'bold', backgroundColor: '#F2F2F2', ...BORDURE };
+    const ligneTotal: CelluleXlsx[] = [{ value: 'TOTAL', type: String, columnSpan: iVisible, align: 'right', ...gras }];
+    for (let i = 1; i < iVisible; i++) ligneTotal.push(null);
+    ligneTotal.push({ value: c.visibles, type: Number, format: '0', align: 'center', ...gras }, { value: c.invisibles, type: Number, format: '0', align: 'center', ...gras }, { ...gras });
+    lignes.push(ligneTotal);
+    pleine(c.totalFuites, { fontWeight: 'bold' });
   }
-  if (!c.fuites.length) {
-    const l: CelluleXlsx[] = [{ value: 'R.A.S : aucune fuite détectée ce jour', type: String, columnSpan: n, align: 'center', fontWeight: 'bold', ...BORDURE }];
-    for (let i = 1; i < n; i++) l.push(null);
-    lignes.push(l);
-  }
-  const gras = { fontWeight: 'bold', backgroundColor: '#F2F2F2', ...BORDURE };
-  const ligneTotal: CelluleXlsx[] = [{ value: 'TOTAL', type: String, columnSpan: iVisible, align: 'right', ...gras }];
-  for (let i = 1; i < iVisible; i++) ligneTotal.push(null);
-  ligneTotal.push({ value: c.visibles, type: Number, format: '0', align: 'center', ...gras }, { value: c.invisibles, type: Number, format: '0', align: 'center', ...gras }, { ...gras });
-  lignes.push(ligneTotal);
-  pleine(c.totalFuites, { fontWeight: 'bold' });
 
   // Commentaire et visas
-  vide();
-  pleine('COMMENTAIRE', { fontWeight: 'bold' });
-  pleine(c.commentaire, { height: 60, alignVertical: 'top', ...BORDURE });
-  if (c.visas.length) {
+  if (avec('commentaire')) {
     vide();
-    const pas = Math.floor(n / c.visas.length);
+    pleine('COMMENTAIRE', { fontWeight: 'bold' });
+    pleine(c.commentaire, { height: 60, alignVertical: 'top', ...BORDURE });
+  }
+  const visas = avec('visas') ? c.visas : [];
+  if (visas.length) {
+    vide();
+    const pas = Math.floor(n / visas.length);
     const titres: CelluleXlsx[] = Array.from({ length: n }, () => null);
     const cadres: CelluleXlsx[] = Array.from({ length: n }, () => null);
-    c.visas.forEach((v, i) => {
+    visas.forEach((v, i) => {
       const debut = i * pas;
-      const span = i === c.visas.length - 1 ? n - debut : pas;
+      const span = i === visas.length - 1 ? n - debut : pas;
       titres[debut] = { value: v, type: String, columnSpan: span, fontWeight: 'bold', align: 'center', ...BORDURE };
       cadres[debut] = { value: 'Nom, date et signature', type: String, columnSpan: span, height: 60, align: 'center', alignVertical: 'bottom', textColor: '#5B6B77', fontSize: 8, ...BORDURE };
     });
     lignes.push(titres, cadres);
   }
 
-  const nomFeuille = c.jourCourt.replace(/\//g, '-');
+  const nomFeuille = (c.periode ? `${c.date} au ${journee.au}` : c.jourCourt.replace(/\//g, '-')).slice(0, 31);
   const images = logos.length ? imagesLogos(c.entete, largeurs) : null;
   const brut = await (ecrire as unknown as (f: unknown[], o: unknown) => { toBlob: () => Promise<Blob> })(
     [{ data: lignes, sheet: nomFeuille, columns: largeurs.map((width) => ({ width })), ...(images ? { images } : {}) }],
     { fontFamily: 'Calibri', fontSize: 10 },
   ).toBlob();
-  return reglerImpression(brut, nomFeuille, [premiereTitres, premiereTitres + 1]);
+  return reglerImpression(brut, nomFeuille, premiereTitres ? [premiereTitres, premiereTitres + 1] : null);
 }

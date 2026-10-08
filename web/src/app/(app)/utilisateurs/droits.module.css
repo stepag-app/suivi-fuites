@@ -1,4 +1,5 @@
-/* Matrice des droits (Utilisateurs > Droits) : tableau Fiori, en-têtes de colonnes et libellés figés au défilement.
+/* Matrice des droits (Utilisateurs > Droits) : tableau compact, en-têtes de colonnes et libellés figés au défilement.
+   Utilisateurs côte à côte ; l'administrateur et ses verrous dans un bloc à part (.blocAdmin).
    Écran d'administrateur, pensé pour le bureau ; défile dans les deux sens sur un écran étroit. */
 .titre { margin: 0.4rem 0 0.3rem; font-size: 1.15rem; }
 
@@ -20,35 +21,35 @@
   overflow: auto; max-height: calc(100vh - 16rem); min-height: 20rem;
   background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: var(--ombre);
 }
-.matrice { width: max-content; min-width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.9rem; }
-.matrice th, .matrice td { border-bottom: 1px solid var(--bord-doux); }
-.matrice td { text-align: center; vertical-align: middle; padding: 0.3rem 0.5rem; min-width: 8.5rem; }
+.matrice { width: max-content; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; }
+.matrice th, .matrice td { border-bottom: 1px solid var(--bord-doux); height: auto; }
+.matrice td { text-align: center; vertical-align: middle; padding: 0.15rem 0.3rem; min-width: 5.75rem; }
 
 .matrice thead th {
   position: sticky; top: 0; z-index: 2; background: var(--fond); vertical-align: bottom;
   border-bottom: 1px solid var(--bord); white-space: normal;
 }
 .matrice thead th.coin { left: 0; z-index: 3; vertical-align: bottom; color: var(--texte); font-weight: 700; }
-.tete { min-width: 8.5rem; max-width: 11rem; padding: 0.5rem; }
+.tete { min-width: 5.75rem; max-width: 8.5rem; padding: 0.35rem 0.3rem; }
 .nom { display: block; color: var(--texte); font-weight: 700; line-height: 1.25; }
-.petit { display: block; font-size: 0.8rem; color: var(--discret); line-height: 1.3; }
-.tete select { min-height: 32px; margin-top: 0.35rem; padding: 0.2rem 0.4rem; font-size: 0.82rem; }
+.petit { display: block; font-size: 0.74rem; color: var(--discret); line-height: 1.25; overflow-wrap: anywhere; }
+.tete select { height: 1.6rem; min-height: 0; margin-top: 0.25rem; padding: 0.1rem 0.3rem; font-size: 0.76rem; width: 100%; }
 .personnalise { margin: 0.25rem 0 0; font-size: 0.72rem; }
-.petitBouton { min-height: 30px; margin-top: 0.35rem; padding: 0.15rem 0.5rem; font-size: 0.78rem; white-space: normal; text-align: center; }
+.petitBouton { height: auto; min-height: 1.6rem; margin-top: 0.35rem; padding: 0.15rem 0.5rem; font-size: 0.78rem; white-space: normal; text-align: center; }
 
 /* Libellés des droits : colonne figée à gauche */
 .matrice tbody th.libelle {
   position: sticky; left: 0; z-index: 1; background: var(--carte);
-  min-width: 19rem; max-width: 24rem; white-space: normal; text-align: left; color: var(--texte); font-weight: 400;
-  padding: 0.4rem 0.6rem; border-right: 1px solid var(--bord);
+  min-width: 15rem; max-width: 19rem; white-space: normal; text-align: left; color: var(--texte); font-weight: 400;
+  padding: 0.2rem 0.5rem; border-right: 1px solid var(--bord); line-height: 1.25;
 }
-.matrice thead th.coin { min-width: 19rem; border-right: 1px solid var(--bord); }
-.aide { display: block; font-size: 0.78rem; color: var(--discret); margin-top: 0.1rem; }
+.matrice thead th.coin { min-width: 15rem; border-right: 1px solid var(--bord); padding: 0.35rem 0.5rem; }
+.aide { display: block; font-size: 0.72rem; color: var(--discret); margin-top: 0; }
 .sensible { background: #fdecea; color: var(--danger); font-size: 0.7rem; margin-left: 0.35rem; vertical-align: 1px; }
 
 /* Rubriques : bandeau gris, titre figé à gauche */
 .groupe th {
-  background: var(--fond); color: var(--texte); font-weight: 700; text-align: left; padding: 0.45rem 0.6rem;
+  background: var(--fond); color: var(--texte); font-weight: 700; text-align: left; padding: 0.25rem 0.5rem;
   border-top: 1px solid var(--bord);
 }
 .groupe th > span { position: sticky; left: 0.6rem; }
@@ -62,18 +63,29 @@
 .toutes { color: var(--discret); font-weight: 600; }
 .verrouille { color: var(--danger); font-weight: 700; }
 .sansObjet { color: var(--discret); }
-.verrouOuvert, .verrouPose { min-height: 30px; padding: 0.15rem 0.55rem; font-size: 0.8rem; }
+.verrouOuvert, .verrouPose { height: 1.6rem; min-height: 0; padding: 0.1rem 0.45rem; font-size: 0.76rem; }
 .verrouOuvert { color: var(--discret); }
 .verrouPose { color: #fff; background: var(--danger); border-color: var(--danger); }
 .verrouPose:hover:not(:disabled) { color: #fff; background: #8a0606; border-color: #8a0606; }
 
 /* Cases et choix de portée */
-.matrice td input[type='checkbox'] { width: 1.3rem; height: 1.3rem; margin: 0 auto; }
-.matrice td select { display: inline-block; width: auto; min-width: 7.5rem; min-height: 32px; margin: 0; padding: 0.2rem 0.4rem; font-size: 0.85rem; }
+.matrice td input[type='checkbox'] { width: 1.05rem; height: 1.05rem; margin: 0 auto; }
+.matrice td select { display: inline-block; width: auto; min-width: 5.25rem; height: 1.6rem; min-height: 0; margin: 0; padding: 0.1rem 0.3rem; font-size: 0.78rem; }
 
 /* Case modifiée, pas encore enregistrée */
 .matrice td.modifiee { background: #fff4d6; box-shadow: inset 0 0 0 2px var(--attention-bord); }
 .matrice tbody tr:not(.groupe):hover > td.modifiee { background: #ffeab0; }
+
+/* Bloc à part : administrateur et verrous */
+.blocAdmin { margin-top: 1.2rem; }
+.blocAdmin > summary {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 0.8rem; cursor: pointer; padding: 0.5rem 0.6rem;
+  background: var(--fond); border: 1px solid var(--bord); border-radius: var(--rayon);
+}
+.blocAdmin[open] > summary { margin-bottom: 0.5rem; }
+.titreBloc { font-weight: 700; color: var(--texte); }
+.blocAdmin .petit { display: inline; }
+.blocAdmin thead .petit { display: block; }
 
 @media (max-width: 640px) {
   .matrice tbody th.libelle, .matrice thead th.coin { min-width: 12rem; max-width: 14rem; }

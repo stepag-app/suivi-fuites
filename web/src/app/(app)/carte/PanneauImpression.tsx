@@ -4,16 +4,19 @@ import { useEffect, useState } from "react";
 import { Printer } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { FormatPapier, OrientationPapier } from "@/lib/export/carte-pdf";
+import { ChoixRubriques } from "@/lib/export/ChoixRubriques";
+import { dernierChoix } from "@/lib/export/rubriques";
 import { messageErreur } from "@/lib/format";
 import type { ChoixImpression } from "./impression";
 
 interface Props {
+  marcheId: string;
+  peutEnregistrer: boolean;
   titreDefaut: string;
   nombreSurCarte: number;
   nombreListe: number;
@@ -22,12 +25,14 @@ interface Props {
 }
 
 /** Réglages du PDF de la carte (format, orientation, titre, liste) : panneau sous la carte. */
-export function PanneauImpression({ titreDefaut, nombreSurCarte, nombreListe, filtres, imprimer }: Props) {
+export function PanneauImpression({ marcheId, peutEnregistrer, titreDefaut, nombreSurCarte, nombreListe, filtres, imprimer }: Props) {
   const [format, setFormat] = useState<FormatPapier>("a4");
   const [orientation, setOrientation] = useState<OrientationPapier>("paysage");
   const [titre, setTitre] = useState(titreDefaut);
   const [titreRetouche, setTitreRetouche] = useState(false);
-  const [avecListe, setAvecListe] = useState(false);
+  const [rubriques, setRubriques] = useState<Set<string>>(() => dernierChoix("carte", marcheId));
+  const avecListe = rubriques.has("liste") && nombreListe > 0;
+  const [cadrage, setCadrage] = useState<ChoixImpression["cadrage"]>("contenu");
   const [etape, setEtape] = useState("");
   const [erreur, setErreur] = useState("");
   const [info, setInfo] = useState("");
@@ -42,7 +47,7 @@ export function PanneauImpression({ titreDefaut, nombreSurCarte, nombreListe, fi
     setInfo("");
     setEtape("Préparation…");
     try {
-      setInfo(await imprimer({ format, orientation, titre: titre.trim() || titreDefaut, avecListe }, setEtape));
+      setInfo(await imprimer({ format, orientation, titre: titre.trim() || titreDefaut, avecListe, cadrage, rubriques: avecListe ? rubriques : new Set([...rubriques].filter((r) => r !== "liste")) }, setEtape));
     } catch (e) {
       setErreur(messageErreur(e));
     }
@@ -73,16 +78,20 @@ export function PanneauImpression({ titreDefaut, nombreSurCarte, nombreListe, fi
       </div>
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <Field orientation="horizontal" className="w-auto">
-          <Checkbox id="liste-carte" checked={avecListe} disabled={occupe || nombreListe === 0} onCheckedChange={(v) => setAvecListe(v === true)} />
-          <FieldLabel htmlFor="liste-carte" className="font-normal">Ajouter la liste des fuites affichées ({nombreListe})</FieldLabel>
+          <FieldLabel className="font-normal text-muted-foreground">Cadrage</FieldLabel>
+          <ToggleGroup type="single" variant="outline" size="sm" spacing={0} value={cadrage} onValueChange={(v) => v && setCadrage(v as ChoixImpression["cadrage"])}>
+            <ToggleGroupItem value="contenu" disabled={occupe}>Fuites et réseau affichés</ToggleGroupItem>
+            <ToggleGroupItem value="ecran" disabled={occupe}>Vue de l&apos;écran</ToggleGroupItem>
+          </ToggleGroup>
         </Field>
         <Button size="sm" disabled={occupe} onClick={lancer}>
           {occupe ? <Spinner /> : <Printer data-icon="inline-start" />}{occupe ? etape : "Télécharger le PDF"}
         </Button>
       </div>
+      <ChoixRubriques document="carte" marcheId={marcheId} valeur={rubriques} changer={setRubriques} peutEnregistrer={peutEnregistrer} desactive={occupe} />
       <p className="text-muted-foreground text-xs">
-        {nombreSurCarte} fuite{nombreSurCarte > 1 ? "s" : ""} sur la carte. {filtres}. La carte est imprimée comme elle est cadrée à l&apos;écran,
-        en haute définition, avec légende, échelle, nord et coordonnées GPS.
+        {nombreSurCarte} fuite{nombreSurCarte > 1 ? "s" : ""} sur la carte ({nombreListe} dans la liste). {filtres}. {cadrage === "contenu" ? "La carte est cadrée sur les fuites et le réseau affichés" : "La carte est imprimée comme elle est cadrée à l'écran"},
+        en haute définition, avec les rubriques cochées ci-dessus.
       </p>
       {erreur && <Alert variant="destructive"><AlertDescription>{erreur}</AlertDescription></Alert>}
       {info && <Alert role="status"><AlertDescription>{info}</AlertDescription></Alert>}

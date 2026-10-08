@@ -387,7 +387,8 @@ function CarteDesFuites() {
       </TabsContent>
       {peut("exports", "lire") && (
         <TabsContent className="min-h-0 overflow-auto px-4 py-3" value="impression">
-          <PanneauImpression titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ""}`} nombreSurCarte={placees.length}
+          <PanneauImpression key={marcheId} marcheId={marcheId ?? ""} peutEnregistrer={peut("exports", "creer")}
+            titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ""}`} nombreSurCarte={placees.length}
             nombreListe={filtrees.length} filtres={filtresImpression} imprimer={imprimer} />
         </TabsContent>
       )}

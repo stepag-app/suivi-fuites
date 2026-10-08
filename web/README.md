@@ -32,10 +32,10 @@ technique : `MAQUETTE-SHADCN.md`.
 | Écran | Qui | Contenu |
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
-| `/fuites` | tous les affectés | liste, filtres (statut, secteur, période de détection du / au, texte, alertes) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée |
-| `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Chiffres cliquables vers la liste `/fuites` filtrée à l'identique, seulement quand la liste a le filtre exact (détectées sur la période, réfections à faire = statut « réparée », répartition par statut, détectées par semaine, détectées et alertes par secteur, totaux) ; les autres chiffres restent du texte. Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
-| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, voir § Carte |
-| `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), équipe, secteur ; par jour, équipe, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport journalier de recherche de fuites** (droit « exports / lire ») : PDF A4 au gabarit STEPAG 2026 avec **extrait de plan A4** (conduites inspectées ce jour en vert, repassées en bleu, autres en gris, fuites numérotées) ou Excel, un rapport par jour ou un par équipe (décision Q-34) ; voir § Réseau et balayage |
+| `/fuites` | tous les affectés | liste, filtres (statut, secteur, période de détection du / au, texte, alertes) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée (rubriques à cocher d'abord, voir § Rubriques à cocher). **Tableau** : toutes les colonnes cochées dans « Affichage » tiennent dans la largeur (adresse élastique, secteur et alertes à la ligne, marges réduites ; moins de colonnes = plus de place). **Colonnes par statut** (Kanban) : les 5 colonnes se partagent la largeur (10,5 rem au moins, cartes compactes), défilement horizontal seulement sous ≈ 1 200 px menu ouvert ; vérifié à 1366, 1440 et 1920 px, menu ouvert et replié |
+| `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, **depuis le début du marché** : date d'effet de l'OS de commencement, sinon date de commencement de la fiche, sinon jour de la première fuite, jusqu'à aujourd'hui, flèches de comparaison masquées ; dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Chiffres cliquables vers la liste `/fuites` filtrée à l'identique, seulement quand la liste a le filtre exact (détectées sur la période, réfections à faire = statut « réparée », répartition par statut, détectées par semaine, détectées et alertes par secteur, totaux) ; les autres chiffres restent du texte. Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
+| `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, rubriques à cocher, voir § Carte |
+| `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), équipe, secteur ; par jour, équipe, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport de recherche de fuites de la période Du–Au** (droit « exports / lire ») : **un seul** PDF A4 au gabarit STEPAG 2026 (toutes les zones balayées, linéaire par jour, fuites avec leur date, **extrait de plan A4** de la période : conduites inspectées en vert, repassées en bleu, autres en gris, fuites numérotées) ou un seul Excel ; Du = Au : rapport journalier, un pour la journée ou un par équipe (décision Q-34) ; équipe et secteur du filtre repris ; rapport d'un jour depuis sa ligne ; rubriques à cocher ; voir § Réseau et balayage |
 | `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
 | `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée »), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
@@ -45,7 +45,7 @@ technique : `MAQUETTE-SHADCN.md`.
 | `/attachements/hors-bordereau` | droit « attachements / lire » | travaux à faire valoir : polyéthylène au-delà du seuil du marché (excédent), réparations sans article (DN > 315, fonte, acier…), pièces non couvertes de l'inventaire réel (provenance : terrain ou correction du bureau) ; filtres période, secteur, nature ; export Excel, PDF, Word, CSV ; rien n'est facturé automatiquement. Calculs dans `src/app/(app)/attachements/controles.ts`, vérifiés par `node scripts/verifier-controles-attachement.mjs` |
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/marches` | administrateur | liste des marchés, activer / désactiver (un marché désactivé n'est plus proposé aux agents), créer un marché vide ou en copiant les paramètres d'un marché existant (`copier_marche`) |
-| `/utilisateurs` | administrateur | onglet **Comptes** (`?onglet=affectations` : affectations et rôles) : créer un agent, rôles par marché, mot de passe, révoquer (la base d'abord, verrou et journal, puis blocage de la connexion par la fonction serveur) / réactiver ; onglet **Droits** (`?onglet=droits&marche=<uuid>`) : matrice du marché, **utilisateurs en colonnes, droits en lignes** par rubrique (une ligne = une colonne de `droits`, portée Non / Les siennes / Toutes), « Modèle… » par colonne, enregistrement explicite après confirmation (`enregistrer_droits`, journalisé) ; colonne « Vous » grisée et **verrous de sécurité** de l'administrateur (tous les marchés, refusés par la base, à rouvrir soi-même, sans refermeture automatique) |
+| `/utilisateurs` | administrateur | onglet **Comptes** (`?onglet=affectations` : affectations et rôles) : créer un agent, rôles par marché, mot de passe, révoquer (la base d'abord, verrou et journal, puis blocage de la connexion par la fonction serveur) / réactiver ; onglet **Droits** (`?onglet=droits&marche=<uuid>`) : matrice compacte des **seuls utilisateurs du marché** (en colonnes, côte à côte ; droits en lignes par rubrique, une ligne = une colonne de `droits`, portée Non / Les siennes / Toutes ; en-têtes et libellés figés au défilement ; lignes réservées à l'administrateur retirées), « Modèle… » par colonne, enregistrement explicite après confirmation (`enregistrer_droits`, journalisé) ; **bloc à part « Administrateur et verrous de sécurité »** (repliable, ouvert d'un clic) : colonne « Vous » grisée, vos **verrous** (tous les marchés, refusés par la base, à rouvrir soi-même, sans refermeture automatique), autres administrateurs |
 
 **Droits à l'écran** : `peut(type, action)` (`src/lib/session.tsx`) suit les droits du marché choisi ; pour l'administrateur, tout sauf ce qu'il a verrouillé (`verrous_admin`). `verrouille(objet, action)` sert aux boutons réservés à l'administrateur (rouvrir, refacturation forcée, désactiver, copier, révoquer) : bouton grisé « verrouillé par vous ». Le menu affiche « Utilisateurs (n verrous) ». Calculs purs dans `src/app/(app)/utilisateurs/matrice.ts`, vérifiés par `node scripts/verifier-matrice-droits.mjs`.
 
@@ -110,17 +110,36 @@ Word : vrai texte de droite à gauche, police embarquée dans le fichier. Excel 
 certains textes (parenthèses, lettres marocaines ݒ ݣ) ; chaque texte arabe y est composé par le navigateur
 avec Amiri puis inséré en image nette (non sélectionnable), le reste du PDF est du vrai texte.
 
+### Rubriques à cocher (X7)
+
+Pas de gabarit SRM figé (réponse 15 d'Issam) : avant le **rapport par fuite** (dialogue de « Rapports PDF (n) » et de
+l'action « Rapport PDF » d'une ligne), le **rapport de balayage** (page `/balayage`) et la **carte imprimée** (onglet
+Impression de `/carte`), on coche les rubriques à imprimer (`src/lib/export/rubriques.ts`, composant
+`ChoixRubriques.tsx`). Choix **mémorisés en modèles par marché** dans `modeles_export` (sans migration : jeu
+« fuites », `filtres.document` = `rapport_fuite`, `rapport_balayage` ou `carte`, `colonnes` = rubriques cochées ;
+enregistrer, mettre à jour, retirer avec le droit « exports / créer ») ; le panneau « Exporter » ignore ces lignes. Le
+dernier choix est aussi gardé sur l'appareil, par document et par marché (repli sans droit d'enregistrer ; le bouton
+« Rapport PDF » de la fiche l'utilise). L'**état journalier** reste le panneau « Exporter » (colonnes cochées et
+modèles). Vérification : `node scripts/verifier-rubriques.mjs`.
+
+| Document | Rubriques (cochées par défaut, sauf mention) |
+|---|---|
+| Rapport par fuite | identification, jalons du client, coordonnées GPS et itinéraire, réparations, équipes et ouvriers, pièces posées, réfections, observations, photos, visas ; **articles et prix du bordereau : décochée**, proposée seulement avec le droit « quantités / lire » |
+| Rapport de balayage | identification, linéaire par jour (période), linéaire par zone et secteur, fuites détectées, commentaire, visas, extrait de plan (PDF) |
+| Carte imprimée | légende, échelle et nord, coordonnées GPS des coins, informations, graduations, filtres appliqués ; liste des fuites affichées : décochée |
+
 ### Rapport PDF par fuite
 
 Bouton **Rapport PDF** sur la fiche d'une fuite, et **Rapports PDF (n)** sur la liste (toutes les fuites
 affichées après filtres, une fuite par page dans un seul fichier, barre de progression) ; droit
-« exports / lire ». Module `src/lib/export/rapport-fuite.ts`, chargé au clic (jsPDF + autotable, comme les
+« exports / lire ». **Par défaut sans les articles ni les prix du bordereau** (blocs réparations et réfections
+seulement, lot C2) ; rubriques à cocher avant l'export (§ Rubriques à cocher). Module `src/lib/export/rapport-fuite.ts`, chargé au clic (jsPDF + autotable, comme les
 exports ; en-tête dessiné par `dessinerEntete` de `pdf.ts`). Contenu : en-tête du marché ; identification
 (N°, référence client, origine, statut, dates de détection et jalons du client, zone, secteur, adresse,
 **coordonnées GPS** en degrés décimaux et sexagésimaux avec lien vers la carte, précision) ; réparations
 (équipe, chef, constat, travaux, fouille et volume, emplacement, revêtement, représentant du maître
 d'ouvrage, ouvriers, pièces posées, observation) ; réfections (nature FR / AR, dimensions, ou motif) ;
-quantités et prix du bordereau **seulement** avec le droit « quantités / lire » ; photos rangées par type
+articles et prix du bordereau seulement si la rubrique est cochée (droit « quantités / lire ») ; photos rangées par type
 (détection, avant, pendant, après, réfection), 3 par ligne, réduites dans le navigateur (800 px, JPEG 60 %),
 avec type, date et coordonnées ; visas des règles d'attachement du marché ; pied « édité le », page n / N.
 Mesures (pile locale, Chromium) : fuite avec 6 photos de 1 600 px → **2 pages, 393 Ko, 0,4 à 0,6 s** ;
@@ -145,15 +164,21 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   « Pas de réseau », bouton Actualiser. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
   fond uni avec un bandeau (les nombres des groupes n'apparaissent alors pas).
 - Tablette : boutons de zoom de 44 px, rotation désactivée, un toucher à 14 px près sélectionne le point.
-- **Impression** (« Imprimer la carte », droit « exports / lire ») : format A4 / A3, portrait / paysage, titre, liste des
-  fuites affichées en option. PDF fabriqué dans le navigateur (`src/lib/export/carte-pdf.ts`, jsPDF chargé au clic) :
-  en-tête du marché (`dessinerEntete`, logos compris), filtres appliqués, vue affichée rendue hors écran par MapLibre à
-  200 dpi (`carte/capture.ts`, couches communes `carte/couches.ts` ; même zoom qu'à l'écran si la vue tient dans le cadre,
-  textes réduits à 77 % au plus, sinon recadrage), numéro à côté de chaque point, graduations en degrés, cartouche
-  (légende, échelle juste à la latitude du centre, nord, coordonnées WGS84 du centre et des coins), © OpenStreetMap,
-  bandeau si le fond est indisponible, liste paginée, « Page n / N ». Gabarit générique réglable (`GABARIT` en tête de
+- **Impression** (« Imprimer la carte », droit « exports / lire ») : format A4 / A3, portrait / paysage, titre,
+  **cadrage** (par défaut sur les fuites et le réseau affichés, avec une marge de 4 % ; ou vue de l'écran), rubriques à
+  cocher (liste des fuites affichées comprise). PDF fabriqué dans le navigateur (`src/lib/export/carte-pdf.ts`, jsPDF
+  chargé au clic) : en-tête du marché (`dessinerEntete`, logos compris), filtres appliqués, carte rendue hors écran par
+  MapLibre à 200 dpi (`carte/capture.ts`, couches communes `carte/couches.ts` ; vue de l'écran : même zoom si elle tient
+  dans le cadre, textes réduits à 77 % au plus, sinon recadrage), numéro à côté de chaque point, graduations en degrés,
+  cartouche (légende, échelle juste à la latitude du centre, nord, coordonnées WGS84 du centre et des coins),
+  © OpenStreetMap, bandeau si le fond est indisponible, liste paginée, « Page n / N ». **Légende longue** (statuts,
+  contours et réseau) : en portrait, si elle dépasse la bande, elle passe en bande pleine largeur au-dessus des autres
+  boîtes, sur 3 colonnes (A4) ou 4 (A3) ; en paysage, si la colonne de droite ne la contient pas avec les autres boîtes,
+  elle passe sous la carte ; la carte est réduite d'autant, aucun texte ne déborde (coupé avec « … » au pire). Rubriques
+  décochées : la boîte disparaît et les autres se partagent la place ; sans boîte, la carte prend toute la page. Libellés
+  de diamètre sans « ≤ » ni « > » (absents de la police standard de jsPDF) : « jusqu'à 63 mm », « plus de 400 mm ». Gabarit générique réglable (`GABARIT` en tête de
   `carte-pdf.ts`) en attendant le modèle de la SRM. Mesures : A4 paysage 1,8 s, 0,4 Mo ; A3 paysage 0,9 Mo.
-  Vérification : `node scripts/verifier-carte-pdf.mjs`.
+  Vérification : `node scripts/verifier-carte-pdf.mjs` (4 formats, légendes longues en portrait et en paysage, rubriques).
 - Réseau d'eau et balayage : voir § Réseau et balayage. Hors périmètre pour l'instant : tracés GPS des agents.
 
 ## Réseau et balayage (lot S)
@@ -180,13 +205,19 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   Maj + clic, rectangle Maj + glisser, lasso ; « Affecter au secteur … », « Retirer du secteur », « Recalculer le
   contour », « Dessiner le contour à la main ») ; tableau des secteurs (tronçons, linéaire, % balayé, linéaire du
   contrat, écart) et ligne « Non zonés ».
-- **Rapport journalier** : `src/lib/export/rapport-journalier.ts` (générateur PDF / Excel, sans accès à la base),
-  appelé par `src/app/(app)/balayage/rapport.ts` (lecture de la journée, des fuites du jour, extrait de plan rendu
-  hors écran par `carte/capture.ts`). Visas : titulaire et sigle du client lus dans la fiche du marché.
+- **Rapport journalier ou de période** : `src/lib/export/rapport-journalier.ts` (générateur PDF / Excel, sans accès à la
+  base ; `synthesePeriode` regroupe tous les jours de [Du, Au] par zone et secteur, avec le linéaire par jour ; Du = Au :
+  identique au rapport journalier), appelé par `src/app/(app)/balayage/rapport.ts` (`telechargerRapportBalayage` :
+  lecture des balayages et des fuites de la période, filtres équipe et secteur, extrait de plan de la période rendu
+  hors écran par `carte/capture.ts`). Période : titre « Rapport de recherche de fuites sur la période », identification
+  « Période » et « Jours balayés », tableau « Linéaire inspecté par jour », colonne « Détectée le », légende « sur la
+  période », fichier `rapport-balayage-<marché>-<du>-au-<au>`. Visas : titulaire et sigle du client lus dans la fiche du
+  marché.
 - **APK** : la route `/session` désactive le rafraîchissement automatique du jeton quand elle tourne dans la
   WebView (`window.ReactNativeWebView` ou « SuiviFuitesAPK » dans l'User-Agent) : c'est la tablette qui renouvelle
   la session (un jeton de rafraîchissement réutilisé déconnecterait les deux).
-- Vérifications : `node scripts/verifier-reseau.mjs` (30), `node scripts/verifier-rapport-journalier.mjs` (48).
+- Vérifications : `node scripts/verifier-reseau.mjs` (31), `node scripts/verifier-rapport-journalier.mjs` (64, période et
+  rubriques comprises).
 - Limites : légende du PDF de la carte en pastilles (pas en traits) ; rectangle et lasso essayés par événements
   simulés seulement ; jamais essayé sur la tablette ni contre la base de production.
 

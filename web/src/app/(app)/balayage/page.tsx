@@ -2,8 +2,11 @@
 
 // Journal des balayages (droit « balayage / lire ») : lignes de `v_balayage_journalier` par jour, équipe,
 // agent, zone et secteur ; filtres période / équipe / secteur ; totaux ; export Excel ou CSV via lib/export ;
-// rapport journalier de recherche de fuites (PDF avec extrait de plan, ou Excel) par jour ou par équipe.
+// rapport de recherche de fuites de la période Du–Au (un seul PDF avec extrait de plan, ou un seul Excel ; Du = Au :
+// rapport journalier, par jour ou par équipe), rubriques à cocher ; rapport d'un jour depuis sa ligne.
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ChoixRubriques } from '@/lib/export/ChoixRubriques';
+import { dernierChoix } from '@/lib/export/rubriques';
 import { messageErreur, nombre } from '@/lib/format';
 import { chargerEquipes, chargerJournal, estBaseSansReseau, messageReseau, type EquipeReseau } from '@/lib/reseau/donnees';
 import { filtrerJournal, grouperParJour, periodeParDefaut, totauxJournal, type FiltresJournal } from '@/lib/reseau/journal';
@@ -27,7 +30,10 @@ export default function PageBalayage() {
   const [baseAbsente, setBaseAbsente] = useState(false);
   const [exportEnCours, setExportEnCours] = useState('');
   const [modeRapport, setModeRapport] = useState<ModeRapport>('jour');
-  const [avecPlan, setAvecPlan] = useState(true);
+  const [rubriques, setRubriques] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (marcheId) setRubriques(dernierChoix('rapport_balayage', marcheId));
+  }, [marcheId]);
   const [rapportEnCours, setRapportEnCours] = useState('');
   const [infoRapport, setInfoRapport] = useState('');
 
@@ -108,17 +114,19 @@ export default function PageBalayage() {
     setExportEnCours('');
   }
 
-  // Rapport journalier de recherche de fuites (CPS art. II-21) : un fichier pour le jour, ou un par équipe.
-  async function rapportJournalier(jour: string, format: 'pdf' | 'xlsx') {
+  // Rapport de recherche de fuites (CPS art. II-21) : un seul fichier pour la période (Du = Au : la journée), ou,
+  // pour une journée, un fichier par équipe. Équipe et secteur choisis dans les filtres sont repris.
+  async function rapport(du: string, au: string, format: 'pdf' | 'xlsx', cle: string) {
     if (!marcheId) return;
-    setRapportEnCours(`${jour}|${format}`);
+    setRapportEnCours(`${cle}|${format}`);
     setErreur('');
     setInfoRapport('');
     try {
-      const { telechargerRapportJournalier } = await import('./rapport');
-      const r = await telechargerRapportJournalier(marcheId, jour, format, modeRapport, avecPlan);
+      const { telechargerRapportBalayage } = await import('./rapport');
+      const r = await telechargerRapportBalayage(marcheId, { du, au }, format, modeRapport, rubriques, { equipe: filtres.equipe, secteur: filtres.secteur });
+      const quand = du === au ? `du ${jourFr(du)}` : `du ${jourFr(du)} au ${jourFr(au)}`;
       setInfoRapport(
-        `${r.fichiers} rapport${r.fichiers > 1 ? 's' : ''} du ${jourFr(jour)} téléchargé${r.fichiers > 1 ? 's' : ''}.`
+        `${r.fichiers} rapport${r.fichiers > 1 ? 's' : ''} ${quand} téléchargé${r.fichiers > 1 ? 's' : ''}.`
         + (r.nonAttribuees ? ` ${r.nonAttribuees} fuite${r.nonAttribuees > 1 ? 's' : ''} sans équipe identifiable (secteur balayé par plusieurs équipes) : renseigner l'équipe de détection sur la fiche ou utiliser le rapport du jour.` : ''),
       );
     } catch (e) {
@@ -127,6 +135,9 @@ export default function PageBalayage() {
     setRapportEnCours('');
   }
   const peutRapport = peut('exports', 'lire');
+  const periodeDu = filtres.du || filtres.au;
+  const periodeAu = filtres.au || filtres.du;
+  const uneJournee = !!periodeDu && periodeDu === periodeAu;
 
   if (!peut('balayage', 'lire')) return <p className="carte">Votre compte ne voit pas le journal des balayages.</p>;
 
@@ -182,20 +193,37 @@ export default function PageBalayage() {
         )}
       </div>
 
-      {peutRapport && (
-        <div className="filtres">
-          <label>
-            Rapport journalier
-            <select value={modeRapport} onChange={(e) => setModeRapport(e.target.value as ModeRapport)}>
-              <option value="jour">Un rapport par jour (toutes équipes)</option>
-              <option value="equipe">Un rapport par équipe</option>
-            </select>
-          </label>
-          <label className="ligne">
-            <input type="checkbox" checked={avecPlan} onChange={(e) => setAvecPlan(e.target.checked)} />
-            Extrait de plan A4 dans le PDF
-          </label>
-        </div>
+      {peutRapport && marcheId && (
+        <section className="carte">
+          <h2>Rapport de recherche de fuites</h2>
+          <p className="discret">
+            {!periodeDu ? 'Choisissez la période (Du, au) pour le rapport.'
+              : uneJournee ? `Journée du ${jourFr(periodeDu)} : rapport journalier.`
+              : `Un seul rapport du ${jourFr(periodeDu)} au ${jourFr(periodeAu)} : toutes les zones balayées, le linéaire par jour et la carte de la période.`}
+            {(filtres.equipe || filtres.secteur) && ' Équipe et secteur choisis ci-dessus sont repris.'}
+          </p>
+          <div className="filtres">
+            {uneJournee && (
+              <label>
+                Fichiers
+                <select value={modeRapport} onChange={(e) => setModeRapport(e.target.value as ModeRapport)}>
+                  <option value="jour">Un rapport pour la journée (toutes équipes)</option>
+                  <option value="equipe">Un rapport par équipe</option>
+                </select>
+              </label>
+            )}
+            <span className="actions">
+              <button className="primaire" onClick={() => rapport(periodeDu, periodeAu, 'pdf', 'periode')} disabled={!periodeDu || !!rapportEnCours || !rubriques.size}>
+                {rapportEnCours === 'periode|pdf' ? 'PDF…' : 'Rapport PDF'}
+              </button>
+              <button onClick={() => rapport(periodeDu, periodeAu, 'xlsx', 'periode')} disabled={!periodeDu || !!rapportEnCours || !rubriques.size}>
+                {rapportEnCours === 'periode|xlsx' ? 'Excel…' : 'Rapport Excel'}
+              </button>
+            </span>
+          </div>
+          <ChoixRubriques document="rapport_balayage" marcheId={marcheId} valeur={rubriques} changer={setRubriques}
+            peutEnregistrer={peut('exports', 'creer')} desactive={!!rapportEnCours} />
+        </section>
       )}
       {infoRapport && <p className="carte succes">{infoRapport}</p>}
       {erreur && <p className="erreur">{erreur}</p>}
@@ -249,10 +277,10 @@ export default function PageBalayage() {
                           <td>
                             {i === 0 && (
                               <span className="actions">
-                                <button onClick={() => rapportJournalier(j.jour, 'pdf')} disabled={!!rapportEnCours}>
+                                <button onClick={() => rapport(j.jour, j.jour, 'pdf', j.jour)} disabled={!!rapportEnCours || !rubriques.size}>
                                   {rapportEnCours === `${j.jour}|pdf` ? 'PDF…' : 'PDF'}
                                 </button>
-                                <button onClick={() => rapportJournalier(j.jour, 'xlsx')} disabled={!!rapportEnCours}>
+                                <button onClick={() => rapport(j.jour, j.jour, 'xlsx', j.jour)} disabled={!!rapportEnCours || !rubriques.size}>
                                   {rapportEnCours === `${j.jour}|xlsx` ? 'Excel…' : 'Excel'}
                                 </button>
                               </span>

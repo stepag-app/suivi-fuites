@@ -12,6 +12,7 @@ import {
   type Contexte, type Filtres, type Jeu, type JeuId, type Periode,
 } from './jeux';
 import { construireSection, parcourir, texteCellule, type Colonne, type Ligne } from './modele';
+import { estModeleRubriques } from './rubriques';
 
 interface Modele {
   id: string; nom: string; jeu: JeuId; colonnes: string[]; regroupement: string;
@@ -91,7 +92,7 @@ export function PanneauExport({
       peutMontants: peut('quantites', 'lire'),
       logos: await chargerLogosEntete(fiche),
     });
-    setModeles((mo.data as Modele[] | null) ?? []);
+    setModeles(((mo.data as Modele[] | null) ?? []).filter((m) => !estModeleRubriques(m)));
     setZones((z.data as Choix[] | null) ?? []);
     setSecteurs((s.data as Choix[] | null) ?? []);
     setEquipes((e.data as Choix[] | null) ?? []);

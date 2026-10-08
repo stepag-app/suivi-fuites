@@ -17,7 +17,7 @@ import { libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { fonctionAbsente, getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import {
-  COLONNES_TDB, libellePeriode, periodePour, resumerUnites,
+  COLONNES_TDB, debutMarche, jourLong, libellePeriode, periodePour, resumerUnites,
   type ArticleTdb, type ChoixPeriode, type FuiteTdb, type LigneAttacheeTdb, type LotTdb, type Periode, type ResteAAttacher, type UniteResteTdb,
 } from "@/lib/ui/tableau-de-bord";
 import { BlocAttachements, type DonneesAttachements } from "./BlocAttachements";
@@ -33,10 +33,12 @@ interface Donnees {
   recentes: FuiteRecente[];
   anomalies: Anomalie[] | null;
   attachements: DonneesAttachements | null;
+  debut: string | null;
 }
 
 const CHOIX_PERIODE: [ChoixPeriode, string][] = [
-  ["mois", "Mois en cours"], ["semaine", "Semaine en cours"], ["mois_precedent", "Mois précédent"], ["libre", "Dates libres"],
+  ["mois", "Mois en cours"], ["semaine", "Semaine en cours"], ["mois_precedent", "Mois précédent"],
+  ["debut", "Depuis le début du marché"], ["libre", "Dates libres"],
 ];
 
 const toutLire = <T,>(requete: (de: number, a: number) => unknown) =>
@@ -54,6 +56,16 @@ async function lireResteAAttacher(marcheId: string): Promise<ResteAAttacher> {
   return resumerUnites(await toutLire<UniteResteTdb>((de, a) => sb.from("v_a_attacher").select("fuite_id, prix_id, reste, brouillon_id")
     .eq("marche_id", marcheId).neq("reste", 0).order("fuite_id").order("prix_id").range(de, a)));
 }
+// Début du marché : OS de commencement (date d'effet), sinon date de commencement de la fiche ; null en cas d'échec.
+async function lireCommencement(marcheId: string) {
+  const sb = getSupabase();
+  const { data: m } = await sb.from("marches").select("date_commencement, os_commencement_id").eq("id", marcheId).maybeSingle();
+  const fiche = m as { date_commencement: string | null; os_commencement_id: string | null } | null;
+  if (!fiche?.os_commencement_id) return { fiche, os: null };
+  const { data: os } = await sb.from("ordres_service").select("date_os, date_effet").eq("id", fiche.os_commencement_id).maybeSingle();
+  return { fiche, os: os as { date_os: string | null; date_effet: string | null } | null };
+}
+
 async function lire<T>(requete: unknown): Promise<T[]> {
   const { data, error } = await (requete as Reponse<T>);
   if (error) throw error;
@@ -88,7 +100,7 @@ export default function TableauDeBord() {
     setChargement(true);
     const sb = getSupabase();
     try {
-      const [fuites, recentes, anomalies, lots, articles, lignes, aAttacher] = await Promise.all([
+      const [fuites, recentes, anomalies, lots, articles, lignes, aAttacher, commencement] = await Promise.all([
         toutLire<FuiteTdb>((de, a) => sb.from("v_fuites").select(COLONNES_TDB)
           .eq("marche_id", marcheId).order("numero", { ascending: false }).range(de, a)),
         lire<FuiteRecente>(sb.from("v_fuites").select(`${COLONNES_TDB}, reference_srm, adresse, detectee_par`)
@@ -108,11 +120,13 @@ export default function TableauDeBord() {
             .eq("marche_id", marcheId).eq("attachement_statut", "arrete").order("id").range(de, a))
           : null,
         voirAttachements ? lireResteAAttacher(marcheId) : null,
+        lireCommencement(marcheId).catch(() => ({ fiche: null, os: null })),
       ]);
       if (demande !== derniereDemande.current) return;
       setDonnees({
         marcheId, maintenant: new Date(), fuites, recentes, anomalies,
         attachements: lots && articles && lignes && aAttacher ? { lots, articles, lignes, aAttacher } : null,
+        debut: debutMarche(commencement.fiche, commencement.os, fuites),
       });
     } catch (e) {
       if (demande !== derniereDemande.current) return;
@@ -126,7 +140,8 @@ export default function TableauDeBord() {
   }, [charger]);
 
   const maintenant = donnees?.maintenant;
-  const periode = useMemo(() => periodePour(choix, maintenant, libre), [choix, maintenant, libre]);
+  const debut = donnees?.debut;
+  const periode = useMemo(() => periodePour(choix, maintenant, libre, debut), [choix, maintenant, libre, debut]);
 
   function choisirPeriode(c: ChoixPeriode) {
     if (c === "libre" && !libre.du && !libre.au) setLibre(periode);
@@ -135,7 +150,7 @@ export default function TableauDeBord() {
 
   if (!lireFuites) return <Vide>Votre compte n&apos;a pas accès aux fuites de ce marché.</Vide>;
 
-  const titrePeriode = libellePeriode(periode);
+  const titrePeriode = choix === "debut" ? `depuis le début du marché (${jourLong(periode.du)})` : libellePeriode(periode);
   const prenom = profil?.nom_complet?.split(/\s+/)[0] ?? "";
   const fuites = donnees?.fuites;
 
@@ -157,7 +172,7 @@ export default function TableauDeBord() {
 
           <div className="flex flex-wrap items-center gap-2">
             <Select value={choix} onValueChange={(v) => choisirPeriode(v as ChoixPeriode)}>
-              <SelectTrigger className="w-44">
+              <SelectTrigger className="w-56">
                 <CalendarRange className="text-muted-foreground" />
                 <SelectValue placeholder="Période" />
               </SelectTrigger>
@@ -217,7 +232,7 @@ export default function TableauDeBord() {
           <>
             <TabsContent value="ensemble" className="flex flex-col gap-4">
               <Synthese fuites={fuites} anomalies={donnees.anomalies} maintenant={donnees.maintenant}
-                periode={periode} titrePeriode={titrePeriode} seuilH={libelles.delaiReparationH} />
+                periode={periode} titrePeriode={titrePeriode} seuilH={libelles.delaiReparationH} comparer={choix !== "debut"} />
             </TabsContent>
             <TabsContent value="secteurs">
               <TableauGroupes fuites={fuites} periode={periode} titrePeriode={titrePeriode} />

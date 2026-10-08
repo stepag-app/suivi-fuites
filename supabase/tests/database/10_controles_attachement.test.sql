@@ -210,9 +210,9 @@ select ok(exists (select 1 from journal
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select throws_ok($$ update reparation_pieces set quantite = 3 where id = 'aaaaaaaa-6666-0000-0000-000000000001' $$,
   '23514', 'Pièce remplacée ou retirée : elle ne se modifie plus', 'réparateur : sa pièce remplacée est figée');
-select throws_ok($$ update reparation_pieces set etat = 'retiree', motif_modification = 'Pas posé'
-                     where id = 'aaaaaaaa-6666-0000-0000-000000000003' $$,
-  '42501', null, 'réparateur : ne retire pas une correction du bureau');
+-- R7 (chantier v2) : la correction du bureau est invisible du réparateur, il ne peut donc pas la retirer.
+select is((select count(*) from reparation_pieces where id = 'aaaaaaaa-6666-0000-0000-000000000003'), 0::bigint,
+  'réparateur : ne voit pas (donc ne retire pas) une correction du bureau');
 select throws_ok($$ insert into reparation_pieces (marche_id, reparation_id, produit_id, quantite, remplace_piece_id, motif_modification) values
   ('aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-2222-0000-0000-000000000001', 55002, 1,
    'aaaaaaaa-6666-0000-0000-000000000003', 'Collier et non robinet') $$,
@@ -296,8 +296,8 @@ select ok((select reloptions @> array['security_invoker=true'] from pg_class whe
   'v_pieces_reelles : droits de l''utilisateur (security_invoker)');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
 select results_eq($$ select (select count(*) from v_pieces_reelles), (select count(*) from reparation_pieces where etat = 'posee') $$,
-  $$ values (7::bigint, 7::bigint) $$,
-  'détection : lit l''inventaire réel comme les pièces (mêmes droits de lecture)');
+  $$ values (4::bigint, 4::bigint) $$,
+  'détection : lit l''inventaire réel comme les pièces, sans les corrections du bureau (R7)');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000f", "role": "authenticated"}', true);
 select results_eq($$ select (select count(*) from v_pieces_reelles), (select count(*) from reparation_pieces) $$,
   $$ values (0::bigint, 0::bigint) $$,

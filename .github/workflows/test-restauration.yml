@@ -1,17 +1,22 @@
 name: Test de restauration
 
-# Vérifie que la dernière sauvegarde nocturne (workflow sauvegarde-base.yml) se restaure vraiment :
-# téléchargement de l'artefact chiffré, déchiffrement, restauration dans une base Supabase locale
-# et vierge créée dans la CI, puis contrôle des tables et des nombres de lignes.
+# Vérifie qu'une sauvegarde se restaure vraiment : téléchargement de l'archive chiffrée, déchiffrement,
+# restauration dans une base Supabase locale et vierge créée dans la CI, puis contrôle des tables, des
+# nombres de lignes, du déclencheur de création de profil et des règles de storage.objects. Aucun
+# contournement : toute table non restaurable, tout écart de lignes, tout objet manquant fait échouer le test.
 #
-# Déclencheurs : chaque lundi à 04:07 UTC (après la sauvegarde de 02:17), à la demande (Actions >
-# Test de restauration > Run workflow) et sur une PR qui modifie ce fichier.
+# Déclencheurs :
+#  * chaque lundi à 04:07 UTC (après la sauvegarde de 02:17) : dernière sauvegarde réussie de main ;
+#  * à la demande (Actions > Test de restauration > Run workflow) : idem, ou l'exécution de
+#    « Sauvegarde de la base » dont on donne le numéro ;
+#  * sur une PR qui modifie les workflows de sauvegarde ou outils/sauvegarde/ : une sauvegarde COMPLÈTE est
+#    d'abord réalisée (copie R2 comprise, c'est une vraie sauvegarde), puis restaurée.
 #
 # Sécurité :
-#  * aucune connexion au projet Supabase de production : pas de « supabase link », ni
-#    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seul l'artefact de sauvegarde est lu ;
-#  * secret utilisé : SAUVEGARDE_PASSPHRASE (le même que pour la sauvegarde), transmis à gpg par
-#    l'entrée standard, jamais en argument de commande ;
+#  * aucune connexion de ce job au projet Supabase de production : pas de « supabase link », ni
+#    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seuls l'artefact de sauvegarde et la copie R2 sont lus ;
+#  * secrets utilisés : SAUVEGARDE_PASSPHRASE (transmise à gpg par l'entrée standard, jamais en argument) et
+#    les clés R2 (lecture de la copie pour comparer son empreinte) ;
 #  * aucune donnée affichée : journaux et résumé ne montrent que des noms de tables, des nombres de
 #    lignes et des messages d'erreur dont les valeurs sont masquées ; les fichiers déchiffrés ne sont
 #    jamais republiés et sont effacés en fin de job, même en cas d'échec.
@@ -19,31 +24,24 @@ name: Test de restauration
 # Méthode : pile Supabase locale (« supabase start ») dans un dossier temporaire sans migrations.
 # Même image PostgreSQL 17 que la production, schémas auth et storage créés par les vrais services
 # GoTrue et Storage, rôles anon / authenticated / service_role, PostGIS ; les autres services sont
-# exclus. Restauration avec le psql de l'image, ON_ERROR_STOP=1, une transaction par fichier :
-# schema.sql, puis donnees_public.sql, puis donnees_auth.sql.
-#
-# Exceptions tolérées, et pourquoi :
-#  1. donnees_public.sql contient déjà les comptes : « supabase db dump --data-only » sans « -s »
-#     exporte aussi les données des schémas auth et storage. Charger ensuite donnees_auth.sql tel
-#     quel échouerait sur des doublons de clés. Les tables auth qu'il contient sont donc vidées dans
-#     la même transaction juste avant (mode replica : aucune cascade vers public), puis rechargées :
-#     les deux fichiers sont ainsi contrôlés.
-#  2. Un bloc COPY VIDE visant une table absente de la pile locale ou interdite en écriture au rôle
-#     postgres est retiré avant chargement, avec un avertissement. Cas constaté :
-#     storage.buckets_vectors et storage.vector_indexes (tables internes des « vector buckets »,
-#     « permission denied » pour postgres ; le guide de migration de Supabase les exclut lui-même
-#     des exports). Un bloc NON vide dans ce cas fait échouer le test.
-# Avertissements non bloquants : déclencheur applicatif de auth.users et politiques de
-# storage.objects absents après restauration (ils ne sont pas dans schema.sql, car les schémas auth
-# et storage sont exclus du dump) : à recréer depuis les migrations après une vraie restauration.
+# exclus. La restauration est faite par outils/sauvegarde/restaurer.sh, le MÊME script que celui de la
+# procédure manuelle (supabase/README.md) : schema.sql, donnees.sql, puis complement.sql, une transaction
+# par fichier, ON_ERROR_STOP=1.
 
 on:
   schedule:
     - cron: '7 4 * * 1'
   workflow_dispatch:
+    inputs:
+      sauvegarde_run_id:
+        description: "Numéro d'une exécution de « Sauvegarde de la base » à restaurer (vide : la dernière réussie sur main)"
+        required: false
+        type: string
   pull_request:
     paths:
       - '.github/workflows/test-restauration.yml'
+      - '.github/workflows/sauvegarde-base.yml'
+      - 'outils/sauvegarde/**'
 
 permissions:
   contents: read
@@ -54,13 +52,23 @@ defaults:
     shell: bash
 
 jobs:
+  sauvegarde:
+    name: Sauvegarde préalable (PR seulement)
+    if: github.event_name == 'pull_request'
+    uses: ./.github/workflows/sauvegarde-base.yml
+    secrets: inherit
+
   restauration:
-    name: Restaurer et contrôler la dernière sauvegarde
+    name: Restaurer et contrôler la sauvegarde
+    needs: sauvegarde
+    if: ${{ !cancelled() && (needs.sauvegarde.result == 'success' || needs.sauvegarde.result == 'skipped') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Préparer les outils
         run: |
           cat > "$RUNNER_TEMP/outils.sh" <<'OUTILS'
@@ -70,31 +78,13 @@ jobs:
           F="$R/fichiers"                 # fichiers SQL déchiffrés
 
           # psql de l'image Supabase, exécuté dans le conteneur de la base locale.
+          commande_psql() {
+            echo "docker exec -i $BASE_CONTENEUR psql -h 127.0.0.1 -p 5432 -U postgres -d postgres"
+          }
           psql_pile() {
             docker exec -i "$BASE_CONTENEUR" \
               psql -h 127.0.0.1 -p 5432 -U postgres -d postgres -X -q \
                    -v ON_ERROR_STOP=1 -v VERBOSITY=terse -v SHOW_CONTEXT=never "$@"
-          }
-
-          # Masque les valeurs que PostgreSQL cite dans certains messages d'erreur.
-          masquer() {
-            sed -E -e 's/value "[^"]*"/value "<masqué>"/g' -e 's/: "[^"]*"$/: "<masqué>"/' \
-                   -e 's/\([^)]*\)=\([^)]*\)/(<masqué>)=(<masqué>)/g'
-          }
-
-          # Charge le SQL lu sur l'entrée standard en une transaction, arrêt à la première erreur.
-          charger() {
-            local libelle="$1" journal
-            journal="$(mktemp)"
-            if psql_pile -1 -f - > /dev/null 2> "$journal"; then
-              rm -f "$journal"
-              echo "$libelle : restauré sans erreur."
-            else
-              echo "::error::$libelle : la restauration a échoué (ON_ERROR_STOP=1)."
-              grep -iE 'error|fatal' "$journal" | masquer | head -n 5
-              rm -f "$journal"
-              return 1
-            fi
           }
 
           # « schéma<TAB>table<TAB>lignes » pour chaque bloc COPY d'un fichier de données.
@@ -102,30 +92,6 @@ jobs:
             awk '
               dans { if ($0 == "\\.") { print s "\t" t "\t" n; dans = 0 } else n++; next }
               /^COPY "[^"]+"\."[^"]+" .*FROM stdin;$/ { split($0, p, "\""); s = p[2]; t = p[4]; n = 0; dans = 1 }
-            ' "$1"
-          }
-
-          # Tables de la base locale où le rôle postgres peut écrire (« schéma.table »).
-          tables_inscriptibles() {
-            psql_pile -At -c "select n.nspname || '.' || c.relname from pg_class c join pg_namespace n on n.oid = c.relnamespace where c.relkind in ('r', 'p') and has_table_privilege(c.oid, 'INSERT')"
-          }
-
-          # Copie $1 dans $2 sans les blocs COPY vides qui visent une table absente ou interdite en
-          # écriture (exception 2 de l'en-tête). $3 : liste des tables inscriptibles.
-          filtrer() {
-            awk -v existantes="$3" -v dest="$2" '
-              BEGIN { while ((getline l < existantes) > 0) ok[l] = 1 }
-              attente != "" {
-                if ($0 == "\\.") { print "::warning::Bloc COPY vide ignoré (table absente ou interdite en écriture au rôle postgres) : " cle; attente = ""; next }
-                print attente > dest; attente = ""; dans = 1
-              }
-              dans { print > dest; if ($0 == "\\.") dans = 0; next }
-              /^COPY "[^"]+"\."[^"]+" .*FROM stdin;$/ {
-                split($0, p, "\""); cle = p[2] "." p[4]
-                if (!(cle in ok)) { attente = $0; next }
-                dans = 1
-              }
-              { print > dest }
             ' "$1"
           }
 
@@ -165,8 +131,21 @@ jobs:
           }
           OUTILS
 
-      - name: Trouver la dernière sauvegarde réussie
+      - name: Trouver la sauvegarde à restaurer
+        env:
+          RUN_DEMANDE: ${{ inputs.sauvegarde_run_id }}
         run: |
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            echo "Sauvegarde préalable de cette exécution (PR) : exécution $GITHUB_RUN_ID."
+            echo "SAUVEGARDE_RUN_ID=$GITHUB_RUN_ID" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          if [ -n "$RUN_DEMANDE" ]; then
+            if ! [[ "$RUN_DEMANDE" =~ ^[0-9]+$ ]]; then echo "::error::Numéro d'exécution invalide."; exit 1; fi
+            echo "Exécution demandée : $RUN_DEMANDE."
+            echo "SAUVEGARDE_RUN_ID=$RUN_DEMANDE" >> "$GITHUB_ENV"
+            exit 0
+          fi
           ligne="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow sauvegarde-base.yml --branch main \
                      --status success --limit 1 --json databaseId,createdAt \
                      --jq '.[] | "\(.databaseId) \(.createdAt)"')"
@@ -201,8 +180,29 @@ jobs:
             date_sauvegarde="$nom"
           fi
           echo "SAUVEGARDE_ARCHIVE=${archives[0]}" >> "$GITHUB_ENV"
+          echo "SAUVEGARDE_NOM=$nom" >> "$GITHUB_ENV"
           echo "SAUVEGARDE_DATE=$date_sauvegarde" >> "$GITHUB_ENV"
           echo "Archive $nom ($(stat -c %s "${archives[0]}") octets) : sauvegarde du $date_sauvegarde."
+
+      - name: Comparer avec la copie R2 (hors de GitHub)
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
+        run: |
+          source outils/sauvegarde/commun.sh
+          r2_config
+          local_sha="$(sha256sum "$SAUVEGARDE_ARCHIVE" | cut -d' ' -f1)"
+          if ! r2_sha="$(r2 s3 cp "s3://$R2_BUCKET/sauvegardes/base/$SAUVEGARDE_NOM" - --no-progress | sha256sum | cut -d' ' -f1)"; then
+            echo "::error::Copie R2 introuvable : sauvegardes/base/$SAUVEGARDE_NOM."
+            exit 1
+          fi
+          if [ "$local_sha" != "$r2_sha" ]; then
+            echo "::error::La copie R2 diffère de l'artefact GitHub (empreintes SHA-256 différentes)."
+            exit 1
+          fi
+          echo "Copie R2 identique à l'artefact GitHub (SHA-256)."
 
       - uses: supabase/setup-cli@v1
         with:
@@ -228,58 +228,28 @@ jobs:
             echo "::error::Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub."
             exit 1
           fi
-          mkdir -p "$F"
-          printf '%s' "$SAUVEGARDE_PASSPHRASE" \
-            | gpg --batch --quiet --no-symkey-cache --pinentry-mode loopback --passphrase-fd 0 \
-                  --decrypt "$SAUVEGARDE_ARCHIVE" \
-            | tar -xzf - -C "$F"
-          for f in schema.sql donnees_public.sql donnees_auth.sql; do
-            if [ ! -s "$F/$f" ]; then
-              echo "::error::Sauvegarde incomplète : $f absent ou vide."
-              exit 1
-            fi
-          done
+          bash outils/sauvegarde/restaurer.sh dechiffrer "$SAUVEGARDE_ARCHIVE" "$F"
           wc -c "$F"/*.sql
-          for f in donnees_public.sql donnees_auth.sql; do
-            echo "$f : blocs COPY par schéma"
-            blocs_copy "$F/$f" | cut -f1 | sort | uniq -c
-          done
+          echo "donnees.sql : blocs COPY par schéma"
+          blocs_copy "$F/donnees.sql" | cut -f1 | sort | uniq -c
 
-      - name: Restaurer le schéma (schema.sql)
+      - name: Restaurer schema.sql, donnees.sql puis complement.sql
         run: |
           source "$RUNNER_TEMP/outils.sh"
-          charger schema.sql < "$F/schema.sql"
-          tables_inscriptibles > "$R/tables-inscriptibles.txt"
+          RESTAURATION_PSQL="$(commande_psql)" bash outils/sauvegarde/restaurer.sh charger "$F"
 
-      - name: Restaurer donnees_public.sql et compter les lignes
+      - name: Compter les lignes de chaque table
         run: |
           source "$RUNNER_TEMP/outils.sh"
-          filtrer "$F/donnees_public.sql" "$R/public.sql" "$R/tables-inscriptibles.txt"
-          blocs_copy "$R/public.sql" > "$R/attendu-public.tsv"
-          charger donnees_public.sql < "$R/public.sql"
-          verifier "$R/attendu-public.tsv" > "$R/resultats-public.tsv"
-          echo "Lignes par table (donnees_public.sql) :"
-          comparer "$R/resultats-public.tsv"
-
-      - name: Restaurer donnees_auth.sql et compter les lignes
-        run: |
-          source "$RUNNER_TEMP/outils.sh"
-          filtrer "$F/donnees_auth.sql" "$R/auth.sql" "$R/tables-inscriptibles.txt"
-          blocs_copy "$R/auth.sql" > "$R/attendu-auth.tsv"
-          # Exception 1 de l'en-tête : vider d'abord les tables déjà chargées par donnees_public.sql.
-          {
-            echo 'SET session_replication_role = replica;'
-            while IFS=$'\t' read -r s t _; do printf 'DELETE FROM "%s"."%s";\n' "$s" "$t"; done < "$R/attendu-auth.tsv"
-            cat "$R/auth.sql"
-          } | charger donnees_auth.sql
-          verifier "$R/attendu-auth.tsv" > "$R/resultats-auth.tsv"
-          echo "Lignes par table (donnees_auth.sql) :"
-          comparer "$R/resultats-auth.tsv"
+          blocs_copy "$F/donnees.sql" > "$R/attendu.tsv"
+          verifier "$R/attendu.tsv" > "$R/resultats.tsv"
+          echo "Lignes par table (donnees.sql) :"
+          comparer "$R/resultats.tsv"
 
       - name: Contrôles finaux
         run: |
           source "$RUNNER_TEMP/outils.sh"
-          absentes="$(psql_pile -At -c "select string_agg(t, ', ') from unnest(array['public.marches', 'public.profils', 'public.affectations', 'public.zones', 'public.fuites', 'public.photos', 'public.reparations', 'public.prix', 'public.attachements', 'public.journal', 'auth.users']) as t where to_regclass(t) is null")"
+          absentes="$(psql_pile -At -c "select string_agg(t, ', ') from unnest(array['public.marches', 'public.profils', 'public.affectations', 'public.zones', 'public.fuites', 'public.photos', 'public.reparations', 'public.prix', 'public.attachements', 'public.journal', 'auth.users', 'storage.buckets', 'storage.objects']) as t where to_regclass(t) is null")"
           if [ -n "$absentes" ]; then
             echo "::error::Tables clés absentes après restauration : $absentes"
             exit 1
@@ -288,13 +258,24 @@ jobs:
           echo "Marchés : $marches ; comptes auth.users : $comptes"
           if [ "$marches" -lt 1 ]; then echo "::error::Aucun marché dans la base restaurée."; exit 1; fi
           if [ "$comptes" -lt 1 ]; then echo "::error::Aucun compte dans auth.users après restauration."; exit 1; fi
-          declencheurs="$(psql_pile -At -c "select count(*) from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid join pg_namespace n on n.oid = p.pronamespace where tg.tgrelid = 'auth.users'::regclass and not tg.tgisinternal and n.nspname <> 'auth'")"
-          if [ "$declencheurs" -eq 0 ]; then
-            echo "::warning::Aucun déclencheur applicatif sur auth.users après restauration : la création automatique du profil d'un nouveau compte (migration 20261004090100_noyau_droits.sql) n'est pas dans la sauvegarde. À recréer après une vraie restauration."
+          # Le complément (déclencheur de auth.users, règles de storage.objects) doit être revenu en entier.
+          attendus_decl="$(grep -c '^CREATE TRIGGER ' "$F/complement.sql" || true)"
+          attendues_pol="$(grep -c '^create policy ' "$F/complement.sql" || true)"
+          obtenus_decl="$(psql_pile -At -c "select count(*) from pg_trigger tg join pg_proc p on p.oid = tg.tgfoid join pg_namespace n on n.oid = p.pronamespace where tg.tgrelid = 'auth.users'::regclass and not tg.tgisinternal and n.nspname <> 'auth'")"
+          obtenues_pol="$(psql_pile -At -c "select count(*) from pg_policies where schemaname = 'storage' and tablename in ('objects', 'buckets')")"
+          echo "Déclencheurs applicatifs sur auth.users : $obtenus_decl (sauvegardés : $attendus_decl) ; règles de storage : $obtenues_pol (sauvegardées : $attendues_pol)"
+          if [ "$attendus_decl" -lt 1 ] || [ "$obtenus_decl" != "$attendus_decl" ]; then
+            echo "::error::Le déclencheur de création de profil (creer_profil_apres_inscription) manque dans la sauvegarde ou après restauration."
+            exit 1
           fi
-          politiques="$(psql_pile -At -c "select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects'")"
-          if [ "$politiques" -eq 0 ]; then
-            echo "::warning::Aucune politique sur storage.objects après restauration : celles des compartiments photos, evenements et logos (migrations 20261004090600, 20261004180100, 20261005120000) ne sont pas dans la sauvegarde. À recréer après une vraie restauration."
+          if [ "$attendues_pol" -lt 1 ] || [ "$obtenues_pol" != "$attendues_pol" ]; then
+            echo "::error::Les règles de storage.objects (photos, evenements, logos) manquent dans la sauvegarde ou après restauration."
+            exit 1
+          fi
+          nouveau="$(psql_pile -At -c "select count(*) from pg_trigger where tgrelid = 'auth.users'::regclass and tgname = 'creer_profil_apres_inscription'")"
+          if [ "$nouveau" != "1" ]; then
+            echo "::error::creer_profil_apres_inscription absent de auth.users après restauration."
+            exit 1
           fi
 
       - name: Résumé
@@ -303,13 +284,11 @@ jobs:
           {
             echo "## Test de restauration"
             echo
-            echo "Sauvegarde du $SAUVEGARDE_DATE"
+            echo "Sauvegarde du $SAUVEGARDE_DATE (copie R2 identique, déclencheur et règles de storage restaurés)"
             echo
             echo "| Table | Lignes |"
             echo "| --- | ---: |"
-            cat "$R/resultats-auth.tsv" "$R/resultats-public.tsv" \
-              | sort -t $'\t' -s -u -k1,1 \
-              | while IFS=$'\t' read -r table _ obtenu; do echo "| $table | $obtenu |"; done
+            while IFS=$'\t' read -r table _ obtenu; do echo "| $table | $obtenu |"; done < "$R/resultats.tsv"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Signaler une sauvegarde trop ancienne

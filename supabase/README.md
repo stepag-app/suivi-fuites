@@ -126,50 +126,111 @@ Les comptes des agents seront créés depuis le panneau web par une Edge Functio
 
 ## Sauvegarde et restauration
 
-Workflow `.github/workflows/sauvegarde-base.yml` : chaque nuit (02:17 UTC) et à la demande, export du
-schéma, des données `public` et des comptes `auth`, chiffré (AES-256) puis conservé **30 jours** en
-artefact GitHub. Une fois : créer le secret `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le
-gestionnaire de mots de passe, copie hors ligne ; jamais dans le dépôt ni dans le chat), puis lancer le
-workflow à la main pour valider la première sauvegarde.
+Workflow `.github/workflows/sauvegarde-base.yml` (scripts dans `outils/sauvegarde/`) : chaque nuit (02:17 UTC)
+et à la demande (Actions > Sauvegarde de la base > Run workflow), il exporte puis chiffre (AES-256) une archive
+`sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg` qui contient :
 
-**Test de restauration** (lot K, PR #27) : le workflow `.github/workflows/test-restauration.yml` tourne chaque
-lundi à 04:07 UTC, et à la demande (Actions > Test de restauration > Run workflow). Il prend la dernière
-sauvegarde réussie de `main`, la déchiffre avec `SAUVEGARDE_PASSPHRASE`, la restaure dans une base Supabase
-locale et vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la
-production), puis compare table par table les lignes de la sauvegarde à celles de la base restaurée.
-Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ; aucune donnée n'est
-affichée. Premier essai (2026-10-05) : 65 tables, 91 comparaisons, toutes égales.
+| Fichier | Contenu |
+|---|---|
+| `schema.sql` | structure : tables, fonctions, règles RLS (`supabase db dump`) |
+| `donnees.sql` | données de **tous** les schémas dumpés : `public`, comptes `auth`, enregistrements `storage` (`buckets`, `objects`) ; sans `storage.buckets_vectors` ni `storage.vector_indexes` (tables internes non restaurables, exclues par `-x`) |
+| `complement.sql` | ce que l'export ne peut pas voir, car il vit dans `auth` et `storage` : le déclencheur `creer_profil_apres_inscription` sur `auth.users` et les règles de `storage.objects` (photos, evenements, logos) ; généré depuis la base vivante par `outils/sauvegarde/generer-complement.sql` ; rejouable |
+| `migrations_appliquees.txt` | versions de migrations déjà appliquées (pour `supabase migration repair`) |
+| `LISEZMOI.txt` | rappel de l'ordre de restauration |
+
+L'archive est conservée **à deux endroits** (le secret `SAUVEGARDE_PASSPHRASE` n'est jamais copié) :
+1. **GitHub** : artefact `sauvegarde-base`, 30 jours ;
+2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-photos/sauvegardes/base/<archive>`, copie vérifiée par empreinte
+   SHA-256. Le workflow supprime lui-même les archives de plus de 30 jours (en gardant toujours au moins 7
+   archives récentes), parce que le jeton R2 (Object Read & Write) ne peut pas régler de règle de cycle de vie.
+
+**Fichiers de Supabase Storage (photos comprises)** : le même workflow copie dans R2, sous
+`sauvegardes/stockage-supabase/<compartiment>/<chemin>`, tout fichier encore stocké dans Supabase Storage
+(`photos`, `evenements`, `logos`), seulement s'il manque ou si sa taille diffère ; rien n'est jamais supprimé de R2,
+donc un fichier effacé de Supabase reste récupérable. Les photos prises depuis le lot N sont déjà dans R2
+(`photos.stockage = 'r2'`, préfixe racine du compartiment) : elles ne dépendent plus de Supabase. **Reste hors
+sauvegarde** : les photos R2 elles-mêmes (une panne ou une erreur de suppression sur R2 les perdrait) ; à traiter
+si un second emplacement est souhaité (compartiment R2 miroir, ou export vers le Drive du compte `stepag.app`).
+
+### Test de restauration
+
+Workflow `.github/workflows/test-restauration.yml` : chaque lundi à 04:07 UTC, à la demande (Actions > Test de
+restauration > Run workflow ; champ facultatif : numéro d'une exécution de « Sauvegarde de la base »), et sur toute
+PR qui modifie les workflows de sauvegarde ou `outils/sauvegarde/` (une sauvegarde complète est alors réalisée
+d'abord). Il déchiffre l'archive, vérifie que la copie R2 est identique à l'artefact GitHub, restaure avec
+`outils/sauvegarde/restaurer.sh` (le **même script** que la procédure manuelle) dans une base Supabase locale et
+vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la production), puis compare
+table par table les lignes de la sauvegarde à celles de la base restaurée et vérifie le retour du déclencheur et des
+règles de `storage.objects`. **Aucun contournement** : une table non restaurable, un écart de lignes ou un objet
+manquant font échouer le test. Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ;
+aucune donnée n'est affichée.
 
 Si le test échoue :
 - « aucune exécution réussie » ou « plus de 48 h » : la sauvegarde nocturne ne tourne plus ; vérifier
   Actions > Sauvegarde de la base, puis la relancer ;
+- « copie R2 introuvable » ou « diffère » : la copie hors de GitHub ne s'est pas faite ; lire l'étape
+  « Copie hors de GitHub (R2) » de la sauvegarde (secrets R2, jeton, compartiment) ;
 - échec du déchiffrement : `SAUVEGARDE_PASSPHRASE` ne correspond plus ;
 - échec de restauration ou écart de lignes : la sauvegarde n'est pas fiable ; relancer une sauvegarde puis
   le test, et corriger avant toute opération risquée sur la base.
 
-**Défauts de la sauvegarde actuelle** (révélés par le test, **à corriger**, voir `docs/feuille-de-route.md`) :
-1. `donnees_public.sql` contient `storage.buckets_vectors` et `storage.vector_indexes`, non inscriptibles
-   (`permission denied`) : les exclure de l'export (`-x storage.buckets_vectors -x storage.vector_indexes`).
-2. `donnees_public.sql` contient déjà les comptes (`auth`) : `donnees_auth.sql` fait doublon et l'ancienne
-   procédure (auth puis public) échoue sur des doublons.
-3. `schema.sql` n'a ni le déclencheur `creer_profil_apres_inscription` (sur `auth.users`) ni les règles de
-   `storage.objects` (photos, evenements, logos) : une base restaurée ne crée plus de profil et refuse les
-   fichiers.
+### Restaurer pour de vrai
 
-Restauration réelle (sur un projet Supabase **vierge**, jamais sur la production sans décision explicite),
-en attendant la correction de l'export :
-```bash
-gpg --decrypt sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg | tar -xzf -     # schema.sql, donnees_*.sql
-psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f schema.sql
-# retirer d'abord de donnees_public.sql les deux blocs COPY vides storage.buckets_vectors / vector_indexes
-psql "$URL_BASE_NEUVE" -v ON_ERROR_STOP=1 --single-transaction -f donnees_public.sql   # comptes compris
-```
-Puis recréer le déclencheur `creer_profil_apres_inscription` (migration `20261004090100`) et les règles de
-`storage.objects` (migrations `20261004090600`, `20261004180100`, `20261005120000`), et marquer les
-migrations comme appliquées (`supabase migration repair --status applied …`) avant tout `db push`.
+Sur un projet Supabase **neuf et vierge**, jamais sur la production sans décision explicite (le script refuse une
+base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `psql` (version 17 de préférence),
+`aws` (AWS CLI) et `jq`.
 
-**Limites** : les photos (Storage) ne sont pas incluses ; 30 jours de rétention ; l'historique des migrations
-n'est pas sauvegardé.
+1. **Récupérer l'archive** : artefact GitHub (Actions > exécution de « Sauvegarde de la base » > `sauvegarde-base`),
+   ou R2 (copie hors de GitHub) :
+   ```bash
+   export AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… AWS_DEFAULT_REGION=auto   # clés R2 du gestionnaire de mots de passe
+   export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
+   R2="--endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com"
+   aws s3 ls $R2 s3://suivi-fuites-photos/sauvegardes/base/
+   aws s3 cp $R2 s3://suivi-fuites-photos/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
+   ```
+2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument) :
+   ```bash
+   read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE
+   bash outils/sauvegarde/restaurer.sh dechiffrer sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg ./restauration
+   ```
+3. **Créer le projet Supabase neuf** (même région, PostGIS disponible) et relever sa chaîne de connexion
+   « Session pooler » (Project Settings > Database), avec son mot de passe, dans `URL_BASE_NEUVE` :
+   ```bash
+   export URL_BASE_NEUVE='postgresql://postgres.<projet>:<mot de passe>@aws-0-<région>.pooler.supabase.com:5432/postgres'
+   bash outils/sauvegarde/restaurer.sh charger ./restauration     # schema.sql, donnees.sql, complement.sql
+   ```
+   Le script charge chaque fichier en une transaction (`ON_ERROR_STOP=1`) et n'affiche aucune donnée.
+4. **Migrations** : lier le dépôt au projet neuf puis déclarer les migrations comme appliquées, avant tout
+   `db push` :
+   ```bash
+   supabase link --project-ref <projet>
+   supabase migration repair --status applied $(cat restauration/migrations_appliquees.txt)
+   ```
+5. **Fichiers de Supabase Storage** (les lignes `storage.objects` sont revenues avec `donnees.sql`, pas les
+   fichiers) : télécharger puis renvoyer dans le projet neuf (clé de service du projet **neuf**) :
+   ```bash
+   aws s3 sync $R2 s3://suivi-fuites-photos/sauvegardes/stockage-supabase/ ./restauration/fichiers/
+   SUPABASE_URL=https://<projet>.supabase.co SUPABASE_SERVICE_ROLE_KEY=… \
+     bash outils/sauvegarde/restaurer-photos.sh ./restauration/fichiers
+   ```
+   Les photos stockées dans R2 (`stockage = 'r2'`) n'ont rien à restaurer : elles sont toujours dans le
+   compartiment.
+6. **Reconnecter l'application** : nouveau `SUPABASE_PROJECT_ID`, URL et clé anon dans les secrets GitHub et
+   les variables Vercel, puis « Déploiement de la base » (fonctions, secrets R2). Les comptes reviennent avec
+   leurs mots de passe ; les sessions ouvertes sont invalidées (nouveau secret JWT), les agents se reconnectent.
+
+### Réglage à faire une fois dans Cloudflare (facultatif)
+
+Le workflow supprime déjà les archives de plus de 30 jours. Pour doubler cette règle côté Cloudflare : R2 >
+`suivi-fuites-photos` > **Settings** > **Object lifecycle rules** > **Add rule** : nom `sauvegardes-base-30-jours`,
+préfixe `sauvegardes/base/`, action **Delete uploaded objects** après **30 jours**. Ne **pas** mettre de règle sur
+`sauvegardes/stockage-supabase/` (copie des fichiers, à garder) ni sur le reste du compartiment (photos).
+
+**Limites** : 30 jours de rétention des archives de base ; l'historique des migrations est seulement listé
+(`migrations_appliquees.txt`) ; la copie de Storage vers R2 est nocturne (un fichier déposé depuis la dernière
+nuit n'y est pas encore) ; les secrets de l'application (clés, fonctions Edge, variables Vercel) ne sont pas dans
+la sauvegarde : ils sont dans le gestionnaire de mots de passe d'Issam et dans les paramètres GitHub / Vercel.
 
 ## Application « standard » (étape A)
 

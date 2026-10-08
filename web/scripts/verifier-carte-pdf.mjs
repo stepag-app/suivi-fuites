@@ -28,7 +28,8 @@ registerHooks({
     return suivant(base ?? specifier, context);
   },
 });
-const { GABARIT, barreEchelle, centreImage, genererCartePdf, graduations, metresParMm } = await import('../src/lib/export/carte-pdf.ts');
+const { GABARIT, barreEchelle, capaciteLegende, centreImage, disposerCarte, genererCartePdf, graduations, metresParMm } = await import('../src/lib/export/carte-pdf.ts');
+const { CLASSES_DIAMETRE } = await import('../src/lib/reseau/palette.ts');
 
 const sortie = process.argv[2] ?? join(tmpdir(), 'verification-carte-pdf');
 mkdirSync(sortie, { recursive: true });
@@ -150,7 +151,31 @@ const CAS = [
   { nom: 'a3-paysage', format: 'a3', orientation: 'paysage', liste: false, dims: [420, 297] },
   { nom: 'a3-portrait-liste', format: 'a3', orientation: 'portrait', liste: true, dims: [297, 420] },
   { nom: 'a4-paysage-fond-indisponible', format: 'a4', orientation: 'paysage', liste: false, dims: [297, 210], fondIndisponible: true },
+  // Légende longue (statuts, contours, réseau par diamètre) : en portrait, elle passe en bande à part sur plusieurs colonnes.
+  { nom: 'a4-portrait-legende-longue', format: 'a4', orientation: 'portrait', liste: false, dims: [210, 297], reseau: true },
+  { nom: 'a3-portrait-legende-longue', format: 'a3', orientation: 'portrait', liste: false, dims: [297, 420], reseau: true },
+  { nom: 'a4-paysage-legende-longue', format: 'a4', orientation: 'paysage', liste: false, dims: [297, 210], reseau: true },
+  { nom: 'a3-paysage-legende-longue', format: 'a3', orientation: 'paysage', liste: false, dims: [420, 297], reseau: true },
+  // Rubriques décochées (X7) : légende et échelle seulement, sans graduations ; puis la carte seule.
+  { nom: 'a4-portrait-rubriques', format: 'a4', orientation: 'portrait', liste: false, dims: [210, 297], rubriques: ['legende', 'echelle'] },
+  { nom: 'a4-paysage-carte-seule', format: 'a4', orientation: 'paysage', liste: false, dims: [297, 210], rubriques: [] },
 ];
+const LEGENDE_RESEAU = [
+  ...CLASSES_DIAMETRE.map((c, i) => ({ libelle: `Diamètre ${c.libelle}`, fond: c.couleur, contour: c.couleur, nombre: 120 + i })),
+  { libelle: 'Diamètre inconnu', fond: '#8a97a5', contour: '#8a97a5', nombre: 7 },
+];
+
+console.log('\nlégende en portrait');
+verifier('libellés de diamètre sans « ≤ » ni « > » (police standard du PDF)', CLASSES_DIAMETRE.every((c) => !/[≤≥<>]/.test(c.libelle)), CLASSES_DIAMETRE.map((c) => c.libelle).join(' · '));
+const TOUTES = ['legende', 'echelle', 'coordonnees', 'informations'];
+verifier('légende courte : dans la bande', disposerCarte(9, TOUTES, false, 186, 200).legendeAPart === null && capaciteLegende(GABARIT.bandeCartouche) === 9);
+const longue = disposerCarte(15, TOUTES, false, 186, 200);
+verifier('légende longue en A4 portrait : bande à part, 3 colonnes', longue.legendeAPart?.colonnes === 3 && longue.legendeAPart.hauteur < 30
+  && longue.boites.join() === 'echelle,coordonnees,informations', JSON.stringify(longue));
+verifier('légende longue en A3 portrait : 4 colonnes', disposerCarte(15, TOUTES, false, 273, 330).legendeAPart?.colonnes === 4);
+verifier('légende longue en A4 paysage : sous la carte', disposerCarte(15, TOUTES, true, 273, 130).legendeAPart !== null && disposerCarte(9, TOUTES, true, 273, 130).legendeAPart === null);
+verifier('sans boîte : la carte prend toute la place', JSON.stringify(disposerCarte(9, [], true, 273, 140).carte) === JSON.stringify({ l: 273, h: 140 })
+  && JSON.stringify(disposerCarte(9, [], false, 186, 200).carte) === JSON.stringify({ l: 186, h: 200 }));
 
 for (const cas of CAS) {
   console.log(`\n${cas.nom}`);
@@ -160,12 +185,16 @@ for (const cas of CAS) {
   const debut = performance.now();
   const octets = await genererCartePdf({
     format: cas.format, orientation: cas.orientation, entete, filtres: entete.infos[2],
-    legende: STATUTS.map(([libelle, fond, contour]) => ({ libelle, fond, contour, nombre: placees.filter((f) => f.statut === libelle).length })),
+    legende: [
+      ...STATUTS.map(([libelle, fond, contour]) => ({ libelle, fond, contour, nombre: placees.filter((f) => f.statut === libelle).length })),
+      ...(cas.reseau ? LEGENDE_RESEAU : []),
+    ],
     alertes: { nombre: placees.filter((f) => f.alerte).length, couleur: '#b3261e' },
-    contours: { zones: false, secteurs: true, couleur: '#0b5d8a' },
+    contours: { zones: !!cas.reseau, secteurs: true, couleur: '#0b5d8a' },
     nombreSurCarte: placees.length, sansPosition: fuites.length - placees.length,
     liste: cas.liste ? fuites : null, libelleReference: 'Référence SRM',
     genereLe: new Date('2026-10-05T10:30:00Z'),
+    rubriques: cas.rubriques ? new Set(cas.rubriques) : undefined,
     capturer: async (l, h) => { cadre = { l, h }; image = await capturer(l, h); return image; },
   });
   const fichier = join(sortie, `carte-${cas.nom}.pdf`);
@@ -179,10 +208,15 @@ for (const cas of CAS) {
   verifier('cadre de la carte assez grand', cadre.h >= GABARIT.hauteurMinCarte && cadre.l > 150, `${cadre.l.toFixed(0)} × ${cadre.h.toFixed(0)} mm`);
   verifier('en-tête du marché et titre', texte.includes('STEPAG SARL') && texte.includes('Carte des fuites') && texte.includes('Marché n° 4500004453'));
   verifier('filtres', texte.includes('Filtres : secteur : Secteur 03'));
-  verifier('légende des statuts', texte.includes('Légende') && STATUTS.every(([l]) => texte.includes(l)) && texte.includes('En alerte'));
-  verifier('flèche du nord', /\(N\) Tj/.test(texte));
+  const a = (r) => !cas.rubriques || cas.rubriques.includes(r);
+  if (cas.rubriques) {
+    verifier('rubriques décochées absentes', (a('coordonnees') || !texte.includes('Coordonnées GPS')) && (a('informations') || !texte.includes('Édité le 05/10/2026'))
+      && (a('legende') || !texte.includes('Légende')) && (a('echelle') || !texte.includes('Échelle 1 :')) && (a('graduations') || !/\(-1\.9\d+°\)/.test(texte)));
+  }
+  if (a('legende')) verifier('légende des statuts', texte.includes('Légende') && STATUTS.every(([l]) => texte.includes(l)) && texte.includes('En alerte'));
+  if (a('echelle')) verifier('flèche du nord', /\(N\) Tj/.test(texte));
   verifier('attribution OpenStreetMap', texte.includes('© contributeurs OpenStreetMap'));
-  verifier('date d\'édition', texte.includes('Édité le 05/10/2026'));
+  if (a('informations')) verifier('date d\'édition', texte.includes('Édité le 05/10/2026'));
   verifier('pied « Page n / N »', texte.includes(`Page 1 / ${pages}`) && texte.includes(`Page ${pages} / ${pages}`));
 
   // Échelle : mètres par mm du PDF contre le calcul de MapLibre (mètres par pixel à la latitude du centre).
@@ -190,7 +224,7 @@ for (const cas of CAS) {
   const calcule = metresParMm(image, cadre.l);
   verifier('échelle juste', Math.abs(calcule / attendu - 1) < 0.003, `${calcule.toFixed(3)} m/mm, MapLibre ${attendu.toFixed(3)}`);
   const lue = Number((texte.match(/Échelle 1 : ([\d ]+)/)?.[1] ?? '').replace(/ /g, ''));
-  verifier('échelle numérique', Math.abs(lue / (attendu * 1000) - 1) < 0.01, `1 : ${lue}`);
+  if (a('echelle')) verifier('échelle numérique', Math.abs(lue / (attendu * 1000) - 1) < 0.01, `1 : ${lue}`);
   const barre = barreEchelle(calcule, GABARIT.barreEchelleMax);
   const pas = barre.metres / barre.segments;
   verifier('barre d\'échelle ronde', /^[125]0*$/.test(String(pas)) && barre.segments >= 2 && barre.segments <= 5
@@ -199,16 +233,21 @@ for (const cas of CAS) {
   // Coordonnées : centre (6 décimales) et coins (5 décimales), graduations dans le cadre.
   const c = centreImage(image);
   verifier('centre = centre demandé', Math.abs(c.latitude - CENTRE.lat) < 1e-6 && Math.abs(c.longitude - CENTRE.lon) < 1e-6);
-  verifier('coordonnées du centre et des coins', texte.includes(`${CENTRE.lat.toFixed(6)}, ${CENTRE.lon.toFixed(6)}`)
+  if (a('coordonnees')) verifier('coordonnées du centre et des coins', texte.includes(`${CENTRE.lat.toFixed(6)}, ${CENTRE.lon.toFixed(6)}`)
     && texte.includes(`${image.nord.toFixed(5)}, ${image.ouest.toFixed(5)}`) && texte.includes(`${image.sud.toFixed(5)}, ${image.est.toFixed(5)}`));
   const g = graduations(image.ouest, image.est, Math.floor(cadre.l / GABARIT.ecartGraduations));
   const etiquettes = g.valeurs.map((v) => `${v.toFixed(g.decimales)}°`).filter((t) => texte.includes(t));
-  verifier('graduations en longitude', etiquettes.length >= 2 && g.valeurs.every((v) => v >= image.ouest && v <= image.est), etiquettes.join(' '));
+  if (a('graduations')) verifier('graduations en longitude', etiquettes.length >= 2 && g.valeurs.every((v) => v >= image.ouest && v <= image.est), etiquettes.join(' '));
 
   if (cas.liste) {
     verifier('liste des fuites', texte.includes(`Fuites affichées (${fuites.length})`) && texte.includes('R-2026-0439') && texte.includes('Référence SRM'));
   }
   if (cas.fondIndisponible) verifier('mention du fond indisponible', texte.includes('Fond de carte indisponible'));
+  if (cas.reseau) {
+    verifier('légende du réseau complète', LEGENDE_RESEAU.every((e) => texte.includes(`${e.libelle} (${e.nombre})`)) && texte.includes('Contour de zone'),
+      'Diamètre jusqu\'à 63 mm …');
+    verifier('ni « ≤ » ni caractère perdu dans le PDF', !texte.includes('≤') && !texte.includes('d\'"'));
+  }
 
   if (pdftoppm) {
     execFileSync('pdftoppm', ['-r', '90', '-png', fichier, join(sortie, `carte-${cas.nom}`)]);

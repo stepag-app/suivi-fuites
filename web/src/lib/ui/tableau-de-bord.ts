@@ -50,11 +50,13 @@ export function semaineIso(jour: string): number {
   return Math.floor((jeudi.getTime() - debutAnnee) / 86_400_000 / 7) + 1;
 }
 
-export type ChoixPeriode = 'mois' | 'semaine' | 'mois_precedent' | 'libre';
+export type ChoixPeriode = 'mois' | 'semaine' | 'mois_precedent' | 'debut' | 'libre';
 export interface Periode { du: string; au: string }
 
-export function periodePour(choix: ChoixPeriode, maintenant = new Date(), libre?: Partial<Periode>): Periode {
+/** `debut` : jour de commencement du marché (OS, sinon première fuite) pour le choix « Depuis le début du marché ». */
+export function periodePour(choix: ChoixPeriode, maintenant = new Date(), libre?: Partial<Periode>, debut?: string | null): Periode {
   const auj = jourCasa(maintenant);
+  if (choix === 'debut') return { du: debut && debut <= auj ? debut : auj, au: auj };
   if (choix === 'semaine') {
     const l = lundiDe(auj);
     return { du: l, au: ajouterJours(l, 6) };
@@ -81,6 +83,19 @@ export function libellePeriode(p: Periode): string {
   if (p.du.endsWith('-01') && p.au === finDeMois(p.du)) return `${MOIS[Number(p.du.slice(5, 7)) - 1]} ${p.du.slice(0, 4)}`;
   if (p.du === p.au) return `le ${jourLong(p.du)}`;
   return `du ${jourLong(p.du)} au ${jourLong(p.au)}`;
+}
+
+/** Début du marché : date d'effet de l'OS de commencement, sinon date de commencement, sinon jour de la première fuite. */
+export function debutMarche(
+  marche: { date_commencement?: string | null } | null,
+  os: { date_os?: string | null; date_effet?: string | null } | null,
+  fuites: Pick<FuiteTdb, 'date_detection'>[],
+): string | null {
+  const date = os?.date_effet ?? os?.date_os ?? marche?.date_commencement;
+  if (date) return date.slice(0, 10);
+  let premiere: string | null = null;
+  for (const f of fuites) if (premiere == null || f.date_detection < premiere) premiere = f.date_detection;
+  return premiere ? jourCasa(premiere) : null;
 }
 
 const dans = (jour: string | null, p: Periode) => jour != null && jour >= p.du && jour <= p.au;

@@ -1,6 +1,7 @@
 // Rapport PDF par fuite (une ou plusieurs fuites dans un seul fichier, une fuite par page) :
-// en-tête du marché, identification et position GPS, réparations, réfections, quantités du
-// bordereau (si le compte a le droit « quantités / lire »), photos groupées par type, visas.
+// en-tête du marché, identification et position GPS, réparations, réfections, photos groupées par
+// type, visas. Rubriques à cocher avant l'export (rubriques.ts) ; par défaut sans les articles ni les
+// prix du bordereau (rubrique « quantités », réservée au droit « quantités / lire », décochée).
 //
 // Fabriqué dans le navigateur comme les autres exports (jsPDF + autotable chargés à la
 // demande). Les photos sont réduites en JPEG avant insertion : le PDF reste léger et sert
@@ -15,6 +16,7 @@ import { getSupabase } from '@/lib/supabase';
 import type { Marche, Quantite, Refection, Reparation, VFuite } from '@/lib/types';
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
 import { construireEntete, type Contexte } from './jeux';
+import { choixEffectif, dernierChoix } from './rubriques';
 import { nomFichierSur, telecharger, texteDate, texteNombre, textesArabesEntete } from './modele';
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
@@ -290,14 +292,17 @@ function paires(champs: [string, string | null | undefined, boolean?][]): Cellul
 // ---------------------------------------------------------------------------
 // Génération
 // ---------------------------------------------------------------------------
-export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, progres?: Progression): Promise<Blob> {
+export async function genererRapports(
+  fiches: FicheRapport[], ctx: Contexte, progres?: Progression, rubriques: Set<string> = choixEffectif('rapport_fuite', dernierChoix('rapport_fuite', String(ctx.marche.id ?? '')), { quantites: ctx.peutMontants }),
+): Promise<Blob> {
+  const avec = (r: string) => rubriques.has(r);
   const [{ jsPDF }, { default: autoTable }, { dessinerEntete, BLEU, GRIS_TRAIT, FOND_GROUPE }] = await Promise.all([
     import('jspdf'), import('jspdf-autotable'), import('./pdf'),
   ]);
   const marche = ctx.marche as unknown as Marche;
   const libelles = libellesMarche(marche);
   const genereLe = new Date();
-  const totalPhotos = fiches.reduce((s, f) => s + f.photos.length, 0);
+  const totalPhotos = avec('photos') ? fiches.reduce((s, f) => s + f.photos.length, 0) : 0;
   const totalEtapes = totalPhotos + fiches.length;
   let fait = 0;
   const avancer = (etape: string) => progres?.(++fait, totalEtapes, etape);
@@ -320,7 +325,7 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
   const utile = largeur - 2 * marge;
   const bas = hauteur - 14;
   const piedParPage = new Map<number, string>();
-  const visas = ctx.regles?.visas?.filter((v) => v.trim()) ?? [];
+  const visas = avec('visas') ? ctx.regles?.visas?.filter((v) => v.trim()) ?? [] : [];
 
   const titreSection = (titre: string, y: number, besoin = 25) => {
     if (y + besoin > bas) { pdf.addPage(); y = marge + 4; }
@@ -399,7 +404,7 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
     const premierePage = pdf.getNumberOfPages();
     const pied = `Rapport de la fuite N° ${f.numero}${marche.code ? ` · marché ${marche.code}` : ''}`;
     progres?.(fait, totalEtapes, `Fuite N° ${f.numero} : photos`);
-    const images = await imagesDesPhotos(fiche.photos, () => avancer(`Fuite N° ${f.numero} : photos`));
+    const images = avec('photos') ? await imagesDesPhotos(fiche.photos, () => avancer(`Fuite N° ${f.numero} : photos`)) : new Map<string, ImagePhoto | null>();
 
     // En-tête du marché
     const entete = construireEntete(ctx, `Rapport de fuite N° ${f.numero}`, [
@@ -407,8 +412,9 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
     ].filter(Boolean));
     let y = dessinerEntete(pdf, entete, imagesEntete, marge);
 
-    // Identification
-    y = titreSection('Identification', y);
+    // Identification (rubriques « identification », « jalons », « position », « observations »)
+    const blocIdentification = avec('identification') || avec('jalons') || avec('position') || avec('observations');
+    if (blocIdentification) y = titreSection('Identification', y);
     const lat = f.latitude;
     const lon = f.longitude;
     const position = coord(lat, lon);
@@ -420,7 +426,8 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
     const itineraire = lienItineraire(lat, lon);
     const texteItineraire = 'Itinéraire vers la fuite (Google Maps) ›';
     if (itineraire) liens.set(texteItineraire, itineraire);
-    y = tableauPaires(paires([
+    const id = avec('identification');
+    const champsIdentification: [string, string | null | undefined, boolean?][] = [
       ['N° de la fuite', String(f.numero)],
       [libelles.reference, f.reference_srm ?? '—'],
       ['Origine', f.origine === 'srm' ? `Signalée par ${libelles.sigle}` : 'Détection de l\'entreprise'],
@@ -447,17 +454,22 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
       ['Motif sans réparation', f.motif_sans_reparation, !f.motif_sans_reparation_ar],
       ['Motif (arabe)', f.motif_sans_reparation ? f.motif_sans_reparation_ar : null],
       ['Observation', f.observation, true],
-    ]), y, liens);
+    ];
+    const JALONS = new Set([`Communiquée à ${libelles.sigle}`, 'Avis avant terrassement', `Validation ${libelles.sigle}`]);
+    const POSITION = new Set(['Coordonnées GPS (WGS84)', 'Itinéraire', 'Précision GPS']);
+    const garder = ([libelle]: [string, string | null | undefined, boolean?]) => libelle === 'N° de la fuite'
+      || (JALONS.has(libelle) ? avec('jalons') : POSITION.has(libelle) ? avec('position') : libelle === 'Observation' ? avec('observations') : id);
+    if (blocIdentification) y = tableauPaires(paires(champsIdentification.filter(garder)), y, liens);
 
     // Réparations
-    y = titreSection('Réparations', y);
-    if (!fiche.reparations.length) {
+    if (avec('reparations')) y = titreSection('Réparations', y);
+    if (avec('reparations') && !fiche.reparations.length) {
       pdf.setFont('helvetica', 'italic');
       pdf.setFontSize(TAILLE);
       pdf.text('Aucune réparation saisie.', marge, y + 2);
       y += 8;
     }
-    fiche.reparations.forEach((r, i) => {
+    (avec('reparations') ? fiche.reparations : []).forEach((r, i) => {
       if (y + 30 > bas) { pdf.addPage(); y = marge + 4; }
       pdf.setFont('helvetica', 'bold');
       pdf.setFontSize(9);
@@ -467,8 +479,8 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
         ? `${nb(r.fouille_longueur_m)} × ${nb(r.fouille_largeur_m)} × ${nb(r.fouille_profondeur_m)} m = ${nb(r.volume_m3, 3)} m³`
         : null;
       y = tableauPaires(paires([
-        ['Équipe', r.equipe ?? '—'],
-        ['Chef d\'équipe', r.chef ?? '—'],
+        ['Équipe', avec('equipes') ? r.equipe ?? '—' : null],
+        ['Chef d\'équipe', avec('equipes') ? r.chef ?? '—' : null],
         ['Ouvrage', r.ouvrage ? OUVRAGES[r.ouvrage] ?? r.ouvrage : '—'],
         ['Matériau', r.materiau ? MATERIAUX[r.materiau] ?? r.materiau : '—'],
         ['Diamètre', r.diametre_mm ? `Ø ${r.diametre_mm} mm` : '—'],
@@ -480,27 +492,29 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
         [`Représentant ${libelles.sigle}`, r.representant_srm],
         ['Motif', r.motif ? r.motif : null, !r.motifAr],
         ['Motif (arabe)', r.motifAr],
-        ['Ouvriers', r.ouvriers.length ? r.ouvriers.join(', ') : null, true],
-        ['Pièces posées', r.pieces.length ? r.pieces.map((p) => `${p.designation} : ${texteNombre(p.quantite, p.unite === 'u' ? 0 : 2)} ${p.unite}`).join(' ; ') : null, true],
-        ['Observation', r.observation, true],
+        ['Ouvriers', avec('equipes') && r.ouvriers.length ? r.ouvriers.join(', ') : null, true],
+        ['Pièces posées', avec('pieces') && r.pieces.length ? r.pieces.map((p) => `${p.designation} : ${texteNombre(p.quantite, p.unite === 'u' ? 0 : 2)} ${p.unite}`).join(' ; ') : null, true],
+        ['Observation', avec('observations') ? r.observation : null, true],
       ]), y);
     });
 
     // Réfections
-    if (fiche.refections.length) {
+    if (avec('refections') && fiche.refections.length) {
       y = titreSection('Réfections', y);
+      const colEquipe = avec('equipes');
+      const colObservation = avec('observations');
       autoTable(pdf, {
         ...styleTableau,
         startY: y,
-        head: [['Date', 'Résultat', 'Nature / motif', 'Nature / motif (arabe)', 'Dimensions', 'Équipe', 'Observation']],
+        head: [['Date', 'Résultat', 'Nature / motif', 'Nature / motif (arabe)', 'Dimensions', ...(colEquipe ? ['Équipe'] : []), ...(colObservation ? ['Observation'] : [])]],
         body: fiche.refections.map((r) => [
           texteDateIso(r.realisee_le),
           r.resultat === 'faite' ? 'Faite' : 'Non faite',
           r.resultat === 'faite' ? r.nature ?? '—' : r.motif ?? '—',
           (r.resultat === 'faite' ? r.natureAr : r.motifAr) ?? '',
           r.resultat === 'faite' ? `${nb(r.longueur_m)} × ${nb(r.largeur_m)} m = ${nb(r.surface_m2, 3)} m²` : '—',
-          r.equipe ?? '—',
-          r.observation ?? '',
+          ...(colEquipe ? [r.equipe ?? '—'] : []),
+          ...(colObservation ? [r.observation ?? ''] : []),
         ]),
         columnStyles: { 0: { cellWidth: 'wrap' }, 1: { cellWidth: 'wrap' }, 4: { cellWidth: 'wrap' } },
         didParseCell: (data) => hooksArabe.didParseCell(data as never),
@@ -509,8 +523,8 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
       y = finTableau() + 5;
     }
 
-    // Quantités du bordereau (droit « quantités / lire » seulement)
-    if (fiche.quantites?.length) {
+    // Articles et prix du bordereau : rubrique décochée par défaut, droit « quantités / lire » seulement
+    if (avec('quantites') && fiche.quantites?.length) {
       y = titreSection('Quantités et prix du bordereau', y);
       const total = fiche.quantites.reduce((s, l) => s + (Number(l.montant_ht_bordereau) || 0), 0);
       const dec = (u: string) => ctx.regles?.decimales?.[u] ?? (u === 'm3' ? 3 : u === 'u' ? 0 : 2);
@@ -535,7 +549,7 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
     }
 
     // Photos : grille continue, groupées par type (détection, avant, pendant, après, réfection)
-    if (fiche.photos.length) {
+    if (avec('photos') && fiche.photos.length) {
       const ecart = 4;
       const lCase = (utile - ecart * (PHOTOS_PAR_LIGNE - 1)) / PHOTOS_PAR_LIGNE;
       const hImage = lCase * 0.75;
@@ -616,17 +630,20 @@ export async function genererRapports(fiches: FicheRapport[], ctx: Contexte, pro
 }
 
 // Charge, fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).
+// Sans rubriques : dernier choix de l'appareil pour ce marché, sinon les rubriques par défaut (sans les prix).
 export async function telechargerRapports(
-  ids: string[], marcheId: string, peutMontants: boolean, progres?: Progression,
+  ids: string[], marcheId: string, peutMontants: boolean, progres?: Progression, rubriques?: Set<string>,
 ): Promise<{ octets: number; secondes: number; fuites: number }> {
   const debut = performance.now();
   progres?.(0, 1, 'Chargement des données');
+  const choix = choixEffectif('rapport_fuite', rubriques ?? dernierChoix('rapport_fuite', marcheId), { quantites: peutMontants });
+  const avecPrix = choix.has('quantites');
   const [ctx, fiches] = await Promise.all([
-    chargerContexteRapport(marcheId, peutMontants),
-    chargerFiches(ids, marcheId, peutMontants),
+    chargerContexteRapport(marcheId, avecPrix),
+    chargerFiches(ids, marcheId, avecPrix),
   ]);
   if (!fiches.length) throw new Error('Aucune fuite à imprimer.');
-  const blob = await genererRapports(fiches, ctx, progres);
+  const blob = await genererRapports(fiches, ctx, progres, choix);
   const code = String(ctx.marche.code ?? '');
   const date = new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
   const nom = fiches.length === 1

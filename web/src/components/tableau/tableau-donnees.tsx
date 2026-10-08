@@ -1,9 +1,17 @@
 "use client";
 
-import { type Table as TableInstance, flexRender } from "@tanstack/react-table";
+import { type RowData, type Table as TableInstance, flexRender } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+
+declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    /** Classes ajoutées à l'en-tête et aux cellules de la colonne (largeur, retour à la ligne). */
+    classe?: string;
+  }
+}
 
 /** Corps d'un tableau TanStack avec les composants shadcn (modèle « Tasks »). */
 export function TableauDonnees<T>({ table, vide = "Aucun résultat.", onClicLigne, classeLigne, className }: {
@@ -20,7 +28,7 @@ export function TableauDonnees<T>({ table, vide = "Aucun résultat.", onClicLign
         {table.getHeaderGroups().map((groupe) => (
           <TableRow key={groupe.id} className="hover:bg-transparent">
             {groupe.headers.map((h) => (
-              <TableHead key={h.id} colSpan={h.colSpan} className="h-11 font-medium text-muted-foreground">
+              <TableHead key={h.id} colSpan={h.colSpan} className={cn("h-11 font-medium text-muted-foreground", h.column.columnDef.meta?.classe)}>
                 {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
               </TableHead>
             ))}
@@ -37,7 +45,7 @@ export function TableauDonnees<T>({ table, vide = "Aucun résultat.", onClicLign
               onClick={onClicLigne ? () => onClicLigne(ligne.original) : undefined}
             >
               {ligne.getVisibleCells().map((cellule) => (
-                <TableCell key={cellule.id} className="py-3 align-middle">
+                <TableCell key={cellule.id} className={cn("py-3 align-middle", cellule.column.columnDef.meta?.classe)}>
                   {flexRender(cellule.column.columnDef.cell, cellule.getContext())}
                 </TableCell>
               ))}

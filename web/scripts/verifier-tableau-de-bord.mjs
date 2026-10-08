@@ -3,7 +3,7 @@
 // (Node 22.18 ou plus récent ; Node 22.6 à 22.17 : node --experimental-strip-types …)
 import assert from 'node:assert/strict';
 import {
-  activite, ajouterJours, graduations, jourCasa, libellePeriode, lundiDe, mediane, parGroupe, parSemaine, periodePour,
+  activite, ajouterJours, debutMarche, graduations, jourCasa, libellePeriode, lundiDe, mediane, parGroupe, parSemaine, periodePour,
   recapAttachements, repartitionStatuts, resumeAnomalies, resumeLots, resumerUnites, semaineIso, situation, trierGroupes,
 } from '../src/lib/ui/tableau-de-bord.ts';
 
@@ -53,6 +53,18 @@ ok('périodes : mois en cours, semaine, mois précédent, dates libres', () => {
   assert.deepEqual(periodePour('libre', MAINTENANT, {}), { du: '2026-10-01', au: '2026-10-31' });
   assert.equal(libellePeriode({ du: '2026-02-01', au: '2026-02-28' }), 'février 2026');
   assert.equal(libellePeriode({ du: '2026-10-05', au: '2026-10-11' }), 'du 05/10/2026 au 11/10/2026');
+});
+
+ok('période « depuis le début du marché » : OS, sinon date de commencement, sinon première fuite', () => {
+  assert.deepEqual(periodePour('debut', MAINTENANT, {}, '2026-03-02'), { du: '2026-03-02', au: '2026-10-05' });
+  assert.deepEqual(periodePour('debut', MAINTENANT, {}, null), { du: '2026-10-05', au: '2026-10-05' });
+  assert.deepEqual(periodePour('debut', MAINTENANT, {}, '2027-01-01'), { du: '2026-10-05', au: '2026-10-05' });
+  const fuites = [{ date_detection: '2026-05-10T23:30:00Z' }, { date_detection: '2026-06-01T08:00:00Z' }];
+  assert.equal(debutMarche({ date_commencement: '2026-04-01' }, { date_os: '2026-03-20', date_effet: '2026-03-25' }, fuites), '2026-03-25');
+  assert.equal(debutMarche({ date_commencement: '2026-04-01' }, { date_os: '2026-03-20', date_effet: null }, fuites), '2026-03-20');
+  assert.equal(debutMarche({ date_commencement: '2026-04-01' }, null, fuites), '2026-04-01');
+  assert.equal(debutMarche({ date_commencement: null }, null, fuites), '2026-05-11');
+  assert.equal(debutMarche(null, null, []), null);
 });
 
 ok('médiane', () => {

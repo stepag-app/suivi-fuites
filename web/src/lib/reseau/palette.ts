@@ -14,13 +14,14 @@ export const COULEUR_SELECTION = '#f2a900';
 export const COULEUR_NOEUD = '#1d2d3e';
 export const COULEUR_DIAMETRE_INCONNU = '#8a97a5';
 
-/** Classes de diamètre du contrat (§ 5) : borne haute incluse, couleurs du clair au foncé puis chaud. */
+/** Classes de diamètre du contrat (§ 5) : borne haute incluse, couleurs du clair au foncé puis chaud.
+ *  Libellés sans « ≤ » ni « > » : absents de la police standard de jsPDF (légende de la carte imprimée). */
 export const CLASSES_DIAMETRE: { libelle: string; max: number; couleur: string; largeur: number }[] = [
-  { libelle: '≤ 63 mm', max: 63, couleur: '#7cb342', largeur: 1.2 },
+  { libelle: 'jusqu\'à 63 mm', max: 63, couleur: '#7cb342', largeur: 1.2 },
   { libelle: '75 à 110 mm', max: 110, couleur: '#29a3e0', largeur: 1.7 },
   { libelle: '125 à 200 mm', max: 200, couleur: '#1e5aa8', largeur: 2.3 },
   { libelle: '250 à 400 mm', max: 400, couleur: '#ef6c00', largeur: 3 },
-  { libelle: '> 400 mm', max: Infinity, couleur: '#8e24aa', largeur: 4 },
+  { libelle: 'plus de 400 mm', max: Infinity, couleur: '#8e24aa', largeur: 4 },
 ];
 
 /** Indice de la classe de diamètre, -1 si le diamètre est inconnu ou nul. */

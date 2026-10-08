@@ -335,6 +335,59 @@ verifier('Excel : logos', Object.keys(x1.zip).filter((n) => n.startsWith('xl/med
 const x2 = await classeur('rapport-sans-fuite', g.rapports[1].journee, []);
 verifier('Excel sans fuite : R.A.S', x2.xml.includes('R.A.S : aucune fuite détectée ce jour'));
 
+// ---------------------------------------------------------------------------
+// 3. Période de plusieurs jours (lot C3) et rubriques à cocher (X7)
+// ---------------------------------------------------------------------------
+console.log('\nPériode (veille et jour)');
+const toutes = [...lignes, veille];
+const sp = rj.synthesePeriode(toutes, { du: VEILLE, au: JOUR });
+const lhp = sp.lignes.find((l) => l.secteur_id === 's-lh');
+verifier('période : un seul rapport, deux jours', rj.estPeriode(sp) && sp.date === VEILLE && sp.au === JOUR && sp.parJour?.length === 2,
+  sp.parJour?.map((j) => `${j.date} ${j.nb_troncons} tronçons`).join(' ; '));
+verifier('période : linéaires additionnés sur les jours', Math.abs(sp.totaux.lineaire_m - 5285.15) < 1e-9 && lhp.nb_troncons === 25,
+  `${sp.totaux.lineaire_m} m, secteur Haut ${lhp.nb_troncons} tronçons`);
+verifier('période : fuites de la vue additionnées jour après jour', lhp.nb_fuites === 4, `${lhp.nb_fuites}`);
+verifier('période : bornes inversées acceptées', rj.synthesePeriode(toutes, { du: JOUR, au: VEILLE }).au === JOUR);
+const sj = rj.synthesePeriode(toutes, { du: JOUR, au: JOUR });
+verifier('Du = Au : rapport journalier identique', !rj.estPeriode(sj) && JSON.stringify(sj) === JSON.stringify(rj.syntheseJournee(toutes, { date: JOUR })));
+const sansBalayage = lance(() => rj.synthesePeriode(toutes, { du: `${ANNEE - 5}-01-01`, au: `${ANNEE - 5}-01-31` }));
+verifier('période sans balayage : refus explicite', sansBalayage instanceof Error && /Aucun balayage/.test(sansBalayage.message), sansBalayage?.message);
+const fuitesPeriode = [...fuites.map((f) => ({ ...f, jour_detection: JOUR })), F({ numero: 99, reference_srm: '900-000-099', jour_detection: VEILLE, latitude: CENTRE.lat, longitude: CENTRE.lon })];
+const cp = rj.contenuRapportJournalier(ctx, sp, fuitesPeriode);
+verifier('période : identification « Période » et jours balayés, colonne de date', cp.periode && cp.avecDate
+  && cp.identification.some(([l, v]) => l === 'Période' && v.includes(rj.jourEnLettres(VEILLE)) && v.includes(rj.jourEnLettres(JOUR)))
+  && cp.identification.some(([l, v]) => l === 'Jours balayés' && v === '2') && cp.fuites[0].detectee === VEILLE.split('-').reverse().join('/'));
+verifier('période : nom de fichier', rj.nomFichierRapportJournalier(ctx, sp) === `rapport-balayage-ESSAI-${VEILLE}-au-${JOUR}`, rj.nomFichierRapportJournalier(ctx, sp));
+
+const rp = await fabriquer('rapport-periode', sp, fuitesPeriode, {
+  extrait: { capturer: async (l, h) => planFactice(Math.round((l * 96) / 25.4), Math.round((h * 96) / 25.4), 15) },
+});
+verifier('PDF période : titre, linéaire par jour, colonne de date', rp.texte.includes(rj.TITRE_RAPPORT_PERIODE) && rp.texte.includes('Linéaire inspecté par jour')
+  && rp.texte.includes('Détectée le') && rp.texte.includes('Total (2 jours)') && rp.texte.includes('5,285 km (premiers passages)'));
+verifier('PDF période : toutes les zones, carte de la période', rp.texte.includes('Zone 2 Essai') && rp.texte.includes('Zone 4 Essai')
+  && rp.texte.includes('Conduites inspectées sur la période') && rp.texte.includes('Fuites hors des secteurs balayés sur la période'));
+verifier('PDF période : pied « période du … au … »', rp.texte.includes(`période du ${VEILLE.split('-').reverse().join('/')} au ${JOUR.split('-').reverse().join('/')}`));
+
+const rr = await fabriquer('rapport-rubriques', sp, fuitesPeriode, {
+  rubriques: new Set(['identification', 'detail_jours']),
+  extrait: { capturer: async (l, h) => planFactice(Math.round((l * 96) / 25.4), Math.round((h * 96) / 25.4), 15) },
+});
+verifier('PDF rubriques : seulement identification et linéaire par jour', rr.pages === 1 && rr.texte.includes('Linéaire inspecté par jour')
+  && !rr.texte.includes('Canalisation prospectée') && !rr.texte.includes('COMMENTAIRE') && !rr.texte.includes('Nom, date et signature')
+  && !rr.texte.includes('Légende') && !rr.texte.includes('Linéaire inspecté par zone et secteur'), `${rr.pages} page(s)`);
+
+const xp = await (async () => {
+  const octets = await octetsDe(await rj.genererRapportJournalierXlsx(ctx, sp, fuitesPeriode));
+  writeFileSync(join(sortie, 'rapport-periode.xlsx'), octets);
+  const zip = unzipSync(octets);
+  return { xml: Object.entries(zip).filter(([n]) => n.endsWith('.xml')).map(([, v]) => strFromU8(v)).join('\n'), classeur: strFromU8(zip['xl/workbook.xml']) };
+})();
+verifier('Excel période : un seul classeur, linéaire par jour, date des fuites', [rj.TITRE_RAPPORT_PERIODE, 'Linéaire inspecté par jour', 'Détectée le', 'Période']
+  .every((t) => xp.xml.includes(t)) && xp.classeur.includes(`name="${VEILLE} au ${JOUR}"`));
+const xr = await octetsDe(await rj.genererRapportJournalierXlsx(ctx, sp, fuitesPeriode, { rubriques: new Set(['fuites']) }));
+const xrXml = Object.entries(unzipSync(xr)).filter(([n]) => n.endsWith('.xml')).map(([, v]) => strFromU8(v)).join('\n');
+verifier('Excel rubriques : fuites seulement', xrXml.includes('Canalisation prospectée') && !xrXml.includes('COMMENTAIRE') && !xrXml.includes('Linéaire inspecté par jour'));
+
 if (pdftoppm) console.log(`\nAperçus PNG (60 dpi, pages 1 et 2) : ${join(sortie, '*.png')}`);
 console.log(`\nFichiers dans ${sortie}`);
 console.log(echecs ? `\n${echecs} vérification(s) en échec sur ${total}.` : `\nLes ${total} vérifications sont passées.`);

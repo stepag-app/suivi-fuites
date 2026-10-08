@@ -55,6 +55,8 @@ export interface DonneesCartePdf {
   liste: FuiteListe[] | null;
   libelleReference: string;
   genereLe: Date;
+  /** Rubriques cochées (rubriques.ts : légende, échelle, coordonnées, informations, graduations) ; absent : tout. */
+  rubriques?: Set<string>;
   capturer: (largeurMm: number, hauteurMm: number) => Promise<ImageCarte>;
 }
 
@@ -67,6 +69,8 @@ export const GABARIT = {
   colonneCartouche: 62,           // paysage : cartouche en colonne à droite de la carte
   bandeCartouche: 40,             // portrait : cartouche en bande sous la carte
   partsBande: [0.3, 0.23, 0.27, 0.2], // portrait : Légende, Échelle, Coordonnées, Informations
+  partsBandeSansLegende: [0.32, 0.38, 0.3], // portrait, légende trop longue : elle passe en bande au-dessus
+  colonneLegendeMin: 58,          // portrait, légende en bande : largeur minimale d'une colonne
   ecartBoites: 2.5,
   barreEchelleMax: 45,
   ecartGraduations: 24,           // distance minimale entre deux graduations
@@ -214,47 +218,78 @@ function boite(pdf: Pdf, r: Rect, titre: string): number {
   return r.y + 5 + 3.6;
 }
 
-function lignesLegende(d: DonneesCartePdf, image: ImageCarte): number {
-  return d.legende.length + 1 + (d.contours.zones ? 1 : 0) + (d.contours.secteurs ? 1 : 0) + (image.numeros ? 1 : 0);
-}
+// Une entrée de légende : un symbole dessiné à gauche de la ligne de base, puis le texte.
+type EntreeDessinee = { texte: string; symbole: (x: number, y: number) => void; gras?: boolean };
 
-function legende(pdf: Pdf, r: Rect, d: DonneesCartePdf, image: ImageCarte) {
-  let y = boite(pdf, r, 'Légende');
-  const x = r.x + 2;
-  const ligne = (t: string) => {
-    pdf.text(t, x + 6, y);
-    y += GABARIT.interligne;
-  };
-  pdf.setLineWidth(0.35);
-  for (const e of d.legende) {
-    pdf.setFillColor(...rgb(e.fond));
-    pdf.setDrawColor(...rgb(e.contour));
-    pdf.circle(x + 2.2, y - 1.1, 1.25, 'FD');
-    ligne(`${e.libelle} (${e.nombre})`);
-  }
-  pdf.setFillColor(...surBlanc(rgb(d.alertes.couleur), 0.25));
-  pdf.setDrawColor(...rgb(d.alertes.couleur));
-  pdf.circle(x + 2.2, y - 1.1, 1.8, 'FD');
-  ligne(`En alerte : halo rouge (${d.alertes.nombre})`);
-  pdf.setDrawColor(...rgb(d.contours.couleur));
+function entreesLegende(pdf: Pdf, d: DonneesCartePdf, numeros: boolean): EntreeDessinee[] {
+  const e: EntreeDessinee[] = d.legende.map((l) => ({
+    texte: `${l.libelle} (${l.nombre})`,
+    symbole: (x, y) => {
+      pdf.setLineWidth(0.35);
+      pdf.setFillColor(...rgb(l.fond));
+      pdf.setDrawColor(...rgb(l.contour));
+      pdf.circle(x + 2.2, y - 1.1, 1.25, 'FD');
+    },
+  }));
+  e.push({
+    texte: `En alerte : halo rouge (${d.alertes.nombre})`,
+    symbole: (x, y) => {
+      pdf.setLineWidth(0.35);
+      pdf.setFillColor(...surBlanc(rgb(d.alertes.couleur), 0.25));
+      pdf.setDrawColor(...rgb(d.alertes.couleur));
+      pdf.circle(x + 2.2, y - 1.1, 1.8, 'FD');
+    },
+  });
   if (d.contours.zones) {
-    pdf.setLineWidth(0.6);
-    pdf.line(x, y - 1.1, x + 4.4, y - 1.1);
-    ligne('Contour de zone');
+    e.push({ texte: 'Contour de zone', symbole: (x, y) => {
+      pdf.setDrawColor(...rgb(d.contours.couleur));
+      pdf.setLineWidth(0.6);
+      pdf.line(x, y - 1.1, x + 4.4, y - 1.1);
+    } });
   }
   if (d.contours.secteurs) {
-    pdf.setLineWidth(0.35);
-    pdf.setLineDashPattern([0.9, 0.6], 0);
-    pdf.line(x, y - 1.1, x + 4.4, y - 1.1);
-    pdf.setLineDashPattern([], 0);
-    ligne('Contour de secteur');
+    e.push({ texte: 'Contour de secteur', symbole: (x, y) => {
+      pdf.setDrawColor(...rgb(d.contours.couleur));
+      pdf.setLineWidth(0.35);
+      pdf.setLineDashPattern([0.9, 0.6], 0);
+      pdf.line(x, y - 1.1, x + 4.4, y - 1.1);
+      pdf.setLineDashPattern([], 0);
+    } });
   }
-  if (image.numeros) {
-    police(pdf, true);
-    pdf.text('12', x + 0.4, y);
+  if (numeros) {
+    e.push({ texte: 'N° de la fuite, à côté du point', symbole: (x, y) => {
+      police(pdf, true);
+      pdf.text('12', x + 0.4, y);
+      police(pdf);
+    } });
+  }
+  return e;
+}
+
+/** Nombre de lignes de légende qui tiennent dans une boîte de hauteur h (titre compris). */
+export const capaciteLegende = (h: number) => Math.max(1, Math.floor((h - 5 - 3.6 - 1.4) / GABARIT.interligne) + 1);
+/** Hauteur d'une boîte de légende de n lignes. */
+export const hauteurLegende = (n: number) => 5 + 3.6 + (n - 1) * GABARIT.interligne + 2;
+
+// Texte coupé à la largeur disponible (points de suspension), jamais hors de sa colonne.
+function ajuster(pdf: Pdf, t: string, l: number): string {
+  if (pdf.getTextWidth(t) <= l) return t;
+  let c = t;
+  while (c.length > 1 && pdf.getTextWidth(`${c}…`) > l) c = c.slice(0, -1);
+  return `${c.trimEnd()}…`;
+}
+
+function legende(pdf: Pdf, r: Rect, entrees: EntreeDessinee[], colonnes = 1) {
+  const y0 = boite(pdf, r, 'Légende');
+  const parColonne = Math.ceil(entrees.length / colonnes);
+  const largeurColonne = (r.l - 2) / colonnes;
+  entrees.forEach((e, i) => {
+    const x = r.x + 2 + Math.floor(i / parColonne) * largeurColonne;
+    const y = y0 + (i % parColonne) * GABARIT.interligne;
+    e.symbole(x, y);
     police(pdf);
-    ligne('N° de la fuite, à côté du point');
-  }
+    pdf.text(ajuster(pdf, e.texte, largeurColonne - 8), x + 6, y);
+  });
 }
 
 function nord(pdf: Pdf, cx: number, yHaut: number, h: number) {
@@ -343,40 +378,107 @@ function informations(pdf: Pdf, r: Rect, d: DonneesCartePdf, image: ImageCarte) 
   }
 }
 
-function cartouche(pdf: Pdf, d: DonneesCartePdf, image: ImageCarte, c: Rect, paysage: boolean) {
-  const G = GABARIT;
-  if (paysage) {
-    // Colonne à droite : boîtes empilées, la dernière prend le reste de la hauteur.
-    const x = c.x + c.l + G.ecartCartouche;
-    const l = G.colonneCartouche;
-    const hauteurs = [5 + 3 + lignesLegende(d, image) * G.interligne, 22, 5 + 3 + 6 * G.interligne];
-    let y = c.y;
-    const rects = hauteurs.map((h) => {
-      const r = { x, y, l, h };
-      y += h + G.ecartBoites;
-      return r;
-    });
-    rects.push({ x, y, l, h: Math.max(18, c.y + c.h - y) });
-    dessinerBoites(pdf, d, image, c, rects);
-    return;
-  }
-  // Bande sous la carte : boîtes côte à côte.
-  const y = c.y + c.h + G.ecartCartouche;
-  const total = c.l - G.ecartBoites * (G.partsBande.length - 1);
-  let x = c.x;
-  const rects = G.partsBande.map((p) => {
-    const r = { x, y, l: total * p, h: G.bandeCartouche };
-    x += r.l + G.ecartBoites;
-    return r;
-  });
-  dessinerBoites(pdf, d, image, c, rects);
+// Lignes de légende prévues avant la capture (numéros des fuites comptés : au pire une ligne vide).
+const lignesPrevues = (d: DonneesCartePdf) => d.legende.length + 1 + (d.contours.zones ? 1 : 0) + (d.contours.secteurs ? 1 : 0) + 1;
+
+type Boite = 'legende' | 'echelle' | 'coordonnees' | 'informations';
+const BOITES: Boite[] = ['legende', 'echelle', 'coordonnees', 'informations'];
+const HAUTEUR_ECHELLE = 22;
+const HAUTEUR_COORDONNEES = 5 + 3 + 6 * GABARIT.interligne;
+const HAUTEUR_INFORMATIONS_MIN = 22;
+
+/** Rubriques de la carte imprimée (rubriques.ts) ; sans choix : tout. */
+const avecRubrique = (d: DonneesCartePdf, r: string) => !d.rubriques || d.rubriques.has(r);
+
+export interface DispositionCarte {
+  carte: { l: number; h: number };
+  /** Boîtes dans la bande (portrait) ou la colonne (paysage), dans l'ordre. */
+  boites: Boite[];
+  /** Légende longue : bande pleine largeur sous la carte, sur plusieurs colonnes (carte réduite d'autant). */
+  legendeAPart: { colonnes: number; hauteur: number } | null;
 }
 
-function dessinerBoites(pdf: Pdf, d: DonneesCartePdf, image: ImageCarte, c: Rect, [r1, r2, r3, r4]: Rect[]) {
-  legende(pdf, r1, d, image);
-  echelle(pdf, r2, image, c.l);
-  coordonnees(pdf, r3, image);
-  informations(pdf, r4, d, image);
+const legendeEnBande = (lignes: number, largeur: number) => {
+  const colonnes = Math.max(2, Math.floor(largeur / GABARIT.colonneLegendeMin));
+  return { colonnes, hauteur: hauteurLegende(Math.ceil(lignes / colonnes)) };
+};
+
+/**
+ * Place la carte et son cartouche dans la page. Portrait : bande de boîtes sous la carte ; la légende y tient
+ * sur une colonne, sinon elle passe en bande à part. Paysage : colonne à droite ; si légende, échelle,
+ * coordonnées et informations n'y tiennent pas, la légende passe sous la carte. Sans aucune boîte, la carte
+ * prend toute la place.
+ */
+export function disposerCarte(lignes: number, boitesChoisies: readonly string[], paysage: boolean, utile: number, hauteurDispo: number): DispositionCarte {
+  const G = GABARIT;
+  const choisies = BOITES.filter((b) => boitesChoisies.includes(b));
+  const avecLegende = choisies.includes('legende');
+  const autres = choisies.filter((b) => b !== 'legende');
+  if (paysage) {
+    if (!choisies.length) return { carte: { l: utile, h: hauteurDispo }, boites: [], legendeAPart: null };
+    const hauteurs: Record<Boite, number> = {
+      legende: hauteurLegende(lignes), echelle: HAUTEUR_ECHELLE, coordonnees: HAUTEUR_COORDONNEES, informations: HAUTEUR_INFORMATIONS_MIN,
+    };
+    const colonne = choisies.reduce((t, b) => t + hauteurs[b], 0) + (choisies.length - 1) * G.ecartBoites;
+    const aPart = avecLegende && colonne > hauteurDispo;
+    const boites = aPart ? autres : choisies;
+    const l = boites.length ? utile - G.colonneCartouche - G.ecartCartouche : utile;
+    const legendeAPart = aPart ? legendeEnBande(lignes, l) : null;
+    return { carte: { l, h: hauteurDispo - (legendeAPart ? legendeAPart.hauteur + G.ecartCartouche : 0) }, boites, legendeAPart };
+  }
+  const aPart = avecLegende && lignes > capaciteLegende(G.bandeCartouche);
+  const boites = aPart ? autres : choisies;
+  const legendeAPart = aPart ? legendeEnBande(lignes, utile) : null;
+  const sous = (legendeAPart ? G.ecartCartouche + legendeAPart.hauteur : 0)
+    + (boites.length ? (legendeAPart ? G.ecartBoites : G.ecartCartouche) + G.bandeCartouche : 0);
+  return { carte: { l: utile, h: hauteurDispo - sous }, boites, legendeAPart };
+}
+
+function cartouche(pdf: Pdf, d: DonneesCartePdf, image: ImageCarte, c: Rect, paysage: boolean, disp: DispositionCarte) {
+  const G = GABARIT;
+  const entrees = entreesLegende(pdf, d, !!image.numeros);
+  const rects = new Map<Boite, Rect>();
+  let yLegende = c.y + c.h + G.ecartCartouche;
+  if (paysage) {
+    // Colonne à droite : boîtes empilées, la dernière prend le reste de la hauteur (carte et légende à part comprises).
+    const x = c.x + c.l + G.ecartCartouche;
+    const l = G.colonneCartouche;
+    const bas = disp.legendeAPart ? c.y + c.h + G.ecartCartouche + disp.legendeAPart.hauteur : c.y + c.h;
+    const hauteurs: Record<Boite, number> = {
+      legende: hauteurLegende(entrees.length), echelle: HAUTEUR_ECHELLE, coordonnees: HAUTEUR_COORDONNEES, informations: HAUTEUR_INFORMATIONS_MIN,
+    };
+    let y = c.y;
+    disp.boites.forEach((b, i) => {
+      const derniere = i === disp.boites.length - 1;
+      const h = derniere ? Math.max(hauteurs[b], bas - y) : hauteurs[b];
+      rects.set(b, { x, y, l, h });
+      y += h + G.ecartBoites;
+    });
+  } else {
+    // Bande sous la carte : légende longue d'abord (pleine largeur), puis les boîtes côte à côte.
+    let y = c.y + c.h + G.ecartCartouche;
+    if (disp.legendeAPart) {
+      yLegende = y;
+      y += disp.legendeAPart.hauteur + G.ecartBoites;
+    }
+    const poids: Record<Boite, number> = disp.legendeAPart
+      ? { legende: 0, echelle: G.partsBandeSansLegende[0], coordonnees: G.partsBandeSansLegende[1], informations: G.partsBandeSansLegende[2] }
+      : { legende: G.partsBande[0], echelle: G.partsBande[1], coordonnees: G.partsBande[2], informations: G.partsBande[3] };
+    const somme = disp.boites.reduce((t, b) => t + poids[b], 0);
+    const total = c.l - G.ecartBoites * (disp.boites.length - 1);
+    let x = c.x;
+    for (const b of disp.boites) {
+      const r = { x, y, l: (total * poids[b]) / somme, h: G.bandeCartouche };
+      rects.set(b, r);
+      x += r.l + G.ecartBoites;
+    }
+  }
+  if (disp.legendeAPart) legende(pdf, { x: c.x, y: yLegende, l: c.l, h: disp.legendeAPart.hauteur }, entrees, disp.legendeAPart.colonnes);
+  const r = (b: Boite) => rects.get(b);
+  if (r('legende')) legende(pdf, r('legende')!, entrees);
+  if (r('echelle')) echelle(pdf, r('echelle')!, image, c.l);
+  if (r('coordonnees')) coordonnees(pdf, r('coordonnees')!, image);
+  if (r('informations')) informations(pdf, r('informations')!, d, image);
 }
 
 // ---------------------------------------------------------------------------
@@ -460,18 +562,17 @@ export async function genererCartePdf(d: DonneesCartePdf): Promise<ArrayBuffer> 
   // En-tête du marché, puis la carte et son cartouche dans la place restante.
   const yCarte = dessinerEntete(pdf, d.entete, d.imagesEntete ?? new Map(), G.marge) + G.ecartEntete;
   const bas = hauteur - G.pied;
-  const c: Rect = paysage
-    ? { x: G.marge, y: yCarte, l: utile - G.colonneCartouche - G.ecartCartouche, h: bas - yCarte }
-    : { x: G.marge, y: yCarte, l: utile, h: bas - yCarte - G.bandeCartouche - G.ecartCartouche };
+  const disp = disposerCarte(lignesPrevues(d), BOITES.filter((b) => avecRubrique(d, b)), paysage, utile, bas - yCarte);
+  const c: Rect = { x: G.marge, y: yCarte, ...disp.carte };
   if (c.h < G.hauteurMinCarte) {
     throw new Error('L\'en-tête du marché laisse trop peu de place à la carte sur cette page : choisissez le format A3.');
   }
 
   const image = await d.capturer(c.l, c.h);
   pdf.addImage(image.donnees, image.type, c.x, c.y, c.l, c.h, 'carte', image.type === 'PNG' ? 'FAST' : 'NONE');
-  graduer(pdf, c, image);
+  if (avecRubrique(d, 'graduations')) graduer(pdf, c, image);
   habillerCarte(pdf, GState, c, image);
-  cartouche(pdf, d, image, c, paysage);
+  cartouche(pdf, d, image, c, paysage, disp);
   if (d.liste?.length) liste(pdf, autoTable, d, d.liste);
 
   const total = pdf.getNumberOfPages();

@@ -42,6 +42,31 @@ export interface ChoixImpression {
   orientation: OrientationPapier;
   titre: string;
   avecListe: boolean;
+  /** « contenu » : carte cadrée sur les fuites et le réseau affichés ; « ecran » : vue de l'écran. */
+  cadrage: 'contenu' | 'ecran';
+  /** Rubriques cochées (lib/export/rubriques.ts, document « carte ») ; « liste » remplace avecListe. */
+  rubriques?: Set<string>;
+}
+
+// Étendue minimale du cadrage (≈ 300 m) : une fuite seule n'est pas imprimée au zoom maximal.
+const ETENDUE_MIN_DEGRES = 0.003;
+
+/** Bornes [[ouest, sud], [est, nord]] des fuites placées et des tronçons du réseau affiché ; null si rien. */
+export function bornesContenu(
+  fuites: { latitude: number | null; longitude: number | null }[],
+  reseau: ReseauImpression | null | undefined,
+): [[number, number], [number, number]] | null {
+  let ouest = Infinity, est = -Infinity, sud = Infinity, nord = -Infinity;
+  const ajouter = (lon: number, lat: number) => {
+    if (!Number.isFinite(lon) || !Number.isFinite(lat)) return;
+    ouest = Math.min(ouest, lon); est = Math.max(est, lon); sud = Math.min(sud, lat); nord = Math.max(nord, lat);
+  };
+  for (const f of fuites) if (f.latitude != null && f.longitude != null) ajouter(f.longitude, f.latitude);
+  for (const s of reseau?.secteurs ?? []) for (const t of s.data?.features ?? []) for (const [lon, lat] of t.geometry.coordinates) ajouter(lon, lat);
+  if (ouest > est) return null;
+  const dLon = Math.max(0, ETENDUE_MIN_DEGRES - (est - ouest)) / 2;
+  const dLat = Math.max(0, ETENDUE_MIN_DEGRES - (nord - sud)) / 2;
+  return [[ouest - dLon, sud - dLat], [est + dLon, nord + dLat]];
 }
 
 export interface DonneesImpression {
@@ -66,8 +91,9 @@ export async function fabriquerPdfCarte(
   const sansPosition = d.fuites.length - placees.length;
   const nombre = `${placees.length} fuite${placees.length > 1 ? 's' : ''} sur la carte`
     + (sansPosition ? `, ${sansPosition} sans position GPS (absente${sansPosition > 1 ? 's' : ''} de la carte)` : '');
-  const entete = construireEntete(ctx, choix.titre, [d.filtres, nombre]);
-  const liste = choix.avecListe ? d.fuites : null;
+  const avec = (r: string) => !choix.rubriques || choix.rubriques.has(r);
+  const entete = construireEntete(ctx, choix.titre, avec('filtres') ? [d.filtres, nombre] : [nombre]);
+  const liste = (choix.rubriques ? choix.rubriques.has('liste') : choix.avecListe) ? d.fuites : null;
 
   // Arabe (nom du titulaire ou du client, adresses) : composé par le navigateur, comme les autres PDF.
   const arabesEntete = textesArabesEntete(entete).filter(contientArabe);
@@ -99,9 +125,11 @@ export async function fabriquerPdfCarte(
     })),
     libelleReference: d.libelleReference,
     genereLe: new Date(),
+    rubriques: choix.rubriques,
     capturer: (largeurMm, hauteurMm) => {
       etape('Rendu de la carte en haute définition…');
-      return capturerCarte(d.etat, { fuites: placees, zones: d.zones, secteurs: d.secteurs, reseau: d.reseau ?? null }, largeurMm, hauteurMm);
+      const cadrage = choix.cadrage === 'contenu' ? bornesContenu(placees, d.reseau) : null;
+      return capturerCarte({ ...d.etat, cadrage }, { fuites: placees, zones: d.zones, secteurs: d.secteurs, reseau: d.reseau ?? null }, largeurMm, hauteurMm);
     },
   });
   return new Blob([pdf], { type: 'application/pdf' });

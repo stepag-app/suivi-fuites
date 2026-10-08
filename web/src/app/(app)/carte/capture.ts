@@ -1,5 +1,6 @@
 // Image de la carte pour l'impression : une seconde carte MapLibre, hors écran, aux proportions exactes
-// du cadre du PDF, rendue à ~200 dpi par le pixelRatio. Même fond, mêmes couches, même vue qu'à l'écran ;
+// du cadre du PDF, rendue à ~200 dpi par le pixelRatio. Même fond, mêmes couches ; vue de l'écran ou cadrage
+// sur les fuites et le réseau affichés (EtatCarte.cadrage) ;
 // capture après l'événement « idle » (tuiles et données chargées), toile gardée par preserveDrawingBuffer.
 import type { Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
 import type { ImageCarte } from '@/lib/export/carte-pdf';
@@ -26,7 +27,12 @@ export interface EtatCarte {
   zoom: number;
   largeurPx: number;
   hauteurPx: number;
+  /** Cadrage sur le contenu (fuites et réseau affichés) : ces bornes remplacent la vue de l'écran. */
+  cadrage?: [[number, number], [number, number]] | null;
 }
+
+// Marge autour du contenu cadré, en part de la plus petite dimension de l'image.
+const MARGE_CADRAGE = 0.04;
 
 // 1 px CSS = 1/96 de pouce : textes et points imprimés à leur taille d'écran.
 const PX_PAR_MM = 96 / 25.4;
@@ -56,9 +62,10 @@ export async function capturerCarte(
   // Les noms de quartiers et de rues dépendent du niveau de zoom (ils n'existent que dans certaines tuiles) :
   // si toute la vue de l'écran tient dans le cadre, même centre et même zoom qu'à l'écran ; sinon on
   // recadre sur la vue affichée, à un zoom plus faible.
-  const besoin = Math.max(etat.largeurPx / largeurMm, etat.hauteurPx / hauteurMm);
+  // Cadrage sur le contenu : textes à leur taille d'écran, bornes ajustées au cadre avec une marge.
+  const besoin = etat.cadrage ? PX_PAR_MM : Math.max(etat.largeurPx / largeurMm, etat.hauteurPx / hauteurMm);
   const pxParMm = Math.min(Math.max(PX_PAR_MM, besoin), PX_PAR_MM * DENSITE_MAX);
-  const memeZoom = besoin <= pxParMm;
+  const memeZoom = !etat.cadrage && besoin <= pxParMm;
   const largeur = Math.round(largeurMm * pxParMm);
   const hauteur = Math.round(hauteurMm * pxParMm);
   // Hors de l'écran mais affiché : MapLibre a besoin d'un conteneur mesurable.
@@ -72,7 +79,10 @@ export async function capturerCarte(
       m = new ml.Map({
         container: boite,
         style: typeof etat.style === 'string' ? etat.style : structuredClone(etat.style),
-        ...(memeZoom ? { center: etat.centre, zoom: etat.zoom } : { bounds: etat.bornes, fitBoundsOptions: { padding: 0 } }),
+        ...(memeZoom ? { center: etat.centre, zoom: etat.zoom } : {
+          bounds: etat.cadrage ?? etat.bornes,
+          fitBoundsOptions: { padding: etat.cadrage ? Math.round(Math.min(largeur, hauteur) * MARGE_CADRAGE) : 0, maxZoom: 18 },
+        }),
         pixelRatio: PX_IMAGE_PAR_MM / pxParMm,
         canvasContextAttributes: { preserveDrawingBuffer: true, antialias: true },
         interactive: false,

@@ -34,7 +34,7 @@ function periodePrecedente(p: Periode): Periode {
   return { du: ajouterJours(p.du, -jours), au: veille };
 }
 
-function tendance(actuel: number | null, precedent: number | null, unite = "", moinsEstMieux?: boolean) {
+function calculerTendance(actuel: number | null, precedent: number | null, unite = "", moinsEstMieux?: boolean) {
   if (actuel == null || precedent == null) return undefined;
   const delta = Math.round(actuel - precedent);
   const sens = delta > 0 ? "haut" : delta < 0 ? "bas" : "neutre";
@@ -42,8 +42,10 @@ function tendance(actuel: number | null, precedent: number | null, unite = "", m
   return { texte: `${delta > 0 ? "+" : ""}${delta.toLocaleString("fr-FR")}${unite}`, sens: sens as "haut" | "bas" | "neutre", bon };
 }
 
-export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode, seuilH }: {
+export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode, seuilH, comparer = true }: {
   fuites: FuiteTdb[]; anomalies: Anomalie[] | null; maintenant: Date; periode: Periode; titrePeriode: string; seuilH: number;
+  /** Flèches de comparaison avec la période précédente (masquées pour « Depuis le début du marché »). */
+  comparer?: boolean;
 }) {
   const c = useMemo(() => {
     const aujourdHui = jourCasa(maintenant);
@@ -61,33 +63,36 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
       anomalies: anomalies ? resumeAnomalies(anomalies) : null,
     };
   }, [fuites, anomalies, maintenant, periode, seuilH]);
-  const { act, actPrec, sit } = c;
+  const { act, sit } = c;
+  const actPrec = comparer ? c.actPrec : null;
+  const tendance = (actuel: number | null, precedent: number | null | undefined, unite = "", moinsEstMieux?: boolean) =>
+    precedent === undefined ? undefined : calculerTendance(actuel, precedent, unite, moinsEstMieux);
   const libellePrec = `période précédente : ${act.detectees ? "" : ""}${surPeriode(jourLong(c.prec.du))} → ${jourLong(c.prec.au)}`;
 
   return (
     <>
       <GrilleIndicateurs>
         <CarteIndicateur icone={Droplets} libelle="Fuites détectées" valeur={act.detectees}
-          tendance={tendance(act.detectees, actPrec.detectees)}
+          tendance={tendance(act.detectees, actPrec?.detectees)}
           href={lienOuNul({ du: periode.du, au: periode.au }, act.detectees)}
           description={`${nombreFuites(act.detectees, "détectée")} ${surPeriode(titrePeriode)}`}
           commentaire={!act.detectees ? "aucune sur la période"
             : act.detecteesEnAttente ? `dont ${pluriel(act.detecteesEnAttente, "encore non réparée", "encore non réparées")}` : "toutes réparées ou closes"}
           serie={c.semaines.map((s) => s.detectees)} titreCourbe="Fuites détectées par semaine, 12 semaines" />
         <CarteIndicateur icone={Wrench} libelle="Fuites réparées" valeur={act.reparees}
-          tendance={tendance(act.reparees, actPrec.reparees, "", false)}
+          tendance={tendance(act.reparees, actPrec?.reparees, "", false)}
           commentaire={act.reparees ? `dont ${pluriel(act.repareesAchevees, "achevée")} (réfection faite ou inutile)` : "aucune sur la période"}
           serie={c.semaines.map((s) => s.reparees)} titreCourbe="Fuites réparées par semaine, 12 semaines" />
         <CarteIndicateur icone={Clock3} libelle="Délai moyen détection → réparation" valeur={heures(act.delaiMoyenH)} unite="h"
-          tendance={tendance(heures(act.delaiMoyenH), heures(actPrec.delaiMoyenH), " h", true)}
+          tendance={tendance(heures(act.delaiMoyenH), actPrec && heures(actPrec.delaiMoyenH), " h", true)}
           commentaire={act.nbDelais ? `sur ${pluriel(act.nbDelais, "réparation")} de la période` : "aucune réparation sur la période"}
           serie={c.semaines.flatMap((s) => (s.delaiMoyenH == null ? [] : [Math.round(s.delaiMoyenH)]))}
           titreCourbe="Délai moyen par semaine de réparation, 12 semaines (heures)" />
         <CarteIndicateur icone={Hourglass} libelle="Délai médian détection → réparation" valeur={heures(act.delaiMedianH)} unite="h"
-          tendance={tendance(heures(act.delaiMedianH), heures(actPrec.delaiMedianH), " h", true)}
+          tendance={tendance(heures(act.delaiMedianH), actPrec && heures(actPrec.delaiMedianH), " h", true)}
           commentaire={act.delaiMaxH != null ? `le plus long : ${Math.round(act.delaiMaxH)} h` : "aucune réparation sur la période"} />
       </GrilleIndicateurs>
-      <p className="sr-only">{libellePrec}</p>
+      {comparer && <p className="sr-only">{libellePrec}</p>}
 
       <GraphiqueSemaines semaines={c.semaines} />
 

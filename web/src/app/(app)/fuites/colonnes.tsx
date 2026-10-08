@@ -54,9 +54,10 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
     {
       accessorKey: "reference_srm",
       header: libelles.reference,
+      meta: { classe: "whitespace-normal" },
       cell: ({ row }) => (
-        <span className="flex items-center gap-1.5 whitespace-nowrap">
-          {row.original.reference_srm ?? <span className="text-muted-foreground">—</span>}
+        <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+          <span className="whitespace-nowrap">{row.original.reference_srm ?? <span className="text-muted-foreground">—</span>}</span>
           {row.original.origine === "srm" && <Badge variant="secondary" className="rounded-sm">{libelles.sigle}</Badge>}
         </span>
       ),
@@ -64,12 +65,15 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
     {
       accessorKey: "secteur",
       header: ({ column }) => <EnTeteTriable colonne={column} titre="Secteur" />,
+      meta: { classe: "min-w-28 whitespace-normal" },
       cell: ({ row }) => row.original.secteur ?? <span className="text-muted-foreground">—</span>,
     },
     {
       accessorKey: "adresse",
       header: "Adresse",
-      cell: ({ row }) => <span className="block max-w-64 truncate" title={row.original.adresse ?? undefined}>{row.original.adresse ?? <span className="text-muted-foreground">—</span>}</span>,
+      // Colonne élastique : prend la place laissée par les autres, se réduit avant qu'un défilement n'apparaisse.
+      meta: { classe: "w-full min-w-32 max-w-0" },
+      cell: ({ row }) => <span className="block truncate" title={row.original.adresse ?? undefined}>{row.original.adresse ?? <span className="text-muted-foreground">—</span>}</span>,
     },
     {
       accessorKey: "date_detection",
@@ -77,7 +81,7 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
       cell: ({ row }) => (
         <span className="block whitespace-nowrap tabular-nums">
           {dateHeure(row.original.date_detection)}
-          {row.original.detectee_par && <span className="block text-muted-foreground text-xs">{row.original.detectee_par}</span>}
+          {row.original.detectee_par && <span className="block max-w-36 truncate text-muted-foreground text-xs" title={row.original.detectee_par}>{row.original.detectee_par}</span>}
         </span>
       ),
     },
@@ -90,6 +94,7 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
       id: "alertes",
       accessorFn: (f) => [f.alerte_non_reparee, f.alerte_communication_srm, f.refection_chaussee_hors_delai, f.alerte_refection_chaussee, f.alerte_refection_trottoir].filter(Boolean).length,
       header: "Alertes",
+      meta: { classe: "whitespace-normal" },
       cell: ({ row }) => <BadgesAlertes fuite={row.original} libelles={libelles} verrouillee={row.original.verrouillee_le} />,
     },
     {

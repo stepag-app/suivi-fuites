@@ -22,7 +22,7 @@ const PORTEES: [Portee, string][] = [['non', 'Non'], ['siennes', 'Les siennes'],
 const memesRoles = (a: readonly string[], b: readonly string[]) => [...a].sort().join() === [...b].sort().join();
 const classes = (...c: (string | false | undefined)[]) => c.filter(Boolean).join(' ');
 
-/** Onglet Droits : matrice des droits d'un marché (utilisateurs en colonnes) et verrous de l'administrateur. */
+/** Onglet Droits : matrice des utilisateurs du marché (en colonnes), puis l'administrateur et ses verrous dans un bloc à part. */
 export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirMarche: (id: string) => void }) {
   const { profil, marches, recharger } = useSession();
   const moiId = profil?.id ?? '';
@@ -39,6 +39,7 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
   const [mesVerrous, setMesVerrous] = useState<string[]>([]);
   const [confirmation, setConfirmation] = useState(false);
   const [occupe, setOccupe] = useState(false);
+  const [blocAdmin, setBlocAdmin] = useState(false);
 
   const charger = useCallback(async () => {
     if (!marcheId) return;
@@ -78,7 +79,7 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
     charger();
   }, [charger]);
 
-  // Colonnes : vous, vos verrous, les autres administrateurs (tout, lecture seule), puis les agents du marché.
+  // Matrice : les agents du marché ; bloc à part : vous, vos verrous, les autres administrateurs (tout, lecture seule).
   const { autresAdmins, agents, masques } = useMemo(() => {
     const affectes = new Set(affectations.filter((a) => a.actif).map((a) => a.profil_id));
     const actifs = profils.filter((p) => p.actif);
@@ -191,7 +192,9 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
     choisirMarche(id);
   }
 
-  const nbColonnes = 3 + autresAdmins.length + agents.length;
+  const lignesAgents = LIGNES.filter((l) => !l.adminSeul);
+  const groupesAgents = GROUPES.filter((g) => lignesAgents.some((l) => l.groupe === g));
+  const nbVerrous = mesVerrous.length;
 
   return (
     <section aria-labelledby="titre-droits">
@@ -200,8 +203,7 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
         Cochez ce que chaque utilisateur voit et fait dans le marché choisi ; la base applique ces droits, les écrans les suivent.
         Rien n&apos;est enregistré avant « Enregistrer » ; chaque changement est inscrit au journal.
         <br />
-        Vos <strong>verrous de sécurité</strong> (tous les marchés) : un droit verrouillé vous est refusé par la base, même à vous.
-        Pour agir, ouvrez le verrou, agissez, puis refermez-le : il ne se referme pas tout seul.
+        L&apos;administrateur a tout, sauf ses <strong>verrous de sécurité</strong> : ils se règlent dans le bloc à part, sous la matrice.
       </p>
 
       <div className={styles.barre}>
@@ -252,30 +254,12 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
         <p className="discret">{masques} compte{masques > 1 ? 's' : ''} révoqué{masques > 1 ? 's' : ''} ou retiré{masques > 1 ? 's' : ''} de ce marché, non affiché{masques > 1 ? 's' : ''}.</p>
       )}
 
-      {pret && (
+      {pret && agents.length > 0 && (
         <div className={styles.cadre}>
           <table className={styles.matrice}>
             <thead>
               <tr>
                 <th scope="col" className={styles.coin}>Droit</th>
-                <th scope="col" className={classes(styles.tete, styles.colonneAdmin)}>
-                  <span className={styles.nom}>Vous</span>
-                  <span className={styles.petit}>administrateur : tout, sauf vos verrous</span>
-                </th>
-                <th scope="col" className={classes(styles.tete, styles.colonneVerrous)}>
-                  <span className={styles.nom}>Vos verrous</span>
-                  <span className={styles.petit}>tous les marchés</span>
-                  <button type="button" className={styles.petitBouton}
-                    onClick={() => setMesVerrous((v) => [...new Set([...v, ...CLES_SENSIBLES])])}>
-                    Verrouiller les actions sensibles
-                  </button>
-                </th>
-                {autresAdmins.map((a) => (
-                  <th key={a.id} scope="col" className={classes(styles.tete, styles.colonneAdmin)}>
-                    <span className={styles.nom}>{a.nom_complet}</span>
-                    <span className={styles.petit}>administrateur : tout, sauf ses verrous</span>
-                  </th>
-                ))}
                 {agents.map((p) => (
                   <TeteAgent key={p.id} agent={p} roles={rolesAffiches(p.id)}
                     personnalise={estPersonnalise(courant[p.id] ?? {}, rolesAffiches(p.id), modeles)}
@@ -283,33 +267,18 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
                 ))}
               </tr>
             </thead>
-            {GROUPES.map((g) => (
+            {groupesAgents.map((g) => (
               <tbody key={g}>
                 <tr className={styles.groupe}>
-                  <th scope="rowgroup" colSpan={nbColonnes}><span>{g}</span></th>
+                  <th scope="rowgroup" colSpan={1 + agents.length}><span>{g}</span></th>
                 </tr>
-                {LIGNES.filter((l) => l.groupe === g).map((l) => (
+                {lignesAgents.filter((l) => l.groupe === g).map((l) => (
                   <tr key={l.cle}>
-                    <th scope="row" className={styles.libelle}>
-                      {l.libelle}
-                      {l.sensible && <span className={classes('etiquette', styles.sensible)}>sensible</span>}
-                      {l.aide && <span className={styles.aide}>{l.aide}</span>}
-                    </th>
-                    <td className={styles.colonneAdmin}>
-                      <CelluleAdmin ligne={l} verrouillee={mesVerrous.includes(l.cle)} />
-                    </td>
-                    <BoutonVerrou ligne={l} pose={mesVerrous.includes(l.cle)} initial={verrousInitiaux.includes(l.cle)}
-                      basculer={() => setMesVerrous((v) => basculer(v, l.cle))} />
-                    {autresAdmins.map((a) => (
-                      <td key={a.id} className={styles.colonneAdmin}>
-                        <CelluleAdmin ligne={l}
-                          verrouillee={verrous.some((x) => x.profil_id === a.id && cleVerrou(x.objet, x.action) === l.cle)} />
-                      </td>
-                    ))}
+                    <LibelleDroit ligne={l} />
                     {agents.map((p) => (
                       <CelluleAgent key={p.id} ligne={l} nom={p.nom_complet}
-                        avant={l.adminSeul ? null : valeur(initial[p.id] ?? {}, l.objet as TypeDonnee, l.action as Action)}
-                        apres={l.adminSeul ? null : valeur(courant[p.id] ?? {}, l.objet as TypeDonnee, l.action as Action)}
+                        avant={valeur(initial[p.id] ?? {}, l.objet as TypeDonnee, l.action as Action)}
+                        apres={valeur(courant[p.id] ?? {}, l.objet as TypeDonnee, l.action as Action)}
                         changer={(v) => changerCase(p.id, l, v)} />
                     ))}
                   </tr>
@@ -319,7 +288,83 @@ export function Droits({ marcheId, choisirMarche }: { marcheId: string; choisirM
           </table>
         </div>
       )}
+
+      {pret && (
+        <details className={styles.blocAdmin} open={blocAdmin} onToggle={(e) => setBlocAdmin(e.currentTarget.open)}>
+          <summary>
+            <span className={styles.titreBloc}>Administrateur et verrous de sécurité</span>
+            <span className={styles.petit}>
+              {nbVerrous ? `${nbVerrous} verrou${nbVerrous > 1 ? 's' : ''} posé${nbVerrous > 1 ? 's' : ''}` : 'aucun verrou posé'}
+              {autresAdmins.length ? ` · ${autresAdmins.length} autre${autresAdmins.length > 1 ? 's' : ''} administrateur${autresAdmins.length > 1 ? 's' : ''}` : ''}
+            </span>
+          </summary>
+          <p className="discret">
+            Vos verrous valent pour tous les marchés : un droit verrouillé vous est refusé par la base, même à vous.
+            Pour agir, ouvrez le verrou, agissez, puis refermez-le : il ne se referme pas tout seul.
+          </p>
+          <div className={styles.cadre}>
+            <table className={styles.matrice}>
+              <thead>
+                <tr>
+                  <th scope="col" className={styles.coin}>Droit</th>
+                  <th scope="col" className={classes(styles.tete, styles.colonneAdmin)}>
+                    <span className={styles.nom}>Vous</span>
+                    <span className={styles.petit}>tout, sauf vos verrous</span>
+                  </th>
+                  <th scope="col" className={classes(styles.tete, styles.colonneVerrous)}>
+                    <span className={styles.nom}>Vos verrous</span>
+                    <span className={styles.petit}>tous les marchés</span>
+                    <button type="button" className={styles.petitBouton}
+                      onClick={() => setMesVerrous((v) => [...new Set([...v, ...CLES_SENSIBLES])])}>
+                      Verrouiller les actions sensibles
+                    </button>
+                  </th>
+                  {autresAdmins.map((a) => (
+                    <th key={a.id} scope="col" className={classes(styles.tete, styles.colonneAdmin)}>
+                      <span className={styles.nom}>{a.nom_complet}</span>
+                      <span className={styles.petit}>tout, sauf ses verrous</span>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              {GROUPES.map((g) => (
+                <tbody key={g}>
+                  <tr className={styles.groupe}>
+                    <th scope="rowgroup" colSpan={3 + autresAdmins.length}><span>{g}</span></th>
+                  </tr>
+                  {LIGNES.filter((l) => l.groupe === g).map((l) => (
+                    <tr key={l.cle}>
+                      <LibelleDroit ligne={l} />
+                      <td className={styles.colonneAdmin}>
+                        <CelluleAdmin ligne={l} verrouillee={mesVerrous.includes(l.cle)} />
+                      </td>
+                      <BoutonVerrou ligne={l} pose={mesVerrous.includes(l.cle)} initial={verrousInitiaux.includes(l.cle)}
+                        basculer={() => setMesVerrous((v) => basculer(v, l.cle))} />
+                      {autresAdmins.map((a) => (
+                        <td key={a.id} className={styles.colonneAdmin}>
+                          <CelluleAdmin ligne={l}
+                            verrouillee={verrous.some((x) => x.profil_id === a.id && cleVerrou(x.objet, x.action) === l.cle)} />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              ))}
+            </table>
+          </div>
+        </details>
+      )}
     </section>
+  );
+}
+
+function LibelleDroit({ ligne: l }: { ligne: LigneMatrice }) {
+  return (
+    <th scope="row" className={styles.libelle}>
+      {l.libelle}
+      {l.sensible && <span className={classes('etiquette', styles.sensible)}>sensible</span>}
+      {l.aide && <span className={styles.aide}>{l.aide}</span>}
+    </th>
   );
 }
 

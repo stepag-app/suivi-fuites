@@ -92,8 +92,9 @@ Repère : `#n` = numéro du panier de la session de cadrage ; `nouveau` = demand
 | X3 | **Lots P3 et P4** : inventaire des fournitures posées ; rapprochement posé / transféré avec Dolibarr (entrepôt 76, import CSV) | S9 |
 | X4 | **Listes paramétrées en arabe** (toutes les listes de saisie : natures, motifs, ouvrages, matériaux, emplacements…) | S2, S7 |
 | X5 | **Tuiles vectorielles** du réseau (PMTiles sur R2) : carte fluide en profil tablette avec tout le réseau | S10 |
-| X6 | **Suivi GPS en arrière-plan** : un tracé par agent et par jour, notification permanente, fréquence réglable ; tracés sur la carte | S11 (selon Q14) |
-| X7 | **Gabarit SRM** de l'état journalier et de la carte imprimée | selon Q15 |
+| X6 | **Suivi GPS en arrière-plan** : en continu tant que la session de l'agent est ouverte (pause à l'arrêt pour la batterie), un point tous les 15 m ou toutes les 30 s en mouvement, notification permanente Android ; **un tracé par agent et par jour** ; visible du responsable et de l'administrateur seulement ; conservé jusqu'à la fin du marché puis effacé | S11 |
+| X7 | **Exports au choix de la SRM** : pas de gabarit figé ; rapport par fuite, état journalier et carte avec **rubriques à cocher** avant l'export, choix mémorisés en modèles par marché, pour suivre les exigences changeantes de la SRM | S3 |
+| X8 | **Envoi automatique Dolibarr → Supabase** (mouvements de l'entrepôt 76) : **reporté à la fin**. Piste retenue : tâche planifiée sur le serveur Dolibarr qui **pousse** vers une fonction Supabase protégée (sortant seulement, rien d'ouvert sur Internet, API Dolibarr toujours limitée au réseau local) | après S8 |
 
 Jalons SRM (communiquée, avis terrassement, validée) : rien à faire (case du marché, décision d'Issam). Tâches manuelles
 d'Issam hors code : 2FA (GitHub, Google, 2ᵉ appli Supabase, Cloudflare), Vercel Pro et désactivation de DEMO avant la
@@ -108,7 +109,9 @@ production, essai sur la vraie tablette.
 - **Tests** : pgTAP pour toute règle de base (droits, validation, suppression de compte, notifications, anticipation) ;
   `tsc` et `build` du panneau ; `tsc` et essais sans pile de l'APK ; captures 1366 / 1440 / 1920 px pour L1, L2, R5.
 - **Libellés** : tout nouveau libellé de l'APK passe par `t()` et entre dans le dictionnaire arabe à relire par Issam.
-- **Documentation** : chaque session met à jour son README ; `docs/etat-avancement.md` seulement par S8.
+- **Documentation** : chaque session met à jour son README ; `docs/etat-avancement.md` seulement par S8. S1 et S2
+  publient leur contrat de base (tables, colonnes, fonctions, droits) dans `docs/lots/chantier-v2-base-s1.md` et
+  `docs/lots/chantier-v2-base-s2.md` : les sessions de la vague 2 s'y fient.
 - **Émulateur** : partagé avec Issam ; vérifier son activité avant toute installation (S7, S8).
 
 ## 3. Vagues et sessions
@@ -123,28 +126,28 @@ Vague 2 (parallèle, après S1 + S2) ── S5 Web : fiche, validation, formulai
                                    ├─ S6 Web : comptes, cloche, attachement
                                    ├─ S7 APK : saisie, validation, push, mise à jour, arabe
                                    └─ S10 Cartes : tuiles vectorielles, satellite, balayage plein écran, mini-carte
-Vague 3 ── S11 Suivi GPS (selon Q14) → S8 Intégration : un seul APK, essais, documentation, passation
+Vague 3 ── S11 Suivi GPS → S8 Intégration : un seul APK, essais, documentation, passation
 ```
 
 | Session | Tâches | Zone de fichiers | Dépend de | Modèle / effort | Taille |
 |---|---|---|---|---|---|
 | S1 | R1, R2, R4, R6, R7 (base) ; V1 à V7 (base) ; N1, N3 (base, jetons push) | `supabase/` (2026100910…) | — | Opus, high | L |
 | S2 | F1, F2, F3 (import des rues), F4 (tronçon proche), F5, P2, P7, P8, X4 (base) ; A1 (base) | `supabase/` (2026100920…), `outils/reseau/` | — | Opus, high | L |
-| S3 | L1, L2, L3, R5, C1, C2, C3 | `web/` : liste des fuites, tableau de bord, Droits, `lib/export` | — | Opus, medium | M |
+| S3 | L1, L2, L3, R5, C1, C2, C3, X7 | `web/` : liste des fuites, tableau de bord, Droits, `lib/export` | — | Opus, medium | M |
 | S4 | X1 | `.github/workflows/`, `supabase/README.md` | — | Sonnet, high | S |
 | S9 | X3 | `supabase/` (2026100930…), `web/` : pages Inventaire et Rapprochement | — | Opus, medium | M |
 | S5 | V1 à V6, F1 à F4, P1 à P9 (panneau) | `web/` : fiche, Nouvelle fuite, « À valider », hors ligne | S1, S2 | Opus, high | L |
 | S6 | R2, R3, R4 (impressions), N1, A1 (lots, priorités), widget P3 au tableau de bord | `web/` : Utilisateurs, coque, attachements, tableau de bord, `lib/export` | S1, S2, S3, S9 | Opus, high | L |
 | S7 | F1 à F5, P1 à P9, V1 à V6, R1, R7, N2, X2, X4 (APK) | `mobile/`, `.github/workflows/apk.yml` | S1, S2 ; Firebase | Opus, high | XL |
 | S10 | X5, C4, C5, mini-carte servie à l'APK (F4) | `web/` : carte, balayage, `public/`, R2 (PMTiles) | S2, S3 | Opus, high | L |
-| S11 | X6 | `supabase/` (2026101110…), `mobile/`, `web/` carte | S7, S10 ; Q14 | Opus, high | L |
+| S11 | X6 | `supabase/` (2026101110…), `mobile/`, `web/` carte | S7, S10 | Opus, high | L |
 | S8 | intégration, APK unique, essais, `docs/etat-avancement.md`, passation | tout (lecture), docs | toutes | Opus, high | M |
 
 **Fusion** (Q1 : oui) : chaque session ouvre une PR, la fusionne dès que la CI est verte, puis vérifie « Déploiement de la
 base ». Ordre imposé : S1 → S2 → S9 (migrations) ; S3 avant S6 et S10 ; S7 avant S11.
 
 **Tâches d'Issam** : créer le projet Firebase (début de la vague 2, guidé) ; créer le compte Esri (avant S10, guidé) ;
-relire le dictionnaire arabe (fin de S7) ; démarches CNDP et information des agents (avant S11).
+relire le dictionnaire arabe (fin de S7) ; informer les agents du suivi GPS (avant S11).
 
 ## 4. Coût et rapidité
 
@@ -175,6 +178,11 @@ parcours détection → validation → réparation → réfection → lot d'atta
 | 11 | Carrelage « بلاط », carreaux de ciment REVSOL « بلاط إسمنتي (ريفسول) », faïence **« زليج »**, et **pavé ciment** ajouté (arabe à relire) |
 | 12 | Firebase : **oui**, créé par Issam au début de la vague 2 |
 | 13 | Champ « Entreprise » : par défaut **oui** (sans réponse contraire) |
+| 10 bis | Longueur de conduite ou de PE posée : avertissement si **< plus petite** ou **> plus grande dimension** de la fouille (sans blocage) |
+| 11 bis | Pavé ciment « حجر الرصف الإسمنتي » (à relire), **prix 4** (trottoir) |
+| 14 | GPS : en continu (batterie ménagée), 15 m / 30 s en mouvement, responsable et administrateur, conservé jusqu'à la fin du marché ; **pas de déclaration CNDP** dans ce cas (Issam) |
+| 15 | Pas de gabarit SRM figé : rubriques à cocher avant chaque export (X7) |
+| 16 | Envoi automatique Dolibarr reporté à la fin (X8) ; import CSV dans S9 |
 
 ## 7. Satellite : choix retenu
 

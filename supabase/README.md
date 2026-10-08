@@ -52,6 +52,13 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/17_essai_charge.test.sql` | 22 tests : privilèges, comptages identiques à `v_fuites` sous la RLS de chaque rôle, reste à attacher identique à `v_a_attacher`, état compact identique à `etat_balayage` au-delà de 1 000 tronçons |
 | `migrations/20261007130000_photos_r2.sql` | lot N : `marches_photos(p_action)` (marchés où le compte a le droit « photos » lire / creer / supprimer ; même règle que la RLS de `photos` et du compartiment Storage), lue par la fonction serveur `photos-r2` ; `anon` sans accès ; commentaire de `photos.stockage` |
 | `tests/database/16_photos_r2.test.sql` | 10 tests du lot N : privilèges de `marches_photos`, rien sans compte ni sans affectation, marché de l'agent en lecture et en dépôt, action inconnue refusée, administrateur sur tous les marchés, marché désactivé sans dépôt |
+| `migrations/20261009200000_referentiels_terrain.sql` | chantier v2, S2 : `libelles_listes` (libellés FR / AR des listes de saisie, X4), natures Carrelage, Carreaux de ciment (REVSOL), Faïence, Pavé ciment (SRM, DEMO, F5), `diametres_materiau` (diamètres par matériau, standard + réseau, P2), `representants_srm` et `reparations.representant_srm_id` (P7), `fuites.nature_degradation_id`, `diametre_mm`, `materiau`, `troncon_id` (F2, F4), `marches.champs_obligatoires_fuite` contrôlé à la création (F1), copie par `copier_marche` |
+| `migrations/20261009200100_rues_suggestions.sql` | chantier v2, S2 : table `rues` (OSM, ODbL), `importer_rues` (administrateur), `suggestions_localisation` (rues proches, secteur, tronçon le plus proche avec diamètre et matériau ; rayon selon la précision GPS) |
+| `migrations/20261009200110_rues_oujda.sql` | 3 274 voies nommées d'Oujda (© contributeurs OpenStreetMap, ODbL 1.0), produites par `outils/reseau/extraire_rues.py` |
+| `migrations/20261009200200_non_reparee_anticipation.sql` | chantier v2, S2 : réparation non réparée attachée (terrassement et travaux, P8), `v_refections_dues`, `private.refection_due` ; anticipation généralisée (A1) : `prix.anticipable` (panier), contrôles (case du marché, panier, ni exécuté ni déjà attaché), `v_propositions_anticipation`, `v_a_attacher` (`en_attente_execution`), `fuites_anticipees` |
+| `tests/database/25_referentiels_terrain.test.sql` | 44 tests : libellés arabes complets, natures F5, diamètres (standard, réseau, droits, isolation), représentants, champs obligatoires (création, fuite ancienne, champ vidé, RLS, contexte serveur), copie |
+| `tests/database/26_rues_suggestions.test.sql` | 27 tests : rues d'Oujda chargées, import (administrateur, idempotent), rayon selon la précision, ordre et regroupement des rues, secteur par contour ou par tronçon, tronçon et matériau normalisé, rien autour, précision insuffisante, droits |
+| `tests/database/27_non_reparee_anticipation.test.sql` | 38 tests : lignes d'une non réparée, réfections dues, panier, case du marché, propositions, refus (hors panier, déjà exécuté, seconde anticipation), « Attaché par anticipation », exécution réelle et régularisations, total attaché = exécuté |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -288,6 +295,23 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
 - **Droits** : lecture des tronçons et nœuds pour tout affecté au marché ; balayage selon le droit « balayage »
   (modèle détection : voir, cocher, annuler les siens ; responsable : tout). Le chef de réparation n'a pas le
   droit « balayage » (il voit le réseau sur la carte, pas le journal).
+
+## Chantier v2 : saisie terrain et anticipation (S2)
+
+Contrat complet : `docs/lots/chantier-v2-base-s2.md`.
+
+- **Nouvelle fuite** : champs exigés par `marches.champs_obligatoires_fuite` (SRM, DEMO : tournée, secteur, ouvrage,
+  visibilité, nature de dégradation), contrôlés à la création ; les fuites antérieures restent valides ; un champ exigé
+  rempli ne se vide plus. Nouveaux champs : nature de dégradation, diamètre, matériau, tronçon.
+- **Suggestions** (`suggestions_localisation`) : rues OSM proches, secteur, tronçon le plus proche ; jamais pré-remplies.
+  Rues d'Oujda : © contributeurs OpenStreetMap, licence ODbL 1.0 (mention à afficher avec les suggestions).
+- **Listes** : diamètres par matériau et représentants du maître d'ouvrage réglables par marché ; libellés arabes des
+  listes à valeurs fixes dans `libelles_listes` (à relire par Issam).
+- **Non réparée** : terrassement et travaux attachés quel que soit le motif ; fouille sur revêtement → réfection due
+  (`v_refections_dues`), même sans réparation.
+- **Anticipation** : case du marché (`parametres_attachement.refection_anticipee`), panier (`prix.anticipable`, réfection
+  par défaut), propositions (surface de fouille), une seule anticipation par unité et jamais d'un travail déjà exécuté ;
+  à l'exécution, solde exécuté − attaché (pas de double paiement).
 
 ## Règles pour les migrations suivantes
 

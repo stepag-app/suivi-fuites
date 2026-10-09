@@ -124,14 +124,14 @@ const chef = (type, action) =>
 
 await ok('en ligne : les actions suivent les droits', () => {
   const a = actionsFiche(tousDroits, { horsLigne: false, verrouillee: false });
-  assert.ok(Object.entries(a).filter(([k]) => k !== 'interventionsBloquees').every(([, v]) => v === true));
-  assert.equal(a.interventionsBloquees, false);
+  assert.ok(Object.values(a).every((v) => v === true));
   const d = actionsFiche(detection, { horsLigne: false, verrouillee: false });
   assert.ok(Object.values(d).every((v) => v === false));
   const c = actionsFiche(chef, { horsLigne: false, verrouillee: true });
   assert.equal(c.ajouterReparation, true);
   assert.equal(c.ajouterPhoto, true);
-  assert.equal(c.interventionsBloquees, true);
+  // V6 : fuite verrouillée par un lot, l'agent ajoute encore (la base fige ce qui précède le verrou)
+  assert.equal('interventionsBloquees' in c, false);
   assert.equal(c.verrouiller, false);
   assert.equal(c.rapportPdf, false);
 });

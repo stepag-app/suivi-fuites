@@ -51,6 +51,7 @@ export const ROLES: Record<Role, string> = {
 export const TITRES_TYPES: Record<TypeDonnee, string> = {
   fuites: 'Fuites',
   interventions: 'Interventions',
+  refections: 'Réfections',
   photos: 'Photos',
   quantites: 'Quantités et prix',
   parametres: 'Paramètres',

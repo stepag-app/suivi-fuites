@@ -1,5 +1,5 @@
 export type TypeDonnee =
-  | 'fuites' | 'interventions' | 'photos' | 'quantites' | 'parametres'
+  | 'fuites' | 'interventions' | 'refections' | 'photos' | 'quantites' | 'parametres'
   | 'ouvriers' | 'journal' | 'exports' | 'balayage' | 'mesures_debit' | 'attachements' | 'evenements';
 
 export type Action = 'lire' | 'creer' | 'modifier' | 'supprimer' | 'valider';
@@ -122,6 +122,12 @@ export interface Reparation {
   motif_id?: string | null;
   representant_srm?: string | null;
   nature_revetement_id?: string | null;
+  // Chantier v2 (S1, S2) : validation par étape, auteur, représentant choisi dans la liste du marché
+  representant_srm_id?: string | null;
+  validee_le?: string | null;
+  validee_par?: string | null;
+  saisi_par?: string | null;
+  cree_le?: string | null;
 }
 
 export interface Refection {
@@ -134,6 +140,13 @@ export interface Refection {
   nature_id: string | null;
   motif_id: string | null;
   observation: string | null;
+  reparation_id?: string | null;
+  auteur_terrain_id?: string | null;
+  saisi_par?: string | null;
+  source_saisie?: string;
+  validee_le?: string | null;
+  validee_par?: string | null;
+  cree_le?: string | null;
 }
 
 export interface PhotoLigne {
@@ -142,6 +155,30 @@ export interface PhotoLigne {
   chemin: string;
   prise_le: string;
   stockage?: string;
+  // Chantier v2 (S1) : rattachement à une étape, auteur, date de dépôt (règles V3)
+  reparation_id?: string | null;
+  refection_id?: string | null;
+  auteur_terrain_id?: string | null;
+  saisi_par?: string | null;
+  cree_le?: string | null;
+}
+
+/** Colonnes de `fuites` absentes de `v_fuites` (chantier v2 : validation, corrections, nouveaux champs). */
+export interface FuiteV2 {
+  validee_le: string | null;
+  validee_par: string | null;
+  auteur_terrain_id: string | null;
+  saisi_par: string | null;
+  cree_le: string | null;
+  saisie_differee: boolean;
+  motif_correction: string | null;
+  corrigee_par: string | null;
+  corrigee_le: string | null;
+  nature_degradation_id: string | null;
+  diametre_mm: number | null;
+  materiau: string | null;
+  troncon_id: string | null;
+  precision_gps_m: number | null;
 }
 
 export interface Quantite {

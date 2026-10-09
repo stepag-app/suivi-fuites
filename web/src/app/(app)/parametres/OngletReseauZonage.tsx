@@ -1,9 +1,9 @@
 'use client';
 
-// Carte de zonage plein écran : tous les tronçons du marché (non zonés en gris pointillé), contours des
-// secteurs, sélection par clic, Maj+clic, rectangle (Maj+glisser ou outil) et lasso ; affectation à un
-// secteur, retrait, recalcul du contour, contour dessiné à la main. La sélection se fait sur les données
-// (milieu du tronçon dans le polygone, comme la base), jamais sur le rendu.
+// Carte de zonage plein écran, en trois étapes : choisir le secteur, sélectionner des tronçons (toucher, lasso,
+// rectangle ; la sélection s'accumule), affecter. Les non zonés (gris pointillé) se comptent en tête, avec
+// « Aller au suivant ». Contour du secteur (recalcul, tracé à la main) replié dans « Contour du secteur ».
+// La sélection se fait sur les données (milieu du tronçon dans le polygone, comme la base), jamais sur le rendu.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { FeatureCollection } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, MapMouseEvent, StyleSpecification } from 'maplibre-gl';
@@ -24,7 +24,12 @@ import { installerTrace } from '../carte/lasso';
 import styles from './Reseau.module.css';
 
 type Outil = 'clic' | 'rectangle' | 'lasso' | 'contour';
-const OUTILS: [Outil, string][] = [['clic', 'Clic'], ['rectangle', 'Rectangle'], ['lasso', 'Lasso'], ['contour', 'Contour à la main']];
+const OUTILS: [Outil, string, string][] = [
+  ['clic', 'Toucher', 'Touchez un tronçon pour l\'ajouter, touchez-le encore pour l\'enlever.'],
+  ['lasso', 'Lasso', 'Entourez les tronçons au doigt ou à la souris : ils s\'ajoutent à la sélection.'],
+  ['rectangle', 'Rectangle', 'Tracez un rectangle : les tronçons dedans s\'ajoutent à la sélection.'],
+];
+const ZOOM_SUIVANT = 16;
 const SOURCE_RESEAU = 'reseau-tout';
 const vide = (): FeatureCollection => ({ type: 'FeatureCollection', features: [] });
 
@@ -52,15 +57,12 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
   const selectionPosee = useRef(new Set<string>());
   const cadre = useRef(false);
   const [outil, setOutil] = useState<Outil>('clic');
-  const [ajouter, setAjouter] = useState(false);
   const [secteurCible, setSecteurCible] = useState(secteurs[0]?.id ?? '');
   const [contourPoints, setContourPoints] = useState<Position[]>([]);
 
   // Lus par les gestionnaires de la carte (créés une fois).
   const outilRef = useRef(outil);
   outilRef.current = outil;
-  const ajouterRef = useRef(ajouter);
-  ajouterRef.current = ajouter;
 
   const secteursParZone = useMemo(() => {
     const parZone = new Map<string, SecteurReseau[]>();
@@ -182,10 +184,7 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
             return o === 'rectangle' || o === 'lasso' ? o : null;
           },
           outilMaj: () => (outilRef.current === 'clic' ? 'rectangle' : null),
-          surFin: (anneau, cumul) => {
-            const ids = idsIndexDansAnneau(index.current.values(), anneau);
-            changerSelection(ids, cumul || ajouterRef.current ? 'ajouter' : 'remplacer');
-          },
+          surFin: (anneau) => changerSelection(idsIndexDansAnneau(index.current.values(), anneau), 'ajouter'),
         });
         setPret(true);
       });
@@ -199,12 +198,7 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
         if (o !== 'clic') return;
         const couches = ['reseau-zones-trait', 'reseau-sans-trait'].filter((c) => m.getLayer(c));
         const f = m.queryRenderedFeatures([[e.point.x - 10, e.point.y - 10], [e.point.x + 10, e.point.y + 10]], { layers: couches })[0];
-        const cumul = e.originalEvent.shiftKey || ajouterRef.current;
-        if (!f?.properties?.id) {
-          if (!cumul) changerSelection([], 'remplacer');
-          return;
-        }
-        changerSelection([String(f.properties.id)], cumul ? 'basculer' : 'remplacer');
+        if (f?.properties?.id) changerSelection([String(f.properties.id)], 'basculer');
       });
       for (const couche of ['reseau-zones-trait', 'reseau-sans-trait']) {
         m.on('mouseenter', couche, () => { if (outilRef.current === 'clic') m.getCanvas().style.cursor = 'pointer'; });
@@ -302,7 +296,8 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
     }
     return [...r.entries()].sort((a, b) => b[1] - a[1]);
   }, [selection]);
-  const nbSans = collection ? collection.features.filter((f) => !f.properties.s).length : 0;
+  const sans = useMemo(() => [...index.current.values()].filter((t) => !t.secteur), [collection]);
+  const lineaireSans = useMemo(() => sans.reduce((total, t) => total + t.longueur, 0), [sans]);
 
   async function agir(libelle: string, action: () => Promise<string>) {
     setOccupe(true);
@@ -350,10 +345,28 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
     const bornes = bornesPositions(sommetsTroncons(troncons)) ?? (s && geometrieValide(s.geom) ? bornesPositions(sommets(s.geom)) : null);
     if (bornes) m.fitBounds(bornes, { padding: 40, duration: 500 });
   };
-  const selectionnerSecteur = (id: string | null) => {
-    const liste = [...index.current.values()].filter((t) => (id ? t.secteur === id : !t.secteur)).map((t) => t.id);
-    changerSelection(liste, ajouter ? 'ajouter' : 'remplacer');
+  // Prochain non zoné : le plus proche du centre parmi ceux hors de la vue (sinon le plus proche), pour avancer de
+  // proche en proche.
+  const allerAuSuivant = () => {
+    const m = carte.current;
+    if (!m || !sans.length) return;
+    const c = m.getCenter();
+    const vue = m.getBounds();
+    const distance = (t: TronconIndexe) => (t.milieu[0] - c.lng) ** 2 + (t.milieu[1] - c.lat) ** 2;
+    const horsVue = sans.filter((t) => !vue.contains(t.milieu as [number, number]));
+    const liste = horsVue.length ? horsVue : sans;
+    let meilleur = liste[0];
+    for (const t of liste) if (distance(t) < distance(meilleur)) meilleur = t;
+    m.flyTo({ center: meilleur.milieu as [number, number], zoom: Math.max(m.getZoom(), ZOOM_SUIVANT), duration: 600 });
   };
+  const selectionnerNonZonesVisibles = () => {
+    const m = carte.current;
+    if (!m) return;
+    const vue = m.getBounds();
+    changerSelection(sans.filter((t) => vue.contains(t.milieu as [number, number])).map((t) => t.id), 'ajouter');
+  };
+  const codeCible = secteurs.find((s) => s.id === secteurCible)?.code ?? '';
+  const aideOutil = OUTILS.find(([o]) => o === outil)?.[2];
 
   return (
     <div className={styles['plein-ecran']} role="dialog" aria-label="Carte de zonage du réseau">
@@ -362,13 +375,37 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
           <h2>Zonage du réseau</h2>
           <button onClick={fermer} disabled={occupe}>Fermer</button>
         </div>
-        <p className={styles.aide}>
-          {collection ? `${nombre(collection.features.length, 0)} tronçons${nbSans ? `, ${nombre(nbSans, 0)} non zonés (gris pointillé)` : ''}.` : 'Chargement du réseau…'}
-          {' '}Clic : un tronçon ; Maj+clic : ajoute ; Maj+glisser : rectangle ; outil Lasso : dessinez au doigt ou à la souris.
-        </p>
 
-        <div className={styles.groupe}>
-          <h3>Outil</h3>
+        <div className={styles.restant} role="status">
+          {!collection ? (
+            <p className={styles.aide}>Chargement du réseau…</p>
+          ) : sans.length ? (
+            <>
+              <p>Reste à zoner : <strong>{nombre(sans.length, 0)}</strong> tronçon{sans.length > 1 ? 's' : ''} · <strong>{formaterLineaire(lineaireSans)}</strong></p>
+              <p className={styles.aide}>En gris pointillé sur la carte.</p>
+              <button type="button" onClick={allerAuSuivant} disabled={!pret}>Aller au suivant</button>
+            </>
+          ) : (
+            <p>Tout le réseau est zoné ({nombre(collection.features.length, 0)} tronçons).</p>
+          )}
+        </div>
+
+        <div className={styles.etape}>
+          <h3><span>1</span> Secteur</h3>
+          <div className={styles.ligneSecteur}>
+            <select value={secteurCible} onChange={(e) => setSecteurCible(e.target.value)} disabled={occupe} aria-label="Secteur">
+              {secteursParZone.map(({ zone, secteurs: liste }) => (
+                <optgroup key={zone.id} label={`Zone ${zone.numero} · ${zone.libelle}`}>
+                  {liste.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.libelle}</option>)}
+                </optgroup>
+              ))}
+            </select>
+            <button type="button" disabled={!secteurCible} onClick={() => voirSecteur(secteurCible)}>Voir</button>
+          </div>
+        </div>
+
+        <div className={styles.etape}>
+          <h3><span>2</span> Tronçons</h3>
           <div className={styles.modes} role="radiogroup" aria-label="Outil de sélection">
             {OUTILS.map(([o, texte]) => (
               <button key={o} type="button" role="radio" aria-checked={outil === o} aria-pressed={outil === o} onClick={() => setOutil(o)} disabled={occupe}>
@@ -376,27 +413,9 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
               </button>
             ))}
           </div>
-          {outil !== 'contour' && (
-            <label className="ligne">
-              <input type="checkbox" checked={ajouter} onChange={(e) => setAjouter(e.target.checked)} />
-              Ajouter à la sélection (comme Maj)
-            </label>
-          )}
-          {outil === 'contour' && (
-            <>
-              <p className={styles.aide}>Cliquez les sommets du contour du secteur cible ({contourPoints.length} point{contourPoints.length > 1 ? 's' : ''}) ; Échap efface.</p>
-              <div className="actions">
-                <button className="primaire" disabled={occupe || contourPoints.length < 3 || !secteurCible} onClick={terminerContour}>Terminer le contour</button>
-                <button type="button" disabled={occupe || contourPoints.length === 0} onClick={() => setContourPoints([])}>Effacer le tracé</button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className={styles.groupe}>
-          <h3>Sélection</h3>
+          {aideOutil && <p className={styles.aide}>{aideOutil}</p>}
           <p className={styles.selection}>
-            <strong>{nombre(selection.size, 0)}</strong> tronçon{selection.size > 1 ? 's' : ''} · <strong>{formaterLineaire(lineaire)}</strong>
+            <strong>{nombre(selection.size, 0)}</strong> sélectionné{selection.size > 1 ? 's' : ''} · <strong>{formaterLineaire(lineaire)}</strong>
           </p>
           {repartition.length > 0 && (
             <p className={styles.aide}>
@@ -404,41 +423,43 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
             </p>
           )}
           <div className="actions">
+            <button type="button" disabled={occupe || !pret || !sans.length} onClick={selectionnerNonZonesVisibles}>Non zonés visibles</button>
             <button type="button" disabled={occupe || selection.size === 0} onClick={() => setSelection(new Set())}>Vider</button>
-            <button type="button" disabled={occupe || nbSans === 0} onClick={() => selectionnerSecteur(null)}>Tous les non zonés</button>
           </div>
         </div>
 
-        <div className={styles.groupe}>
-          <h3>Secteur cible</h3>
-          <label>
-            Secteur
-            <select value={secteurCible} onChange={(e) => setSecteurCible(e.target.value)} disabled={occupe}>
-              {secteursParZone.map(({ zone, secteurs: liste }) => (
-                <optgroup key={zone.id} label={`Zone ${zone.numero} · ${zone.libelle}`}>
-                  {liste.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.libelle}</option>)}
-                </optgroup>
-              ))}
-            </select>
-          </label>
-          <div className="actions">
-            <button type="button" className="petit" disabled={!secteurCible} onClick={() => voirSecteur(secteurCible)}>Voir</button>
-            <button type="button" className="petit" disabled={!secteurCible || occupe} onClick={() => selectionnerSecteur(secteurCible)}>Sélectionner ses tronçons</button>
-          </div>
+        <div className={styles.etape}>
+          <h3><span>3</span> Affecter</h3>
           <div className={styles['actions-verticales']}>
             <button className="primaire" disabled={occupe || selection.size === 0 || !secteurCible} onClick={affecter}>
-              Affecter au secteur {secteurCible ? (secteurs.find((s) => s.id === secteurCible)?.code ?? '') : '…'}
+              Affecter {selection.size ? `${nombre(selection.size, 0)} tronçon${selection.size > 1 ? 's' : ''} ` : ''}à {codeCible || '…'}
             </button>
-            <button disabled={occupe || selection.size === 0} onClick={retirer}>Retirer du secteur</button>
-            <button disabled={occupe || !secteurCible} onClick={recalculer}>Recalculer le contour</button>
-            <button disabled={occupe || !secteurCible} aria-pressed={outil === 'contour'} onClick={() => setOutil(outil === 'contour' ? 'clic' : 'contour')}>
-              Dessiner le contour à la main
-            </button>
+            <button disabled={occupe || selection.size === 0} onClick={retirer}>Retirer de leur secteur</button>
           </div>
         </div>
 
         {erreur && <p className="erreur">{erreur}</p>}
         {message && <p className="info" role="status">{message}</p>}
+
+        <details className={styles.avance} open={outil === 'contour'}>
+          <summary>Contour du secteur {codeCible}</summary>
+          <p className={styles.aide}>Le contour se recalcule tout seul après chaque affectation. À n'utiliser que pour le corriger.</p>
+          <div className={styles['actions-verticales']}>
+            <button disabled={occupe || !secteurCible} onClick={recalculer}>Recalculer d'après ses tronçons</button>
+            <button disabled={occupe || !secteurCible} aria-pressed={outil === 'contour'} onClick={() => setOutil(outil === 'contour' ? 'clic' : 'contour')}>
+              {outil === 'contour' ? 'Annuler le tracé' : 'Dessiner à la main'}
+            </button>
+          </div>
+          {outil === 'contour' && (
+            <>
+              <p className={styles.aide}>Touchez les sommets du contour ({contourPoints.length} point{contourPoints.length > 1 ? 's' : ''}) ; Échap efface.</p>
+              <div className="actions">
+                <button className="primaire" disabled={occupe || contourPoints.length < 3 || !secteurCible} onClick={terminerContour}>Terminer le contour</button>
+                <button type="button" disabled={occupe || contourPoints.length === 0} onClick={() => setContourPoints([])}>Effacer le tracé</button>
+              </div>
+            </>
+          )}
+        </details>
       </aside>
 
       <div className={styles.carte}>

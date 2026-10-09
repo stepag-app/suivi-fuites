@@ -1,7 +1,7 @@
 // Client Supabase de démonstration : mêmes appels (from / select / eq / order / range, auth, storage, rpc,
 // functions), servis depuis les tables en mémoire de donnees.ts. Rien n'est envoyé nulle part.
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { ADMIN_ID, EMAIL_DEMO, TABLES, anticipeesDemo, profils, secteurs, vFuites } from "./donnees";
+import { ADMIN_ID, EMAIL_DEMO, MARCHE_SRM, TABLES, anticipeesDemo, profils, secteurs, vFuites } from "./donnees";
 
 type Ligne = Record<string, unknown>;
 type Reponse = { data: unknown; error: { message: string; code?: string } | null; count: number | null };
@@ -292,6 +292,23 @@ export function creerClientDemo(): SupabaseClient {
         return { data: proches, error: null };
       }
       if (nom === "copier_marche") return { data: crypto.randomUUID(), error: null };
+      // Réseau fictif (zonage) : grille de rues autour du centre d'Oujda, un tiers non zoné.
+      if (nom === "reseau_geojson") {
+        const lignes = reseauDemo().filter((t) => {
+          const p = t.properties;
+          if (p.marche !== params.p_marche) return false;
+          const voulus = params.p_secteurs as string[] | null;
+          return voulus == null ? true : p.s ? voulus.includes(p.s) : !!params.p_sans_secteur;
+        });
+        return { data: { type: "FeatureCollection", features: lignes }, error: null };
+      }
+      if (nom === "affecter_troncons_secteur") {
+        const ids = new Set(params.p_troncons as string[]);
+        const touches = reseauDemo().filter((t) => ids.has(t.properties.id));
+        for (const t of touches) t.properties.s = (params.p_secteur as string | null) ?? null;
+        return { data: touches.length, error: null };
+      }
+      if (nom === "recalculer_contour_secteur" || nom === "definir_contour_secteur") return { data: null, error: null };
       if (nom === "valider_etapes") {
         const tables: Record<string, string> = { detection: "fuites", reparation: "reparations", refection: "refections" };
         let n = 0;
@@ -420,4 +437,28 @@ export function creerClientDemo(): SupabaseClient {
     },
   };
   return client as unknown as SupabaseClient;
+}
+
+interface TronconDemo { type: "Feature"; properties: { id: string; marche: string; s: string | null; z: null; c: string; d: number; m: null; l: number }; geometry: { type: "LineString"; coordinates: number[][] } }
+let reseauMemo: TronconDemo[] | null = null;
+function reseauDemo(): TronconDemo[] {
+  if (reseauMemo) return reseauMemo;
+  const srm = secteurs.filter((x) => x.marche_id === MARCHE_SRM);
+  const [x0, y0, pas] = [-1.925, 34.67, 0.0025];
+  const liste: TronconDemo[] = [];
+  let n = 0;
+  for (let i = 0; i < 12; i++) {
+    for (let j = 0; j < 10; j++) {
+      for (const [dx, dy] of [[1, 0], [0, 1]]) {
+        n++;
+        const secteur = (i + j) % 3 === 0 ? null : srm[Math.floor(i / 3) + 4 * Math.floor(j / 5)]?.id ?? null;
+        liste.push({
+          type: "Feature",
+          properties: { id: `dddddddd-0000-4000-8000-${String(n).padStart(12, "0")}`, marche: MARCHE_SRM, s: secteur, z: null, c: "distribution", d: 63, m: null, l: 230 },
+          geometry: { type: "LineString", coordinates: [[x0 + i * pas, y0 + j * pas], [x0 + (i + dx) * pas, y0 + (j + dy) * pas]] },
+        });
+      }
+    }
+  }
+  return (reseauMemo = liste);
 }

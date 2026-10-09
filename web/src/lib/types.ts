@@ -14,6 +14,11 @@ export interface Profil {
   langue: 'fr' | 'ar' | 'fr_ar';
   est_admin: boolean;
   actif: boolean;
+  /** Chantier v2 (R3, R4, R6) : nom_complet devient « NOM Prénom » dès que l'un des deux est saisi */
+  nom?: string | null;
+  prenom?: string | null;
+  matricule?: string | null;
+  entreprise?: string;
 }
 
 export interface Marche {
@@ -71,6 +76,7 @@ export interface VFuite {
   longitude: number | null;
   date_detection: string;
   detectee_par: string | null;
+  auteur_terrain_id?: string | null;
   source_saisie: string;
   date_communication_srm: string | null;
   validation_srm_le: string | null;

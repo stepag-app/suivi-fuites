@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { Vide } from "@/components/en-tete-page";
-import { BadgeStatut, alertesDe } from "@/components/statut";
+import { BadgeAnticipe, BadgeStatut, alertesDe } from "@/components/statut";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
+import { useFuitesAnticipees } from "@/lib/anticipation";
 import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { COLONNES_LISTE, type FuiteListe } from "@/lib/colonnes-fuites";
@@ -26,7 +27,11 @@ import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import { activite, jourCasa, lundiDe, ajouterJours } from "@/lib/ui/tableau-de-bord";
 import { cn, dureeDepuis, pluriel, pourcent } from "@/lib/utils";
 
-type Tache = { fuite: FuiteListe; titre: string; type: "reparation" | "refection" | "communication" | "photo"; priorite: "haute" | "normale" };
+type Tache = {
+  fuite: FuiteListe; titre: string; type: "reparation" | "refection" | "communication" | "photo"; priorite: "haute" | "normale";
+  /** A1 : attachée par anticipation, exécution réelle attendue : en tête de liste */
+  anticipe?: boolean;
+};
 
 /** « À faire » (modèle « Productivity ») : ce qui attend l'équipe, par priorité, avec calendrier des détections. */
 export default function AFaire() {
@@ -35,12 +40,13 @@ export default function AFaire() {
   const [fuites, setFuites] = useState<Lignes<FuiteListe>>([]);
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
-  const [filtre, setFiltre] = useState<"toutes" | Tache["type"]>("toutes");
+  const [filtre, setFiltre] = useState<"toutes" | "anticipees" | Tache["type"]>("toutes");
   const [cochees, setCochees] = useState<string[]>([]);
   const today = startOfToday();
   const [date, setDate] = useState<Date | undefined>(today);
   const [mois, setMois] = useState<Date>(() => startOfMonth(today));
   const marcheId = marche?.id;
+  const { parFuite: anticipees } = useFuitesAnticipees(peut("fuites", "lire") ? marcheId : undefined);
 
   const charger = useCallback(async () => {
     if (!marcheId) return;
@@ -70,10 +76,17 @@ export default function AFaire() {
       if (f.statut === "reparee") t.push({ fuite: f, type: "refection", priorite: f.refection_chaussee_hors_delai ? "haute" : "normale", titre: `Réfection de la fuite N° ${f.numero}` });
       if (f.alerte_communication_srm) t.push({ fuite: f, type: "communication", priorite: "normale", titre: `Communiquer la fuite N° ${f.numero} à ${libelles.sigle}` });
       if (f.alerte_sans_photo && f.statut !== "achevee") t.push({ fuite: f, type: "photo", priorite: "normale", titre: `Photographier la fuite N° ${f.numero}` });
+      // A1 : travaux déjà attachés par anticipation, exécution réelle attendue (réfection le plus souvent)
+      if (anticipees.has(f.id)) {
+        const travaux = t.filter((x) => x.fuite.id === f.id && (x.type === "reparation" || x.type === "refection"));
+        if (travaux.length) travaux.forEach((x) => { x.anticipe = true; });
+        else t.push({ fuite: f, type: "refection", priorite: "haute", anticipe: true, titre: `Exécuter les travaux attachés par anticipation, fuite N° ${f.numero}` });
+      }
     }
-    return t.sort((a, b) => Number(b.priorite === "haute") - Number(a.priorite === "haute") || a.fuite.date_detection.localeCompare(b.fuite.date_detection));
-  }, [fuites, libelles.sigle]);
-  const visibles = taches.filter((t) => filtre === "toutes" || t.type === filtre);
+    return t.sort((a, b) => Number(!!b.anticipe) - Number(!!a.anticipe) || Number(b.priorite === "haute") - Number(a.priorite === "haute")
+      || a.fuite.date_detection.localeCompare(b.fuite.date_detection));
+  }, [fuites, libelles.sigle, anticipees]);
+  const visibles = taches.filter((t) => filtre === "toutes" || (filtre === "anticipees" ? t.anticipe : t.type === filtre));
 
   const auj = jourCasa(maintenant);
   const lundi = lundiDe(auj);
@@ -101,7 +114,8 @@ export default function AFaire() {
 
   if (!peut("fuites", "lire")) return <Vide>Votre compte n&apos;a pas accès aux fuites de ce marché.</Vide>;
 
-  const prenom = profil?.nom_complet?.split(/\s+/)[0] ?? "";
+  // « NOM Prénom » depuis le chantier v2 : le prénom saisi, sinon le premier mot du nom complet
+  const prenom = profil?.prenom || (profil?.nom ? "" : profil?.nom_complet?.split(/\s+/)[0]) || "";
   const salut = maintenant.getHours() < 18 ? "Bonjour" : "Bonsoir";
   const ICONES = { reparation: Wrench, refection: Droplets, communication: ReceiptText, photo: Siren } as const;
   const TYPES: Record<Tache["type"], string> = { reparation: "Réparation", refection: "Réfection", communication: libelles.sigle, photo: "Photo" };
@@ -164,6 +178,7 @@ export default function AFaire() {
                   <SelectContent>
                     <SelectGroup>
                       <SelectItem value="toutes">Toutes</SelectItem>
+                      {anticipees.size > 0 && <SelectItem value="anticipees">Attachées par anticipation</SelectItem>}
                       <SelectItem value="reparation">Réparations</SelectItem>
                       <SelectItem value="refection">Réfections</SelectItem>
                       <SelectItem value="communication">Communications {libelles.sigle}</SelectItem>
@@ -191,7 +206,8 @@ export default function AFaire() {
                                   {t.titre}{t.fuite.adresse ? <span className="text-muted-foreground"> · {t.fuite.adresse}</span> : null}
                                 </Link>
                                 <Badge variant="outline" className="px-3 py-1 font-normal"><I />{TYPES[t.type]}</Badge>
-                                {t.priorite === "haute" && <Badge variant="destructive" className="border-transparent">Urgent</Badge>}
+                                {t.anticipe && <BadgeAnticipe lot={anticipees.get(t.fuite.id)?.premier_lot} />}
+                                {t.priorite === "haute" && !t.anticipe && <Badge variant="destructive" className="border-transparent">Urgent</Badge>}
                                 <BadgeStatut statut={t.fuite.statut} court />
                               </div>
                               <div className="flex shrink-0 items-center gap-3 text-muted-foreground text-sm">

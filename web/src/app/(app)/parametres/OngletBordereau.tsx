@@ -14,6 +14,7 @@ interface Article {
   id: string; numero: string; ordre: number; designation: string; unite: string;
   quantite_marche: number | null; pu_ht: number | null; hors_bordereau: boolean; actif: boolean;
   famille: string; materiaux: string[] | null; diametre_min_mm: number | null; diametre_max_mm: number | null;
+  anticipable?: boolean;
 }
 interface Version {
   id: string; prix_id: string; version: number; designation: string; unite: string;
@@ -44,7 +45,7 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
     const sb = getSupabase();
     const [a, p, v] = await Promise.all([
       sb.from('avenants').select('*').eq('marche_id', marcheId).order('date_avenant'),
-      sb.from('prix').select('id, numero, ordre, designation, unite, quantite_marche, pu_ht, hors_bordereau, actif, famille, materiaux, diametre_min_mm, diametre_max_mm')
+      sb.from('prix').select('id, numero, ordre, designation, unite, quantite_marche, pu_ht, hors_bordereau, actif, famille, materiaux, diametre_min_mm, diametre_max_mm, anticipable')
         .eq('marche_id', marcheId).order('hors_bordereau').order('ordre').order('numero'),
       sb.from('prix_versions').select('*').eq('marche_id', marcheId).order('version'),
     ]);
@@ -113,6 +114,11 @@ export function OngletBordereau({ marcheId, peutCreer, peutModifier }: { marcheI
         <p className="discret">
           Un article du bordereau ne se modifie jamais directement : chaque changement crée une nouvelle version,
           rattachée à un avenant ou justifiée par un motif. L&apos;historique et le journal gardent toutes les valeurs.
+        </p>
+        <p className="discret">
+          <strong>Panier d&apos;anticipation</strong> : les articles cochés « Anticipable » peuvent être attachés avant leur
+          exécution, si le maître d&apos;ouvrage l&apos;accepte (case des règles d&apos;attachement). Ils sont alors proposés
+          dans le lot, avec la surface de fouille pour une réfection.
         </p>
         {articles.length === 0 && <p className="discret">Aucun article visible (droit « quantités » requis).</p>}
         {bordereau.map((p) => (
@@ -190,6 +196,13 @@ function LigneArticle({
           <br />
           <span className="discret designation">{p.designation}</span>
           <span className="discret regles-prix">Proposition automatique : {resumeRegles(p)}</span>
+          {p.anticipable !== undefined && (
+            <label className="ligne anticipable" title="Panier d'anticipation : article attachable avant son exécution">
+              <input type="checkbox" checked={p.anticipable} disabled={!peutModifier}
+                onChange={(e) => modifierRegles({ anticipable: e.target.checked })} />
+              Anticipable
+            </label>
+          )}
         </span>
         <span className="actions">
           {peutModifier && (

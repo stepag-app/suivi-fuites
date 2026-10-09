@@ -20,7 +20,10 @@ import {
   COLONNES_TDB, debutMarche, jourLong, libellePeriode, periodePour, resumerUnites,
   type ArticleTdb, type ChoixPeriode, type FuiteTdb, type LigneAttacheeTdb, type LotTdb, type Periode, type ResteAAttacher, type UniteResteTdb,
 } from "@/lib/ui/tableau-de-bord";
+import { useFuitesAnticipees } from "@/lib/anticipation";
+import { AnticipeesPrioritaires } from "./Anticipees";
 import { BlocAttachements, type DonneesAttachements } from "./BlocAttachements";
+import { FournituresPosees } from "./Fournitures";
 import { DernieresFuites, type FuiteRecente } from "./DernieresFuites";
 import { Synthese, TableauGroupes, type Anomalie } from "./Synthese";
 
@@ -85,6 +88,9 @@ export default function TableauDeBord() {
   const lireFuites = peut("fuites", "lire");
   const voirAnomalies = peut("quantites", "lire") && peut("interventions", "lire");
   const voirAttachements = peut("attachements", "lire") && peut("quantites", "lire");
+  const voirFournitures = peut("quantites", "lire");
+  const [versionAnticipees, setVersionAnticipees] = useState(0);
+  const { liste: anticipees } = useFuitesAnticipees(lireFuites ? marcheId : undefined, versionAnticipees);
 
   const derniereDemande = useRef(0);
   const charger = useCallback(async () => {
@@ -138,6 +144,10 @@ export default function TableauDeBord() {
   useEffect(() => {
     charger();
   }, [charger]);
+  const actualiser = () => {
+    charger();
+    setVersionAnticipees((v) => v + 1);
+  };
 
   const maintenant = donnees?.maintenant;
   const debut = donnees?.debut;
@@ -151,7 +161,8 @@ export default function TableauDeBord() {
   if (!lireFuites) return <Vide>Votre compte n&apos;a pas accès aux fuites de ce marché.</Vide>;
 
   const titrePeriode = choix === "debut" ? `depuis le début du marché (${jourLong(periode.du)})` : libellePeriode(periode);
-  const prenom = profil?.nom_complet?.split(/\s+/)[0] ?? "";
+  // « NOM Prénom » depuis le chantier v2 : le prénom saisi, sinon le premier mot du nom complet
+  const prenom = profil?.prenom || (profil?.nom ? "" : profil?.nom_complet?.split(/\s+/)[0]) || "";
   const fuites = donnees?.fuites;
 
   return (
@@ -190,7 +201,7 @@ export default function TableauDeBord() {
                   onChange={(e) => setLibre((l) => ({ ...l, au: e.target.value }))} />
               </>
             )}
-            <Button size="icon" variant="outline" onClick={charger} disabled={chargement} aria-label="Actualiser">
+            <Button size="icon" variant="outline" onClick={actualiser} disabled={chargement} aria-label="Actualiser">
               <RefreshCw className={chargement ? "animate-spin" : undefined} />
             </Button>
             <DropdownMenu>
@@ -204,7 +215,7 @@ export default function TableauDeBord() {
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuGroup>
-                  <DropdownMenuItem onSelect={() => charger()}><RefreshCw />Actualiser les chiffres</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={actualiser}><RefreshCw />Actualiser les chiffres</DropdownMenuItem>
                 </DropdownMenuGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -231,8 +242,11 @@ export default function TableauDeBord() {
         {donnees && fuites && fuites.length > 0 && (
           <>
             <TabsContent value="ensemble" className="flex flex-col gap-4">
+              <AnticipeesPrioritaires liste={anticipees} maintenant={donnees.maintenant}
+                statuts={new Map(fuites.map((f) => [f.id, f.statut]))} />
               <Synthese fuites={fuites} anomalies={donnees.anomalies} maintenant={donnees.maintenant}
                 periode={periode} titrePeriode={titrePeriode} seuilH={libelles.delaiReparationH} comparer={choix !== "debut"} />
+              {voirFournitures && marcheId && <FournituresPosees marcheId={marcheId} periode={periode} titrePeriode={titrePeriode} />}
             </TabsContent>
             <TabsContent value="secteurs">
               <TableauGroupes fuites={fuites} periode={periode} titrePeriode={titrePeriode} />

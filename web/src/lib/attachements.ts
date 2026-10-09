@@ -119,7 +119,7 @@ export interface ReglesAttachement {
 
 export const NATURES_LIGNE: Record<LigneLot['nature'], string> = {
   solde: 'Travaux',
-  anticipation: 'Réfection anticipée',
+  anticipation: 'Attaché par anticipation',
   libre: 'Ligne libre',
   forcage: 'Refacturation forcée',
 };

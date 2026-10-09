@@ -503,7 +503,7 @@ export function contenuRapportJournalier(
     periode ? ['Période', texteJour, true] : ['Journée du', texteJour, false],
     ...(periode ? [['Jours balayés', String(journee.parJour?.length ?? 0), false] as [string, string, boolean]] : []),
     [journee.equipes.length > 1 ? 'Équipes' : 'Équipe N°', equipes, false],
-    [journee.agents.length > 1 ? 'Agents' : 'Agent', liste(journee.agents), false],
+    [journee.agents.length > 1 ? 'Agents (matricules)' : 'Agent (matricule)', liste(journee.agents), false],
     ['Zone d\'intervention', liste(zones), false],
     ['Secteur d\'intervention', liste(secteurs), false],
     ['Linéaire inspecté', `${texteKm(totaux.lineaire_m)} (premiers passages)`, false],

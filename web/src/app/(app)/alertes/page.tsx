@@ -6,7 +6,8 @@ import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { BellOff, Camera, ExternalLink, FileText, MapPinned, Navigation, Network, Printer, Volume2, Wifi, WifiOff } from "lucide-react";
 import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { Vide } from "@/components/en-tete-page";
-import { ALERTES_FUITE, BadgeStatut, STATUT_STYLE, alertesDe } from "@/components/statut";
+import { ALERTES_FUITE, BadgeAnticipe, BadgeStatut, STATUT_STYLE, alertesDe } from "@/components/statut";
+import { useFuitesAnticipees } from "@/lib/anticipation";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,9 @@ export default function Alertes() {
   const [maintenant, setMaintenant] = useState(() => new Date());
   const [enLigne, setEnLigne] = useState(true);
   const marcheId = marche?.id;
+  // A1 : fuites attachées par anticipation, exécution attendue : en tête, même sans autre alerte
+  const { liste: listeAnticipees, parFuite: anticipees } = useFuitesAnticipees(peut("fuites", "lire") ? marcheId : undefined);
+  const [complements, setComplements] = useState<FuiteAlerte[]>([]);
 
   useEffect(() => {
     // Durées affichées à l'heure près : la page se redessine chaque minute ; l'horloge seule chaque seconde.
@@ -86,9 +90,26 @@ export default function Alertes() {
     charger();
   }, [charger]);
 
-  const enAlerte = useMemo(() => fuites
-    .filter((f) => alertesDe(f).length > 0 || f.alerte_sans_photo)
-    .sort((a, b) => Number(b.alerte_non_reparee) - Number(a.alerte_non_reparee) || a.date_detection.localeCompare(b.date_detection)), [fuites]);
+  // Fuites anticipées absentes de la lecture des alertes (aucune autre alerte, plus anciennes que 14 jours)
+  useEffect(() => {
+    const connues = new Set(fuites.map((f) => f.id));
+    const manquantes = listeAnticipees.map((f) => f.fuite_id).filter((id) => !connues.has(id));
+    if (!marcheId || !manquantes.length) {
+      setComplements([]);
+      return;
+    }
+    let annule = false;
+    getSupabase().from("v_fuites").select(COLONNES_ALERTES).eq("marche_id", marcheId).in("id", manquantes.slice(0, 200))
+      .then(({ data }) => !annule && setComplements((data as unknown as FuiteAlerte[] | null) ?? []));
+    return () => {
+      annule = true;
+    };
+  }, [fuites, listeAnticipees, marcheId]);
+
+  const enAlerte = useMemo(() => [...fuites, ...complements]
+    .filter((f) => anticipees.has(f.id) || alertesDe(f).length > 0 || f.alerte_sans_photo)
+    .sort((a, b) => Number(anticipees.has(b.id)) - Number(anticipees.has(a.id))
+      || Number(b.alerte_non_reparee) - Number(a.alerte_non_reparee) || a.date_detection.localeCompare(b.date_detection)), [fuites, complements, anticipees]);
   const choisie = enAlerte.find((f) => f.id === selection) ?? enAlerte[0] ?? null;
   const tendances = useMemo(() => ({
     retard: nonReparees(fuites, libelles.delaiReparationH, chargeLe),
@@ -149,7 +170,8 @@ export default function Alertes() {
                     <div className="truncate font-medium text-sm">
                       <span className={cn(retard && "text-amber-500 dark:text-amber-400")}>N° {f.numero}</span> {f.secteur ?? "—"}
                     </div>
-                    {retard && <Badge className="h-auto shrink-0 rounded-none border-amber-500 text-[10px] text-amber-700 dark:border-amber-400 dark:text-amber-300" variant="outline">RETARD</Badge>}
+                    {anticipees.has(f.id) ? <BadgeAnticipe className="h-auto shrink-0 rounded-none text-[10px] uppercase" lot={anticipees.get(f.id)?.premier_lot} />
+                      : retard && <Badge className="h-auto shrink-0 rounded-none border-amber-500 text-[10px] text-amber-700 dark:border-amber-400 dark:text-amber-300" variant="outline">RETARD</Badge>}
                   </div>
                   <div className="flex w-full flex-1 items-center">
                     <div className="flex w-full items-end gap-0.5">
@@ -179,6 +201,7 @@ export default function Alertes() {
               <div className="flex items-center gap-3 font-medium">
                 <Badge className="rounded-none" variant="outline">{choisie.secteur ?? "Secteur ?"}</Badge>
                 <span className="text-lg">Fuite N° {choisie.numero}</span>
+                {anticipees.has(choisie.id) && <BadgeAnticipe lot={anticipees.get(choisie.id)?.premier_lot} />}
               </div>
               <div className="text-muted-foreground text-sm">{choisie.adresse ?? "Adresse non renseignée"} · <BadgeStatut statut={choisie.statut} court className="align-middle" /></div>
             </div>

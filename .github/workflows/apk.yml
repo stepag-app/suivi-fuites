@@ -45,11 +45,12 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       # Vrai code de la file d'attente et de la session, vrai client Supabase ; serveur et réseau simulés.
-      - name: Essais sans pile (file d'attente, session hors ligne)
+      - name: Essais sans pile (file d'attente, session hors ligne, suivi GPS)
         run: |
           node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
           node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
           node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
+          node --import ./essais/substituts.mjs essais/suivi-gps.test.mjs
       # Notifications push : fichier Firebase de l'appli Android (secret GOOGLE_SERVICES_JSON, contenu JSON brut),
       # jamais dans le dépôt. Absent : APK sans push (aucun jeton enregistré), tout le reste fonctionne.
       - name: Firebase (google-services.json)

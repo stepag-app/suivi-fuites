@@ -41,7 +41,15 @@ export interface EnvoiPhotos extends Commun {
 export interface EnvoiModification extends Commun {
   type: 'modification'; fuite_id: string; fuite_libelle: string; reparation_id: string; changements: Changements;
 }
-export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection | EnvoiPhotos | EnvoiModification;
+/**
+ * Changement de quelques champs d'une ligne déjà saisie (V2, V3) : fuite ou réfection modifiée avant validation,
+ * type d'une photo changé, photo retirée (retrait logique : `supprime_le`, fichier gardé).
+ */
+export interface EnvoiMaj extends Commun {
+  type: 'maj'; fuite_id: string; fuite_libelle: string; table: 'fuites' | 'refections' | 'photos'; ligne_id: string;
+  champs: Record<string, unknown>;
+}
+export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection | EnvoiPhotos | EnvoiModification | EnvoiMaj;
 /** Ancien nom, gardé pour les écrans de détection. */
 export type FuiteAttente = EnvoiFuite;
 
@@ -98,7 +106,8 @@ export async function dependants(id: string): Promise<Envoi[]> {
   const e = liste.find((x) => x.id === id);
   if (!e) return [];
   const rattache = (x: Envoi) =>
-    ((x.type === 'modification' || x.type === 'photos') && x.reparation_id === id) || (x.type === 'photos' && x.refection_id === id);
+    ((x.type === 'modification' || x.type === 'photos') && x.reparation_id === id) || (x.type === 'photos' && x.refection_id === id)
+    || (x.type === 'maj' && x.ligne_id === id);
   return liste.filter((x) => x.id !== id && (estFuite(e) ? fuiteDe(x) === id : rattache(x)));
 }
 
@@ -126,6 +135,17 @@ export function messageClair(e: unknown): string {
   if (err.code === '42501' || /row-level security|non autorisée|permission denied/i.test(brut)) {
     return t("Droit insuffisant sur ce marché pour cette saisie. Rien n'est perdu : voyez avec l'administrateur.");
   }
+  // Refus des règles de validation (S1) et des champs obligatoires (S2) : message de la base, traduit.
+  if (/Étape validée/.test(brut)) {
+    return t("Déjà validée par le responsable : elle ne se modifie plus depuis la tablette. Ajoutez un nouvel élément (il sera à valider) ou demandez la correction au responsable.");
+  }
+  if (/Photo enregistrée avant la validation/.test(brut)) {
+    return t('Photo enregistrée avant la validation : seul le responsable peut la modifier ou la retirer.');
+  }
+  if (/Validation réservée/.test(brut)) return t('Validation réservée au responsable.');
+  if (/pièces et ouvriers réservés/i.test(brut)) return t('Réparation validée : pièces et ouvriers réservés au responsable.');
+  const manquants = /Champs obligatoires manquants : (.*)/.exec(brut);
+  if (manquants) return t('Champs obligatoires manquants : {champs}. Complétez la saisie (Modifier), puis « Envoyer maintenant ».', { champs: manquants[1] });
   if (err.code === '23503') return t('Fuite ou paramètre introuvable sur le serveur (supprimé entre-temps ?).');
   if (/produit_obligatoire/.test(brut)) {
     return t('Pièce sans article de la liste (ancienne désignation libre) refusée : retirez-la et choisissez un article proposé.');
@@ -220,7 +240,15 @@ async function envoyerModification(e: EnvoiModification) {
   await envoyerPhotos(e, { reparation_id: e.reparation_id });
 }
 
+async function envoyerMaj(e: EnvoiMaj) {
+  const { data, error } = await supabase.from(e.table).update(e.champs).eq('id', e.ligne_id).select('id');
+  if (error) throw error;
+  // Sans droit de modification sur le marché, la base ne touche aucune ligne et ne signale rien.
+  if (!data?.length) throw Object.assign(new Error('Modification non autorisée'), { code: '42501' });
+}
+
 function envoyer(e: Envoi) {
+  if (e.type === 'maj') return envoyerMaj(e);
   if (e.type === 'photos') return envoyerPhotos(e, { reparation_id: e.reparation_id, refection_id: e.refection_id });
   if (e.type === 'modification') return envoyerModification(e);
   return envoyerCreation(e);

@@ -1,42 +1,23 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Crypto from 'expo-crypto';
-import * as Location from 'expo-location';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
+  ActivityIndicator, Alert, AppState, FlatList, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { compterAValider } from './a-valider';
 import { dateHeure } from './fiche';
 import {
-  abandonner, dependants, effacerPhotos, estFuite, lireAttente, mettreEnAttente, surChangement, synchroniser,
-  type Envoi, type EnvoiFuite, type PhotoAttente,
+  abandonner, dependants, estFuite, lireAttente, surChangement, synchroniser, type Envoi, type EnvoiFuite,
 } from './file-attente';
 import { Icone } from './icones';
 import { t, tx, useLangue } from './langue';
 import { chargerListe } from './liste-donnees';
-import { prendrePhoto as photoCamera } from './photos';
 import { useSession } from './session';
-import { jetonARenouveler } from './session-donnees';
 import { emailDepuisIdentifiant, supabase } from './supabase';
-import type { Proche, Secteur, StatutFuite, VFuite } from './types';
+import type { StatutFuite, VFuite } from './types';
 import {
   Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
-  POLICE, s, Saisie, Segments, Selecteur, Statut, STATUT_STYLE, TeteCarte, useBas, Vide, Vignettes,
+  POLICE, s, Saisie, Segments, Statut, STATUT_STYLE, useBas, Vide,
 } from './ui';
-// Masque du marché : « 9 » = un chiffre, les séparateurs se placent seuls ; sans masque, saisie libre.
-const formaterReference = (t: string, masque: string | null | undefined) => {
-  if (!masque) return t;
-  const chiffres = t.replace(/\D/g, '');
-  let i = 0;
-  let sortie = '';
-  for (const c of masque) {
-    if (i >= chiffres.length) break;
-    if (c === '9') sortie += chiffres[i++];
-    else sortie += c;
-  }
-  return sortie;
-};
-
 export function Connexion() {
   const [identifiant, setIdentifiant] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
@@ -118,8 +99,9 @@ const MISE_A_JOUR_MS = 5 * 60 * 1000;
 const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export function Liste({ nouvelle, attente, balayage, ouvrir }: {
+export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
+  aValider: () => void; notifications: () => void; nonLues: number; miseAJour: ReactNode;
 }) {
   const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
@@ -134,6 +116,9 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
   const derniere = useRef({ marche: '', contenu: '' });
   const { langue } = useLangue();
   const marcheId = marche?.id;
+  // V1 : « À valider (n) » pour qui peut valider au moins une étape (responsable, administrateur).
+  const valideur = peut('fuites', 'valider') || peut('interventions', 'valider') || peut('refections', 'valider');
+  const [nbAValider, setNbAValider] = useState<number | null>(null);
 
   // `discret` : rechargement de fond, sans le rond de rafraîchissement (réservé à l'arrivée sur la liste et au geste
   // de l'agent). À l'ouverture et au changement de marché, la copie de la tablette s'affiche d'abord (liste-donnees.ts).
@@ -153,10 +138,11 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
         copie: derniere.current.marche !== marcheId, aRenouveler, delaiMs: DELAI_LISTE_MS, afficher,
       });
       setMessage(repondu ? '' : t('Hors ligne : dernière liste connue.'));
+      if (repondu && valideur) setNbAValider(await compterAValider(marcheId).catch(() => null));
     } finally {
       setRafraichit(false);
     }
-  }, [marcheId, aRenouveler]);
+  }, [marcheId, aRenouveler, valideur]);
 
   useEffect(() => {
     charger();
@@ -225,6 +211,10 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
             {large && marches.length > 1 && (
               <Segments options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={choisirMarche} />
             )}
+            <Bouton
+              titre={large ? t('Notifications') : ''} icone="bell" fantome onPress={notifications}
+              compteur={nonLues > 0 ? (nonLues > 9 ? '9+' : nonLues) : undefined}
+            />
             <BoutonBarre titre={t('Quitter')} icone="log-out" onPress={deconnecter} />
           </>
         )}
@@ -248,11 +238,13 @@ export function Liste({ nouvelle, attente, balayage, ouvrir }: {
           </View>
           <View style={[s.ligne, { alignItems: 'center' }]}>
             {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
+            {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
             {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
         </View>
         {!!message && <Message ton="attention" icone="wifi-off">{message}</Message>}
+        {miseAJour}
 
         <View style={l.onglets}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
@@ -431,315 +423,16 @@ function Photos({ nb }: { nb: number }) {
   );
 }
 
-export function NouvelleFuite({ retour, ouvrirFiche }: { retour: () => void; ouvrirFiche: (id: string) => void }) {
-  const { marche, aRenouveler } = useSession();
-  useLangue();
-  const libelleReference = tx(marche?.libelle_reference || 'Référence client');
-  const masque = marche?.masque_reference ?? null;
-  const [secteurs, setSecteurs] = useState<Secteur[]>([]);
-  const [secteurId, setSecteurId] = useState('');
-  const [choixSecteur, setChoixSecteur] = useState(false);
-  const [reference, setReference] = useState('');
-  const [adresse, setAdresse] = useState('');
-  const [observation, setObservation] = useState('');
-  const [position, setPosition] = useState<{ lat: number; lon: number; precision: number } | null>(null);
-  const [gps, setGps] = useState(() => t('Recherche de la position…'));
-  const [photos, setPhotos] = useState<PhotoAttente[]>([]);
-  const [erreur, setErreur] = useState('');
-  const [envoi, setEnvoi] = useState('');
-  // Contrôle des doublons : fuites proches (rayon du marché) ou de même référence.
-  const [proches, setProches] = useState<Proche[]>([]);
-  const [controle, setControle] = useState<'' | 'en_cours' | 'fait' | 'hors_ligne'>('');
-  const [lierA, setLierA] = useState('');
-  const bas = useBas();
-  // Photos prises puis saisie abandonnée : effacées du dossier privé de l'appli.
-  const gardees = useRef(false);
-  const photosCourantes = useRef<PhotoAttente[]>([]);
-  photosCourantes.current = photos;
-  useEffect(() => () => {
-    if (!gardees.current) void effacerPhotos(photosCourantes.current);
-  }, []);
-
-  // Secteurs : copie de la tablette d'abord, puis serveur ; jeton à renouveler : copie seulement (session-donnees.ts).
-  const marcheId = marche?.id;
-  useEffect(() => {
-    if (!marcheId) return;
-    const cle = `suivi-fuites:secteurs:${marcheId}`;
-    let annule = false;
-    (async () => {
-      const copie = await AsyncStorage.getItem(cle).catch(() => null);
-      if (copie && !annule) setSecteurs(JSON.parse(copie));
-      if (aRenouveler || jetonARenouveler()) return;
-      const { data, error } = await supabase.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId)
-        .eq('actif', true).order('libelle');
-      if (error || !data || annule) return;
-      setSecteurs(data as Secteur[]);
-      AsyncStorage.setItem(cle, JSON.stringify(data)).catch(() => undefined);
-    })().catch(() => undefined);
-    return () => {
-      annule = true;
-    };
-  }, [marcheId, aRenouveler]);
-
-  const localiser = useCallback(async () => {
-    setGps(t('Recherche de la position…'));
-    const droit = await Location.requestForegroundPermissionsAsync();
-    if (droit.status !== 'granted') {
-      setGps(t('Position refusée : autorisez la localisation dans les réglages de la tablette.'));
-      return;
-    }
-    try {
-      const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      setPosition({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy ?? 0 });
-      setGps('');
-    } catch {
-      setGps(t("Position introuvable. Sortez à l'air libre et réessayez."));
-    }
-  }, []);
-
-  useEffect(() => {
-    localiser();
-  }, [localiser]);
-
-  useEffect(() => {
-    if (!marche || (!position && !reference.trim())) {
-      setProches([]);
-      setControle('');
-      return;
-    }
-    // Jeton à renouveler : la recherche partirait sans jeton valide après les reprises d'auth-js (session-donnees.ts).
-    if (aRenouveler) {
-      setProches([]);
-      setControle('hors_ligne');
-      return;
-    }
-    let annule = false;
-    const delai = setTimeout(async () => {
-      // Jeton entré dans la marge d'auth-js pendant la saisie, écran pas encore prévenu : même cas.
-      if (jetonARenouveler()) {
-        setProches([]);
-        setControle('hors_ligne');
-        return;
-      }
-      setControle('en_cours');
-      try {
-        const { data, error } = await supabase.rpc('rechercher_fuites_proches', {
-          p_marche: marche.id,
-          p_latitude: position?.lat ?? null,
-          p_longitude: position?.lon ?? null,
-          p_reference: reference.trim() || null,
-        });
-        if (annule) return;
-        if (error) throw error;
-        const liste = (data as Proche[] | null) ?? [];
-        setProches(liste);
-        setLierA((l) => (liste.some((p) => p.id === l) ? l : ''));
-        setControle('fait');
-      } catch {
-        if (annule) return;
-        setProches([]);
-        setControle('hors_ligne');
-      }
-    }, 600);
-    return () => {
-      annule = true;
-      clearTimeout(delai);
-    };
-  }, [marche, position, reference, aRenouveler]);
-
-  async function prendrePhoto() {
-    setErreur('');
-    try {
-      const r = await photoCamera('detection');
-      if (typeof r === 'string') setErreur(r);
-      else if (r) setPhotos((p) => [...p, r]);
-    } catch (e) {
-      setErreur(t('Photo impossible : {erreur}', { erreur: String((e as Error).message ?? e) }));
-    }
-  }
-
-  function retirerPhoto(id: string) {
-    void effacerPhotos(photos.filter((x) => x.id === id));
-    setPhotos(photos.filter((x) => x.id !== id));
-  }
-
-  function memeFuite(id: string) {
-    const ouvrirLaFiche = () => {
-      void effacerPhotos(photos);
-      gardees.current = true;
-      ouvrirFiche(id);
-    };
-    if (!photos.length) return ouvrirLaFiche();
-    Alert.alert(t('Même fuite'), t('La saisie en cours et ses photos ne seront pas gardées. Ouvrir la fiche existante ?'), [
-      { text: t('Non'), style: 'cancel' },
-      { text: t('Oui, ouvrir la fiche'), onPress: ouvrirLaFiche },
-    ]);
-  }
-
-  async function enregistrer() {
-    if (!marche) return;
-    setErreur('');
-    if (!position && !reference && !adresse.trim()) {
-      setErreur(t("Indiquez au moins la position GPS, la {reference} ou l'adresse.", { reference: libelleReference.toLowerCase() }));
-      return;
-    }
-    const pos = position ? `SRID=4326;POINT(${position.lon} ${position.lat})` : null;
-    const secteur = secteurs.find((x) => x.id === secteurId);
-    const id = Crypto.randomUUID();
-    setEnvoi(t('Enregistrement sur la tablette…'));
-    try {
-      await mettreEnAttente({
-        id, marche_id: marche.id, position: pos, photos,
-        ligne: {
-          reference_srm: reference || null, secteur_id: secteur?.id ?? null, zone_id: secteur?.zone_id ?? null,
-          adresse: adresse.trim() || null, observation: observation.trim() || null, position: pos,
-          precision_gps_m: position ? Math.round(position.precision) : null, source_saisie: 'tablette',
-          fuite_liee_id: lierA || null,
-        },
-      });
-      gardees.current = true;
-      setEnvoi(t('Envoi…'));
-      await synchroniser();
-      retour();
-    } catch (e) {
-      setErreur(String((e as Error).message ?? e));
-      setEnvoi('');
-    }
-  }
-
-  return (
-    <View style={s.ecran}>
-      <BarreApp titre={t('Nouvelle fuite')} sousTitre={marche?.code} retour={retour} />
-      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
-        <Carte>
-          <TeteCarte
-            titre={t('Position')} icone="map-pin"
-            action={<Bouton titre={t('Actualiser la position')} icone="locate-fixed" onPress={localiser} />}
-          />
-          {position ? (
-            <Text style={s.texte}>{position.lat.toFixed(6)}, {position.lon.toFixed(6)} (± {Math.round(position.precision)} m)</Text>
-          ) : <Text style={s.discret}>{gps}</Text>}
-        </Carte>
-        {controle === 'hors_ligne' && (
-          <Message ton="attention" icone="wifi-off">
-            {t("Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu'elle n'est pas déjà signalée.")}
-          </Message>
-        )}
-        {proches.length > 0 && (
-          <Carte>
-            <TeteCarte titre={t('Fuite déjà signalée ici ?')} icone="triangle-alert" />
-            {proches.map((p) => (
-              <View key={p.id} style={s.separateur}>
-                <View style={[s.ligne, { alignItems: 'center' }]}>
-                  <Text style={s.texteFort}>{t('N° {numero}', { numero: p.numero })}</Text>
-                  <Statut statut={p.statut} court />
-                  <Text style={s.discret}>
-                    {dateHeure(p.date_detection)}
-                    {p.meme_reference ? t(' · même référence') : ''}
-                    {p.distance_m != null ? t(' · à {n} m', { n: Math.round(p.distance_m) }) : ''}
-                  </Text>
-                </View>
-                <View style={s.ligne}>
-                  <Bouton titre={t("C'est la même fuite")} icone="check" onPress={() => memeFuite(p.id)} style={{ flexGrow: 1, flexBasis: 200 }} />
-                  <Bouton
-                    titre={t('Nouvelle fuite liée')}
-                    icone={lierA === p.id ? 'check' : 'link-2'}
-                    primaire={lierA === p.id}
-                    onPress={() => setLierA(lierA === p.id ? '' : p.id)}
-                    style={{ flexGrow: 1, flexBasis: 200 }}
-                  />
-                </View>
-              </View>
-            ))}
-            <Text style={s.discret}>
-              {lierA
-                ? t('Elle sera enregistrée comme nouvelle fuite liée au N° {numero}.', { numero: proches.find((p) => p.id === lierA)?.numero })
-                : t('Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.')}
-            </Text>
-          </Carte>
-        )}
-        <Carte>
-          <TeteCarte titre={t('Identification')} />
-          <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>{libelleReference}</Text>
-            <Saisie
-              value={reference}
-              onChangeText={(t) => setReference(formaterReference(t, masque))}
-              keyboardType={masque ? 'number-pad' : 'default'}
-              placeholder={masque ? masque.replace(/9/g, '0') : undefined}
-              maxLength={masque ? masque.length : undefined}
-            />
-          </View>
-          <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>{t('Secteur')}</Text>
-            <Selecteur valeur={secteurs.find((x) => x.id === secteurId)?.libelle} indication={t('Choisir le secteur')} onPress={() => setChoixSecteur(true)} />
-          </View>
-          <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>{t('Adresse / repère')}</Text>
-            <Saisie value={adresse} onChangeText={setAdresse} />
-          </View>
-          <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>{t('Observation')}</Text>
-            <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
-          </View>
-        </Carte>
-        <Carte>
-          <TeteCarte
-            titre={t('Photos')} compteur={photos.length}
-            action={<Bouton titre={t('Prendre une photo')} icone="camera" onPress={prendrePhoto} />}
-          />
-          {!photos.length && <Text style={s.discret}>{t('Facultatives ; un appui sur une photo la retire.')}</Text>}
-          <Vignettes photos={photos.map((p) => ({ id: p.id, uri: p.fichier, legende: t('Détection') }))} retirer={retirerPhoto} />
-        </Carte>
-        {!!erreur && <Message ton="erreur">{erreur}</Message>}
-        <Bouton titre={envoi || t('Enregistrer la fuite')} primaire grand onPress={enregistrer} occupe={!!envoi} />
-        <Bouton titre={t('Annuler')} onPress={retour} desactive={!!envoi} />
-      </ScrollView>
-
-      <Modal visible={choixSecteur} animationType="slide" statusBarTranslucent onRequestClose={() => setChoixSecteur(false)}>
-        <View style={s.ecran}>
-          <BarreApp
-            titre={t('Choisir le secteur')}
-            sousTitre={t('{n} secteurs', { n: secteurs.length }, pluriel(secteurs.length, 'secteur'))}
-            retour={() => setChoixSecteur(false)}
-          />
-          <FlatList
-            data={[{ id: '', libelle: 'Aucun' } as Secteur, ...secteurs]}
-            keyExtractor={(x) => x.id || 'aucun'}
-            contentContainerStyle={{ paddingTop: 8, paddingBottom: 32 + bas, width: '100%', maxWidth: 920, alignSelf: 'center' }}
-            ItemSeparatorComponent={Separation}
-            renderItem={({ item }) => {
-              const actif = item.id === secteurId;
-              return (
-                <Pressable
-                  style={({ pressed }) => [l.choix, actif && { backgroundColor: COULEURS.sourdine }, pressed && s.appuye]}
-                  onPress={() => {
-                    setSecteurId(item.id);
-                    setChoixSecteur(false);
-                  }}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: actif }}
-                >
-                  <Text style={[s.texte, { flex: 1, fontSize: 18 }, !item.id && { color: COULEURS.discret }, actif && { fontWeight: '600' }]}>
-                    {item.id ? item.libelle : t('Aucun')}
-                  </Text>
-                  {actif && <Icone nom="check" couleur={COULEURS.texte} />}
-                </Pressable>
-              );
-            }}
-          />
-        </View>
-      </Modal>
-    </View>
-  );
-}
-
 const titreEnvoi = (e: Envoi) => {
   switch (e.type) {
     case 'reparation': return t('Réparation · {fuite}', { fuite: e.fuite_libelle });
     case 'refection': return t('Réfection · {fuite}', { fuite: e.fuite_libelle });
     case 'modification': return t('Modification de réparation · {fuite}', { fuite: e.fuite_libelle });
     case 'photos': return t('Photo(s) ajoutée(s) · {fuite}', { fuite: e.fuite_libelle });
+    case 'maj':
+      return e.table === 'fuites' ? t('Modification de la fuite · {fuite}', { fuite: e.fuite_libelle })
+        : e.table === 'refections' ? t('Modification de réfection · {fuite}', { fuite: e.fuite_libelle })
+          : t('Modification de photo · {fuite}', { fuite: e.fuite_libelle });
     default:
       return t('Nouvelle fuite · {reference}', {
         reference: (e.ligne.reference_srm as string) || (e.ligne.adresse as string) || t('sans référence'),

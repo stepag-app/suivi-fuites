@@ -9,7 +9,7 @@ import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
 // Adresse publique du panneau web (aucun secret). Les jetons de session vont dans le fragment « # », que la
 // WebView n'envoie jamais au serveur ; ils ne sont jamais journalisés.
-const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
+export const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
 const PAGE_SESSION = `${PANNEAU}/session`;
 const SUITE = encodeURIComponent('/carte?mode=balayage');
@@ -31,7 +31,7 @@ const estPageSession = (url: string) => url.split(/[#?]/)[0].replace(/\/$/, '') 
  * Le panneau répond-il ? Sans jeton : un simple GET de la page de session. Pas de HEAD : sur la tablette, sa réponse
  * n'arrive qu'après une dizaine de secondes (constaté le 2026-10-07, aussi sur l'ancienne adresse), au-delà du délai.
  */
-async function panneauJoignable() {
+export async function panneauJoignable() {
   const controleur = new AbortController();
   const delai = setTimeout(() => controleur.abort(), DELAI_SONDE_MS);
   try {

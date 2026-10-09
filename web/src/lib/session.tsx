@@ -98,7 +98,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       }
       const profilCharge = (p.data as Profil | null) ?? null;
       if (profilCharge && !profilCharge.actif) {
-        await sb.auth.signOut();
+        await sb.auth.signOut({ scope: 'local' });
         return;
       }
       setProfil(profilCharge);
@@ -158,7 +158,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch {
       /* stockage indisponible */
     }
-    await getSupabase().auth.signOut();
+    // Cet appareil seulement : une déconnexion globale fermerait aussi la session des tablettes (APK) du même compte,
+    // et celle de l'APK quand on se déconnecte dans le panneau ouvert par le Balayage (session partagée).
+    await getSupabase().auth.signOut({ scope: 'local' });
   }, []);
 
   const valeur = useMemo(

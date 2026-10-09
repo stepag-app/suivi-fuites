@@ -32,7 +32,14 @@ export default function PageSession() {
       try {
         const sb = getSupabase();
         const { error } = await sb.auth.setSession({ access_token: lu.access_token, refresh_token: lu.refresh_token });
-        if (error) throw error;
+        if (error) {
+          // Session fermée côté serveur (déconnexion sur un autre appareil, compte révoqué) : seule l'application peut
+          // en rouvrir une.
+          if (/session missing|session_not_found|refresh token/i.test(error.message)) {
+            throw new Error('La session de l\'application a été fermée. Dans l\'application : « Quitter », puis reconnectez-vous.');
+          }
+          throw error;
+        }
         // Dans l'APK, le jeton de rafraîchissement est partagé avec l'application de la tablette : elle seule
         // le renouvelle (et recharge cette page avec les nouveaux jetons). Le client est déjà créé sans
         // rafraîchissement automatique (lib/supabase.ts) ; on l'arrête aussi explicitement, par sûreté.

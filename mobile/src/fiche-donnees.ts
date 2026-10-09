@@ -1,6 +1,7 @@
 // Lecture d'une fiche (copie de la tablette, serveur, ou saisie encore sur la tablette) ; sans dépendance d'affichage.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { estFuite, type Envoi } from './file-attente';
+import { jetonARenouveler } from './session-donnees';
 import { supabase } from './supabase';
 import type { FicheFuite, OuvrierPresent, PhotoLigne, PiecePosee, Refection, Reparation } from './types';
 
@@ -56,7 +57,7 @@ export async function chargerFiche(id: string, o: {
       // copie illisible : la fiche attend le serveur
     }
   }
-  if (o.aRenouveler) return null;
+  if (o.aRenouveler || jetonARenouveler()) return null;
   const serveur = await chargerServeur(id).catch(() => null);
   if (!serveur) return null;
   o.afficher(serveur);

@@ -8,8 +8,15 @@
 // copies de la tablette (contexte, liste) et le jeton est renouvelé au retour du réseau (minuteur d'auth-js toutes les
 // 30 s, retour au premier plan : supabase.ts). Seuls « Quitter » et un renouvellement refusé par le serveur ferment la
 // session.
+//
+// Pendant l'utilisation, de même : sans réseau, le jeton n'est plus renouvelé (le minuteur d'auth-js échoue sans
+// événement). Dès qu'il entre dans la marge d'auth-js, chaque requête attendrait les reprises (près de 25 s, à chaque
+// fenêtre de reprises), puis partirait avec la clé anonyme ; « Quitter » aussi attendrait. `suivreSession` le passe
+// donc à renouveler à ce moment-là (minuteur, et retour au premier plan : les minuteurs ne tournent pas tablette en
+// veille), jusqu'au renouvellement (TOKEN_REFRESHED).
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
+import { AppState } from 'react-native';
 import { CLE_SESSION, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
 
@@ -68,31 +75,66 @@ export async function sessionDeDepart(): Promise<EtatSession> {
   return { session, aRenouveler: !!session && aRenouvelerBientot(session) };
 }
 
+// Dernier état rendu par suivreSession (null hors suivi).
+let courant: EtatSession | null = null;
+
 /**
- * Suit la session de la tablette : état de départ, puis chaque changement (connexion, renouvellement, déconnexion).
- * Renvoie la fonction qui arrête le suivi.
+ * Jeton de la session suivie à renouveler, à l'instant même. Pour une requête lancée avec un état d'écran pas encore
+ * mis à jour (retour au premier plan, minuteur d'un écran) : elle ne part pas plus que si l'écran le savait déjà.
+ */
+export function jetonARenouveler(): boolean {
+  const s = courant?.session;
+  return !!s && (courant!.aRenouveler || aRenouvelerBientot(s));
+}
+
+/**
+ * Suit la session de la tablette : état de départ, puis chaque changement (connexion, renouvellement, déconnexion, jeton
+ * à renouveler en cours d'utilisation). Renvoie la fonction qui arrête le suivi.
  */
 export function suivreSession(changer: (etat: EtatSession) => void): () => void {
   let suivi = true;
   // Un événement d'auth-js est plus récent que l'état de départ : celui-ci, s'il arrive après, ne l'écrase pas.
   let tranche = false;
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  let dernier: EtatSession | null = null;
+  const publier = (etat: EtatSession) => {
+    courant = dernier = etat;
+    changer(etat);
+    surveiller();
+  };
+  // Jeton qui entre dans la marge d'auth-js sans avoir été renouvelé : à renouveler. Un renouvellement réussi arrive
+  // avant (le minuteur d'auth-js essaie dès 120 s de l'échéance) et réarme la surveillance sur le nouveau jeton ;
+  // TOKEN_REFRESHED, s'il vient après, rend la session normale.
+  function surveiller() {
+    clearTimeout(minuteur);
+    const s = courant?.session;
+    if (!suivi || !s || courant!.aRenouveler) return;
+    const reste = (s.expires_at ?? 0) * 1000 - MARGE_AUTH_MS - Date.now();
+    if (reste > 0) minuteur = setTimeout(surveiller, reste);
+    else publier({ session: s, aRenouveler: true });
+  }
   const { data } = supabase.auth.onAuthStateChange((evenement, session) => {
     if (session) {
       tranche = true;
-      changer({ session, aRenouveler: false });
+      publier({ session, aRenouveler: false });
     }
     // Quitter, ou renouvellement refusé par le serveur (jeton révoqué) : session vraiment fermée. INITIAL_SESSION sans
     // session n'en dit rien : auth-js l'envoie aussi quand le jeton n'a pas pu être renouvelé faute de réseau.
     else if (evenement === 'SIGNED_OUT') {
       tranche = true;
-      changer({ session: null, aRenouveler: false });
+      publier({ session: null, aRenouveler: false });
     }
   });
+  // Tablette en veille, les minuteurs ne tournent pas : contrôle au retour au premier plan.
+  const premierPlan = AppState.addEventListener('change', (etat) => etat === 'active' && surveiller());
   sessionDeDepart()
     .catch((): EtatSession => ({ session: null, aRenouveler: false }))
-    .then((etat) => suivi && !tranche && changer(etat));
+    .then((etat) => suivi && !tranche && publier(etat));
   return () => {
     suivi = false;
+    clearTimeout(minuteur);
+    if (courant === dernier) courant = null;
+    premierPlan.remove();
     data.subscription.unsubscribe();
   };
 }
@@ -133,20 +175,21 @@ export async function contexteServeur(uid: string): Promise<Contexte | 'inactif'
 export async function chargerContexte(uid: string, aRenouveler: boolean, afficher: (contexte: Contexte) => void) {
   const copie = await contexteGarde(uid);
   if (copie) afficher(copie);
-  if (aRenouveler) return;
+  if (aRenouveler || jetonARenouveler()) return;
   const serveur = await contexteServeur(uid);
   if (serveur === 'inactif') return serveur;
   if (serveur) afficher(serveur);
 }
 
 /**
- * « Quitter ». Jeton à renouveler (hors ligne) : `signOut` d'auth-js tenterait d'abord un renouvellement (près de 25 s
- * sans réseau), puis rendrait une erreur sans rien effacer. La session est alors retirée de la tablette sans appel au
- * serveur : son jeton de renouvellement n'est pas révoqué, mais la tablette ne le garde plus. L'événement SIGNED_OUT
- * suit, mais pas tout de suite au démarrage (fin des reprises d'auth-js) : l'appelant ferme la session lui-même.
+ * « Quitter ». Jeton à renouveler (hors ligne, au démarrage ou en cours d'utilisation) : `signOut` d'auth-js
+ * tenterait d'abord un renouvellement (près de 25 s sans réseau), puis rendrait une erreur sans rien effacer. La session
+ * est alors retirée de la tablette sans appel au serveur : son jeton de renouvellement n'est pas révoqué, mais la
+ * tablette ne le garde plus. L'événement SIGNED_OUT suit, mais pas tout de suite pendant les reprises d'auth-js :
+ * l'appelant ferme la session lui-même.
  */
 export async function fermerSession(aRenouveler: boolean) {
-  if (!aRenouveler && !(await supabase.auth.signOut()).error) return;
+  if (!aRenouveler && !jetonARenouveler() && !(await supabase.auth.signOut()).error) return;
   await AsyncStorage.removeItem(CLE_SESSION);
   // Stockage vide : auth-js ferme la session sur la tablette seulement (événement SIGNED_OUT).
   void supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);

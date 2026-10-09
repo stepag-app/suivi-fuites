@@ -2,6 +2,7 @@
 // Dolibarr activés, communs à tous les marchés) : dernière copie gardée d'abord, puis serveur quand le réseau est là.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect, useState } from 'react';
+import { jetonARenouveler } from './session-donnees';
 import { supabase } from './supabase';
 import type { Equipe, Motif, Nature, Ouvrier, Piece } from './types';
 
@@ -59,7 +60,7 @@ export function useParametres(marcheId: string | undefined, aRenouveler: boolean
       const copie = await parametresGardes(marcheId);
       if (annule) return;
       setP(copie);
-      if (aRenouveler) return;
+      if (aRenouveler || jetonARenouveler()) return;
       const v = await chargerParametres(marcheId);
       if (!annule) setP(v);
     })().catch(() => undefined);

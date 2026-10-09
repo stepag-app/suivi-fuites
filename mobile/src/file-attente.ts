@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t } from './langue';
 import type { Changements } from './modification';
 import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
-import { sessionStockee } from './session-donnees';
+import { jetonARenouveler, sessionStockee } from './session-donnees';
 import { supabase } from './supabase';
 
 export { effacerPhotos, type PhotoAttente };
@@ -230,11 +230,12 @@ const ATTENTE_PRECEDENT = "En attente : une saisie précédente de cette fuite n
 
 // Jeton de la session, sans lequel rien ne part : supabase-js enverrait la clé anonyme, qui n'a aucun droit (la base
 // refuserait la saisie, affichée comme un droit insuffisant). Absent : pas de session, ou jeton expiré pas encore
-// renouvelé (hors ligne) ; tout repart à la synchro qui suit le renouvellement. Jeton gardé déjà expiré : getSession()
-// attendrait les reprises du renouvellement (près de 25 s sans réseau) pour ne rien rendre ; la synchro n'attend pas.
+// renouvelé (hors ligne) ; tout repart à la synchro qui suit le renouvellement. Jeton gardé déjà expiré, ou à renouveler
+// en cours d'utilisation (session-donnees.ts) : getSession() attendrait les reprises du renouvellement (près de 25 s sans
+// réseau) pour ne rien rendre ; la synchro n'attend pas.
 const jeton = async () => {
   const gardee = await sessionStockee();
-  if (!gardee || (gardee.expires_at ?? 0) * 1000 <= Date.now()) return null;
+  if (!gardee || (gardee.expires_at ?? 0) * 1000 <= Date.now() || jetonARenouveler()) return null;
   return (await supabase.auth.getSession()).data.session?.access_token ?? null;
 };
 

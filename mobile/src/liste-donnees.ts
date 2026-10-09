@@ -1,6 +1,7 @@
 // Liste des fuites d'un marché (écran Liste) : copie gardée sur la tablette, puis serveur ; sans dépendance d'affichage
 // (essais/session-hors-ligne.test.mjs).
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { jetonARenouveler } from './session-donnees';
 import { supabase } from './supabase';
 import type { VFuite } from './types';
 
@@ -40,7 +41,7 @@ export async function chargerListe(marcheId: string, o: {
   copie: boolean; aRenouveler: boolean; delaiMs: number; afficher: (contenu: string) => boolean;
 }): Promise<boolean> {
   if (o.copie) o.afficher((await listeGardee(marcheId)) ?? '[]');
-  if (o.aRenouveler) return false;
+  if (o.aRenouveler || jetonARenouveler()) return false;
   const fuites = await listeServeur(marcheId, o.delaiMs);
   if (!fuites) return false;
   const contenu = JSON.stringify(fuites);

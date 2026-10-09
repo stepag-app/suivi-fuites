@@ -16,6 +16,7 @@ import { getSupabase } from '@/lib/supabase';
 import type { Marche, Quantite, Refection, Reparation, VFuite } from '@/lib/types';
 import { contientArabe, imagesTextes, type ImageTexte } from './arabe';
 import { construireEntete, type Contexte } from './jeux';
+import { chargerMatricules } from './matricules';
 import { choixEffectif, dernierChoix } from './rubriques';
 import { nomFichierSur, telecharger, texteDate, texteNombre, textesArabesEntete } from './modele';
 
@@ -115,19 +116,17 @@ const paquets = <T,>(t: T[], n: number) => Array.from({ length: Math.ceil(t.leng
 // Charge toutes les données des fuites demandées (par paquets, pour de longues sélections).
 export async function chargerFiches(ids: string[], marcheId: string, peutMontants: boolean): Promise<FicheRapport[]> {
   const sb = getSupabase();
-  const [eq, ou, mo, na, pr] = await Promise.all([
+  // R4 : agents (détection, chef d'équipe) et ouvriers désignés par leur matricule dans le rapport
+  const [eq, mo, na, matricules] = await Promise.all([
     sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
-    sb.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId),
     sb.from('motifs').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
     sb.from('natures_refection').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
-    sb.from('profils').select('id, nom_complet'),
+    chargerMatricules(marcheId),
   ]);
   const index = <T extends { id: string }>(r: { data: unknown }) => new Map(((r.data as T[] | null) ?? []).map((x) => [x.id, x]));
   const equipes = index<{ id: string; libelle: string }>(eq);
-  const ouvriers = index<{ id: string; nom_complet: string }>(ou);
   const motifs = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(mo);
   const natures = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(na);
-  const profils = index<{ id: string; nom_complet: string }>(pr);
 
   const fiches: FicheRapport[] = [];
   for (const lot of paquets(ids, 50)) {
@@ -162,16 +161,16 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
       const fuite = lignesFuites.get(id);
       if (!fuite) continue;
       fiches.push({
-        fuite: { ...fuite, precision_gps_m: extra.get(id)?.precision_gps_m ?? null, methode_detection: extra.get(id)?.methode_detection ?? null },
+        fuite: { ...fuite, detectee_par: matricules.agent(fuite.auteur_terrain_id, fuite.detectee_par), precision_gps_m: extra.get(id)?.precision_gps_m ?? null, methode_detection: extra.get(id)?.methode_detection ?? null },
         reparations: reparations.filter((r) => r.fuite_id === id).map((r) => ({
           ...r,
           equipe: equipes.get(String(r.equipe_id))?.libelle ?? null,
-          chef: profils.get(String(r.auteur_terrain_id))?.nom_complet ?? null,
+          chef: r.auteur_terrain_id ? matricules.agent(r.auteur_terrain_id) : null,
           representant_srm: (r.representant_srm as string | null) ?? null,
           motif: motifs.get(String(r.motif_id))?.libelle_fr ?? null,
           motifAr: motifs.get(String(r.motif_id))?.libelle_ar ?? null,
           revetement: natures.get(String(r.nature_revetement_id))?.libelle_fr ?? null,
-          ouvriers: lignesOuvriers.filter((o) => o.reparation_id === r.id).map((o) => ouvriers.get(o.ouvrier_id)?.nom_complet ?? '?'),
+          ouvriers: lignesOuvriers.filter((o) => o.reparation_id === r.id).map((o) => matricules.ouvrier(o.ouvrier_id) ?? '?'),
           pieces: lignesPieces.filter((p) => p.reparation_id === r.id).map((p) => ({
             designation: (p.produit_id != null ? pieces.get(p.produit_id)?.designation : null) ?? p.designation_libre ?? '?',
             quantite: Number(p.quantite),

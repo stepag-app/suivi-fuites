@@ -25,6 +25,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { COLONNES_LISTE, compterFuites, type FuiteListe } from "@/lib/colonnes-fuites";
+import { useFuitesAnticipees } from "@/lib/anticipation";
 import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from "@/lib/export/jeux";
 import { ChoixRubriques } from "@/lib/export/ChoixRubriques";
 import { PanneauExport } from "@/lib/export/PanneauExport";
@@ -134,9 +135,10 @@ function ListeFuites() {
     }
   }
 
-  const colonnes = useMemo(() => colonnesFuites(libelles, { peutRapport, rapport: (f) => demanderRapports([f]) }),
+  const { parFuite: anticipees } = useFuitesAnticipees(marcheId);
+  const colonnes = useMemo(() => colonnesFuites(libelles, { peutRapport, rapport: (f) => demanderRapports([f]) }, anticipees),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [libelles.reference, libelles.sigle, libelles.delaiReparationH, peutRapport, marcheId]);
+    [libelles.reference, libelles.sigle, libelles.delaiReparationH, peutRapport, marcheId, anticipees]);
 
   const table = useReactTable({
     data: filtrees,

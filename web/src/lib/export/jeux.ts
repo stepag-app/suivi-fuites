@@ -5,6 +5,7 @@ import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/li
 import { LIBELLES_FAMILLES } from '@/lib/nomenclature/csv';
 import { getSupabase, lireTout, NOM_ORGANISATION } from '@/lib/supabase';
 import type { Marche } from '@/lib/types';
+import { chargerMatricules } from './matricules';
 import { construireSection, type Colonne, type DocumentExport, type EnteteDoc, type Ligne, type LogoEntete, type SectionDoc } from './modele';
 
 export type JeuId = 'fuites' | 'quantites' | 'pieces' | 'attachement' | 'evenements';
@@ -145,7 +146,7 @@ const de = (table: Record<string, string>, cle: string) => (l: Ligne) => {
 };
 const jourDe = (v: unknown) => (v ? String(v).slice(0, 10) : '');
 const LIBELLE_NATURE: Record<string, string> = {
-  solde: 'Travaux', anticipation: 'Réfection anticipée', libre: 'Ligne libre', forcage: 'Refacturation forcée',
+  solde: 'Travaux', anticipation: 'Attaché par anticipation', libre: 'Ligne libre', forcage: 'Refacturation forcée',
 };
 
 // ---------------------------------------------------------------------------
@@ -172,7 +173,7 @@ export const JEU_FUITES: Jeu = {
       { cle: 'latitude', titre: 'Latitude', groupe: 'Localisation', type: 'nombre', decimales: 6, largeur: 10 },
       { cle: 'longitude', titre: 'Longitude', groupe: 'Localisation', type: 'nombre', decimales: 6, largeur: 10 },
       { cle: 'date_detection', titre: 'Détectée le', groupe: 'Détection', type: 'dateheure', largeur: 14 },
-      { cle: 'detectee_par', titre: 'Détectée par', groupe: 'Détection', largeur: 16 },
+      { cle: 'detectee_par', titre: 'Détectée par (matricule)', groupe: 'Détection', largeur: 16 },
       { cle: 'ouvrage', titre: 'Ouvrage', groupe: 'Détection', largeur: 13, valeur: de(OUVRAGES, 'ouvrage') },
       { cle: 'visibilite', titre: 'Visibilité', groupe: 'Détection', largeur: 10, valeur: de({ visible: 'Visible', invisible: 'Invisible' }, 'visibilite') },
       { cle: 'source_saisie', titre: 'Saisie', groupe: 'Détection', largeur: 9 },
@@ -191,7 +192,7 @@ export const JEU_FUITES: Jeu = {
       { cle: 'revetement', titre: 'Revêtement', groupe: 'Réparation', largeur: 14 },
       { cle: 'revetement_ar', titre: 'Revêtement (arabe)', groupe: 'Réparation', largeur: 14 },
       { cle: 'equipe_reparation', titre: 'Équipe', groupe: 'Réparation', largeur: 13 },
-      { cle: 'chef_reparation', titre: "Chef d'équipe", groupe: 'Réparation', largeur: 15 },
+      { cle: 'chef_reparation', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
       { cle: 'pieces_posees', titre: 'Pièces posées', groupe: 'Réparation', largeur: 30 },
       { cle: 'motif_sans_reparation', titre: 'Motif sans réparation', groupe: 'Réparation', largeur: 18 },
       { cle: 'motif_sans_reparation_ar', titre: 'Motif (arabe)', groupe: 'Réparation', largeur: 16 },
@@ -217,9 +218,15 @@ export const JEU_FUITES: Jeu = {
     );
     return c;
   },
-  charger: (marcheId, f) =>
-    toutLire(() => filtrer(getSupabase().from('v_fuites_export').select('*').eq('marche_id', marcheId), f, 'jour_detection',
-      { zone: 'zone_id', secteur: 'secteur_id' }).order('numero')),
+  charger: async (marcheId, f) => {
+    const [lignes, m] = await Promise.all([
+      toutLire(() => filtrer(getSupabase().from('v_fuites_export').select('*').eq('marche_id', marcheId), f, 'jour_detection',
+        { zone: 'zone_id', secteur: 'secteur_id' }).order('numero')),
+      chargerMatricules(marcheId),
+    ]);
+    // R4 : matricules à la place des noms (v_fuites_export ne donne que le nom du chef d'équipe)
+    return lignes.map((l) => ({ ...l, detectee_par: m.agent(l.auteur_terrain_id, l.detectee_par), chef_reparation: m.agentParNom(l.chef_reparation) }));
+  },
 };
 
 export const JEU_QUANTITES: Jeu = {
@@ -268,7 +275,7 @@ export const JEU_PIECES: Jeu = {
       { cle: 'zone', titre: 'Zone', groupe: 'Localisation', largeur: 16 },
       { cle: 'secteur', titre: 'Secteur', groupe: 'Localisation', largeur: 16 },
       { cle: 'equipe', titre: 'Équipe', groupe: 'Réparation', largeur: 13 },
-      { cle: 'chef', titre: "Chef d'équipe", groupe: 'Réparation', largeur: 15 },
+      { cle: 'chef', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
       { cle: 'designation', titre: 'Pièce', groupe: 'Pièce', largeur: 28 },
       { cle: 'famille', titre: 'Famille', groupe: 'Pièce', largeur: 18 },
       { cle: 'unite', titre: 'Unité', groupe: 'Pièce', largeur: 6 },
@@ -276,11 +283,15 @@ export const JEU_PIECES: Jeu = {
       { cle: 'nb_fuites', titre: 'Fuites', groupe: 'Synthèse', type: 'nombre', total: true, largeur: 7 },
     ];
   },
-  charger: (marcheId, f) =>
-    toutLire(() => filtrer(getSupabase().from('v_pieces_posees').select('*').eq('marche_id', marcheId), f, 'jour',
-      { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('jour').order('fuite_numero').order('id'))
-      // Famille Dolibarr (préfixe de la référence) : son libellé, jamais le code
-      .then((lignes) => lignes.map((l) => ({ ...l, famille: LIBELLES_FAMILLES[String(l.famille)] ?? l.famille }))),
+  charger: async (marcheId, f) => {
+    const [lignes, m] = await Promise.all([
+      toutLire(() => filtrer(getSupabase().from('v_pieces_posees').select('*').eq('marche_id', marcheId), f, 'jour',
+        { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('jour').order('fuite_numero').order('id')),
+      chargerMatricules(marcheId),
+    ]);
+    // Famille Dolibarr (préfixe de la référence) : son libellé, jamais le code ; chef d'équipe : son matricule (R4)
+    return lignes.map((l) => ({ ...l, famille: LIBELLES_FAMILLES[String(l.famille)] ?? l.famille, chef: m.agent(l.chef_id, l.chef) }));
+  },
 };
 
 export const JEU_EVENEMENTS: Jeu = {

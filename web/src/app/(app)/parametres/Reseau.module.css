@@ -293,3 +293,31 @@
   color: var(--discret);
   font-size: 0.9rem;
 }
+
+.guide {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.guide h3 {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+}
+.guide p,
+.guide ol,
+.guide ul {
+  margin: 0;
+}
+.guide ol,
+.guide ul {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.guide ol {
+  list-style: decimal;
+}
+.guide ul {
+  list-style: disc;
+}

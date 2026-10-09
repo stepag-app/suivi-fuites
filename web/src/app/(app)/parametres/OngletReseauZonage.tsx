@@ -59,6 +59,7 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
   const [outil, setOutil] = useState<Outil>('clic');
   const [secteurCible, setSecteurCible] = useState(secteurs[0]?.id ?? '');
   const [contourPoints, setContourPoints] = useState<Position[]>([]);
+  const [guide, setGuide] = useState(false);
 
   // Lus par les gestionnaires de la carte (créés une fois).
   const outilRef = useRef(outil);
@@ -373,8 +374,13 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
       <aside className={styles.lateral}>
         <div className="barre">
           <h2>Zonage du réseau</h2>
-          <button onClick={fermer} disabled={occupe}>Fermer</button>
+          <div className="actions">
+            <button type="button" aria-pressed={guide} onClick={() => setGuide((g) => !g)}>{guide ? 'Retour' : 'Guide'}</button>
+            <button onClick={fermer} disabled={occupe}>Fermer</button>
+          </div>
         </div>
+
+        {guide ? <GuideZonage /> : (<>
 
         <div className={styles.restant} role="status">
           {!collection ? (
@@ -460,6 +466,7 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
             </>
           )}
         </details>
+        </>)}
       </aside>
 
       <div className={styles.carte}>
@@ -468,6 +475,33 @@ export function OngletReseauZonage({ marcheId, zones, secteurs, palette, fermer,
         {fondIndisponible && pret && <p className={`${styles.message} ${styles.attention}`}>Fond de carte indisponible (réseau) : tronçons affichés sur fond uni.</p>}
         {erreur && pret && <p className={`${styles.message} ${styles.attention}`}>{erreur}</p>}
       </div>
+    </div>
+  );
+}
+
+// Mode d'emploi affiché dans le panneau (bouton « Guide ») : la carte reste visible à droite.
+function GuideZonage() {
+  return (
+    <div className={styles.guide}>
+      <h3>À quoi sert le zonage</h3>
+      <p>Ranger chaque conduite (tronçon) dans son secteur. À l&apos;import, tout tronçon dont le milieu tombe dans un contour
+        de secteur y a été rangé seul ; restent les tronçons <strong>gris pointillé</strong>, hors de tout contour.</p>
+      <h3>La boucle, jusqu&apos;à « Reste à zoner : 0 »</h3>
+      <ol>
+        <li><strong>Aller au suivant</strong> : la carte se centre sur les tronçons gris les plus proches.</li>
+        <li><strong>1 · Secteur</strong> : choisissez le secteur dont le contour entoure ou touche ces tronçons (« Voir » recadre sur lui).</li>
+        <li><strong>2 · Tronçons</strong> : sélectionnez-les. <em>Toucher</em> ajoute ou enlève un tronçon, <em>Lasso</em> et
+          <em> Rectangle</em> ajoutent un groupe, <em>Non zonés visibles</em> prend tous les gris de l&apos;écran (zoomez avant).</li>
+        <li><strong>3 · Affecter</strong> : les tronçons prennent la couleur du secteur, son contour s&apos;agrandit, le compteur baisse.</li>
+      </ol>
+      <h3>Cas particuliers</h3>
+      <ul>
+        <li>Mauvais secteur : resélectionnez, choisissez le bon secteur, « Affecter » ; le tronçon change de secteur.</li>
+        <li>Tronçon hors périmètre : « Retirer de leur secteur » ou laissez-le gris ; notez la rue.</li>
+        <li>Conduite en limite : du côté de la rue desservie, sinon avec le reste de la rue.</li>
+        <li>Contour faux : repli « Contour du secteur », en bas du panneau.</li>
+      </ul>
+      <p>Chaque affectation est enregistrée tout de suite : on peut fermer et reprendre plus tard.</p>
     </div>
   );
 }

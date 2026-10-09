@@ -28,11 +28,14 @@ export function AppSidebar({ groupes, peutCreer, nom, identifiant, admin, deconn
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild>
+            <SidebarMenuButton asChild size="lg">
               <Link prefetch={false} href="/tableau-de-bord">
                 <Droplets className="text-sky-600 dark:text-sky-400" />
-                <span className="font-semibold text-base">Suivi des fuites</span>
-                <span className="ml-auto text-muted-foreground text-xs group-data-[collapsible=icon]:hidden">{NOM_ORGANISATION}</span>
+                {/* Nom et organisation sur deux lignes : rien n'est coupé, même dans la WebView de la tablette. */}
+                <span className="grid min-w-0 flex-1 leading-tight">
+                  <span className="truncate font-semibold text-base">Suivi des fuites</span>
+                  <span className="truncate text-muted-foreground text-xs">{NOM_ORGANISATION}</span>
+                </span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

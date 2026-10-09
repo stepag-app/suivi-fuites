@@ -101,7 +101,7 @@ export function CommandesCarte({ placees, sansPosition, chargement, erreur, rece
         aria-label="Commandes de la carte"
         className={cn(
           "absolute bottom-9 z-[3] flex items-center gap-0.5 rounded-lg border bg-background/95 p-0.5 shadow-sm",
-          decalee ? "left-[calc(min(340px,92vw)+0.5rem)]" : "left-2",
+          decalee ? "left-[calc(min(290px,92vw)+0.5rem)]" : "left-2",
         )}
       >
         <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label="Recentrer la carte" title="Recentrer"><Crosshair /></Button>

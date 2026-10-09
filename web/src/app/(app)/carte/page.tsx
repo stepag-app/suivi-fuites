@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Network, Route } from "lucide-react";
+import { Network, PanelLeftClose, PanelLeftOpen, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
@@ -37,6 +37,7 @@ const FILTRES_VIDES: FiltresCarte = { secteur: "", du: "", au: "", alertes: fals
 // Sélection de balayage non enregistrée : gardée le temps de la session (la WebView de l'APK se recharge).
 const cleSelection = (marcheId: string) => `suivi-fuites:balayage:selection:${marcheId}`;
 const CLE_SATELLITE = "suivi-fuites:carte:satellite";
+const CLE_LISTE = "suivi-fuites:carte:liste-masquee";
 
 export default function PageCarte() {
   return (
@@ -63,6 +64,23 @@ function CarteDesFuites() {
   const [filtres, setFiltres] = useState<FiltresCarte>(FILTRES_VIDES);
   const [selection, setSelection] = useState<string | null>(null);
   const [onglet, setOnglet] = useState("fuite");
+  // Liste des fuites repliable (bureau) : la carte prend toute la largeur ; choix mémorisé.
+  const [listeMasquee, setListeMasquee] = useState(false);
+  useEffect(() => {
+    try {
+      setListeMasquee(window.localStorage.getItem(CLE_LISTE) === "1");
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+  const basculerListe = (v: boolean) => {
+    setListeMasquee(v);
+    try {
+      window.localStorage.setItem(CLE_LISTE, v ? "1" : "0");
+    } catch {
+      /* stockage indisponible */
+    }
+  };
   const [feuille, setFeuille] = useState(false);
   // C4 : en balayage, la carte occupe tout l'écran ; le panneau (secteurs, légende, enregistrement) s'ouvre au besoin.
   const [reseauOuvert, setReseauOuvert] = useState(false);
@@ -81,6 +99,11 @@ function CarteDesFuites() {
     return () => clearTimeout(minuteur);
   }, [modeBalayage]);
   const reseau = useReseau(marcheId, peut("balayage", "lire"), ouvertureBalayage, modeBalayage && geometriesDemandees);
+  // Ouverture en mode balayage (APK) : coloration par état de balayage, sinon les tronçons balayés ne se distinguent pas.
+  const { setColoration } = reseau;
+  useEffect(() => {
+    if (ouvertureBalayage && peutBalayer) setColoration("balayage");
+  }, [ouvertureBalayage, peutBalayer, setColoration]);
   const [ongletReseau, setOngletReseau] = useState<OngletReseau>("secteurs");
 
   // Satellite (C5) : choix mémorisé sur l'appareil ; bouton absent tant que la clé Esri n'est pas posée.
@@ -191,9 +214,15 @@ function CarteDesFuites() {
       /* stockage indisponible */
     }
   }, [marcheId]);
+  // Un tronçon ne se balaie qu'une fois : ceux déjà balayés ne se sélectionnent pas.
+  const etatsBalayage = useRef(reseau.etats);
+  etatsBalayage.current = reseau.etats;
   const surSelection = useCallback((ids: string[], mode: ModeSelection) => {
+    const deja = mode === "retirer" ? 0 : ids.filter((id) => etatsBalayage.current.get(id)?.balaye).length;
+    const libres = deja ? ids.filter((id) => !etatsBalayage.current.get(id)?.balaye) : ids;
+    if (deja) setMessageBalayage(`${deja} tronçon${deja > 1 ? "s" : ""} déjà balayé${deja > 1 ? "s" : ""}, ignoré${deja > 1 ? "s" : ""} : un tronçon ne se balaie qu'une fois.`);
     setTronconsEtat((courante) => {
-      const s = appliquerSelection(courante, ids, mode);
+      const s = appliquerSelection(courante, libres, mode);
       if (marcheId) {
         try {
           window.sessionStorage.setItem(cleSelection(marcheId), JSON.stringify([...s]));
@@ -287,6 +316,7 @@ function CarteDesFuites() {
     if (!modeBalayage) {
       reseau.setActif(true);
       setReseauOuvert(true);
+      reseau.setColoration("balayage");
     }
     setModeBalayage((v) => !v);
   };
@@ -418,10 +448,10 @@ function CarteDesFuites() {
     <>
       <div data-content-padding="false" className={cn(
         "flex h-[calc(100dvh-var(--dashboard-header-height))] flex-col overflow-hidden lg:grid lg:divide-x",
-        modeBalayage ? "lg:grid-cols-1" : "lg:grid-cols-[400px_minmax(0,1fr)]",
+        modeBalayage || listeMasquee ? "lg:grid-cols-1" : "lg:grid-cols-[300px_minmax(0,1fr)]",
       )}>
         {/* Mode balayage : la carte occupe tout l'écran (tablette), la liste des fuites est masquée. */}
-        <div className={cn("order-2 min-h-0 flex-1 overflow-hidden lg:order-1 lg:h-full", modeBalayage && "hidden")}>
+        <div className={cn("order-2 min-h-0 flex-1 overflow-hidden lg:order-1 lg:h-full", modeBalayage && "hidden", listeMasquee && "lg:hidden")}>
           <ListeCarte fuites={filtrees} total={fuites.length} compteurs={compteurs} statut={statut} choisirStatut={setStatut}
             texte={texte} changerTexte={setTexte} selection={selection} choisir={choisir} libelles={libelles}
             filtresActifs={filtresActifs} effacer={effacer} ouvrirFiltres={() => { setOnglet("filtres"); if (window.innerWidth < 1024) setFeuille(true); }} />
@@ -435,6 +465,10 @@ function CarteDesFuites() {
               {/* Réseau d'eau et mode balayage (lot S) : commandes posées sur la carte, visibles aussi sur la tablette */}
               {!reseauOuvert && !modeBalayage && (
                 <div className="absolute top-3 left-3 z-[3] flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" className="hidden bg-background shadow-sm lg:inline-flex" onClick={() => basculerListe(!listeMasquee)}
+                    aria-pressed={!listeMasquee} title={listeMasquee ? "Afficher la liste des fuites" : "Masquer la liste : carte plus large"}>
+                    {listeMasquee ? <PanelLeftOpen data-icon="inline-start" /> : <PanelLeftClose data-icon="inline-start" />}Liste
+                  </Button>
                   <Button size="sm" variant="outline" className="bg-background shadow-sm" onClick={() => setReseauOuvert(true)}>
                     <Network data-icon="inline-start" />Réseau{reseau.actif && nbSecteursReseau > 0 ? ` (${nbSecteursReseau})` : ""}
                   </Button>
@@ -474,7 +508,7 @@ function CarteDesFuites() {
                 recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert}
                 satellite={satelliteDisponible() ? { actif: satellite, basculer: basculerSatellite } : null} />
               {satellite && zoom < ZOOM_MIN_SATELLITE && (
-                <p className={cn("absolute bottom-20 z-[3] m-0 rounded-lg border bg-background/95 px-3 py-1.5 text-muted-foreground text-xs shadow-sm", reseauOuvert ? "left-[calc(min(340px,92vw)+0.5rem)]" : "left-2")}>
+                <p className={cn("absolute bottom-20 z-[3] m-0 rounded-lg border bg-background/95 px-3 py-1.5 text-muted-foreground text-xs shadow-sm", reseauOuvert ? "left-[calc(min(290px,92vw)+0.5rem)]" : "left-2")}>
                   Image satellite à partir du zoom {ZOOM_MIN_SATELLITE} : rapprochez-vous.
                 </p>
               )}
@@ -483,7 +517,7 @@ function CarteDesFuites() {
               )}
             </div>
             {/* Cadre sous la carte : hauteur réglée pour que la fiche d'une fuite s'y lise entière, sans défilement */}
-            {!modeBalayage && <div className="hidden h-[12.5rem] min-h-0 overflow-hidden border-t lg:block">{details}</div>}
+            {!modeBalayage && <div className={cn("hidden min-h-0 overflow-hidden border-t lg:block", choisie || onglet !== "fuite" ? "h-[12.5rem]" : "h-10")}>{details}</div>}
           </div>
         </div>
       </div>

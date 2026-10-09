@@ -24,6 +24,43 @@ export const CLASSES_DIAMETRE: { libelle: string; max: number; couleur: string; 
   { libelle: 'plus de 400 mm', max: Infinity, couleur: '#8e24aa', largeur: 4 },
 ];
 
+/** Nœuds (C4) : les équipements utiles au terrain en couleur, les simples jonctions en petit point sombre. */
+export const TYPES_NOEUD: { type: string; libelle: string; couleur: string; sigle: string; equipement: boolean }[] = [
+  { type: 'vanne', libelle: 'Vanne', couleur: '#d32f2f', sigle: 'V', equipement: true },
+  { type: 'bouche_incendie', libelle: 'Bouche d\'incendie', couleur: '#ef6c00', sigle: 'BI', equipement: true },
+  { type: 'ventouse', libelle: 'Ventouse', couleur: '#7b1fa2', sigle: 'Vt', equipement: true },
+  { type: 'vidange', libelle: 'Vidange', couleur: '#00838f', sigle: 'Vd', equipement: true },
+  { type: 'compteur', libelle: 'Compteur', couleur: '#2e7d32', sigle: 'C', equipement: true },
+  { type: 'reservoir', libelle: 'Réservoir', couleur: '#1565c0', sigle: 'R', equipement: true },
+  { type: 'jonction', libelle: 'Jonction, extrémité', couleur: COULEUR_NOEUD, sigle: '', equipement: false },
+];
+
+const typesEquipement = () => TYPES_NOEUD.filter((t) => t.equipement);
+
+/** Couleur d'un nœud selon son type (propriété courte `t`). */
+export const expressionCouleurNoeud = (): ExpressionSpecification =>
+  ['match', ['get', 't'], ...typesEquipement().flatMap((t) => [t.type, t.couleur]), COULEUR_NOEUD] as unknown as ExpressionSpecification;
+
+/** Rayon d'un nœud : équipement plus gros qu'une jonction, grossit avec le zoom. */
+export const expressionRayonNoeud = (facteur = 1): ExpressionSpecification => {
+  const equipement: ExpressionSpecification = ['match', ['get', 't'], typesEquipement().map((t) => t.type), true, false] as unknown as ExpressionSpecification;
+  return ['interpolate', ['linear'], ['zoom'],
+    15, ['case', equipement, 3.5 * facteur, 2 * facteur],
+    18, ['case', equipement, 6.5 * facteur, 3.5 * facteur]] as unknown as ExpressionSpecification;
+};
+
+/** Sigle d'un équipement (V, BI…), vide pour une jonction. */
+export const expressionSigleNoeud = (): ExpressionSpecification =>
+  ['match', ['get', 't'], ...typesEquipement().flatMap((t) => [t.type, t.sigle]), ''] as unknown as ExpressionSpecification;
+
+/** Étiquette d'un tronçon le long du trait : « Ø110 PVC », « Ø110 », « PVC », rien si tout est inconnu. */
+export const expressionEtiquetteTroncon = (): ExpressionSpecification => [
+  'concat',
+  ['case', ['all', ['has', 'd'], ['!=', ['get', 'd'], null], ['>', ['to-number', ['get', 'd'], 0], 0]], ['concat', 'Ø', ['to-string', ['get', 'd']]], ''],
+  ['case', ['all', ['has', 'd'], ['!=', ['get', 'd'], null], ['has', 'm'], ['!=', ['get', 'm'], null]], ' ', ''],
+  ['case', ['all', ['has', 'm'], ['!=', ['get', 'm'], null]], ['to-string', ['get', 'm']], ''],
+] as unknown as ExpressionSpecification;
+
 /** Indice de la classe de diamètre, -1 si le diamètre est inconnu ou nul. */
 export function classeDiametre(d: number | null | undefined): number {
   if (d == null || !Number.isFinite(d) || d <= 0) return -1;

@@ -16,20 +16,20 @@ const ENTREES_RESEAU_MAX = 6;
 
 /** Entrées de légende du réseau affiché : zones (par secteur), états (par balayage) ou classes (par diamètre). */
 export function legendeReseau(r: ReseauImpression | null | undefined, zones: { id: string; numero: number; libelle: string }[]) {
-  if (!r || !r.secteurs.some((s) => s.data)) return [];
-  const ids = r.secteurs.flatMap((s) => s.data?.features.map((f) => f.properties.id) ?? []);
+  if (!r) return [];
+  // Lecture en tuiles : l'inventaire des tronçons affichés ; sinon les géométries chargées.
+  const liste = r.inventaire ?? r.secteurs.flatMap((s) => s.data?.features.map((f) => ({ id: f.properties.id, d: f.properties.d, z: f.properties.z })) ?? []);
+  if (!liste.length) return [];
   const nombres = new Map<string, number>();
   if (r.coloration === 'balayage') {
-    for (const [k, v] of compterEtats(ids, r.etats)) nombres.set(k, v);
+    for (const [k, v] of compterEtats(liste.map((t) => t.id), r.etats)) nombres.set(k, v);
   } else if (r.coloration === 'diametre') {
-    for (const s of r.secteurs) for (const f of s.data?.features ?? []) {
-      const cle = String(classeDiametre(f.properties.d));
+    for (const t of liste) {
+      const cle = String(classeDiametre(t.d));
       nombres.set(cle, (nombres.get(cle) ?? 0) + 1);
     }
   } else {
-    for (const s of r.secteurs) for (const f of s.data?.features ?? []) {
-      if (f.properties.z) nombres.set(f.properties.z, (nombres.get(f.properties.z) ?? 0) + 1);
-    }
+    for (const t of liste) if (t.z) nombres.set(t.z, (nombres.get(t.z) ?? 0) + 1);
   }
   const zonesAffichees = zones.filter((z) => r.coloration !== 'secteur' || (nombres.get(z.id) ?? 0) > 0);
   return entreesLegendeReseau(r.coloration, r.palette, zonesAffichees, nombres)
@@ -63,6 +63,10 @@ export function bornesContenu(
   };
   for (const f of fuites) if (f.latitude != null && f.longitude != null) ajouter(f.longitude, f.latitude);
   for (const s of reseau?.secteurs ?? []) for (const t of s.data?.features ?? []) for (const [lon, lat] of t.geometry.coordinates) ajouter(lon, lat);
+  if (reseau?.tuiles && reseau.bornes) {
+    ajouter(reseau.bornes[0], reseau.bornes[1]);
+    ajouter(reseau.bornes[2], reseau.bornes[3]);
+  }
   if (ouest > est) return null;
   const dLon = Math.max(0, ETENDUE_MIN_DEGRES - (est - ouest)) / 2;
   const dLat = Math.max(0, ETENDUE_MIN_DEGRES - (nord - sud)) / 2;

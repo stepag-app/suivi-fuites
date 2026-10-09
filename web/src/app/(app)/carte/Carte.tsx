@@ -13,6 +13,7 @@ import { lienItineraire } from '@/lib/itineraire';
 import { texteEtatTroncon } from '@/lib/reseau/etat';
 import type { PaletteReseau } from '@/lib/reseau/palette';
 import { formaterLineaire, type ModeSelection } from '@/lib/reseau/selection';
+import { enregistrerProtocole, type TuilesReseau } from '@/lib/reseau/tuiles';
 import type { Coloration, EtatFeature, ProprietesTroncon } from '@/lib/reseau/types';
 import type { EtatCarte } from './capture';
 import {
@@ -21,8 +22,9 @@ import {
 } from './commun';
 import { STYLE_SECOURS, ajouterCouches, contours, couchesTraitReseau, pointsFuites, sommets } from './couches';
 import { installerTrace } from './lasso';
-import { creerGestionReseau, type GestionReseau, type SecteurAffiche } from './reseau-carte';
+import { creerGestionReseau, creerGestionTuiles, type GestionReseau, type SecteurAffiche } from './reseau-carte';
 import styles from './reseau.module.css';
+import { afficherSatellite } from './satellite';
 
 type Libelles = ReturnType<typeof libellesMarche>;
 export type CarteRef = { recentrer: () => void; centrerSur: (f: FuiteCarte) => void; etatImpression: () => EtatCarte | null };
@@ -43,6 +45,8 @@ export interface ReseauCarteProps {
   peutAnnuler: boolean;
   annuler: (tronconId: string) => void;
   surZoom: (zoom: number) => void;
+  /** Archive de tuiles à jour : tout le réseau en une source ; null : lecture par secteur. */
+  tuiles: TuilesReseau | null;
 }
 
 interface Props {
@@ -51,12 +55,19 @@ interface Props {
   secteurs: Contour[];
   libelles: Libelles;
   reseau?: ReseauCarteProps;
+  /** Image satellite (C5) et emprise du réseau qui la borne. */
+  satellite?: boolean;
+  bornesReseau?: [number, number, number, number] | null;
+  /** Zoom courant, pour l'avertissement « satellite à partir du zoom 13 ». */
+  surZoom?: (zoom: number) => void;
 }
 
-export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau }, ref) {
+export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau, satellite = false, bornesReseau = null, surZoom }, ref) {
   const conteneur = useRef<HTMLDivElement>(null);
   const carte = useRef<CarteMapLibre | null>(null);
   const gestion = useRef<GestionReseau | null>(null);
+  const avecTextesRef = useRef(false);
+  const [versionGestion, setVersionGestion] = useState(0);
   const [pret, setPret] = useState(false);
   const [fondIndisponible, setFondIndisponible] = useState(false);
   const [erreur, setErreur] = useState('');
@@ -75,6 +86,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   secteursRef.current = secteurs;
   const routerRef = useRef(router);
   routerRef.current = router;
+  const surZoomRef = useRef(surZoom);
+  surZoomRef.current = surZoom;
 
   // Cadre : les fuites affichées ; sinon les contours dessinés (secteur choisi) ; sinon Oujda.
   const recentrer = () => {
@@ -148,6 +161,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       }
       if (annule || !conteneur.current) return;
       mlRef.current = ml;
+      enregistrerProtocole(ml as never);
 
       // Le fond n'est demandé qu'une fois ; sans réponse en 8 s, fond uni.
       let style: StyleSpecification = STYLE_SECOURS;
@@ -186,6 +200,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       }
       const m = instance;
       carte.current = m;
+      // Mesure de fluidité (scripts d'essai) : jamais activée en production.
+      if (process.env.NEXT_PUBLIC_MESURE_CARTE === '1') (window as unknown as { __carteFuites?: CarteMapLibre }).__carteFuites = m;
       m.touchZoomRotate.disableRotation();
       m.addControl(new ml.NavigationControl({ showCompass: false }), 'top-right');
       m.addControl(new ml.ScaleControl({ unit: 'metric', maxWidth: 140 }), 'bottom-left');
@@ -194,7 +210,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         if (annule) return;
         // Zones et secteurs (seulement ceux dont le contour est dessiné), fuites regroupées tant qu'elles sont serrées.
         ajouterCouches(m, { avecTextes });
-        gestion.current = creerGestionReseau(m);
+        avecTextesRef.current = avecTextes;
         // Lasso du mode balayage (souris ou doigt) : la sélection se fait sur les données, par le milieu des tronçons.
         installerTrace(m, {
           outil: () => (reseauRef.current?.modeBalayage && reseauRef.current.outil === 'lasso' ? 'lasso' : null),
@@ -204,7 +220,10 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         setPret(true);
         recentrerRef.current();
       });
-      m.on('zoomend', () => reseauRef.current?.surZoom(m.getZoom()));
+      m.on('zoomend', () => {
+        reseauRef.current?.surZoom(m.getZoom());
+        surZoomRef.current?.(m.getZoom());
+      });
 
       // Au doigt, on touche rarement le point exact : on cherche dans un carré de ±14 px.
       const autour = (x: number, y: number, couches: string[]): MapGeoJSONFeature[] =>
@@ -215,7 +234,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         // Mode balayage : un appui sur un tronçon le sélectionne (ou le retire), rien d'autre ne réagit.
         if (r?.modeBalayage) {
           const troncon = autour(e.point.x, e.point.y, couchesTraitReseau(m))[0];
-          if (troncon?.properties?.id) r.surSelection([String(troncon.properties.id)], 'basculer');
+          const id = troncon ? gestion.current?.proprietes(troncon)?.id : null;
+          if (id) r.surSelection([id], 'basculer');
           return;
         }
         const groupe = autour(e.point.x, e.point.y, ['groupes'])[0];
@@ -229,8 +249,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         if (!point) {
           // Pas de fuite sous le doigt : un tronçon du réseau ?
           const troncon = r ? autour(e.point.x, e.point.y, couchesTraitReseau(m))[0] : undefined;
-          if (!troncon?.properties?.id || !r) return;
-          const p = troncon.properties as unknown as ProprietesTroncon;
+          const p: ProprietesTroncon | null | undefined = troncon ? gestion.current?.proprietes(troncon) : null;
+          if (!p || !r) return;
           // Sans ancre imposée : MapLibre place la bulle du côté où elle tient entière (tronçon au bord de la carte).
           new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, offset: 10 })
             .setLngLat(e.lngLat)
@@ -272,7 +292,24 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     (carte.current.getSource('secteurs') as GeoJSONSource | undefined)?.setData(contours(secteurs));
   }, [pret, zones, secteurs]);
 
-  // Réseau : sources par secteur, coloration, état de balayage et sélection (feature-state).
+  // Lecture du réseau : tuiles (une source) ou GeoJSON par secteur ; changer de lecture retire l'ancienne et
+  // relance la synchronisation, l'état de balayage et la sélection (versionGestion).
+  const tuiles = reseau?.tuiles ?? null;
+  const tuilesGestion = useRef<TuilesReseau | null>(null);
+  const satelliteActif = useRef(false);
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m) return;
+    if (gestion.current && tuilesGestion.current === tuiles) return;
+    gestion.current?.tout();
+    const options = { avecTextes: avecTextesRef.current };
+    gestion.current = tuiles ? creerGestionTuiles(m, tuiles, options) : creerGestionReseau(m, options);
+    tuilesGestion.current = tuiles;
+    gestion.current.halo(satelliteActif.current);
+    setVersionGestion((v) => v + 1);
+  }, [pret, tuiles]);
+
+  // Réseau : sources, coloration, état de balayage et sélection (feature-state).
   const secteursReseau = reseau?.secteurs;
   const coloration = reseau?.coloration ?? 'secteur';
   const palette = reseau?.palette;
@@ -280,7 +317,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     const g = gestion.current;
     if (!pret || !g) return;
     g.synchroniser(secteursReseau ?? [], coloration, palette ?? { secteurs: new Map(), zones: new Map() });
-  }, [pret, secteursReseau, coloration, palette]);
+  }, [pret, secteursReseau, coloration, palette, versionGestion]);
   useEffect(() => {
     const g = gestion.current;
     if (!pret || !g || !palette) return;
@@ -291,13 +328,21 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     const g = gestion.current;
     if (!pret || !g || !etats) return;
     g.appliquerEtats(etats);
-  }, [pret, etats, secteursReseau]);
+  }, [pret, etats, secteursReseau, versionGestion]);
   const selection = reseau?.selection;
   useEffect(() => {
     const g = gestion.current;
     if (!pret || !g) return;
     g.appliquerSelection(selection ?? new Set());
-  }, [pret, selection, secteursReseau]);
+  }, [pret, selection, secteursReseau, versionGestion]);
+
+  // Satellite (C5) : couche créée à la première activation seulement ; halo clair sous le réseau.
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m) return;
+    satelliteActif.current = afficherSatellite(m, satellite, bornesReseau);
+    gestion.current?.halo(satelliteActif.current);
+  }, [pret, satellite, bornesReseau, versionGestion]);
   const modeBalayage = reseau?.modeBalayage ?? false;
   useEffect(() => {
     const m = carte.current;

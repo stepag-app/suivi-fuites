@@ -109,3 +109,6 @@ jobs:
             R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
       - name: Déployer photos-r2
         run: supabase functions deploy photos-r2 --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Déployer reseau-tuiles
+        # Mêmes secrets R2 que photos-r2 (secrets du projet) : tuiles vectorielles du réseau, URL signées.
+        run: supabase functions deploy reseau-tuiles --project-ref "$SUPABASE_PROJECT_ID"

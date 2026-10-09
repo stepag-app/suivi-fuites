@@ -190,6 +190,13 @@ export async function chargerReseauComplet(marcheId: string, tolerance = 0.00000
   return normaliser<CollectionTroncons>(data);
 }
 
+/** Tous les nœuds du marché, zonés ou non (tuiles du réseau ; jamais en cache). */
+export async function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
+  const { data, error } = await getSupabase().rpc('noeuds_geojson', { p_marche: marcheId, p_secteurs: null, p_sans_secteur: true });
+  if (error) throw error;
+  return normaliser<CollectionNoeuds>(data);
+}
+
 // ---- État de balayage, équipes, noms --------------------------------------------------------------------
 
 /** Relu à chaque ouverture ; sans droit `balayage / lire` la base renvoie zéro ligne. */

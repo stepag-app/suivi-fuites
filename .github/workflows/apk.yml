@@ -27,6 +27,10 @@ jobs:
       # Adresse et clé « anon » : publiques par conception (jamais la clé service_role).
       EXPO_PUBLIC_SUPABASE_URL: https://osajiinsibwrsltntmsk.supabase.co
       EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'cle-factice-pour-la-compilation' }}
+      # Numéro de version (app.config.js) : numéro du run, toujours croissant ; une APK plus récente s'installe
+      # par-dessus la précédente, l'appli propose « Nouvelle version » quand celle publiée a un numéro plus grand.
+      APK_VERSION_CODE: ${{ github.run_number }}
+      APK_VERSION_NAME: 1.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,6 +49,24 @@ jobs:
         run: |
           node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
           node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
+          node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
+      # Notifications push : fichier Firebase de l'appli Android (secret GOOGLE_SERVICES_JSON, contenu JSON brut),
+      # jamais dans le dépôt. Absent : APK sans push (aucun jeton enregistré), tout le reste fonctionne.
+      - name: Firebase (google-services.json)
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::warning::Secret GOOGLE_SERVICES_JSON absent : APK compilée sans notifications push."
+            exit 0
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > google-services.json
+          python3 - <<'PY2'
+          import json
+          d = json.load(open('google-services.json'))
+          paquets = [c['client_info']['android_client_info']['package_name'] for c in d.get('client', [])]
+          assert 'ma.stepag.suivifuites' in paquets, f'google-services.json ne contient pas ma.stepag.suivifuites : {paquets}'
+          PY2
       - run: npx expo prebuild --platform android --no-install
       - name: Signature de production (si le keystore est disponible)
         id: signature
@@ -98,3 +120,41 @@ jobs:
           name: suivi-fuites-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
           retention-days: 14
+      # Mise à jour des tablettes (X2) : chaque APK de main signée avec la clé de production est publiée dans le
+      # compartiment privé R2 (apk/suivi-fuites-<numéro>.apk + apk/derniere.json) ; la fonction serveur version-apk
+      # la propose aux tablettes par une URL signée. Les 3 dernières APK sont gardées.
+      - name: Publier la version (R2)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signature.outputs.mode == 'production'
+        env:
+          R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
+          AWS_DEFAULT_REGION: auto
+          # R2 refuse les sommes de contrôle ajoutées d'office par les versions récentes de l'AWS CLI.
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+        run: |
+          if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
+            echo "::warning::Secrets R2 absents : version non publiée (les tablettes ne la verront pas)."
+            exit 0
+          fi
+          E="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
+          APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
+          CHEMIN="apk/suivi-fuites-$APK_VERSION_CODE.apk"
+          aws s3 cp "$APK" "s3://$R2_BUCKET/$CHEMIN" --endpoint-url "$E" --content-type application/vnd.android.package-archive --no-progress
+          python3 - "$APK" "$CHEMIN" > derniere.json <<'PY2'
+          import datetime, hashlib, json, os, sys
+          apk, chemin = sys.argv[1], sys.argv[2]
+          print(json.dumps({
+            'version_code': int(os.environ['APK_VERSION_CODE']), 'version': os.environ['APK_VERSION_NAME'], 'chemin': chemin,
+            'taille': os.path.getsize(apk), 'sha256': hashlib.sha256(open(apk, 'rb').read()).hexdigest(),
+            'commit': os.environ['GITHUB_SHA'], 'publiee_le': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+          }))
+          PY2
+          cat derniere.json
+          aws s3 cp derniere.json "s3://$R2_BUCKET/apk/derniere.json" --endpoint-url "$E" --content-type application/json --cache-control no-store
+          aws s3 ls "s3://$R2_BUCKET/apk/" --endpoint-url "$E" | awk '{print $4}' | grep -E '^suivi-fuites-[0-9]+\.apk$' \
+            | sort -t- -k3 -n | head -n -3 | while read -r ancien; do
+              aws s3 rm "s3://$R2_BUCKET/apk/$ancien" --endpoint-url "$E" || true
+            done || true

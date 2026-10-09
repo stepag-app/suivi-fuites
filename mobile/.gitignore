@@ -7,3 +7,6 @@ dist/
 .env
 .env.*
 !.env.example
+
+# Firebase (secret GitHub GOOGLE_SERVICES_JSON, écrit par la CI)
+google-services.json

@@ -19,8 +19,7 @@ technique : `MAQUETTE-SHADCN.md`.
   icônes `lucide-react`, graphiques Recharts, tableaux TanStack.
 - Coque (`src/app/(app)/_coque/`) : barre latérale repliable selon les droits (`elements-nav.ts` : menu, onglets visibles des
   paramètres), recherche ⌘J, sélecteur de marché, préférences d'affichage (cookies), mode clair / sombre.
-- Écrans encore écrits avec les classes de l'ancienne version (onglets des paramètres, panneau d'export, formulaires de
-  réparation et de réfection, matrice des droits, corrections à l'attachement, réseau et balayage) : habillés par
+- Écrans encore écrits avec les classes de l'ancienne version (onglets des paramètres, panneau d'export, matrice des droits, corrections à l'attachement, réseau et balayage) : habillés par
   `src/styles/ancien.css` sous un conteneur `.ancien`. Les modules CSS de ces écrans lisent les anciens jetons
   (`--bord`, `--discret`, `--principal`…), rapportés aux jetons shadcn en tête de `ancien.css` (justes en mode sombre).
 - Statuts : `src/components/statut.tsx` (badges, points, couleurs reprises par la carte).
@@ -37,8 +36,9 @@ technique : `MAQUETTE-SHADCN.md`.
 | `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, rubriques à cocher, voir § Carte |
 | `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), équipe, secteur ; par jour, équipe, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport de recherche de fuites de la période Du–Au** (droit « exports / lire ») : **un seul** PDF A4 au gabarit STEPAG 2026 (toutes les zones balayées, linéaire par jour, fuites avec leur date, **extrait de plan A4** de la période : conduites inspectées en vert, repassées en bleu, autres en gris, fuites numérotées) ou un seul Excel ; Du = Au : rapport journalier, un pour la journée ou un par équipe (décision Q-34) ; équipe et secteur du filtre repris ; rapport d'un jour depuis sa ligne ; rubriques à cocher ; voir § Réseau et balayage |
 | `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
-| `/fuites/nouvelle` | droit « fuites / créer » | GPS, référence SRM, secteur, photos, détection des doublons (rayon ou référence) |
-| `/fuites/[id]` | selon droits | détail, photos, suivi SRM, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée »), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
+| `/fuites/nouvelle` | droit « fuites / créer » | GPS ou **épingle sur une mini-carte** (zoom rapproché, tronçon suggéré en surbrillance), champs obligatoires **F1** (référence, secteur, ouvrage, visibilité, **nature de dégradation**, plus ceux que le marché coche), adresse facultative, matériau et diamètre de la conduite, **suggestions à valider d'un clic** (rue, secteur, conduite du tronçon le plus proche ; jamais pré-remplies), photos facultatives avec avertissement, détection des doublons ; responsable : **« Détectée par »**, date et heure réelles, source, « valider en même temps » ; voir § Validation et saisie |
+| `/fuites/[id]` | selon droits | détail, photos par étape, suivi SRM, **validation par étape** (détection, chaque réparation, chaque réfection : badge, bouton « Valider », avertissement « aucune photo »), **modifier** la détection, une réparation ou une réfection selon la validation et les droits, **corrections du responsable** (position à l'épingle, date au calendrier, référence, adresse… motif obligatoire pour date, référence et position), badge **« saisie différée »**, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée », **visibles du bureau seulement**), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
+| `/a-valider` | droit « valider » (fuites, interventions ou réfections) : responsable, administrateur | étapes en attente du marché (`v_a_valider`) : étape, fuite, résultat, date, auteur, saisie différée, 3 vignettes ou « Aucune photo » ; onglets par étape, cases à cocher, « Tout cocher », **« Valider (n) »** (`valider_etapes`), avertissement « aucune photo » avec la liste avant de valider |
 | `/parametres` | droits « parametres », « ouvriers », « evenements » | onglets **Marché** (titulaire, maître d'ouvrage, **logos des documents** : PNG ou JPEG, 2 Mo au plus, réduits à 600 px, droit « paramètres / modifier » ; délai, OS, arrêts et reprises, libellés et alertes du client, longueur de polyéthylène couverte par l'article de réparation : 2 m par défaut), **Bordereau** (avenants, nouvelle version d'un article avec avenant ou motif, historique, articles hors bordereau), **Attachement** (règles par marché), **Événements** (journal filtrable, pièces jointes, export, catégories), ouvriers, équipes, motifs, **Secteurs** (zones et secteurs : code, libellé, zone, ordre, linéaire), **Réseau** (plan du réseau : import, zonage ; administrateur ou « paramètres / modifier »), **Natures de réfection** (libellés FR / AR, symbole, emplacement, article lié, réfection nécessaire), **Articles (tous marchés)** (articles Dolibarr : import de `produits.csv` par l'administrateur, activation par l'administrateur ou le responsable, voir § Articles Dolibarr) ; l'onglet ouvert est dans l'adresse (`/parametres?onglet=articles`) ; bouton **Règles** d'un article (famille, matériaux, diamètres : modification directe, sans nouvelle version) ; on désactive, on ne supprime pas |
 | `/attachements` | droit « attachements » | lots d'attachement : reste à attacher, nouveau lot, liste (brouillons, arrêtés, acceptés, facturés) ; synthèse des contrôles en défaut (droit « quantités / lire ») et lien vers les travaux hors bordereau |
 | `/attachements/[id]` | droit « attachements » | en-tête et mentions du CPS (le titre suit la saisie ; numéro « prévu » d'un brouillon), récapitulatif par article (antérieur, lot, cumul, %), travaux du lot et sélection « À attacher » en listes compactes zébrées, une ligne par fuite (N° de fuite cliquable : fiche, photos dans un nouvel onglet ; filtres, cases par fuite et par article), ligne libre, **attachement par anticipation** (bloc violet « Propositions anticipées », bouton « Attacher par anticipation » d'une fuite du lot ; voir § Comptes, cloche et anticipation), refacturation forcée (admin), arrêt définitif, réouverture (admin), suivi (acceptation, facture) ; page élargie (écran de bureau). Colonne **Contrôles** (oublis probables, lignes incohérentes, travaux hors bordereau ; détail en infobulle) dans « Travaux du lot » et « À attacher », filtre « Contrôles en défaut seulement », bouton **Corriger** d'un brouillon : requalifier une ligne de prix (article, quantité, **motif obligatoire**), ajouter une ligne ; pièces posées : **Remplacer** une pièce erronée, **Retirer** une pièce non posée, **+ Ajouter un oubli**, chaque fois avec motif (la saisie d'origine reste visible, barrée « remplacée » ou « retirée » ; une pièce ne change jamais le prix) ; le nouvel article d'une unité du lot entre dans le lot |
@@ -48,6 +48,39 @@ technique : `MAQUETTE-SHADCN.md`.
 | `/en-attente` | tous | fuites saisies sur la tablette et pas encore reçues ; envoi manuel, erreurs, abandon |
 | `/marches` | administrateur | liste des marchés, activer / désactiver (un marché désactivé n'est plus proposé aux agents), créer un marché vide ou en copiant les paramètres d'un marché existant (`copier_marche`) |
 | `/utilisateurs` | administrateur | onglet **Comptes** (`?onglet=affectations` : affectations et rôles ; voir § Comptes, cloche et anticipation) : créer un agent, rôles par marché, mot de passe, révoquer (la base d'abord, verrou et journal, puis blocage de la connexion par la fonction serveur) / réactiver ; onglet **Droits** (`?onglet=droits&marche=<uuid>`) : matrice compacte des **seuls utilisateurs du marché** (en colonnes, côte à côte ; droits en lignes par rubrique, une ligne = une colonne de `droits`, portée Non / Les siennes / Toutes ; en-têtes et libellés figés au défilement ; lignes réservées à l'administrateur retirées), « Modèle… » par colonne, enregistrement explicite après confirmation (`enregistrer_droits`, journalisé) ; **bloc à part « Administrateur et verrous de sécurité »** (repliable, ouvert d'un clic) : colonne « Vous » grisée, vos **verrous** (tous les marchés, refusés par la base, à rouvrir soi-même, sans refermeture automatique), autres administrateurs |
+
+## Validation et saisie (chantier v2, S5)
+
+Contrats de base : `docs/lots/chantier-v2-base-s1.md` (validation, motifs, R7) et `docs/lots/chantier-v2-base-s2.md`
+(champs obligatoires, suggestions, diamètres, représentants). La base reste juge ; l'écran grise et prévient.
+
+- **Règles pures** : `src/lib/saisie/regles.ts` (champs exigés, diamètres par matériau, gardes-fous, capsules, droits par
+  étape et sur les photos, motif, saisie différée, dates à l'heure du Maroc), vérifiées par `node scripts/verifier-saisie.mjs` (17).
+  Listes lues par `src/lib/saisie/referentiels.ts` (gardées sur l'appareil pour la nouvelle fuite hors ligne).
+- **Validation (V1)** : une fois, par le droit « valider » de l'étape ; « Valider » sur la fiche, « Valider (n) » sur `/a-valider`,
+  case « valider en même temps » à la saisie. Photo facultative : sans photo, un dialogue prévient (« Ajouter une photo »
+  ouvre l'onglet Photos sur l'étape, `?photo=reparation:<id>`). Le réglage « photo obligatoire » par étape (V4) n'existe pas
+  en base : toujours « facultative avec avertissement ».
+- **Modifier (V2, V6)** : l'auteur tant que l'étape n'est pas validée ; après, seul le responsable (l'agent ajoute un nouvel
+  élément, à valider) ; fuite verrouillée par un lot : l'agent ajoute encore et modifie seulement ce qu'il a ajouté depuis.
+  Pièces d'une réparation d'un autre agent : remplacement, retrait ou oubli avec motif (corrections du bureau).
+- **Photos (V3)** : rattachées à une étape ; type modifiable et retrait avec motif (fichier gardé) ; déposées avant la
+  validation de leur étape : responsable seulement.
+- **Corrections (V5)** : panneau « Corriger » / « Modifier » de la détection (`fuites/[id]/correction-detection.tsx`) ;
+  motif obligatoire quand un autre que l'auteur change la date, la référence ou la position.
+- **Formulaires réparation et réfection (P1 à P9)** : `fuites/[id]/form-reparation.tsx` et `form-refection.tsx`, étapes
+  numérotées dans l'ordre du terrain, choix en gros boutons, diamètres selon le matériau (Paramètres > Marché), **pièces en
+  capsules** (articles qui citent le matériau et le diamètre, puis les plus posés du marché ; « − / + » ; recherche),
+  représentant du maître d'ouvrage en liste, date et heure proposées et modifiables, **récapitulatif** « Corriger /
+  Confirmer », gardes-fous sans blocage (fouille 10 / 3 / 3 m, unité suspecte, fouille > 2 m sans élément remplacé, PE posé
+  hors des dimensions de la fouille, non réparée avec terrassement sur revêtement → réfection obligatoire, réfection > 30 m²,
+  réfections < fouilles).
+- **R7** : un compte qui n'est pas du bureau (ni « interventions / valider », ni « quantités / lire ») lit les pièces dans
+  `v_pieces_terrain` (sa déclaration, sans remplacement ni retrait du bureau) ; la dernière correction de la détection et son
+  motif ne s'affichent qu'au bureau.
+- **Paramètres > Marché** (`parametres/ParametresSaisie.tsx`) : champs obligatoires contrôlés par la base (tablette comprise ;
+  le panneau exige toujours le jeu F1), diamètres par matériau (ajouter, retirer, réactiver ; ceux du réseau marqués),
+  représentants du maître d'ouvrage (ajouter, renommer, désactiver).
 
 **Droits à l'écran** : `peut(type, action)` (`src/lib/session.tsx`) suit les droits du marché choisi ; pour l'administrateur, tout sauf ce qu'il a verrouillé (`verrous_admin`). `verrouille(objet, action)` sert aux boutons réservés à l'administrateur (rouvrir, refacturation forcée, désactiver, copier, révoquer) : bouton grisé « verrouillé par vous ». Le menu affiche « Utilisateurs (n verrous) ». Calculs purs dans `src/app/(app)/utilisateurs/matrice.ts`, vérifiés par `node scripts/verifier-matrice-droits.mjs`.
 
@@ -205,7 +238,7 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
 ## Carte (`/carte`)
 
 - **MapLibre GL JS 6** (BSD, libre), fond **OpenFreeMap « positron »** (`tiles.openfreemap.org`, tuiles
-  OpenStreetMap, sans compte ni clé, attribution OSM affichée par le style). Pas d'image satellite.
+  OpenStreetMap, sans compte ni clé, attribution OSM affichée par le style). Image satellite activable : voir § Satellite.
 - Chargée **seulement à l'ouverture de la carte** : `scripts/copier-maplibre.mjs` (lancé par `predev` et
   `prebuild`) copie les modules ES de MapLibre dans `public/maplibre/` (ignoré par git), que la page importe
   en module natif. Webpack casse le chargement du « worker » de la v6 s'il l'intègre au bundle ; la v5 (un
@@ -233,6 +266,76 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   Vérification : `node scripts/verifier-carte-pdf.mjs` (4 formats, légendes longues en portrait et en paysage, rubriques).
 - Réseau d'eau et balayage : voir § Réseau et balayage. Hors périmètre pour l'instant : tracés GPS des agents.
 
+### Tuiles vectorielles du réseau (X5)
+
+- **Pourquoi** : lu secteur par secteur (une source GeoJSON par secteur, 132 couches pour Oujda), tout le réseau rendait
+  la carte lente sur la tablette. En tuiles : une seule source PMTiles, 5 couches de réseau, les secteurs cochés filtrent
+  l'affichage sans rien recharger.
+- **Archive** : `reseau/<marche_id>/reseau.pmtiles` dans le compartiment **privé** R2 (le même que les photos). Couches
+  `troncons` (identifiant entier, propriétés `s` secteur, `c` catégorie, `d` diamètre, `m` matériau) et `noeuds`
+  (`s`, `t` type, zooms 14 à 16), zooms 10 à 16 (MapLibre agrandit au-delà) ; métadonnées : index des tronçons (uuid,
+  longueur, secteur, diamètre : légende et sélection sans géométrie), date, empreinte du réseau. Oujda : 323 tuiles,
+  4,7 Mo, fabriquée en 1,5 à 3 s. Code : `src/lib/reseau/pmtiles.ts` (fabrication), `tuiles-format.ts` (format,
+  empreinte), `tuiles.ts` (lecture), `src/app/(app)/carte/{couches,reseau-carte}.ts` (couches, état de balayage).
+- **Accès** : jamais public. La fonction serveur `reseau-tuiles` (droits de l'appelant, RLS) délivre une **URL signée**
+  de 6 h ; le navigateur lit l'archive **par plages d'octets** (en-tête et répertoire en une lecture de 16 Ko, puis une
+  tuile par requête) et redemande une URL quand elle expire. Plages gardées dans le cache du navigateur (Cache Storage
+  `suivi-fuites-tuiles`, clé = archive + ETag ; une archive régénérée purge l'ancienne).
+- **Garde-fou** : l'archive porte l'**empreinte** du réseau (`estampilleReseau` : tronçons, linéaire, dernière
+  modification et nœuds par secteur, non zonés). Si la base a changé depuis (import, zonage, correction), la carte
+  revient d'elle-même à la lecture par secteur (toujours juste) et le panneau Réseau l'indique. Même repli sans archive,
+  sans R2 configuré, ou si la lecture par plages échoue (règle CORS ci-dessous absente).
+- **Régénérer après un import du réseau ou un zonage** : Paramètres › Réseau › bloc « Tuiles du réseau » ›
+  **Régénérer les tuiles** (administrateur ou « paramètres / modifier »). Le navigateur lit tout le réseau
+  (`reseau_geojson`, `noeuds_geojson`), fabrique l'archive et la dépose dans R2 par une URL signée (15 min) ; l'état
+  passe à « À jour ». Les tablettes la prennent à la prochaine ouverture de la carte.
+- **Mode balayage en tuiles** : « Toucher » marche tout de suite ; le lasso et « Prolonger » ont besoin de la
+  géométrie : elle est lue en arrière-plan 4 s après l'ouverture (ou au premier lasso / Prolonger), depuis le cache de
+  l'appareil après la première fois, sans être dessinée une seconde fois.
+- **Règle CORS du compartiment R2** (Cloudflare › R2 › `suivi-fuites-photos` › Settings › CORS policy) : la lecture
+  par plages envoie l'en-tête `Range` ; règle à poser (remplace la règle des photos, qui y est comprise) :
+  ```json
+  [{ "AllowedOrigins": ["https://fuites.stepag.ma", "http://localhost:3000"],
+     "AllowedMethods": ["GET", "PUT", "HEAD"],
+     "AllowedHeaders": ["Content-Type", "Range"],
+     "ExposeHeaders": ["ETag", "Content-Range", "Content-Length"],
+     "MaxAgeSeconds": 3600 }]
+  ```
+- **Mesures** (essai local, tout Oujda : 44 044 tronçons, 30 820 nœuds ; Chrome sans tête, écran 1280 × 800 à 1,5,
+  processeur bridé ×4, `/carte?mode=balayage`) :
+
+  | | Avant (GeoJSON par secteur) | Après (tuiles) |
+  |---|---:|---:|
+  | Réseau complet affiché, cache vide | 7,9 s | 2,9 s |
+  | Réseau complet affiché, cache de l'appareil | 5,0 s | 1,7 à 1,9 s |
+  | Images par seconde (8 s de déplacements et zooms) | 27 à 32 | 59 à 60 (48 pendant la préparation du lasso) |
+  | Images de plus de 50 ms | 37 à 49 | 0 (14 à 20 pendant la préparation) |
+  | Couches MapLibre | 132 | 73 |
+
+  Outil : `node scripts/mesurer-carte.mjs http://localhost:3110 [bridage] [passages] [chemin]` sur un panneau construit
+  avec `NEXT_PUBLIC_MESURE_CARTE=1` (expose la carte au script ; **jamais sur Vercel**) et une base d'essai locale.
+  Vérification du format : `node scripts/verifier-tuiles.mjs [troncons.geojson noeuds.geojson]` (15 ; avec les deux
+  fichiers, génère le vrai réseau et vérifie que chaque tronçon est dans les tuiles du zoom 16).
+
+### Satellite (C5)
+
+- **Esri World Imagery** (offre gratuite ArcGIS Location Platform, 2 millions de tuiles par mois), tuiles en ligne
+  demandées **seulement quand la couche est activée** (bouton « Satellite » en bas à gauche de la carte, choix mémorisé
+  sur l'appareil), **bornées à l'emprise du réseau + 1 km** (bornes de l'archive, sinon des secteurs et des zones) et
+  aux **zooms 13 à 19** : MapLibre ne demande rien en dehors. Pas de copie locale ni dans R2 (conditions d'utilisation).
+- L'image passe sous les noms de rues du fond ; un **contour blanc** s'ajoute sous les conduites pour qu'elles restent
+  lisibles ; attribution « Powered by Esri » affichée. Pas de satellite sur la carte imprimée.
+- **Clé** : `NEXT_PUBLIC_ESRI_CLE` (clé publique restreinte au domaine, voir § Variables) ; **sans clé, le bouton
+  n'apparaît pas**. Code : `src/app/(app)/carte/satellite.ts`.
+
+### Mini-carte de localisation (F4)
+
+- Route `/mini-carte` (hors du menu, comme `/session`) pour la WebView de la tablette, et composant `MiniCarte`
+  (`src/app/(app)/carte/MiniCarte.tsx`) réutilisable dans les formulaires du panneau : zoom rapproché sur la position
+  GPS, cercle de précision, épingle déplaçable, conduite la plus proche en surbrillance avec diamètre et matériau
+  (`suggestions_localisation`), réseau autour, satellite. Position et suggestions renvoyées à l'APK par `postMessage`.
+- Contrat d'appel et messages : `docs/lots/chantier-v2-mini-carte.md`.
+
 ## Réseau et balayage (lot S)
 
 - **Panneau « Réseau »** de `/carte` (tous ceux qui voient les fuites) : interrupteur général (mémorisé), arbre
@@ -245,7 +348,12 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   (`suivi-fuites-reseau`, invalidé quand `modifie_le` du secteur change) ; l'état de balayage est relu à chaque
   ouverture et posé par `setFeatureState`, jamais mêlé à la géométrie en cache. Code : `src/lib/reseau/`,
   `src/app/(app)/carte/{PanneauReseau.tsx,useReseau.ts,reseau-carte.ts,lasso.ts}`.
-- **Mode balayage** (droit « balayage / créer », `/carte?mode=balayage`, aussi dans l'APK) : **Toucher** un
+- **Panneau en onglets** (C4 ; le même dans le panneau web et dans l'APK) : **Secteurs** (interrupteur, coloration,
+  arbre, linéaire et % balayé), **Légende** (traits, nœuds par type, étiquettes), **Balayage** (enregistrement, file
+  d'attente). De près : diamètre et matériau écrits le long des conduites (« Ø110 PVC », zoom 16), vannes, bouches
+  d'incendie, ventouses, vidanges, compteurs et réservoirs en couleur (zoom 15), sigle à côté (zoom 17).
+- **Mode balayage** (droit « balayage / créer », `/carte?mode=balayage`, aussi dans l'APK) : **carte en plein écran**
+  (par-dessus l'en-tête et le menu), le panneau s'ouvre au besoin par « Réseau » dans la barre. **Toucher** un
   tronçon, **Lasso** au doigt (milieu du tronçon dans la forme), **Prolonger** le long de la rue jusqu'à la
   prochaine jonction (± 20°), « Désélectionner tout », compteur « n tronçons · x,xx km » ; « Enregistrer » : équipe
   (la dernière est mémorisée), date, méthode ; identifiants créés sur l'appareil, **file d'attente hors ligne**
@@ -337,6 +445,8 @@ Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
 
 | `NEXT_PUBLIC_NOM_ORGANISATION` | facultative : nom affiché à la connexion (défaut STEPAG) |
 | `NEXT_PUBLIC_DOMAINE_AGENTS` | facultative : domaine technique des identifiants (défaut `agents.stepag.ma`, même valeur que `DOMAINE_AGENTS` de la fonction serveur) |
+| `NEXT_PUBLIC_ESRI_CLE` | facultative : clé d'API ArcGIS Location Platform (satellite, § Satellite), **restreinte au domaine** `fuites.stepag.ma` ; absente : pas de bouton Satellite |
+| `NEXT_PUBLIC_MESURE_CARTE` | essais locaux seulement (`1` : carte exposée à `scripts/mesurer-carte.mjs`) ; **jamais sur Vercel** |
 
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.

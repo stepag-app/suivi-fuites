@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Camera, CalendarDays, CircleCheck, Circle, Droplets, Ellipsis, ExternalLink, FileText, History, Lock, LockOpen, MapPin,
-  Navigation, Plus, Trash2, WifiOff, Wrench,
+  CalendarDays, CircleCheck, Circle, Clock3, Droplets, Ellipsis, FileText, History, Lock, LockOpen, MapPin,
+  Navigation, Pencil, Plus, Trash2, WifiOff, Wrench,
 } from "lucide-react";
 import { ETATS_PIECE, libelleProvenance, type PieceAffichee } from "@/app/(app)/attachements/controles";
 import { Vide } from "@/components/en-tete-page";
@@ -14,30 +14,35 @@ import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuRadioGroup,
   DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  EMPLACEMENTS, MATERIAUX, OUVRAGES, TYPES_PHOTO, dateHeure, libellesMarche, messageErreur, montant, nombre,
+  EMPLACEMENTS, MATERIAUX, OUVRAGES, dateHeure, libellesMarche, messageErreur, montant, nombre,
 } from "@/lib/format";
 import { estErreurReseau, noterConsultation, oublierFiche } from "@/lib/hors-ligne";
 import { lienItineraire } from "@/lib/itineraire";
-import { deposerPhoto, preparerPhoto } from "@/lib/photo";
+import { lireArticlesEtUsages, lireReferentielsSaisie, type ReferentielsSaisie } from "@/lib/saisie/referentiels";
+import { droitsEtape, estBureau, sigleDiametre, type Etape } from "@/lib/saisie/regles";
 import { useSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabase";
-import type { Motif, Nature, PhotoLigne, Piece, Profil, Quantite, Refection, Reparation, StatutFuite, VFuite } from "@/lib/types";
+import type { FuiteV2, PhotoLigne, Piece, Quantite, Refection, Reparation, Secteur, StatutFuite, VFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import type { PieceLue } from "@/app/(app)/attachements/controles";
 import { garderCopie, lireCopie } from "./copie";
-import { FormRefection, FormReparation } from "./formulaires";
+import { CorrectionDetection } from "./correction-detection";
+import { FormRefection } from "./form-refection";
+import { FormReparation } from "./form-reparation";
 import { lireFicheEnLigne, type LectureEnLigne } from "./donnees";
+import { Photos, cleEtapePhoto, type EtapePhoto } from "./photos";
+import { BoutonValider, EtatValidation, type ElementAValider } from "./validation";
 import {
   DELAI_RESEAU_MS, NOMS_VIDES, actionsFiche, choisirAffichage, type ContenuFiche, type LiensReparations, type NomsFiche,
 } from "./fiche-hors-ligne";
@@ -96,16 +101,19 @@ export default function DetailFuite() {
   const [reparations, setReparations] = useState<Reparation[]>([]);
   const [refections, setRefections] = useState<Refection[]>([]);
   const [quantites, setQuantites] = useState<Quantite[]>([]);
-  const [natures, setNatures] = useState<Nature[]>([]);
-  const [motifs, setMotifs] = useState<Motif[]>([]);
-  const [pieces, setPieces] = useState<Piece[]>([]);
-  const [profils, setProfils] = useState<Profil[]>([]);
+  const [v2, setV2] = useState<FuiteV2 | null>(null);
+  const [piecesLues, setPiecesLues] = useState<Record<string, PieceLue[]>>({});
+  // Listes de la saisie, lues à l'ouverture du premier formulaire
+  const [saisie, setSaisie] = useState<{ ref: ReferentielsSaisie; articles: Piece[]; usages: Map<number, number>; secteurs: Secteur[] } | null>(null);
+  const [chargementSaisie, setChargementSaisie] = useState(false);
+  const [etapePhoto, setEtapePhoto] = useState<string | null>(null);
   const [noms, setNoms] = useState<NomsFiche>(NOMS_VIDES);
   const [liens, setLiens] = useState<LiensReparations>({ ouvriers: {}, pieces: {} });
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState("");
   const [occupe, setOccupe] = useState(false);
-  const [formulaire, setFormulaire] = useState<"" | "reparation" | "refection">("");
+  // Formulaire ouvert : nouvelle réparation / réfection, modification d'une étape (id), ou de la détection
+  const [formulaire, setFormulaire] = useState<{ type: Etape; id?: string } | null>(null);
   const [rapport, setRapport] = useState("");
   const [rapportEnCours, setRapportEnCours] = useState(false);
   const [horsLigne, setHorsLigne] = useState<string | null>(null);
@@ -117,6 +125,7 @@ export default function DetailFuite() {
 
   const marcheId = marche?.id;
   const utilisateurId = session?.user.id;
+  const bureau = estBureau(peut);
 
   const appliquer = useCallback((c: ContenuFiche, urls: Map<string, string>) => {
     setFuite(c.fuite);
@@ -126,6 +135,7 @@ export default function DetailFuite() {
     setQuantites(c.quantites);
     setLiens(c.liens);
     setNoms(c.noms);
+    setV2(c.v2 ?? null);
   }, []);
 
   const remplacerUrlsLocales = useCallback((urls: string[]) => {
@@ -148,7 +158,7 @@ export default function DetailFuite() {
       const affichage = choisirAffichage({ lecture, copie: !!copie });
       if (affichage === "attente") return;
       surCopie.current = true;
-      setFormulaire("");
+      setFormulaire(null);
       if (copie) {
         remplacerUrlsLocales([...copie.urls.values()]);
         appliquer(copie.fiche, copie.urls);
@@ -168,7 +178,7 @@ export default function DetailFuite() {
     const minuteur = window.setTimeout(() => void afficherCopie("en_cours"), DELAI_RESEAU_MS);
     let lu: LectureEnLigne;
     try {
-      lu = await lireFicheEnLigne(id, marcheId);
+      lu = await lireFicheEnLigne(id, marcheId, { bureau });
     } catch (e) {
       window.clearTimeout(minuteur);
       if (tour !== generation.current) return;
@@ -194,18 +204,23 @@ export default function DetailFuite() {
     if (lu.erreur) setErreur(messageErreur(lu.erreur));
     if (lu.contenu) appliquer(lu.contenu, lu.urls);
     else setFuite(null);
-    setNatures(lu.listes.natures);
-    setMotifs(lu.listes.motifs);
-    setPieces(lu.listes.pieces);
-    setProfils(lu.listes.profils);
+    setPiecesLues(lu.piecesLues);
     setChargement(false);
     if (lu.contenu && lu.complete) void garderCopie(lu.contenu, lu.urls, utilisateurId).catch(() => undefined);
     else if (!lu.contenu && !lu.erreur) void oublierFiche(id);
-  }, [id, marcheId, utilisateurId, appliquer, remplacerUrlsLocales]);
+  }, [id, marcheId, utilisateurId, bureau, appliquer, remplacerUrlsLocales]);
 
   useEffect(() => {
     charger();
   }, [charger]);
+
+  // Lien « Ajouter une photo » de l'écran À valider : onglet Photos, étape choisie (?photo=reparation:<id>).
+  useEffect(() => {
+    const etape = new URLSearchParams(window.location.search).get("photo");
+    if (!etape) return;
+    setEtapePhoto(etape);
+    setOnglet("photos");
+  }, []);
 
   useEffect(() => {
     const retour = () => {
@@ -249,6 +264,35 @@ export default function DetailFuite() {
 
   const modifierFuite = (champs: Record<string, unknown>) => executer(() => getSupabase().from("fuites").update(champs).eq("id", id));
 
+  // Ouvre un formulaire après avoir lu les listes de la saisie (une fois par fiche).
+  async function ouvrir(f: { type: Etape; id?: string }) {
+    setErreur("");
+    if (!saisie && marcheId) {
+      setChargementSaisie(true);
+      try {
+        const [ref, art, sec] = await Promise.all([
+          lireReferentielsSaisie(marcheId),
+          lireArticlesEtUsages(marcheId),
+          getSupabase().from("secteurs").select("id, zone_id, code, libelle").eq("marche_id", marcheId).eq("actif", true).order("libelle"),
+        ]);
+        setSaisie({ ref, articles: art.articles, usages: art.usages, secteurs: (sec.data as Secteur[] | null) ?? [] });
+      } catch (e) {
+        setErreur(messageErreur(e));
+        return;
+      } finally {
+        setChargementSaisie(false);
+      }
+    }
+    setFormulaire(f);
+    if (f.type !== "detection") setOnglet(f.type === "reparation" ? "reparations" : "refections");
+  }
+  const fermer = () => setFormulaire(null);
+  const apresSaisie = () => { setFormulaire(null); charger(); };
+  const ajouterPhotoEtape = (e: ElementAValider) => {
+    setEtapePhoto(e.etape === "detection" ? "detection" : `${e.etape}:${e.id}`);
+    setOnglet("photos");
+  };
+
   if (chargement) return <p className="flex items-center gap-2 text-muted-foreground text-sm"><Spinner />Chargement…</p>;
   if (indisponible) {
     return (
@@ -271,6 +315,17 @@ export default function DetailFuite() {
   const verrouillee = !!fuite.verrouillee_le;
   const peutValider = peut("fuites", "valider");
   const actions = actionsFiche(peut, { horsLigne: !!horsLigne, verrouillee });
+  const moi = utilisateurId ?? null;
+  const contexteDroits = { moi, peut, verrouilleeLe: fuite.verrouillee_le };
+  const droitsDetection = horsLigne || !v2 ? null : droitsEtape("detection", v2, contexteDroits);
+  const photosDe = (cle: string) => photos.filter((p) => cleEtapePhoto(p) === cle).length;
+  const etapesPhotos: EtapePhoto[] = [
+    { cle: "detection", libelle: "Détection", valideeLe: v2?.validee_le ?? null },
+    ...reparations.map((r, i) => ({ cle: `reparation:${r.id}`, libelle: `Réparation ${i + 1} (${dateHeure(r.realisee_le)})`, valideeLe: r.validee_le ?? null })),
+    ...refections.map((r, i) => ({ cle: `refection:${r.id}`, libelle: `Réfection ${i + 1} (${dateHeure(r.realisee_le)})`, valideeLe: r.validee_le ?? null })),
+  ];
+  const suggestionsFuite = { materiau: v2?.materiau ?? null, diametre_mm: v2?.diametre_mm ?? null, nature_degradation_id: v2?.nature_degradation_id ?? null };
+  const formulaireOuvert = (type: Etape, eid?: string) => formulaire?.type === type && formulaire.id === eid && !!saisie;
   const maintenant = () => new Date().toISOString();
   const natureLibelle = (nid: string | null | undefined) => (nid && noms.natures[nid]) || "—";
   const motifLibelle = (mid: string | null | undefined) => (mid && noms.motifs[mid]) || "—";
@@ -299,7 +354,12 @@ export default function DetailFuite() {
     ...reparations.map((r) => [r.realisee_le, `réparation saisie (${r.resultat === "reparee" ? "réparée" : r.resultat === "en_cours" ? "en cours" : "non réparée"})${nomProfil(r.auteur_terrain_id) ? ` par ${nomProfil(r.auteur_terrain_id)}` : ""}`]),
     ...refections.map((r) => [r.realisee_le, r.resultat === "faite" ? "réfection saisie" : "clôturée sans réfection"]),
     [fuite.validation_srm_le, `validée par ${fuite.validation_srm_par || `le représentant ${libelles.sigle}`}`],
-    [fuite.verrouillee_le, "validée et verrouillée"],
+    [fuite.verrouillee_le, "verrouillée"],
+    [v2?.validee_le, `détection validée${nomProfil(v2?.validee_par) ? ` par ${nomProfil(v2?.validee_par)}` : ""}`],
+    ...reparations.map((r) => [r.validee_le, `réparation du ${dateHeure(r.realisee_le)} validée${nomProfil(r.validee_par) ? ` par ${nomProfil(r.validee_par)}` : ""}`]),
+    ...refections.map((r) => [r.validee_le, `réfection du ${dateHeure(r.realisee_le)} validée${nomProfil(r.validee_par) ? ` par ${nomProfil(r.validee_par)}` : ""}`]),
+    // R7 : les corrections du bureau ne se montrent qu'au bureau
+    ...(bureau ? [[v2?.corrigee_le, `détection corrigée${nomProfil(v2?.corrigee_par) ? ` par ${nomProfil(v2?.corrigee_par)}` : ""} : « ${v2?.motif_correction ?? ""} »`]] : []),
   ] as [string | null | undefined, string][])
     .filter((e): e is [string, string] => !!e[0])
     .sort((a, b) => b[0].localeCompare(a[0]));
@@ -350,6 +410,13 @@ export default function DetailFuite() {
             <div className="flex flex-wrap gap-2">
               <BadgeStatut statut={fuite.statut} className="rounded-sm" />
               {fuite.origine === "srm" && <Badge className="rounded-sm" variant="secondary">Signalée par {libelles.sigle}</Badge>}
+              {v2 && <EtatValidation valideeLe={v2.validee_le} par={nomProfil(v2.validee_par)} />}
+              {v2?.saisie_differee && (
+                <Badge className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300" variant="outline"
+                  title={`Détectée le ${dateHeure(fuite.date_detection)}, saisie le ${dateHeure(v2.cree_le)}`}>
+                  <Clock3 data-icon="inline-start" />Saisie différée
+                </Badge>
+              )}
               {verrouillee && <Badge className="rounded-sm" variant="outline"><Lock data-icon="inline-start" />Verrouillée le {dateHeure(fuite.verrouillee_le)}</Badge>}
               <BadgesAlertes fuite={fuite} libelles={libelles} sansPhoto vide={null} />
             </div>
@@ -370,7 +437,7 @@ export default function DetailFuite() {
             <Button size="sm" variant={verrouillee ? "outline" : "default"} disabled={occupe}
               onClick={() => modifierFuite({ verrouillee_le: verrouillee ? null : maintenant() })}>
               {verrouillee ? <LockOpen data-icon="inline-start" /> : <Lock data-icon="inline-start" />}
-              {verrouillee ? "Déverrouiller" : "Valider et verrouiller"}
+              {verrouillee ? "Déverrouiller" : "Verrouiller"}
             </Button>
           )}
           {(actions.changerStatut || actions.supprimer) && (
@@ -438,18 +505,48 @@ export default function DetailFuite() {
         <TabsContent value="ensemble">
           <div className="grid lg:grid-cols-[minmax(0,1fr)_auto_19rem]">
             <div className="py-4 lg:pr-6">
+              {formulaireOuvert("detection") && saisie ? (
+                <Card className="mb-4">
+                  <CardContent>
+                    <CorrectionDetection fuite={fuite} v2={v2} referentiels={saisie.ref} secteurs={saisie.secteurs} onFini={apresSaisie} onAnnuler={fermer} />
+                  </CardContent>
+                </Card>
+              ) : null}
               <div className="flex flex-col gap-2">
-                <h2 className="font-heading font-medium text-base">Identification</h2>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="font-heading font-medium text-base">Identification</h2>
+                  {droitsDetection && !formulaire && (
+                    <div className="flex flex-wrap gap-2">
+                      {droitsDetection.valider && (
+                        <BoutonValider element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${fuite.numero}`, nbPhotos: photosDe("detection") }}
+                          onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
+                      )}
+                      {droitsDetection.modifier ? (
+                        <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "detection" })}>
+                          {chargementSaisie ? <Spinner /> : <Pencil data-icon="inline-start" />}{peutValider ? "Corriger" : "Modifier"}
+                        </Button>
+                      ) : droitsDetection.raison && peut("fuites", "modifier") ? (
+                        <span className="text-muted-foreground text-xs">{droitsDetection.raison}</span>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
                 <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
                   <Info libelle="Origine" valeur={fuite.origine === "srm" ? `Signalée par ${libelles.sigle}` : "Détection de l'entreprise"} />
                   <Info libelle={libelles.reference} valeur={fuite.reference_srm} />
                   <Info libelle="Ouvrage" valeur={fuite.ouvrage ? `${OUVRAGES[fuite.ouvrage]}${fuite.visibilite ? ` (${fuite.visibilite})` : ""}` : null} />
+                  <Info libelle="Nature de dégradation" valeur={v2?.nature_degradation_id ? noms.natures[v2.nature_degradation_id] ?? "—" : null} />
+                  <Info libelle="Conduite" valeur={[v2?.materiau ? MATERIAUX[v2.materiau] : null, v2?.diametre_mm ? `${sigleDiametre(v2.materiau)} ${v2.diametre_mm} mm` : null].filter(Boolean).join(" · ") || null} />
                   <Info libelle="Zone" valeur={fuite.zone} />
                   <Info libelle="Secteur" valeur={fuite.secteur} />
                   <Info libelle="Détectée" valeur={`${dateHeure(fuite.date_detection)}${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ""}`} />
                   <Info libelle="Adresse" valeur={fuite.adresse} large />
                   {fuite.motif_sans_reparation && <Info libelle="Motif" valeur={fuite.motif_sans_reparation} large />}
                   {fuite.observation && <Info libelle="Observation" valeur={<span className="whitespace-pre-wrap">{fuite.observation}</span>} large />}
+                  {bureau && v2?.motif_correction && (
+                    <Info libelle="Dernière correction du bureau" large
+                      valeur={`${dateHeure(v2.corrigee_le)}${nomProfil(v2.corrigee_par) ? ` par ${nomProfil(v2.corrigee_par)}` : ""} : « ${v2.motif_correction} »`} />
+                  )}
                 </div>
               </div>
 
@@ -533,47 +630,75 @@ export default function DetailFuite() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="font-heading font-medium text-base">Réparation{reparations.length > 1 ? "s" : ""}</h2>
-                <p className="text-muted-foreground text-sm">Interventions saisies sur le terrain ou au bureau.</p>
+                <p className="text-muted-foreground text-sm">Interventions saisies sur le terrain ou au bureau ; chacune est validée par le responsable.</p>
               </div>
-              {actions.ajouterReparation && formulaire !== "reparation" && (
-                <Button size="sm" disabled={actions.interventionsBloquees} onClick={() => setFormulaire("reparation")}>
-                  <Plus data-icon="inline-start" />Réparation
+              {actions.ajouterReparation && !formulaire && (
+                <Button size="sm" disabled={chargementSaisie} onClick={() => ouvrir({ type: "reparation" })}>
+                  {chargementSaisie ? <Spinner /> : <Plus data-icon="inline-start" />}Réparation
                 </Button>
               )}
             </div>
-            {reparations.length === 0 && <Vide>Aucune réparation saisie.</Vide>}
-            {reparations.map((r) => (
-              <Card key={r.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Wrench className="size-4 text-muted-foreground" />
-                    {r.resultat === "reparee" ? "Réparée" : r.resultat === "en_cours" ? "En cours / reste à finir" : "Non réparée"}
-                  </CardTitle>
-                  <CardDescription>{dateHeure(r.realisee_le)}{nomEquipe(r.equipe_id) ? ` · ${nomEquipe(r.equipe_id)}` : ""}</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Info libelle="Chef d'équipe" valeur={nomProfil(r.auteur_terrain_id)} />
-                  <Info libelle="Ouvriers" valeur={liens.ouvriers[r.id]?.join(", ") || null} />
-                  <Info libelle="Matériau" valeur={[r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null].filter(Boolean).join(" ") || null} />
-                  <Info libelle="Ouvrage" valeur={r.ouvrage ? OUVRAGES[r.ouvrage] : null} />
-                  <Info libelle="Travaux" large valeur={[r.tuyau_repare && "tuyau réparé", r.robinet_pec_change && "robinet PEC changé", r.collier_pec_change && "collier PEC changé",
-                    r.bouche_a_cle_mise_a_niveau && "bouche à clé mise à niveau", r.element_remplace && "élément remplacé"].filter(Boolean).join(", ") || null} />
-                  <Info libelle="Fouille" valeur={r.volume_m3 != null ? <>{nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = <b>{nombre(r.volume_m3, 3)} m³</b></> : null} />
-                  <Info libelle="Emplacement" valeur={r.emplacement ? EMPLACEMENTS[r.emplacement] : null} />
-                  <PiecesReparation pieces={liens.pieces[r.id]} />
-                  {r.representant_srm && <Info libelle={`Représentant ${libelles.sigle}`} valeur={r.representant_srm} />}
-                  {r.motif_id && <Info libelle="Motif" valeur={motifLibelle(r.motif_id)} />}
-                  {r.observation && <Info libelle="Observation" large valeur={r.observation} />}
-                </CardContent>
-              </Card>
-            ))}
-            {formulaire === "reparation" && (
-              <Card className="ancien">
+            {reparations.length === 0 && !formulaireOuvert("reparation") && <Vide>Aucune réparation saisie.</Vide>}
+            {reparations.map((r) => {
+              if (formulaireOuvert("reparation", r.id)) {
+                return (
+                  <Card key={r.id}>
+                    <CardContent>
+                      <FormReparation marcheId={marche!.id} fuiteId={id} suggestions={suggestionsFuite} referentiels={saisie!.ref} articles={saisie!.articles}
+                        usages={saisie!.usages} existante={r} piecesExistantes={piecesLues[r.id]} onFini={apresSaisie} onAnnuler={fermer} />
+                    </CardContent>
+                  </Card>
+                );
+              }
+              const d = horsLigne ? null : droitsEtape("reparation", r, contexteDroits);
+              return (
+                <Card key={r.id}>
+                  <CardHeader>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      <Wrench className="size-4 text-muted-foreground" />
+                      {r.resultat === "reparee" ? "Réparée" : r.resultat === "en_cours" ? "En cours / reste à finir" : "Non réparée"}
+                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} />
+                    </CardTitle>
+                    <CardDescription>{dateHeure(r.realisee_le)}{nomEquipe(r.equipe_id) ? ` · ${nomEquipe(r.equipe_id)}` : ""}</CardDescription>
+                    {d && !formulaire && (d.valider || d.modifier) && (
+                      <CardAction className="flex flex-wrap gap-2">
+                        {d.valider && (
+                          <BoutonValider element={{ etape: "reparation", id: r.id, libelle: `Réparation du ${dateHeure(r.realisee_le)}`, nbPhotos: photosDe(`reparation:${r.id}`) }}
+                            onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
+                        )}
+                        {d.modifier && (
+                          <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "reparation", id: r.id })}>
+                            <Pencil data-icon="inline-start" />Modifier
+                          </Button>
+                        )}
+                      </CardAction>
+                    )}
+                  </CardHeader>
+                  <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <Info libelle="Chef d'équipe" valeur={nomProfil(r.auteur_terrain_id)} />
+                    <Info libelle="Ouvriers" valeur={liens.ouvriers[r.id]?.join(", ") || null} />
+                    <Info libelle="Matériau" valeur={[r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null].filter(Boolean).join(" ") || null} />
+                    <Info libelle="Ouvrage" valeur={r.ouvrage ? OUVRAGES[r.ouvrage] : null} />
+                    <Info libelle="Travaux" large valeur={[r.tuyau_repare && "tuyau réparé", r.robinet_pec_change && "robinet PEC changé", r.collier_pec_change && "collier PEC changé",
+                      r.bouche_a_cle_mise_a_niveau && "bouche à clé mise à niveau", r.element_remplace && "élément remplacé"].filter(Boolean).join(", ") || null} />
+                    {r.longueur_pe_m != null && <Info libelle="PE posé" valeur={`${nombre(r.longueur_pe_m)} m`} />}
+                    <Info libelle="Fouille" valeur={r.volume_m3 != null ? <>{nombre(r.fouille_longueur_m)} × {nombre(r.fouille_largeur_m)} × {nombre(r.fouille_profondeur_m)} m = <b>{nombre(r.volume_m3, 3)} m³</b></> : null} />
+                    <Info libelle="Revêtement à refaire" valeur={r.nature_revetement_id ? natureLibelle(r.nature_revetement_id) : null} />
+                    <Info libelle="Emplacement" valeur={r.emplacement ? EMPLACEMENTS[r.emplacement] : null} />
+                    <PiecesReparation pieces={liens.pieces[r.id]} />
+                    {r.representant_srm && <Info libelle={`Représentant ${libelles.sigle}`} valeur={r.representant_srm} />}
+                    {r.motif_id && <Info libelle="Motif" valeur={motifLibelle(r.motif_id)} />}
+                    {r.observation && <Info libelle="Observation" large valeur={r.observation} />}
+                    {d && !d.modifier && d.raison && peut("interventions", "modifier") && <p className="text-muted-foreground text-xs sm:col-span-2 xl:col-span-4">{d.raison}</p>}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {formulaireOuvert("reparation") && (
+              <Card>
                 <CardContent>
-                  <FormReparation
-                    marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs} pieces={pieces} profils={profils}
-                    avance={peutValider} onFini={() => { setFormulaire(""); charger(); }} onAnnuler={() => setFormulaire("")}
-                  />
+                  <FormReparation marcheId={marche!.id} fuiteId={id} suggestions={suggestionsFuite} referentiels={saisie!.ref} articles={saisie!.articles}
+                    usages={saisie!.usages} onFini={apresSaisie} onAnnuler={fermer} />
                 </CardContent>
               </Card>
             )}
@@ -587,35 +712,65 @@ export default function DetailFuite() {
                 <h2 className="font-heading font-medium text-base">Réfection{refections.length > 1 ? "s" : ""}</h2>
                 <p className="text-muted-foreground text-sm">Remise en état de la chaussée ou du trottoir après réparation.</p>
               </div>
-              {actions.ajouterRefection && formulaire !== "refection" && (reparations.length > 0 || refections.length > 0) && (
-                <Button size="sm" disabled={actions.interventionsBloquees} onClick={() => setFormulaire("refection")}>
-                  <Plus data-icon="inline-start" />Réfection
+              {actions.ajouterRefection && !formulaire && (reparations.length > 0 || refections.length > 0) && (
+                <Button size="sm" disabled={chargementSaisie} onClick={() => ouvrir({ type: "refection" })}>
+                  {chargementSaisie ? <Spinner /> : <Plus data-icon="inline-start" />}Réfection
                 </Button>
               )}
             </div>
-            {refections.length === 0 && <Vide>{reparations.length ? "Aucune réfection saisie." : "Une réfection se saisit après une réparation."}</Vide>}
-            {refections.map((r) => (
-              <Card key={r.id}>
-                <CardHeader>
-                  <CardTitle>{r.resultat === "faite" ? "Réfection faite" : "Clôturée sans réfection"}</CardTitle>
-                  <CardDescription>{dateHeure(r.realisee_le)}</CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {r.resultat === "faite" ? (
-                    <>
-                      <Info libelle="Nature" valeur={natureLibelle(r.nature_id)} />
-                      <Info libelle="Surface" valeur={<>{nombre(r.longueur_m)} × {nombre(r.largeur_m)} m = <b>{nombre(r.surface_m2, 3)} m²</b></>} />
-                    </>
-                  ) : <Info libelle="Motif" valeur={motifLibelle(r.motif_id)} />}
-                  {r.observation && <Info libelle="Observation" large valeur={r.observation} />}
-                </CardContent>
-              </Card>
-            ))}
-            {formulaire === "refection" && (
-              <Card className="ancien">
+            {refections.length === 0 && !formulaireOuvert("refection") && <Vide>{reparations.length ? "Aucune réfection saisie." : "Une réfection se saisit après une réparation."}</Vide>}
+            {refections.map((r) => {
+              if (formulaireOuvert("refection", r.id)) {
+                return (
+                  <Card key={r.id}>
+                    <CardContent>
+                      <FormRefection marcheId={marche!.id} fuiteId={id} reparations={reparations} refections={refections} referentiels={saisie!.ref}
+                        existante={r} onFini={apresSaisie} onAnnuler={fermer} />
+                    </CardContent>
+                  </Card>
+                );
+              }
+              const d = horsLigne ? null : droitsEtape("refection", r, contexteDroits);
+              return (
+                <Card key={r.id}>
+                  <CardHeader>
+                    <CardTitle className="flex flex-wrap items-center gap-2">
+                      {r.resultat === "faite" ? "Réfection faite" : "Clôturée sans réfection"}
+                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} />
+                    </CardTitle>
+                    <CardDescription>{dateHeure(r.realisee_le)}{nomProfil(r.auteur_terrain_id) ? ` · ${nomProfil(r.auteur_terrain_id)}` : ""}</CardDescription>
+                    {d && !formulaire && (d.valider || d.modifier) && (
+                      <CardAction className="flex flex-wrap gap-2">
+                        {d.valider && (
+                          <BoutonValider element={{ etape: "refection", id: r.id, libelle: `Réfection du ${dateHeure(r.realisee_le)}`, nbPhotos: photosDe(`refection:${r.id}`) }}
+                            onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
+                        )}
+                        {d.modifier && (
+                          <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "refection", id: r.id })}>
+                            <Pencil data-icon="inline-start" />Modifier
+                          </Button>
+                        )}
+                      </CardAction>
+                    )}
+                  </CardHeader>
+                  <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+                    {r.resultat === "faite" ? (
+                      <>
+                        <Info libelle="Nature" valeur={natureLibelle(r.nature_id)} />
+                        <Info libelle="Surface" valeur={<>{nombre(r.longueur_m)} × {nombre(r.largeur_m)} m = <b>{nombre(r.surface_m2, 3)} m²</b></>} />
+                      </>
+                    ) : <Info libelle="Motif" valeur={motifLibelle(r.motif_id)} />}
+                    {r.observation && <Info libelle="Observation" large valeur={r.observation} />}
+                    {d && !d.modifier && d.raison && peut("refections", "modifier") && <p className="text-muted-foreground text-xs sm:col-span-2 xl:col-span-4">{d.raison}</p>}
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {formulaireOuvert("refection") && (
+              <Card>
                 <CardContent>
-                  <FormRefection marcheId={marche!.id} fuiteId={id} natures={natures} motifs={motifs} avance={peutValider}
-                    onFini={() => { setFormulaire(""); charger(); }} onAnnuler={() => setFormulaire("")} />
+                  <FormRefection marcheId={marche!.id} fuiteId={id} reparations={reparations} refections={refections} referentiels={saisie!.ref}
+                    onFini={apresSaisie} onAnnuler={fermer} />
                 </CardContent>
               </Card>
             )}
@@ -623,7 +778,8 @@ export default function DetailFuite() {
         </TabsContent>
 
         <TabsContent value="photos" className="py-4">
-          <Photos photos={photos} fuiteId={id} marcheId={marche!.id} peutAjouter={actions.ajouterPhoto} horsLigne={!!horsLigne} onChange={charger} onErreur={setErreur} />
+          <Photos photos={photos} fuiteId={id} marcheId={marche!.id} etapes={etapesPhotos} etapeInitiale={etapePhoto} peutAjouter={actions.ajouterPhoto}
+            horsLigne={!!horsLigne} moi={moi} peut={peut} onChange={charger} onErreur={setErreur} />
         </TabsContent>
 
         {quantites.length > 0 && (
@@ -684,93 +840,6 @@ function Compteur({ n }: { n: number }) {
 }
 
 /* ----------------------------------------------------------------------- */
-
-function Photos({ photos, fuiteId, marcheId, peutAjouter, horsLigne, onChange, onErreur }: {
-  photos: (PhotoLigne & { url?: string })[]; fuiteId: string; marcheId: string; peutAjouter: boolean; horsLigne: boolean;
-  onChange: () => void; onErreur: (m: string) => void;
-}) {
-  const [type, setType] = useState("avant");
-  const [envoi, setEnvoi] = useState(false);
-  const champ = useRef<HTMLInputElement>(null);
-
-  async function ajouter(fichiers: FileList | null) {
-    if (!fichiers?.length) return;
-    const liste = Array.from(fichiers);
-    setEnvoi(true);
-    onErreur("");
-    try {
-      const sb = getSupabase();
-      for (const fichier of liste) {
-        const prete = await preparerPhoto(fichier);
-        const photoId = crypto.randomUUID();
-        const { stockage, chemin } = await deposerPhoto(prete.blob, { marche_id: marcheId, fuite_id: fuiteId, id: photoId });
-        const ligne = await sb.from("photos").insert({
-          id: photoId, marche_id: marcheId, fuite_id: fuiteId, type, stockage, chemin,
-          largeur_px: prete.largeur, hauteur_px: prete.hauteur, taille_octets: prete.blob.size,
-        });
-        if (ligne.error) throw ligne.error;
-      }
-      onChange();
-    } catch (e) {
-      onErreur(messageErreur(e));
-    } finally {
-      setEnvoi(false);
-      if (champ.current) champ.current.value = "";
-    }
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="font-heading font-medium text-base">Photos</h2>
-          <p className="text-muted-foreground text-sm">{photos.length} photo{photos.length > 1 ? "s" : ""}, réduites à 1 600 px à l&apos;envoi.</p>
-        </div>
-        {peutAjouter && (
-          <div className="flex items-center gap-2">
-            <NativeSelect value={type} onChange={(e) => setType(e.target.value)} aria-label="Type de photo">
-              {Object.entries(TYPES_PHOTO).map(([k, v]) => <NativeSelectOption key={k} value={k}>{v}</NativeSelectOption>)}
-            </NativeSelect>
-            <input ref={champ} type="file" accept="image/*" capture="environment" multiple hidden onChange={(e) => ajouter(e.target.files)} />
-            <Button disabled={envoi} onClick={() => champ.current?.click()}>
-              {envoi ? <Spinner /> : <Camera data-icon="inline-start" />}{envoi ? "Envoi…" : "Ajouter une photo"}
-            </Button>
-          </div>
-        )}
-      </div>
-      {photos.length === 0 ? <Vide>Aucune photo.</Vide> : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {photos.map((p) => (
-            <Card key={p.id} size="sm" className="group/photo">
-              <CardContent>
-                <div className="relative flex aspect-[4/3] items-center justify-center overflow-hidden rounded-lg bg-muted/50">
-                  {p.url ? (
-                    <a href={p.url} target="_blank" rel="noreferrer" className="block size-full" title={`${TYPES_PHOTO[p.type] ?? p.type} · ${dateHeure(p.prise_le)}`}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={p.url} alt={TYPES_PHOTO[p.type] ?? p.type} loading="lazy" className="size-full object-cover transition-transform group-hover/photo:scale-[1.02]" />
-                    </a>
-                  ) : (
-                    <span className="flex flex-col items-center gap-1 text-muted-foreground text-xs"><Camera className="size-6" />{horsLigne ? "Pas de copie hors ligne" : "Indisponible"}</span>
-                  )}
-                  <span className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-1.5 py-0.5 text-xs font-medium backdrop-blur">{TYPES_PHOTO[p.type] ?? p.type}</span>
-                </div>
-              </CardContent>
-              <CardHeader>
-                <CardTitle className="truncate">{TYPES_PHOTO[p.type] ?? p.type}</CardTitle>
-                <CardDescription className="truncate">Prise le {dateHeure(p.prise_le)}</CardDescription>
-                {p.url && (
-                  <Button variant="ghost" size="icon-sm" className="absolute top-2 right-2" asChild>
-                    <a href={p.url} target="_blank" rel="noreferrer" aria-label="Ouvrir la photo"><ExternalLink /></a>
-                  </Button>
-                )}
-              </CardHeader>
-            </Card>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function LigneQuantite({ ligne, modifiable, onChange, onErreur }: { ligne: QuantiteFiche; modifiable: boolean; onChange: () => void; onErreur: (m: string) => void }) {
   const [valeur, setValeur] = useState(String(ligne.quantite));

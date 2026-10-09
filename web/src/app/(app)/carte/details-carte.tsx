@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Crosshair, ExternalLink, Navigation, RefreshCw } from "lucide-react";
+import { Crosshair, ExternalLink, Navigation, RefreshCw, Satellite } from "lucide-react";
 import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -89,8 +89,10 @@ export function FiltresCarteForm({ filtres, changer, secteurs }: { filtres: Filt
  * recentrer, actualiser, nombre de fuites placées ; message d'erreur en haut. Elles remplacent la bande
  * qui prenait de la hauteur à la carte.
  */
-export function CommandesCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser, decalee }: {
+export function CommandesCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser, decalee, satellite }: {
   placees: number; sansPosition: number; chargement: boolean; erreur: string; recentrer: () => void; actualiser: () => void; decalee: boolean;
+  /** Bouton satellite (C5) ; null : clé Esri absente, bouton masqué. */
+  satellite?: { actif: boolean; basculer: () => void } | null;
 }) {
   return (
     <>
@@ -104,6 +106,11 @@ export function CommandesCarte({ placees, sansPosition, chargement, erreur, rece
       >
         <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label="Recentrer la carte" title="Recentrer"><Crosshair /></Button>
         <Button size="icon-sm" variant="ghost" onClick={actualiser} disabled={chargement} aria-label="Actualiser" title="Actualiser"><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
+        {satellite && (
+          <Button size="sm" variant={satellite.actif ? "default" : "ghost"} onClick={satellite.basculer} aria-pressed={satellite.actif} title="Image satellite">
+            <Satellite data-icon="inline-start" />Satellite
+          </Button>
+        )}
         <span className="px-2 text-muted-foreground text-xs tabular-nums" aria-live="polite">
           {placees} sur la carte{sansPosition > 0 ? ` · ${sansPosition} sans position` : ""}
         </span>

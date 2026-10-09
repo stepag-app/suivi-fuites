@@ -1,12 +1,13 @@
 'use client';
 
-// Panneau « Réseau » de la carte : interrupteur mémorisé, coloration, arbre Zone → secteurs avec cases et
-// compteurs, légende, et le mode balayage (sélection au doigt, enregistrement, file d'attente).
+// Panneau « Réseau » de la carte, en trois onglets (C4 : le même panneau sur la tablette et dans le panneau web,
+// ouvert au besoin par-dessus la carte) : Secteurs (interrupteur mémorisé, coloration, arbre Zone → secteurs avec
+// cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente).
 import { useEffect, useState } from 'react';
 import { basculerZone, etatCaseZone, totauxChoisis, tousLesSecteurs } from '@/lib/reseau/arbre';
 import { CLE_EQUIPE_MEMORISEE, METHODES, aujourdhuiMaroc, type ChoixBalayage } from '@/lib/reseau/balayage';
 import { compterEtats } from '@/lib/reseau/etat';
-import { COULEUR_NON_ZONE, classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
+import { COULEUR_NON_ZONE, TYPES_NOEUD, classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import { formaterLineaire } from '@/lib/reseau/selection';
 import { SANS_SECTEUR, type Coloration } from '@/lib/reseau/types';
 import { nombre } from '@/lib/format';
@@ -31,14 +32,18 @@ export interface BalayagePanneau {
   peutAnnuler: boolean;
 }
 
+export type OngletReseau = 'secteurs' | 'legende' | 'balayage';
+
 interface Props {
   reseau: EtatReseau;
   balayage: BalayagePanneau;
   fermer: () => void;
+  onglet: OngletReseau;
+  changerOnglet: (o: OngletReseau) => void;
 }
 
-export function PanneauReseau({ reseau, balayage, fermer }: Props) {
-  const { arbre, choisis, setChoisis, contexte, coloration, setColoration, palette, etats, index } = reseau;
+export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet }: Props) {
+  const { arbre, choisis, setChoisis, contexte, coloration, setColoration, palette, etats, inventaire } = reseau;
   const totaux = totauxChoisis(arbre, choisis);
   const sansSecteur = contexte?.sansSecteur;
   const nbSans = Number(sansSecteur?.nb_troncons) || 0;
@@ -50,14 +55,13 @@ export function PanneauReseau({ reseau, balayage, fermer }: Props) {
     setChoisis(s);
   };
 
-  // Légende : compteurs sur les tronçons chargés et affichés.
-  const idsAffiches = reseau.secteursAffiches.flatMap((s) => s.data?.features.map((f) => f.properties.id) ?? []);
+  // Légende : compteurs sur les tronçons affichés (index de l'archive en tuiles, géométries chargées sinon).
   const nombres = new Map<string, number>();
   if (coloration === 'balayage') {
-    for (const [k, v] of compterEtats(idsAffiches, etats)) nombres.set(k, v);
+    for (const [k, v] of compterEtats(inventaire.map((t) => t.id), etats)) nombres.set(k, v);
   } else if (coloration === 'diametre') {
-    for (const id of idsAffiches) {
-      const cle = String(classeDiametre(index.get(id)?.feature.properties.d));
+    for (const t of inventaire) {
+      const cle = String(classeDiametre(t.d));
       nombres.set(cle, (nombres.get(cle) ?? 0) + 1);
     }
   } else {
@@ -73,6 +77,15 @@ export function PanneauReseau({ reseau, balayage, fermer }: Props) {
         <button onClick={fermer}>Fermer</button>
       </div>
 
+      <div className={`choix-boutons ${styles.onglets}`} role="tablist" aria-label="Rubriques du panneau">
+        {ONGLETS.filter(([o]) => o !== 'balayage' || balayage.peut).map(([o, texte]) => (
+          <button key={o} type="button" role="tab" aria-selected={onglet === o} className={onglet === o ? 'actif' : ''} onClick={() => changerOnglet(o)}>
+            {texte}{o === 'balayage' && balayage.selection.size > 0 ? ` (${balayage.selection.size})` : ''}
+          </button>
+        ))}
+      </div>
+
+      {onglet === 'secteurs' && <>
       <label className={styles.interrupteur}>
         <input type="checkbox" checked={reseau.actif} onChange={(e) => reseau.setActif(e.target.checked)} />
         Afficher le réseau
@@ -98,7 +111,7 @@ export function PanneauReseau({ reseau, balayage, fermer }: Props) {
             <span className={styles.compteur}>
               {totaux.secteurs} secteur{totaux.secteurs > 1 ? 's' : ''} · {formaterLineaire(totaux.lineaire)}
               {totaux.lineaire > 0 ? ` · ${nombre(totaux.pct, 1)} % balayé` : ''}
-              {reseau.nbEnChargement > 0 ? ` · chargement (${reseau.nbEnChargement})…` : ''}
+              {reseau.nbEnChargement > 0 ? ` · ${reseau.tuiles ? 'préparation' : 'chargement'} (${reseau.nbEnChargement})…` : ''}
             </span>
           </div>
 
@@ -146,6 +159,15 @@ export function PanneauReseau({ reseau, balayage, fermer }: Props) {
             {arbre.length === 0 && <li className={styles.vide}>Aucune zone ni secteur dans ce marché (Paramètres › Secteurs).</li>}
           </ul>
 
+          {reseau.etatTuiles === 'perimees' && (
+            <p className={styles.vide}>Affichage par secteur : le réseau a changé depuis la dernière génération des tuiles (Paramètres › Réseau › Tuiles).</p>
+          )}
+        </>
+      )}
+      </>}
+
+      {onglet === 'legende' && reseau.actif && contexte?.disponible && (
+        <>
           <ul className={styles.legende} aria-label="Légende du réseau">
             {legende.map((e) => (
               <li key={e.libelle}>
@@ -161,15 +183,29 @@ export function PanneauReseau({ reseau, balayage, fermer }: Props) {
               </li>
             )}
           </ul>
+          <ul className={styles.legende} aria-label="Légende des nœuds">
+            {TYPES_NOEUD.map((t) => (
+              <li key={t.type}>
+                <span className={styles.point} style={{ background: t.couleur, width: t.equipement ? 12 : 7, height: t.equipement ? 12 : 7 }} aria-hidden="true" />
+                <span className={styles.texte}>{t.libelle}{t.sigle ? ` (${t.sigle})` : ''}</span>
+              </li>
+            ))}
+          </ul>
+          <p className={styles.vide}>Nœuds à partir du zoom 15, sigles à partir du zoom 17. Diamètre et matériau écrits le long des conduites de près (« Ø110 PVC », zoom 16).</p>
+          {reseau.tuiles && <p className={styles.vide}>Réseau affiché en tuiles vectorielles{reseau.tuiles.infos ? ` (générées le ${new Date(reseau.tuiles.infos.genere_le).toLocaleDateString('fr-FR')})` : ''}.</p>}
         </>
       )}
+      {onglet === 'legende' && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>Affichez le réseau (onglet Secteurs) pour voir sa légende.</p>}
 
-      {balayage.peut && reseau.actif && contexte?.disponible && (
+      {onglet === 'balayage' && balayage.peut && reseau.actif && contexte?.disponible && (
         <BlocBalayage balayage={balayage} equipes={reseau.equipes} />
       )}
+      {onglet === 'balayage' && balayage.peut && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>Affichez le réseau (onglet Secteurs) pour balayer.</p>}
     </aside>
   );
 }
+
+const ONGLETS: [OngletReseau, string][] = [['secteurs', 'Secteurs'], ['legende', 'Légende'], ['balayage', 'Balayage']];
 
 function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipes: EtatReseau['equipes'] }) {
   const [equipe, setEquipe] = useState('');

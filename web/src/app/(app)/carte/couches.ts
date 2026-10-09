@@ -2,9 +2,13 @@
 // à l'écran et pour la carte imprimée (capture.ts), afin que le PDF montre exactement les mêmes couleurs.
 import type { Feature, FeatureCollection, Geometry, Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
+import type { FilterSpecification, LayerSpecification } from 'maplibre-gl';
 import {
-  COULEUR_NOEUD, COULEUR_SELECTION, expressionCouleurReseau, expressionLargeur, type PaletteReseau,
+  COULEUR_SELECTION, expressionCouleurNoeud, expressionCouleurReseau, expressionEtiquetteTroncon, expressionLargeur,
+  expressionRayonNoeud, expressionSigleNoeud, type PaletteReseau,
 } from '@/lib/reseau/palette';
+import { COUCHE_NOEUDS, COUCHE_TRONCONS } from '@/lib/reseau/tuiles-format';
+import { SANS_SECTEUR } from '@/lib/reseau/types';
 import type { CollectionNoeuds, CollectionTroncons, Coloration } from '@/lib/reseau/types';
 import type { StatutFuite } from '@/lib/types';
 import { COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, aUneAlerte, geometrieValide, type Contour, type FuiteCarte } from './commun';
@@ -25,6 +29,86 @@ export const ANCRE_RESEAU = 'fuites-alerte';
 export const idSourceReseau = (secteurId: string) => `reseau-${secteurId}`;
 export const idSourceNoeuds = (secteurId: string) => `noeuds-${secteurId}`;
 const ZOOM_MIN_NOEUDS = 15;
+/** Diamètre et matériau écrits le long des conduites, de près seulement. */
+const ZOOM_MIN_ETIQUETTES = 16;
+const ZOOM_MIN_SIGLES = 17;
+const POLICE = ['Noto Sans Regular'];
+const POLICE_GRASSE = ['Noto Sans Bold'];
+
+/** Couches d'un tronçon, communes aux deux lectures (GeoJSON par secteur, tuiles) : halo (satellite), sélection, trait. */
+function couchesTroncons(id: string, source: string, o: OptionsCoucheReseau & { sourceLayer?: string; filtre?: FilterSpecification; pointille?: boolean; halo?: boolean }): LayerSpecification[] {
+  const facteur = o.impression ? 0.8 : 1;
+  const commun = { source, ...(o.sourceLayer ? { 'source-layer': o.sourceLayer } : {}), ...(o.filtre ? { filter: o.filtre } : {}) };
+  return [
+    // Contour clair sous le trait : le réseau reste lisible sur l'image satellite (masqué sans satellite).
+    {
+      id: `${id}-halo`, type: 'line', ...commun,
+      layout: { 'line-cap': 'round', 'line-join': 'round', visibility: o.halo ? 'visible' : 'none' },
+      paint: { 'line-color': '#ffffff', 'line-width': expressionLargeur(facteur, 3), 'line-opacity': 0.85 },
+    } as LayerSpecification,
+    {
+      id: `${id}-selection`, type: 'line', ...commun,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': COULEUR_SELECTION,
+        'line-width': expressionLargeur(facteur, 7),
+        'line-opacity': ['case', ['boolean', ['feature-state', 'selection'], false], 0.9, 0],
+      },
+    } as LayerSpecification,
+    {
+      id: `${id}-trait`, type: 'line', ...commun,
+      layout: { 'line-cap': 'round', 'line-join': 'round' },
+      paint: {
+        'line-color': expressionCouleurReseau(o.coloration, o.palette),
+        'line-width': expressionLargeur(facteur),
+        'line-opacity': 0.95,
+        ...(o.pointille ? { 'line-dasharray': [2, 2] } : {}),
+      },
+    } as LayerSpecification,
+  ];
+}
+
+/** « Ø110 PVC » le long des conduites (zoom 16 et plus) ; demande les polices du fond de carte. */
+function coucheEtiquettes(id: string, source: string, sourceLayer?: string, filtre?: FilterSpecification): LayerSpecification {
+  return {
+    id: `${id}-etiquettes`, type: 'symbol', source, minzoom: ZOOM_MIN_ETIQUETTES,
+    ...(sourceLayer ? { 'source-layer': sourceLayer } : {}), ...(filtre ? { filter: filtre } : {}),
+    layout: {
+      'symbol-placement': 'line', 'symbol-spacing': 220, 'text-field': expressionEtiquetteTroncon(), 'text-font': POLICE,
+      'text-size': ['interpolate', ['linear'], ['zoom'], 16, 11, 19, 14], 'text-max-angle': 35, 'text-padding': 4,
+      'text-offset': [0, -0.9], 'text-optional': true,
+    },
+    paint: { 'text-color': '#102a43', 'text-halo-color': '#ffffff', 'text-halo-width': 1.8 },
+  } as LayerSpecification;
+}
+
+/** Nœuds : équipements en couleur (vanne, bouche d'incendie…), sigle à partir du zoom 17. */
+function couchesNoeuds(id: string, source: string, o: { sourceLayer?: string; filtre?: FilterSpecification; impression?: boolean; avecTextes?: boolean }): LayerSpecification[] {
+  const commun = { source, ...(o.sourceLayer ? { 'source-layer': o.sourceLayer } : {}), ...(o.filtre ? { filter: o.filtre } : {}) };
+  const couches: LayerSpecification[] = [{
+    id: `${id}-points`, type: 'circle', ...commun, minzoom: o.impression ? ZOOM_MIN_NOEUDS - 1 : ZOOM_MIN_NOEUDS,
+    paint: {
+      'circle-radius': expressionRayonNoeud(o.impression ? 0.8 : 1),
+      'circle-color': expressionCouleurNoeud(), 'circle-stroke-width': 1.2, 'circle-stroke-color': '#ffffff',
+    },
+  } as LayerSpecification];
+  if (o.avecTextes) {
+    couches.push({
+      id: `${id}-sigles`, type: 'symbol', ...commun, minzoom: ZOOM_MIN_SIGLES,
+      layout: {
+        'text-field': expressionSigleNoeud(), 'text-font': POLICE_GRASSE, 'text-size': 11,
+        'text-anchor': 'left', 'text-offset': [0.8, 0], 'text-optional': true, 'text-padding': 1,
+      },
+      paint: { 'text-color': expressionCouleurNoeud(), 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
+    } as LayerSpecification);
+  }
+  return couches;
+}
+
+const ajouterAvant = (m: CarteMapLibre, couches: LayerSpecification[]) => {
+  const avant = m.getLayer(ANCRE_RESEAU) ? ANCRE_RESEAU : undefined;
+  for (const c of couches) m.addLayer(c, avant);
+};
 
 export interface OptionsCoucheReseau {
   coloration: Coloration;
@@ -32,9 +116,13 @@ export interface OptionsCoucheReseau {
   /** Tronçons sans secteur : trait pointillé. */
   nonZone?: boolean;
   impression?: boolean;
+  /** Polices du fond disponibles : diamètres et sigles écrits. */
+  avecTextes?: boolean;
+  /** Satellite affiché : contour clair sous le trait. */
+  halo?: boolean;
 }
 
-/** Ajoute (ou met à jour) les tronçons d'un secteur : halo de sélection sous le trait, trait coloré. */
+/** Ajoute (ou met à jour) les tronçons d'un secteur : halo (satellite), sélection, trait coloré, diamètres. */
 export function ajouterSourceReseau(m: CarteMapLibre, secteurId: string, data: CollectionTroncons, o: OptionsCoucheReseau) {
   const source = idSourceReseau(secteurId);
   const existante = m.getSource(source) as GeoJSONSource | undefined;
@@ -43,36 +131,72 @@ export function ajouterSourceReseau(m: CarteMapLibre, secteurId: string, data: C
     return;
   }
   m.addSource(source, { type: 'geojson', data, promoteId: 'id' });
-  const avant = m.getLayer(ANCRE_RESEAU) ? ANCRE_RESEAU : undefined;
-  const facteur = o.impression ? 0.8 : 1;
-  m.addLayer({
-    id: `${source}-selection`, type: 'line', source,
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: {
-      'line-color': COULEUR_SELECTION,
-      'line-width': expressionLargeur(facteur, 7),
-      'line-opacity': ['case', ['boolean', ['feature-state', 'selection'], false], 0.9, 0],
-    },
-  }, avant);
-  m.addLayer({
-    id: `${source}-trait`, type: 'line', source,
-    layout: { 'line-cap': 'round', 'line-join': 'round' },
-    paint: {
-      'line-color': expressionCouleurReseau(o.coloration, o.palette),
-      'line-width': expressionLargeur(facteur),
-      'line-opacity': 0.95,
-      ...(o.nonZone ? { 'line-dasharray': [2, 2] } : {}),
-    },
-  }, avant);
+  ajouterAvant(m, [
+    ...couchesTroncons(source, source, { ...o, pointille: o.nonZone }),
+    ...(o.avecTextes ? [coucheEtiquettes(source, source)] : []),
+  ]);
 }
 
+const SUFFIXES = ['-trait', '-selection', '-halo', '-etiquettes', '-points', '-sigles'];
+
 export function retirerSourceReseau(m: CarteMapLibre, secteurId: string) {
-  const source = idSourceReseau(secteurId);
-  for (const suffixe of ['-trait', '-selection']) if (m.getLayer(`${source}${suffixe}`)) m.removeLayer(`${source}${suffixe}`);
-  if (m.getSource(source)) m.removeSource(source);
-  const noeuds = idSourceNoeuds(secteurId);
-  if (m.getLayer(`${noeuds}-points`)) m.removeLayer(`${noeuds}-points`);
-  if (m.getSource(noeuds)) m.removeSource(noeuds);
+  for (const source of [idSourceReseau(secteurId), idSourceNoeuds(secteurId)]) {
+    for (const suffixe of SUFFIXES) if (m.getLayer(`${source}${suffixe}`)) m.removeLayer(`${source}${suffixe}`);
+    if (m.getSource(source)) m.removeSource(source);
+  }
+}
+
+// ---- Réseau en tuiles vectorielles (X5) : une seule source pour tout le réseau ------------------------------------
+
+export const SOURCE_TUILES = 'reseau-tuiles';
+const ID_SANS = `${SOURCE_TUILES}-sans`;
+const ID_NOEUDS_TUILES = 'noeuds-tuiles';
+
+/** Filtre « secteur coché » sur la propriété courte `s` (non zonés : SANS_SECTEUR). */
+export const filtreSecteurs = (ids: Iterable<string>, avecNonZones = true): FilterSpecification =>
+  ['all', ...(avecNonZones ? [] : [['has', 's']]), ['in', ['coalesce', ['get', 's'], SANS_SECTEUR], ['literal', [...ids]]]] as unknown as FilterSpecification;
+
+export function ajouterReseauTuiles(m: CarteMapLibre, url: string, o: OptionsCoucheReseau & { secteurs: Iterable<string> }) {
+  if (m.getSource(SOURCE_TUILES)) retirerReseauTuiles(m);
+  m.addSource(SOURCE_TUILES, { type: 'vector', url });
+  const ids = [...o.secteurs];
+  const zones: FilterSpecification = filtreSecteurs(ids, false);
+  const sans: FilterSpecification = ['all', ['!', ['has', 's']], ids.includes(SANS_SECTEUR)] as unknown as FilterSpecification;
+  ajouterAvant(m, [
+    ...couchesTroncons(SOURCE_TUILES, SOURCE_TUILES, { ...o, sourceLayer: COUCHE_TRONCONS, filtre: zones }),
+    ...couchesTroncons(ID_SANS, SOURCE_TUILES, { ...o, sourceLayer: COUCHE_TRONCONS, filtre: sans, pointille: true }),
+    ...(o.avecTextes ? [coucheEtiquettes(SOURCE_TUILES, SOURCE_TUILES, COUCHE_TRONCONS, filtreSecteurs(ids))] : []),
+    ...couchesNoeuds(ID_NOEUDS_TUILES, SOURCE_TUILES, { sourceLayer: COUCHE_NOEUDS, filtre: filtreSecteurs(ids), impression: o.impression, avecTextes: o.avecTextes }),
+  ]);
+}
+
+/** Secteurs cochés : seul le filtre change (rien n'est rechargé). */
+export function filtrerReseauTuiles(m: CarteMapLibre, secteurs: Iterable<string>) {
+  const ids = [...secteurs];
+  const regler = (id: string, f: FilterSpecification) => { if (m.getLayer(id)) m.setFilter(id, f); };
+  for (const suffixe of ['-halo', '-selection', '-trait']) {
+    regler(`${SOURCE_TUILES}${suffixe}`, filtreSecteurs(ids, false));
+    regler(`${ID_SANS}${suffixe}`, ['all', ['!', ['has', 's']], ids.includes(SANS_SECTEUR)] as unknown as FilterSpecification);
+  }
+  regler(`${SOURCE_TUILES}-etiquettes`, filtreSecteurs(ids));
+  regler(`${ID_NOEUDS_TUILES}-points`, filtreSecteurs(ids));
+  regler(`${ID_NOEUDS_TUILES}-sigles`, filtreSecteurs(ids));
+}
+
+export function retirerReseauTuiles(m: CarteMapLibre) {
+  for (const base of [SOURCE_TUILES, ID_SANS, ID_NOEUDS_TUILES]) {
+    for (const suffixe of SUFFIXES) if (m.getLayer(`${base}${suffixe}`)) m.removeLayer(`${base}${suffixe}`);
+  }
+  if (m.getSource(SOURCE_TUILES)) m.removeSource(SOURCE_TUILES);
+}
+
+/** Halo clair sous tout le réseau affiché (satellite activé ou non). */
+export function afficherHaloReseau(m: CarteMapLibre, visible: boolean) {
+  for (const l of m.getStyle()?.layers ?? []) {
+    if ((l.id.startsWith('reseau-') || l.id.startsWith(`${SOURCE_TUILES}`)) && l.id.endsWith('-halo')) {
+      m.setLayoutProperty(l.id, 'visibility', visible ? 'visible' : 'none');
+    }
+  }
 }
 
 /** Change la couleur de toutes les couches du réseau présentes (sans recréer les sources). */
@@ -81,12 +205,12 @@ export function colorerReseau(m: CarteMapLibre, coloration: Coloration, palette:
   for (const couche of couchesTraitReseau(m)) m.setPaintProperty(couche, 'line-color', couleur);
 }
 
-/** Identifiants des couches « trait » du réseau (pour queryRenderedFeatures). */
+/** Identifiants des couches « trait » du réseau (pour queryRenderedFeatures), GeoJSON ou tuiles. */
 export const couchesTraitReseau = (m: CarteMapLibre): string[] =>
   (m.getStyle()?.layers ?? []).map((l) => l.id).filter((id) => id.startsWith('reseau-') && id.endsWith('-trait'));
 
-/** Nœuds d'un secteur (vannes, bouches…) : petits points, visibles à partir du zoom 15. */
-export function ajouterSourceNoeuds(m: CarteMapLibre, secteurId: string, data: CollectionNoeuds, impression = false) {
+/** Nœuds d'un secteur : équipements en couleur, jonctions en petit point, visibles à partir du zoom 15. */
+export function ajouterSourceNoeuds(m: CarteMapLibre, secteurId: string, data: CollectionNoeuds, impression = false, avecTextes = false) {
   const source = idSourceNoeuds(secteurId);
   const existante = m.getSource(source) as GeoJSONSource | undefined;
   if (existante) {
@@ -94,14 +218,7 @@ export function ajouterSourceNoeuds(m: CarteMapLibre, secteurId: string, data: C
     return;
   }
   m.addSource(source, { type: 'geojson', data, promoteId: 'id' });
-  const avant = m.getLayer(ANCRE_RESEAU) ? ANCRE_RESEAU : undefined;
-  m.addLayer({
-    id: `${source}-points`, type: 'circle', source, minzoom: impression ? ZOOM_MIN_NOEUDS - 1 : ZOOM_MIN_NOEUDS,
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 15, 2.5, 18, 4.5],
-      'circle-color': COULEUR_NOEUD, 'circle-stroke-width': 1.2, 'circle-stroke-color': '#ffffff',
-    },
-  }, avant);
+  ajouterAvant(m, couchesNoeuds(source, source, { impression, avecTextes }));
 }
 
 export function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {

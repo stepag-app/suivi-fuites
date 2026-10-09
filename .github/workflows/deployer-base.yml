@@ -128,3 +128,6 @@ jobs:
           supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" FIREBASE_SERVICE_ACCOUNT="$COMPTE"
       - name: Déployer envoyer-push
         run: supabase functions deploy envoyer-push --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Déployer reseau-tuiles
+        # Mêmes secrets R2 que photos-r2 (secrets du projet) : tuiles vectorielles du réseau, URL signées.
+        run: supabase functions deploy reseau-tuiles --project-ref "$SUPABASE_PROJECT_ID"

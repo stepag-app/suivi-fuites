@@ -1,7 +1,9 @@
 'use client';
 
-// État du réseau sur la carte : interrupteur et choix mémorisés, zones et secteurs, chargement des
-// tronçons par secteur (cache IndexedDB), état de balayage relu à part, nœuds à partir du zoom 15.
+// État du réseau sur la carte : interrupteur et choix mémorisés, zones et secteurs, état de balayage relu à part.
+// Affichage par les tuiles vectorielles du réseau (X5) quand l'archive existe et porte l'empreinte du réseau en base ;
+// sinon chargement des tronçons par secteur (cache IndexedDB), nœuds à partir du zoom 15. En tuiles, la géométrie
+// n'est lue que si `besoinGeometries` (mode balayage : lasso et « Prolonger » travaillent sur les tronçons).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { construireArbre, tousLesSecteurs, type NoeudZone } from '@/lib/reseau/arbre';
 import {
@@ -10,7 +12,9 @@ import {
 } from '@/lib/reseau/donnees';
 import { etatsFeatures } from '@/lib/reseau/etat';
 import { paletteSecteurs, type PaletteReseau } from '@/lib/reseau/palette';
+import { estampilleReseau } from '@/lib/reseau/tuiles-format';
 import { indexerTroncons, type TronconIndexe } from '@/lib/reseau/selection';
+import { ouvrirTuilesReseau, type TuilesReseau } from '@/lib/reseau/tuiles';
 import { SANS_SECTEUR, type CollectionNoeuds, type CollectionTroncons, type Coloration, type EtatFeature } from '@/lib/reseau/types';
 import type { EtatBalayageTroncon } from '@/lib/types';
 import type { SecteurAffiche } from './reseau-carte';
@@ -58,9 +62,19 @@ export interface EtatReseau {
   recharger: () => Promise<void>;
   rechargerEtats: () => Promise<void>;
   surZoom: (zoom: number) => void;
+  /** Archive de tuiles à jour (affichage en tuiles), sinon null (lecture par secteur). */
+  tuiles: TuilesReseau | null;
+  /** attente : pas encore décidé ; absentes ; perimees : réseau modifié depuis la génération ; a_jour. */
+  etatTuiles: 'attente' | 'absentes' | 'perimees' | 'a_jour';
+  /** Bornes du réseau [ouest, sud, est, nord] (archive, sinon contours des secteurs et des zones). */
+  bornes: [number, number, number, number] | null;
+  /** Longueur (m) de chaque tronçon connu (archive ou géométries chargées). */
+  longueurs: Map<string, number>;
+  /** Tronçons des secteurs cochés, avec leur diamètre et leur zone (légende, impression). */
+  inventaire: { id: string; d: number | null; z: string | null }[];
 }
 
-export function useReseau(marcheId: string | undefined, peutLireBalayage: boolean, forcerActif = false): EtatReseau {
+export function useReseau(marcheId: string | undefined, peutLireBalayage: boolean, forcerActif = false, besoinGeometries = false): EtatReseau {
   const [actif, setActifEtat] = useState(false);
   const [coloration, setColorationEtat] = useState<Coloration>('secteur');
   const [choisis, setChoisisEtat] = useState<Set<string>>(new Set());
@@ -80,6 +94,8 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   const enCours = useRef(new Set<string>());
   const index = useRef(new Map<string, TronconIndexe>());
   const [nbEnChargement, setNbEnChargement] = useState(0);
+  const [archive, setArchive] = useState<TuilesReseau | null>(null);
+  const [archiveLue, setArchiveLue] = useState(false);
 
   // Mémorisation (interrupteur, coloration) : lue au montage.
   useEffect(() => {
@@ -111,6 +127,8 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     setLignesEtat([]);
     setChoisisInitialises(false);
     setChoisisEtat(new Set());
+    setArchive(null);
+    setArchiveLue(false);
     setVersion((v) => v + 1);
   }, [marcheId]);
 
@@ -135,7 +153,10 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     setChargement(true);
     setErreur('');
     try {
-      const ctx = await chargerContexteReseau(marcheId);
+      // Archive relue aussi (régénérée entre-temps ?) : même ETag, même objet, l'affichage ne bouge pas.
+      const [ctx, t] = await Promise.all([chargerContexteReseau(marcheId), ouvrirTuilesReseau(marcheId)]);
+      setArchive(t);
+      setArchiveLue(true);
       setContexte(ctx);
       if (!ctx.disponible) setErreur('La base de données n\'a pas encore le plan du réseau (migration du lot S2 à déployer).');
       await rechargerEtats();
@@ -190,12 +211,20 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   const estampilleCourante = useRef(estampille);
   estampilleCourante.current = estampille;
 
-  // Chargement des tronçons des secteurs cochés (3 à la fois), nœuds à partir du zoom 15.
+  const empreinte = useMemo(() => (contexte?.disponible ? estampilleReseau(contexte.lignes, contexte.sansSecteur) : null), [contexte]);
+  const etatTuiles: EtatReseau['etatTuiles'] = !archiveLue || !contexte ? 'attente'
+    : !archive ? 'absentes' : archive.infos?.estampille === empreinte ? 'a_jour' : 'perimees';
+  const tuiles = etatTuiles === 'a_jour' ? archive : null;
+  const decide = etatTuiles !== 'attente';
+
+  // Chargement des tronçons des secteurs cochés (3 à la fois), nœuds à partir du zoom 15 ; en tuiles, seulement
+  // la géométrie demandée (balayage), sans les nœuds (déjà dans les tuiles).
   useEffect(() => {
-    if (!actif || !marcheId || !contexte?.disponible) return;
+    if (!actif || !marcheId || !contexte?.disponible || !decide) return;
+    if (tuiles && !besoinGeometries) return;
     let annule = false;
     const aCharger = [...choisis].filter((id) => !troncons.current.has(id) && !enCours.current.has(`t:${id}`));
-    const noeudsACharger = zoom >= ZOOM_NOEUDS
+    const noeudsACharger = !tuiles && zoom >= ZOOM_NOEUDS
       ? [...choisis].filter((id) => !noeuds.current.has(id) && !enCours.current.has(`n:${id}`))
       : [];
     const taches: (() => Promise<void>)[] = [
@@ -247,7 +276,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
       setNbEnChargement((n) => Math.max(0, n - file.length));
       file.length = 0;
     };
-  }, [actif, marcheId, contexte, choisis, zoom, estampille]);
+  }, [actif, marcheId, contexte, choisis, zoom, estampille, decide, tuiles, besoinGeometries]);
 
   // L'estampille change (balayage enregistré ne change pas la géométrie ; un zonage si) : on oublie les
   // secteurs dont la géométrie peut avoir bougé, la relecture passe par le cache si rien n'a changé.
@@ -275,12 +304,58 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actif, choisis, version]);
 
+  // Mesure de fluidité (scripts/mesurer-carte.mjs) : secteurs attendus et déjà chargés ; jamais en production.
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_MESURE_CARTE !== '1') return;
+    (window as unknown as { __mesureReseau?: unknown }).__mesureReseau = {
+      attendus: actif ? choisis.size : 0,
+      charges: tuiles ? choisis.size : [...choisis].filter((id) => troncons.current.has(id)).length,
+      mode: tuiles ? 'tuiles' : 'geojson',
+    };
+  }, [actif, choisis, version, tuiles]);
+
+  const bornes = useMemo<[number, number, number, number] | null>(() => {
+    if (archive) return archive.bornes;
+    const coords = [...(contexte?.secteurs ?? []), ...(contexte?.zones ?? [])].flatMap((c) =>
+      !c.geom ? [] : c.geom.type === 'Polygon' ? c.geom.coordinates.flat() : c.geom.coordinates.flat(2));
+    if (!coords.length) return null;
+    const x = coords.map((c) => c[0]);
+    const y = coords.map((c) => c[1]);
+    return [Math.min(...x), Math.min(...y), Math.max(...x), Math.max(...y)];
+  }, [archive, contexte]);
+
+  const longueurs = useMemo(() => {
+    const m = new Map<string, number>();
+    if (archive) archive.index.ids.forEach((id, i) => m.set(id, archive.index.l[i]));
+    for (const [id, t] of index.current) if (!m.has(id)) m.set(id, t.longueur);
+    return m;
+    // L'index vit hors de l'état React : `version` suit ses changements.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archive, version]);
+
+  const inventaire = useMemo(() => {
+    if (!actif) return [];
+    if (tuiles) {
+      const { ids, s: rangs, d, secteurs } = tuiles.index;
+      const zoneDe = new Map((contexte?.secteurs ?? []).map((x) => [x.id, x.zone_id]));
+      const voulus = secteurs.map((id) => choisis.has(id));
+      const sans = choisis.has(SANS_SECTEUR);
+      return ids.flatMap((id, i) => {
+        const r = rangs[i];
+        if (r === 0 ? !sans : !voulus[r - 1]) return [];
+        return [{ id, d: d[i] || null, z: r === 0 ? null : zoneDe.get(secteurs[r - 1]) ?? null }];
+      });
+    }
+    return [...choisis].flatMap((id) => troncons.current.get(id)?.features.map((f) => ({ id: f.properties.id, d: f.properties.d, z: f.properties.z })) ?? []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actif, tuiles, choisis, contexte, version]);
+
   const etats = useMemo(() => etatsFeatures(lignesEtat, noms), [lignesEtat, noms]);
 
   return {
     actif, setActif, coloration, setColoration, choisis, setChoisis, contexte, arbre, palette, libelles,
     secteursAffiches, index: index.current, etats, equipes, chargement, nbEnChargement, erreur,
-    recharger, rechargerEtats, surZoom: setZoom,
+    recharger, rechargerEtats, surZoom: setZoom, tuiles, etatTuiles, bornes, longueurs, inventaire,
   };
 }
 

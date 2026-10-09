@@ -8,7 +8,8 @@ import type { PaletteReseau } from '@/lib/reseau/palette';
 import type { Coloration, EtatFeature } from '@/lib/reseau/types';
 import { MODULE_MAPLIBRE, type Contour, type FuiteCarte } from './commun';
 import { ajouterCouches, contours, pointsFuites } from './couches';
-import { creerGestionReseau, type SecteurAffiche } from './reseau-carte';
+import { enregistrerProtocole, type TuilesReseau } from '@/lib/reseau/tuiles';
+import { creerGestionReseau, creerGestionTuiles, type SecteurAffiche } from './reseau-carte';
 
 /** Réseau tel qu'il est affiché à l'écran, repris sur la carte imprimée. */
 export interface ReseauImpression {
@@ -16,6 +17,11 @@ export interface ReseauImpression {
   coloration: Coloration;
   palette: PaletteReseau;
   etats: Map<string, EtatFeature>;
+  /** Tuiles à jour (comme à l'écran) : réseau lu dans l'archive, secteurs cochés par filtre. */
+  tuiles?: TuilesReseau | null;
+  /** Tronçons affichés (lecture en tuiles : la géométrie n'est pas en mémoire) et bornes des secteurs cochés. */
+  inventaire?: { id: string; d: number | null; z: string | null }[];
+  bornes?: [number, number, number, number] | null;
 }
 
 export interface EtatCarte {
@@ -102,10 +108,13 @@ export async function capturerCarte(
     source('zones').setData(contours(donnees.zones));
     source('secteurs').setData(contours(donnees.secteurs));
     // Réseau d'eau : mêmes secteurs, même coloration et même état de balayage qu'à l'écran.
-    if (donnees.reseau && donnees.reseau.secteurs.some((s) => s.data)) {
-      const g = creerGestionReseau(m, true);
-      g.synchroniser(donnees.reseau.secteurs, donnees.reseau.coloration, donnees.reseau.palette);
-      g.appliquerEtats(donnees.reseau.etats);
+    const r = donnees.reseau;
+    if (r && (r.tuiles || r.secteurs.some((s) => s.data))) {
+      if (r.tuiles) enregistrerProtocole(ml as never);
+      const options = { impression: true, avecTextes: etat.avecTextes };
+      const g = r.tuiles ? creerGestionTuiles(m, r.tuiles, options) : creerGestionReseau(m, options);
+      g.synchroniser(r.secteurs, r.coloration, r.palette);
+      g.appliquerEtats(r.etats);
     }
     const complet = await attendre(m, 'idle', DELAI_TUILES_MS);
 

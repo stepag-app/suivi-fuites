@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.version-apk]
 verify_jwt = true
+
+[functions.reseau-tuiles]
+verify_jwt = true

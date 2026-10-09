@@ -32,7 +32,7 @@ export function AppSidebar({ groupes, peutCreer, nom, identifiant, admin, deconn
               <Link prefetch={false} href="/tableau-de-bord">
                 <Droplets className="text-sky-600 dark:text-sky-400" />
                 {/* Nom et organisation sur deux lignes : rien n'est coupé, même dans la WebView de la tablette. */}
-                <span className="grid min-w-0 flex-1 leading-tight">
+                <span className="grid min-w-0 flex-1 leading-tight group-data-[collapsible=icon]:hidden">
                   <span className="truncate font-semibold text-base">Suivi des fuites</span>
                   <span className="truncate text-muted-foreground text-xs">{NOM_ORGANISATION}</span>
                 </span>

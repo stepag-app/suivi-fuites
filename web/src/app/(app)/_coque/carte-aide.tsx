@@ -1,18 +1,16 @@
 import { LifeBuoy } from "lucide-react";
-import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
+const AIDE =
+  "Les fuites saisies sans réseau partent toutes seules. En cas de blocage, appelez le responsable STEPAG.";
 
 export function CarteAide() {
   return (
-    <Card size="sm" className="overflow-hidden shadow-none group-data-[collapsible=icon]:hidden">
-      <CardHeader className="min-w-0 px-4">
-        <CardTitle className="flex items-center gap-2 truncate text-sm">
-          <LifeBuoy className="size-4 text-muted-foreground" />
-          Un souci sur le terrain ?
-        </CardTitle>
-        <CardDescription className="line-clamp-3">
-          Les fuites saisies sans réseau partent toutes seules. En cas de blocage, appelez le responsable STEPAG.
-        </CardDescription>
-      </CardHeader>
-    </Card>
+    <p
+      title={AIDE}
+      className="flex cursor-help items-center gap-1.5 px-2 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden"
+    >
+      <LifeBuoy className="size-3.5 shrink-0" />
+      <span className="truncate">Aide terrain</span>
+    </p>
   );
 }

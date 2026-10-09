@@ -17,6 +17,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Notifications (N1, N2) | cloche de la barre de la liste avec pastille (non lues, « 9+ ») ; écran des 30 dernières (non lue = point bleu), tout marqué lu à l'ouverture et rideau vidé ; texte dans la langue de la tablette ; **push Android** (expo-notifications, Firebase) : rideau même appli fermée, toucher = fiche de la fuite (dans son marché), notification marquée lue et retirée du rideau |
 | Mise à jour (X2) | « Nouvelle version x disponible » en tête de la liste quand la CI a publié une APK plus récente (contrôle à l'ouverture et au retour sur l'appli, au plus toutes les 6 h, avec réseau) : téléchargement (progression) puis installateur d'Android ; données et envois en attente gardés |
 | Balayage | bouton « Balayage » de la liste (droit « balayage / lire ») : carte du réseau du panneau web dans une **WebView** (`react-native-webview` 13.16.1), ouverte avec la session de la tablette par `/session#access_token=…&refresh_token=…` (jetons dans le fragment, jamais en paramètre ni journalisés), directement en **mode balayage** (toucher, lasso, prolonger, enregistrer ; file d'attente hors ligne du panneau) ; position GPS autorisée ; seuls les liens du panneau restent dans la WebView (itinéraire Google Maps : application de cartes) ; retour Android : historique de la WebView puis liste ; avant d'ouvrir la carte, la tablette vérifie que le panneau répond (simple GET de `/session`, 15 s au plus ; pas de HEAD, dont la réponse arrive après une dizaine de secondes sur la tablette) ; sans réseau : « La carte du réseau a besoin de la connexion » et « Réessayer » ; la tablette renouvelle elle-même la session 5 min avant l'échéance et recharge la carte (environ une fois par heure). Adresse du panneau : `EXPO_PUBLIC_WEB_URL` (défaut `https://fuites.stepag.ma`) |
+| Suivi GPS (X6) | bouton « Suivi GPS » de la liste (et bandeau « Le suivi de position n'est pas actif » tant qu'il ne tourne pas) : **tâche de fond** d'`expo-location` (`src/suivi-gps.ts`, service de premier plan Android avec **notification permanente**, tâche définie par `index.ts` pour tourner aussi quand Android réveille l'appli sans écran) démarrée à la connexion tant que la session est ouverte et que les autorisations sont accordées, arrêtée à « Quitter » après un dernier envoi (5 s au plus) ; mesure au plus toutes les 10 s et après 5 m de déplacement (filtre natif, rien ne part à l'arrêt), puis filtre de l'appli (`src/suivi-gps-regles.ts`) : **un point tous les 15 m, ou toutes les 30 s si l'agent se déplace** (plus de 8 m et plus que la précision annoncée), précision supérieure à 50 m et sauts de plus de 200 km/h écartés ; points `[t, lon, lat]` gardés **sur la tablette** (file de 20 000 points au plus, 7 jours) puis envoyés **par paquets de 500** (`ajouter_points_trace`), au plus toutes les 2 min en arrière-plan, aussitôt au retour sur l'appli et à « Quitter » ; coupure : tout reste, repart sans doublon (la base ignore un point déjà reçu) ; refus définitif de la base (plus affecté, marché désactivé) : paquet abandonné ; les points d'un agent ne partent jamais sous un autre compte. **Écran d'activation** : état, texte d'explication (qui voit le tracé), « Activer le suivi » (position, puis « Toujours autoriser » dans les réglages d'Android 11 et plus), « Désactiver le suivi » (choix de la tablette, mémorisé), ouverture des réglages de la tablette et de la batterie, points en attente, dernier envoi, dernière position. Permissions Android posées par le plugin `expo-location` : `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` (vérifié par `expo prebuild`). Libellés dans `src/traductions.ts` (section « Suivi GPS (S11) »), à relire par Issam |
 | Envois en attente | toutes les saisies gardées sur la tablette, dans l'ordre ; envoi manuel ; erreurs en clair (ex. fuite verrouillée) ; suppression avec confirmation (une fuite emporte ses réparations et réfections) |
 
 **Droits** : boutons de saisie affichés selon les droits du marché (la base reste juge, `src/regles.ts` reflète ses
@@ -104,6 +105,7 @@ la base).
   retirée, refus d'une photo d'un collègue) (écrans prévenus seulement à un vrai changement de la file, photos depuis la fiche, modification
   après la création, coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai
   sur une horloge simulée, jamais la clé anonyme).
+- `node --import ./essais/substituts.mjs essais/suivi-gps.test.mjs` : suivi GPS (S11), 42 vérifications : filtre d'un point (15 m, 30 s en mouvement, arrêt, précision, saut), file et paquets de 500, coupure et reprise, points ajoutés pendant un envoi, refus définitif, tâche de fond avec `expo-location` et `expo-task-manager` simulés (autorisations, démarrage, notification permanente, désactivation, « Quitter »), points d'un autre compte jamais envoyés.
 - `node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs` : démarrage sans réseau avec un jeton
   expiré, sur une horloge simulée, 52 vérifications :
   - durée d'ouverture : liste de la tablette au bout de 1,5 s, contre 25,4 s mesurées pour l'ancien chemin ;
@@ -117,7 +119,7 @@ la base).
     de la tablette, retour normal après le renouvellement.
 
 **Pas encore fait** : suppression d'une réparation, corrections du responsable avec motif (position, date de
-détection : panneau web, V5), photos du serveur visibles hors ligne, suivi GPS en arrière-plan (S11), carte native hors ligne (le balayage passe par la WebView et a besoin du réseau ;
+détection : panneau web, V5), photos du serveur visibles hors ligne, carte native hors ligne (le balayage passe par la WebView et a besoin du réseau ;
 les cochages sans réseau attendent dans la file du panneau).
 
 ## Développement
@@ -184,8 +186,28 @@ secrets, avec la clé de test d'Expo (une APK de test ne s'installe pas par-dess
 ## Installation sur la tablette
 
 Télécharger l'artefact `suivi-fuites-apk` (onglet Actions du dépôt), le copier sur la tablette, autoriser
-l'installation depuis cette source. Sur Samsung : exclure l'appli de l'optimisation batterie
-(Réglages > Batterie > Applications jamais en veille) pour le futur suivi GPS.
+l'installation depuis cette source.
+
+### Suivi GPS : à faire sur chaque tablette Samsung
+
+1. À la première connexion, ouvrir **Suivi GPS** (bouton de la liste), « Activer le suivi », accepter la position puis
+   choisir **« Toujours autoriser »** (Android 11 et plus : la fenêtre renvoie aux réglages de l'appli > Autorisations >
+   Position). Accepter aussi les notifications.
+2. **Exclure l'appli de l'optimisation de la batterie**, sinon Samsung endort le suivi quand l'écran s'éteint :
+   Réglages > Batterie (ou « Entretien de l'appareil » > Batterie) > **Limites d'utilisation en arrière-plan** >
+   **Applications jamais en veille** > ajouter « Suivi des fuites ». Aussi : Réglages > Applications > Suivi des fuites >
+   Batterie > **Non restreinte**. Le bouton « Ouvrir les réglages de la batterie » de l'écran Suivi GPS ouvre la liste
+   d'Android. À refaire après une réinstallation (pas après une mise à jour).
+3. Laisser la **notification permanente** (« Suivi de position actif ») : Android l'impose tant que le suivi tourne ; elle
+   disparaît avec « Quitter ». Le service est déclaré pour survivre à la fermeture de l'écran de l'appli
+   (`killServiceOnDestroy: false`) ; « Tout fermer » de One UI peut malgré tout l'arrêter (à vérifier sur une vraie tablette) :
+   il repart à la prochaine ouverture de l'appli.
+4. Redémarrage de la tablette : le suivi repart à la prochaine ouverture de l'appli (Android ne relance pas une tâche de
+   fond au démarrage). Informer les agents du suivi avant la mise en service (décision d'Issam : pas de déclaration CNDP).
+
+**Pas mesuré** (aucune tablette réelle au 2026-10-09) : consommation de batterie sur une journée, fiabilité du service sur
+One UI, précision en rue étroite. Réglages à ajuster alors dans `src/suivi-gps.ts` (`timeInterval`, `distanceInterval`,
+précision `High`) et `src/suivi-gps-regles.ts` (15 m, 30 s, 8 m, 50 m).
 
 ## Photos : stockage
 

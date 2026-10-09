@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { retirerPush } from './push';
+import { terminerSuivi } from './suivi-gps';
 import { chargerContexte, cleContexte, fermerSession, jetonARenouveler, suivreSession, type Contexte as ContexteAgent, type EtatSession } from './session-donnees';
 import { configurationManquante, supabase } from './supabase';
 import type { Droit, Marche, Profil } from './types';
@@ -115,6 +116,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (uid) await AsyncStorage.removeItem(cleContexte(uid));
     // Les push de ce compte ne doivent plus arriver sur la tablette (avec réseau ; sans, le prochain agent la reprend).
     if (!aRenouveler && !jetonARenouveler()) await Promise.race([retirerPush(), new Promise((fin) => setTimeout(fin, 5000))]);
+    // Suivi GPS (X6) : derniers points envoyés (5 s au plus), puis la tâche et sa notification s'arrêtent.
+    await terminerSuivi();
     await fermerSession(aRenouveler);
     // Écran Connexion sans attendre SIGNED_OUT, qui suit la fin des reprises d'auth-js au démarrage hors ligne.
     appliquer({ session: null, aRenouveler: false });

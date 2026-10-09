@@ -14,13 +14,14 @@ import { NouvelleFuite } from './src/nouvelle-fuite';
 import { enregistrerPush, retenirLangue } from './src/push';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
+import { SuiviGpsEcran, useSuiviGps } from './src/suivi-gps-ecran';
 import { configurationManquante } from './src/supabase';
 import type { FicheFuite } from './src/types';
 import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
-  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'fiche'; id: string }
+  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'fiche'; id: string }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -36,6 +37,8 @@ function Racine() {
   const [nonLues, relireNonLues] = useNonLues();
   const miseAJour = useMiseAJour();
   const uid = session?.user.id;
+  // Suivi GPS (X6) : démarré tant que la session est ouverte, arrêté à « Quitter ».
+  const [suivi, relireSuivi] = useSuiviGps(uid, marche?.id);
 
   // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
   // L'écran Balayage le prend lui-même (historique de la WebView d'abord).
@@ -118,6 +121,8 @@ function Racine() {
       return <Balayage retour={retourListe} />;
     case 'avalider':
       return <AValiderEcran retour={retourListe} ouvrir={ouvrir} />;
+    case 'suivigps':
+      return <SuiviGpsEcran retour={retourListe} etat={suivi} relire={relireSuivi} uid={session.user.id} marcheId={marche.id} />;
     case 'notifications':
       return <EcranNotifications retour={retourListe} ouvrir={ouvrir} lues={relireNonLues} />;
     case 'fiche':
@@ -139,6 +144,8 @@ function Racine() {
           balayage={() => setVue({ nom: 'balayage' })}
           aValider={() => setVue({ nom: 'avalider' })}
           notifications={() => setVue({ nom: 'notifications' })}
+          suiviGps={() => setVue({ nom: 'suivigps' })}
+          suivi={suivi}
           nonLues={nonLues}
           miseAJour={miseAJour ? <BandeauMiseAJour version={miseAJour} /> : null}
           ouvrir={ouvrir}

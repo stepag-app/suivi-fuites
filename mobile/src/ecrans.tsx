@@ -12,6 +12,7 @@ import { Icone } from './icones';
 import { t, tx, useLangue } from './langue';
 import { chargerListe } from './liste-donnees';
 import { useSession } from './session';
+import type { EtatSuivi } from './suivi-gps';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { StatutFuite, VFuite } from './types';
 import {
@@ -99,9 +100,10 @@ const MISE_A_JOUR_MS = 5 * 60 * 1000;
 const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour }: {
+export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
   aValider: () => void; notifications: () => void; nonLues: number; miseAJour: ReactNode;
+  suiviGps: () => void; suivi: EtatSuivi | null;
 }) {
   const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
@@ -240,10 +242,16 @@ export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notificat
             {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
             {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
             {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
+            <Bouton titre={t('Suivi GPS')} icone="locate-fixed" onPress={suiviGps} />
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
         </View>
         {!!message && <Message ton="attention" icone="wifi-off">{message}</Message>}
+        {!!suivi && suivi.voulu && !suivi.actif && (
+          <Pressable onPress={suiviGps} accessibilityRole="button">
+            <Message ton="attention" icone="locate-fixed">{t("Le suivi de position n'est pas actif. Touchez ici pour l'activer.")}</Message>
+          </Pressable>
+        )}
         {miseAJour}
 
         <View style={l.onglets}>

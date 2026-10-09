@@ -456,6 +456,41 @@ export const TRADUCTIONS = {
   "La carte ne peut pas s'ouvrir. Réessayez.": { ar: 'تعذّر فتح الخريطة. أعد المحاولة.' },
   'Retour au formulaire': { ar: 'العودة إلى الاستمارة' },
 
+  // Suivi GPS (S11, X6) : libellés à relire par Issam
+  'Suivi GPS': { ar: 'تتبع الموقع (GPS)', hyb: 'Suivi GPS' },
+  'Suivi de position actif': { ar: 'تتبع الموقع مفعّل' },
+  'Le tracé de votre journée est transmis à votre responsable.': { ar: 'يُرسل مسار يومك إلى مسؤولك.' },
+  "Le suivi de position n'est pas actif. Touchez ici pour l'activer.": { ar: 'تتبع الموقع غير مفعّل. المس هنا لتفعيله.' },
+  'Le suivi de position est actif.': { ar: 'تتبع الموقع مفعّل.' },
+  'Le suivi de position est désactivé sur cette tablette.': { ar: 'تتبع الموقع معطّل على هذا الجهاز اللوحي.' },
+  "Le suivi de position n'est pas encore actif.": { ar: 'تتبع الموقع غير مفعّل بعد.' },
+  "Tant que votre session est ouverte, la tablette enregistre votre parcours (un point tous les 15 m environ) et l'envoie à votre responsable. Une notification reste affichée pendant que le suivi tourne ; elle disparaît avec « Quitter ».": {
+    ar: 'ما دامت جلستك مفتوحة، يسجّل الجهاز اللوحي مسارك (نقطة كل 15 م تقريبًا) ويرسله إلى مسؤولك. يبقى إشعار ظاهرًا أثناء عمل التتبع، ويختفي عند الضغط على «خروج».',
+  },
+  "Seuls votre responsable et l'administrateur voient votre tracé. Il est conservé jusqu'à la fin du marché.": {
+    ar: 'لا يرى مسارك إلا مسؤولك ومسؤول النظام. ويُحفظ إلى نهاية الصفقة.',
+  },
+  "L'autorisation de position est refusée. Ouvrez les réglages de la tablette pour l'accorder.": {
+    ar: 'تم رفض إذن الموقع. افتح إعدادات الجهاز اللوحي لمنحه.',
+  },
+  "Choisissez « Toujours autoriser » pour la position : sans cela, le suivi s'arrête quand l'écran s'éteint.": {
+    ar: 'اختر «السماح دائمًا» للموقع: بدون ذلك يتوقف التتبع عند إطفاء الشاشة.',
+  },
+  'Activer le suivi': { ar: 'تفعيل التتبع' },
+  'Ouvrir les réglages de la tablette': { ar: 'فتح إعدادات الجهاز اللوحي' },
+  'Désactiver le suivi': { ar: 'إيقاف التتبع' },
+  'Batterie (Samsung)': { ar: 'البطارية (سامسونغ)' },
+  "Pour que le suivi ne soit pas endormi par la tablette, excluez l'application de l'optimisation de la batterie : Réglages > Batterie > Limites d'utilisation en arrière-plan > Applications jamais en veille > ajoutez « Suivi des fuites ».": {
+    ar: 'حتى لا يوقف الجهاز اللوحي التتبع، استثنِ التطبيق من تحسين البطارية: الإعدادات > البطارية > حدود الاستخدام في الخلفية > التطبيقات التي لا تدخل وضع السكون أبدًا > أضف «تتبع التسربات».',
+  },
+  'Ouvrir les réglages de la batterie': { ar: 'فتح إعدادات البطارية' },
+  'État': { ar: 'الحالة' },
+  "Points en attente d'envoi : {n}": { ar: 'نقاط في انتظار الإرسال: {n}' },
+  'Dernier envoi : {date}': { ar: 'آخر إرسال: {date}' },
+  'Aucun envoi pour le moment.': { ar: 'لا يوجد أي إرسال حتى الآن.' },
+  'Dernière position enregistrée : {date}': { ar: 'آخر موقع مسجّل: {date}' },
+  'Aucune position enregistrée pour le moment.': { ar: 'لا يوجد أي موقع مسجّل حتى الآن.' },
+
   // Accessibilité (lus par le lecteur d'écran)
   '{legende} : retirer la photo': { ar: '{legende}: إزالة الصورة' },
   'Avancement {progression} %': { ar: 'التقدّم {progression} %' },

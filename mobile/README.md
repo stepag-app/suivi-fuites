@@ -9,15 +9,25 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 |---|---|
 | Connexion | identifiant + mot de passe (compte créé par l'administrateur) |
 | Liste | fuites du marché (statut, secteur, alerte 48 h), tirer pour rafraîchir ; sinon mise à jour **en silence** (sans le rond de rafraîchissement, rien de redessiné si rien n'a changé) toutes les 5 min, au retour sur l'appli et après un envoi ; dernière liste gardée sur la tablette, affichée dès l'ouverture puis remplacée par celle du serveur ; chargement abandonné après 20 s sans réponse, attente du jeton comprise (« Hors ligne : dernière liste connue ») ; choix du marché (mémorisé) si le compte en a plusieurs ; fuites saisies hors ligne en tête ; un appui ouvre la fiche ; **onglets par statut** avec compteurs et **recherche** (N° exact, référence, aussi par ses chiffres, adresse), comme le panneau, faits sur la tablette sans requête de plus ; tableau en paysage, lignes empilées en portrait |
-| Nouvelle fuite | GPS, référence SRM, secteur, adresse, observation, photos (redimensionnées à 1 600 px, qualité 70, stockées dans le dossier privé de l'appli, jamais dans la galerie) ; **contrôle des doublons** (`rechercher_fuites_proches`) : « C'est la même fuite » ouvre la fiche existante, « Nouvelle fuite liée » remplit `fuite_liee_id` ; sans réseau, pas de contrôle (signalé) |
-| Fiche d'une fuite | informations, statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée sur la tablette, affichée aussitôt puis remplacée par celle du serveur ; **jamais de prix ni de quantités du bordereau** ; fuite verrouillée par un lot arrêté : saisie masquée (sauf droit « valider ») ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
-| Saisir une réparation | résultat (réparée, en cours, non réparée + motif), date et heure, équipe, ouvrage, matériau, diamètre, travaux (cases), longueur PE, fouille L × l × p (alerte > 2 m), revêtement à refaire, emplacement, représentant du maître d'ouvrage, pièces posées (recherche dans les articles Dolibarr activés, quantité ; plus de désignation libre : un article absent se note en observation), ouvriers, observation, photos avant / pendant / après ; même écran, pré-rempli, pour **modifier** une réparation envoyée (quantités modifiables ; retrait d'une pièce déjà envoyée seulement avec « interventions / supprimer », que le chef n'a pas) |
-| Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date, équipe, photos de réfection |
+| Nouvelle fuite (F1 à F5) | GPS ; **champs exigés** par le marché (`marches.champs_obligatoires_fuite` ; liste vide, comme aujourd'hui pour SRM et DEMO : règle F1 par défaut, tournée, secteur, ouvrage, visibilité, **nature de dégradation**), marqués « * » et encadrés en rouge s'ils manquent ; adresse facultative ; conduite (matériau, diamètre de la liste du marché) facultative ; photos facultatives avec avertissement « Enregistrer sans photo ? » (redimensionnées à 1 600 px, qualité 70, dossier privé de l'appli, jamais la galerie) ; **suggestions à valider d'un toucher** (`suggestions_localisation`, S2) : rues (« Rues : © OpenStreetMap »), secteur, conduite la plus proche (matériau, diamètre, tronçon), jamais pré-remplies, rayon selon la précision GPS, rien sans réseau ; **mini-carte** du panneau (page `/mini-carte` de S10 dans une WebView, avec la session de la tablette ; absente sans réseau, si la page ne répond pas ou si le jeton expire dans moins de 10 min) ; **contrôle des doublons** (`rechercher_fuites_proches`) : « C'est la même fuite » ouvre la fiche existante, « Nouvelle fuite liée » remplit `fuite_liee_id` ; sans réseau, pas de contrôle (signalé). Même écran pour **modifier** une fuite pas encore validée (auteur) |
+| Fiche d'une fuite | informations (visibilité, nature de dégradation, conduite), statut, photos (vignettes), réparations et réfections (serveur + saisies encore sur la tablette) ; dernière version gardée sur la tablette, affichée aussitôt puis remplacée par celle du serveur ; **jamais de prix ni de quantités du bordereau** ; **jamais les corrections du bureau** pour le terrain (R7 : pièces lues dans `v_pieces_terrain` ; `reparation_pieces` pour le droit « interventions / valider ») ; **validation par étape** (V1, V2) : badge « À valider » ou « Validée le … » sur la détection, chaque réparation, chaque réfection ; « Modifier » tant que l'étape n'est pas validée (auteur, portée « siennes ») ; validée : ajout seulement (droit « valider » excepté) ; bouton « Valider » pour le responsable (avec réseau, avertissement « aucune photo ») ; **photos** (V3) : un toucher change le type ou retire la photo (retrait logique, fichier gardé) selon les règles de la base (photo antérieure à la validation de son étape : responsable seulement) ; fuite verrouillée par un lot arrêté (V6) : ajouts permis (réparation, réfection, photos), le reste réservé au responsable ; bouton **« Y aller »** (aussi sur chaque ligne de la liste) : ouvre l'application de cartes de la tablette (Google Maps, Waze…) avec la fuite pour destination, repli sur le lien Google Maps ; grisé sans position ; boutons photo selon le droit « photos / créer » (photo de la fuite, avant / pendant / après sous chaque réparation, réfection sous chaque réfection ; masqués sur une fuite verrouillée sans « photos / valider ») ; **Modifier la réparation** selon « interventions / modifier » (portée « siennes » : auteur terrain ou compte de saisie), masqué sur une fuite verrouillée |
+| Saisir une réparation (P1 à P8) | **formulaire séquentiel**, étapes numérotées : 1 résultat (réparée, en cours, non réparée + motif ; non réparée : fouille, travaux et pièces restent saisis et attachés), 2 ouvrage ou matériau (proposition « Comme à la détection » si la fuite a sa conduite), 3 **diamètre en liste selon le matériau** (`diametres_materiau`, « Autre » pour une valeur hors liste), 4 travaux réalisés (cases) et longueur de conduite posée, 5 fouille L × l × p en mètres, 6 revêtement à refaire, 7 emplacement, 8 **pièces posées en capsules** (articles proposés selon le diamètre et le matériau lus dans la désignation, puis les plus posés sur le marché ; un toucher ajoute, « − / + » règle la quantité ; recherche gardée pour le reste) ; puis **date et heure** proposées (calendrier et horloge d'Android), équipe, **représentant** en liste (`representants_srm`, facultatif), ouvriers, photos avant / pendant / après, observation ; **gardes-fous** (avertissements, jamais bloquants) : fouille au-delà de 10 / 3 / 3 m (« 0,80 et non 80 »), fouille > 2 m sans élément remplacé, conduite posée plus courte que la plus petite ou plus longue que la plus grande dimension de la fouille ; « Vérifier et enregistrer » ouvre le **récapitulatif** (tout ce qui sera enregistré, avertissements) : « Corriger » ou « Confirmer ». Même écran, pré-rempli, pour **modifier** une réparation pas encore validée |
+| Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date et heure au calendrier, équipe, photos de réfection ; gardes-fous (P9) : réfection > 30 m², total des réfections de la fuite inférieur au total de ses fouilles ; récapitulatif ; **modifier** une réfection pas encore validée. Bouton selon le droit **« refections / créer »** (rôle Réfection, R1) |
+| À valider (V1) | bouton « À valider (n) » de la liste pour qui peut valider (responsable, administrateur) : détections, réparations, réfections du marché pas encore validées (`v_a_valider`), toutes cochées d'office ; « **Valider (n)** » (`valider_etapes`) ; « Aucune photo » signalé, avec avertissement avant de valider ; un toucher ouvre la fiche (pour ajouter une photo) ; avec réseau seulement |
+| Notifications (N1, N2) | cloche de la barre de la liste avec pastille (non lues, « 9+ ») ; écran des 30 dernières (non lue = point bleu), tout marqué lu à l'ouverture et rideau vidé ; texte dans la langue de la tablette ; **push Android** (expo-notifications, Firebase) : rideau même appli fermée, toucher = fiche de la fuite (dans son marché), notification marquée lue et retirée du rideau |
+| Mise à jour (X2) | « Nouvelle version x disponible » en tête de la liste quand la CI a publié une APK plus récente (contrôle à l'ouverture et au retour sur l'appli, au plus toutes les 6 h, avec réseau) : téléchargement (progression) puis installateur d'Android ; données et envois en attente gardés |
 | Balayage | bouton « Balayage » de la liste (droit « balayage / lire ») : carte du réseau du panneau web dans une **WebView** (`react-native-webview` 13.16.1), ouverte avec la session de la tablette par `/session#access_token=…&refresh_token=…` (jetons dans le fragment, jamais en paramètre ni journalisés), directement en **mode balayage** (toucher, lasso, prolonger, enregistrer ; file d'attente hors ligne du panneau) ; position GPS autorisée ; seuls les liens du panneau restent dans la WebView (itinéraire Google Maps : application de cartes) ; retour Android : historique de la WebView puis liste ; avant d'ouvrir la carte, la tablette vérifie que le panneau répond (simple GET de `/session`, 15 s au plus ; pas de HEAD, dont la réponse arrive après une dizaine de secondes sur la tablette) ; sans réseau : « La carte du réseau a besoin de la connexion » et « Réessayer » ; la tablette renouvelle elle-même la session 5 min avant l'échéance et recharge la carte (environ une fois par heure). Adresse du panneau : `EXPO_PUBLIC_WEB_URL` (défaut `https://fuites.stepag.ma`) |
 | Envois en attente | toutes les saisies gardées sur la tablette, dans l'ordre ; envoi manuel ; erreurs en clair (ex. fuite verrouillée) ; suppression avec confirmation (une fuite emporte ses réparations et réfections) |
 
-**Droits** : boutons de saisie affichés selon les droits du marché. Le chef de réparation (fuites, interventions,
-photos) saisit ; l'agent de détection (interventions en lecture) voit les fiches sans les boutons.
+**Droits** : boutons de saisie affichés selon les droits du marché (la base reste juge, `src/regles.ts` reflète ses
+règles). Réparation : « interventions / créer » ; réfection : « refections / créer » (rôle Réfection, R1) ; l'agent de
+détection voit les fiches sans ces boutons. Refus du serveur traduits en clair (étape validée, photo antérieure à la
+validation, champs obligatoires, verrou, droit insuffisant).
+
+**Listes de saisie en arabe** (X4) : ouvrages, matériaux, emplacements, visibilité, résultats, travaux, types de photo
+lus dans `libelles_listes` (S2), natures et motifs dans leurs colonnes `libelle_ar`, gardés avec les paramètres ; en
+hybride, les choix restent en français (règle d'Issam). Les 114 nouveaux libellés de l'APK sont dans
+`src/traductions.ts` (section « Chantier v2 (S7) »), à relire par Issam.
 
 **Session hors ligne** (`src/session-donnees.ts`) : la session reste sur la tablette jusqu'à « Quitter ». Au démarrage
 avec un jeton expiré (plus d'une heure) ou presque (moins de 90 s, marge d'auth-js), auth-js tente d'abord de le
@@ -86,8 +96,12 @@ Essais **sans pile** (ni Docker ni installation), depuis `mobile/` (Node ≥ 22.
 vrai client Supabase (connexion par auth-js, jeton porté par chaque requête, délais de `src/reseau.ts`) ; serveur,
 stockage et réseau simulés (`essais/mocks/serveur-simule.js` : une requête sans jeton valide y est refusée comme par
 la base).
+- `node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs` : règles de `src/regles.ts`, 37 vérifications
+  (champs obligatoires, gardes-fous des fouilles et des réfections, pièces proposées, droit de modifier une étape ou une
+  photo avant et après validation ou verrou, version publiée, texte des notifications).
 - `node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs` : vrai code de la file d'attente,
-  43 vérifications (écrans prévenus seulement à un vrai changement de la file, photos depuis la fiche, modification
+  49 vérifications (dont les modifications de champs « maj » : fuite et réfection avant validation, photo retypée ou
+  retirée, refus d'une photo d'un collègue) (écrans prévenus seulement à un vrai changement de la file, photos depuis la fiche, modification
   après la création, coupures, renvoi sans doublon, droits, verrou, abandon, requête sans réponse abandonnée au délai
   sur une horloge simulée, jamais la clé anonyme).
 - `node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs` : démarrage sans réseau avec un jeton
@@ -102,9 +116,8 @@ la base).
     lancée par un écran pas encore prévenu, même réseau revenu avant le renouvellement), « Quitter » aussitôt au réveil
     de la tablette, retour normal après le renouvellement.
 
-**Pas encore fait** : suppression d'une réparation ou d'une photo, modification d'une réfection (panneau web),
-photos du serveur visibles hors ligne, suivi GPS en arrière-plan (M4), notifications
-push, mise à jour intégrée de l'APK, carte native hors ligne (le balayage passe par la WebView et a besoin du réseau ;
+**Pas encore fait** : suppression d'une réparation, corrections du responsable avec motif (position, date de
+détection : panneau web, V5), photos du serveur visibles hors ligne, suivi GPS en arrière-plan (S11), carte native hors ligne (le balayage passe par la WebView et a besoin du réseau ;
 les cochages sans réseau attendent dans la file du panneau).
 
 ## Développement
@@ -121,9 +134,28 @@ dans `node_modules/expo/bundledNativeModules.json` si ces serveurs sont inaccess
 
 ## Compilation de l'APK (GitHub Actions)
 
-Workflow `.github/workflows/apk.yml` : types, `expo prebuild`, `gradlew assembleRelease`, APK en artefact
-(14 jours). Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour
+Workflow `.github/workflows/apk.yml` : types, essais sans pile, `expo prebuild`, `gradlew assembleRelease`, APK en
+artefact (14 jours). Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour
 Vercel) ; sans lui l'APK se compile mais ne peut pas se connecter.
+
+**Numéro de version** (`app.config.js`) : `versionCode` = numéro du run de la CI (`APK_VERSION_CODE`), nom `1.0.<run>` ;
+toujours croissant, une APK plus récente s'installe par-dessus la précédente. Si le workflow est renommé, son numéro de
+run repart à 1 : ajouter alors un décalage dans `APK_VERSION_CODE`.
+
+**Publication pour les tablettes** (X2) : sur `main`, une APK signée avec la clé de production est déposée dans le
+compartiment privé R2 (`apk/suivi-fuites-<numéro>.apk`, `apk/derniere.json` ; les 3 dernières gardées), avec les
+secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (ceux des photos). La fonction serveur
+`version-apk` (comptes connectés et actifs) renvoie la dernière version et une URL signée d'une heure.
+
+**Notifications push** (N2) : secret **`GOOGLE_SERVICES_JSON`** (contenu du fichier `google-services.json` de
+l'appli Android `ma.stepag.suivifuites` dans Firebase), écrit par la CI dans `mobile/` avant `expo prebuild`, jamais
+versionné (`.gitignore`) ; absent, l'APK se compile sans push (aucun jeton enregistré, le reste fonctionne). Côté
+serveur : secret **`FIREBASE_SERVICE_ACCOUNT`** (fichier JSON du compte de service, Firebase > Paramètres du projet >
+Comptes de service > Générer une clé privée), passé par « Déploiement de la base » à la fonction `envoyer-push`. Celle-ci
+est appelée par la base à chaque notification (pg_net) et toutes les 5 min (pg_cron), avec une clé tirée au hasard par
+la migration `20261010600000` (aucun secret dans le dépôt) ; elle envoie par FCM (API HTTP v1) les notifications non lues
+des 2 dernières heures, une seule fois, en français ou en arabe selon `profils.langue` (tenue à jour par l'APK), et
+retire les jetons périmés.
 
 **Architectures** (depuis le 2026-10-07) : bibliothèques natives compilées pour **ARM seulement**, `armeabi-v7a` et
 `arm64-v8a` (`buildArchs` d'`expo-build-properties` dans `app.json`, repris dans `reactNativeArchitectures` de
@@ -146,9 +178,8 @@ Android, la même pour les deux versions, et le démarrage à froid ne change pa
 alternée sur l'émulateur : médiane 2,6 s contre 3,6 s avant, de 1,2 à 4,6 s d'un essai à l'autre). Pour revenir aux
 `.so` non compressés : retirer la clé (ou la mettre à `false`).
 
-L'APK est **signé avec la clé de test d'Expo** : suffisant pour les essais sur la tablette de test.
-**Avant toute distribution aux agents**, créer un keystore de production **hors du dépôt**, en deux copies
-(sans lui, plus aucune mise à jour possible par-dessus une version installée) et le brancher dans le workflow.
+L'APK est **signée avec la clé de production STEPAG** (secrets `ANDROID_KEYSTORE_*`, depuis le 2026-10-07) ; sans ces
+secrets, avec la clé de test d'Expo (une APK de test ne s'installe pas par-dessus une APK de production, et inversement).
 
 ## Installation sur la tablette
 

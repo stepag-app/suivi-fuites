@@ -12,7 +12,7 @@ import { controlerDate, DateHeure, useDateHeure } from './date-heure';
 import { ajouterEnvoi, effacerPhotos, synchroniser, type PhotoAttente, type PieceAttente } from './file-attente';
 import type { ContexteSaisie } from './fiche';
 import { Icone } from './icones';
-import { enumerer, t, useLangue } from './langue';
+import { enumerer, libelleEquipe, t, useLangue } from './langue';
 import { libelleDb, libelleListe, optionsListe } from './listes';
 import { aucunChangement, champsChanges, differences } from './modification';
 import { diametresDe, useParametres, type Parametres } from './parametres';
@@ -37,7 +37,7 @@ function ChoixEquipe({ parametres, valeur, onChange }: { parametres: Parametres;
   return (
     <View style={{ gap: 6 }}>
       <Text style={s.etiquette}>{t('Équipe')}</Text>
-      <Puces facultatif options={liste.map((e) => ({ valeur: e.id, libelle: e.libelle }))} valeur={valeur} onChange={onChange} />
+      <Puces facultatif options={liste.map((e) => ({ valeur: e.id, libelle: libelleEquipe(e.libelle) ?? e.libelle }))} valeur={valeur} onChange={onChange} />
     </View>
   );
 }
@@ -397,7 +397,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     { libelle: t('Résultat'), valeur: resultat ? libelleListe('resultat_reparation', resultat, RESULTATS_REPARATION[resultat]) : null },
     { libelle: t('Motif'), valeur: nonReparee ? libelleDb(parametres.motifs.find((x) => x.id === motifId)) : null },
     { libelle: t('Date et heure'), valeur: libelleDate(quand.valeur) },
-    { libelle: t('Équipe'), valeur: parametres.equipes.find((x) => x.id === equipeId)?.libelle },
+    { libelle: t('Équipe'), valeur: libelleEquipe(parametres.equipes.find((x) => x.id === equipeId)?.libelle) },
     { libelle: t('Ouvrage'), valeur: libelleListe('ouvrage', ouvrage, OUVRAGES[ouvrage]) },
     { libelle: t('Matériau'), valeur: libelleListe('materiau', materiau, MATERIAUX[materiau]) },
     { libelle: t('Diamètre'), valeur: nombres.diametre != null ? t('Ø {d} mm', { d: nombres.diametre }) : null },
@@ -707,7 +707,7 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
     { libelle: t('Dimensions'), valeur: faite ? dimensions : null },
     { libelle: t('Motif'), valeur: faite ? null : libelleDb(parametres.motifs.find((x) => x.id === motifId)) },
     { libelle: t('Date et heure'), valeur: libelleDate(quand.valeur) },
-    { libelle: t('Équipe'), valeur: parametres.equipes.find((x) => x.id === equipeId)?.libelle },
+    { libelle: t('Équipe'), valeur: libelleEquipe(parametres.equipes.find((x) => x.id === equipeId)?.libelle) },
     { libelle: t('Photos'), valeur: ph.photos.length ? String(ph.photos.length) : t('Aucune photo') },
     { libelle: t('Observation'), valeur: observation.trim() },
   ];

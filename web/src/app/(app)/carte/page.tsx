@@ -3,7 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Network, PanelLeftClose, PanelLeftOpen, Route } from "lucide-react";
-import { texteEtatTroncon } from "@/lib/reseau/etat";
+import { langueApk, texteEtatTronconApk, traduire, useLangueApk } from "@/lib/langue-apk";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
@@ -39,6 +39,8 @@ const FILTRES_VIDES: FiltresCarte = { secteur: "", du: "", au: "", alertes: fals
 const cleSelection = (marcheId: string) => `suivi-fuites:balayage:selection:${marcheId}`;
 const CLE_SATELLITE = "suivi-fuites:carte:satellite";
 const CLE_LISTE = "suivi-fuites:carte:liste-masquee";
+// Messages du mode balayage composés hors rendu : dans la langue de la tablette (APK), sinon en français.
+const tr = (cle: string, valeurs?: Record<string, string | number>, fr?: string) => traduire(langueApk(), cle, valeurs, fr);
 
 export default function PageCarte() {
   return (
@@ -65,6 +67,7 @@ function CarteDesFuites() {
   const [filtres, setFiltres] = useState<FiltresCarte>(FILTRES_VIDES);
   const [selection, setSelection] = useState<string | null>(null);
   const [onglet, setOnglet] = useState("fuite");
+  const { tb, rtl } = useLangueApk();
   // Liste des fuites repliable (bureau) : la carte prend toute la largeur ; choix mémorisé.
   const [listeMasquee, setListeMasquee] = useState(false);
   useEffect(() => {
@@ -220,8 +223,8 @@ function CarteDesFuites() {
   etatsBalayage.current = reseau.etats;
   const surSelection = useCallback((ids: string[], mode: ModeSelection) => {
     const deja = mode === "retirer" ? [] : ids.filter((id) => etatsBalayage.current.get(id)?.balaye);
-    if (deja.length === 1 && ids.length === 1) setMessageBalayage(`Déjà balayé : ${texteEtatTroncon(etatsBalayage.current.get(deja[0]))}. Ce sera un second passage.`);
-    else if (deja.length) setMessageBalayage(`${deja.length} tronçons déjà balayés dans la sélection : seconds passages.`);
+    if (deja.length === 1 && ids.length === 1) setMessageBalayage(tr("Déjà balayé : {etat}. Ce sera un second passage.", { etat: texteEtatTronconApk(etatsBalayage.current.get(deja[0])).replace(/^\u200f/, "") }));
+    else if (deja.length) setMessageBalayage(tr("{n} tronçons déjà balayés dans la sélection : seconds passages.", { n: deja.length }));
     setTronconsEtat((courante) => {
       const s = appliquerSelection(courante, ids, mode);
       if (marcheId) {
@@ -252,7 +255,7 @@ function CarteDesFuites() {
       surSelection(ajoutes, "ajouter");
       setMessageBalayage("");
     } else {
-      setMessageBalayage("Rien à prolonger : jonction à 3 branches, bout de rue ou changement de direction (± 20°).");
+      setMessageBalayage(tr("Rien à prolonger : jonction à 3 branches, bout de rue ou changement de direction (± 20°)."));
     }
   };
 
@@ -282,12 +285,13 @@ function CarteDesFuites() {
       const { restants } = await enregistrerBalayages(lignes);
       setTroncons(new Set());
       setMessageBalayage(restants === 0
-        ? `${lignes.length} balayage${lignes.length > 1 ? "s" : ""} enregistré${lignes.length > 1 ? "s" : ""}.`
-        : `${lignes.length} balayage${lignes.length > 1 ? "s" : ""} gardé${lignes.length > 1 ? "s" : ""} sur l'appareil : envoi au retour du réseau.`);
+        ? tr("{n} balayages enregistrés.", { n: lignes.length }, `${lignes.length} balayage${lignes.length > 1 ? "s" : ""} enregistré${lignes.length > 1 ? "s" : ""}.`)
+        : tr("{n} balayages gardés sur l'appareil : envoi au retour du réseau.", { n: lignes.length },
+          `${lignes.length} balayage${lignes.length > 1 ? "s" : ""} gardé${lignes.length > 1 ? "s" : ""} sur l'appareil : envoi au retour du réseau.`));
       await rafraichirAttente();
       await reseau.recharger();
     } catch (e) {
-      setMessageBalayage(`Erreur : ${messageReseau(e)}`);
+      setMessageBalayage(tr("Erreur : {e}", { e: messageReseau(e) }));
     }
     setOccupe(false);
   };
@@ -303,14 +307,14 @@ function CarteDesFuites() {
   };
 
   const annuler = useCallback(async (tronconId: string) => {
-    const motif = window.prompt("Motif de l'annulation du dernier balayage de ce tronçon :");
+    const motif = window.prompt(tr("Motif de l'annulation du dernier balayage de ce tronçon :"));
     if (motif == null || !motif.trim()) return;
     try {
       const fait = await annulerDernierBalayage(tronconId, motif);
-      setMessageBalayage(fait ? "Balayage annulé." : "Aucun balayage à annuler sur ce tronçon.");
+      setMessageBalayage(tr(fait ? "Balayage annulé." : "Aucun balayage à annuler sur ce tronçon."));
       await reseau.recharger();
     } catch (e) {
-      setMessageBalayage(`Erreur : ${messageReseau(e)}`);
+      setMessageBalayage(tr("Erreur : {e}", { e: messageReseau(e) }));
     }
   }, [reseau]);
 
@@ -472,7 +476,7 @@ function CarteDesFuites() {
                     {listeMasquee ? <PanelLeftOpen data-icon="inline-start" /> : <PanelLeftClose data-icon="inline-start" />}Liste
                   </Button>
                   <Button size="sm" variant="outline" className="bg-background shadow-sm" onClick={() => setReseauOuvert(true)}>
-                    <Network data-icon="inline-start" />Réseau{reseau.actif && nbSecteursReseau > 0 ? ` (${nbSecteursReseau})` : ""}
+                    <Network data-icon="inline-start" />{tb("Réseau")}{reseau.actif && nbSecteursReseau > 0 ? ` (${nbSecteursReseau})` : ""}
                   </Button>
                   {peutBalayer && (
                     <Button size="sm" variant={modeBalayage ? "default" : "outline"} className={cn(!modeBalayage && "bg-background", "shadow-sm")} onClick={basculerBalayage}>
@@ -482,23 +486,23 @@ function CarteDesFuites() {
                 </div>
               )}
               {modeBalayage && (
-                <div className={cn("ancien", styles.barreBalayage, reseauOuvert && styles.avecPanneau)} role="toolbar" aria-label="Outils du mode balayage">
+                <div className={cn("ancien", styles.barreBalayage, reseauOuvert && styles.avecPanneau)} role="toolbar" aria-label="Outils du mode balayage" dir={rtl ? "rtl" : undefined}>
                   {!reseauOuvert && (
-                    <button type="button" onClick={() => setReseauOuvert(true)} title="Secteurs, légende et enregistrement">
-                      <Network aria-hidden="true" className="me-1 inline size-4 align-[-3px]" />Réseau
+                    <button type="button" onClick={() => setReseauOuvert(true)} title={tb("Secteurs, légende et enregistrement")}>
+                      <Network aria-hidden="true" className="me-1 inline size-4 align-[-3px]" />{tb("Réseau")}
                     </button>
                   )}
                   <span className={styles.compte} aria-live="polite">
-                    {nombre(troncons.size, 0)} tronçon{troncons.size > 1 ? "s" : ""} · {formaterLineaire(lineaire)}
-                    {dejaBalayes.size > 0 && <span className={styles.repasse}> · dont {nombre(dejaBalayes.size, 0)} déjà balayé{dejaBalayes.size > 1 ? "s" : ""}</span>}
+                    {tb("{n} tronçons · {l}", { n: nombre(troncons.size, 0), l: formaterLineaire(lineaire) }, `${nombre(troncons.size, 0)} tronçon${troncons.size > 1 ? "s" : ""} · ${formaterLineaire(lineaire)}`)}
+                    {dejaBalayes.size > 0 && <span className={styles.repasse}>{tb(" · dont {n} déjà balayés", { n: nombre(dejaBalayes.size, 0) }, ` · dont ${nombre(dejaBalayes.size, 0)} déjà balayé${dejaBalayes.size > 1 ? "s" : ""}`)}</span>}
                   </span>
-                  <button type="button" aria-pressed={outilBalayage === "toucher"} className={outilBalayage === "toucher" ? "actif" : ""} onClick={() => setOutilBalayage("toucher")}>Toucher</button>
-                  <button type="button" aria-pressed={outilBalayage === "lasso"} className={outilBalayage === "lasso" ? "actif" : ""} onClick={() => { setOutilBalayage("lasso"); setGeometriesDemandees(true); }}>Lasso</button>
+                  <button type="button" aria-pressed={outilBalayage === "toucher"} className={outilBalayage === "toucher" ? "actif" : ""} onClick={() => setOutilBalayage("toucher")}>{tb("Toucher")}</button>
+                  <button type="button" aria-pressed={outilBalayage === "lasso"} className={outilBalayage === "lasso" ? "actif" : ""} onClick={() => { setOutilBalayage("lasso"); setGeometriesDemandees(true); }}>{tb("Lasso")}</button>
                   <button type="button" disabled={troncons.size === 0 || (!!reseau.tuiles && reseau.nbEnChargement > 0)} onClick={prolonger}
-                    title={reseau.tuiles && reseau.nbEnChargement > 0 ? "Préparation des tronçons…" : undefined}>Prolonger</button>
-                  <button type="button" disabled={troncons.size === 0} onClick={() => setTroncons(new Set())}>Désélectionner tout</button>
-                  <button type="button" className="primaire" disabled={troncons.size === 0 || occupe} onClick={allerAuFormulaire}>Enregistrer…</button>
-                  <button type="button" onClick={basculerBalayage}>Quitter le balayage</button>
+                    title={reseau.tuiles && reseau.nbEnChargement > 0 ? tb("Préparation des tronçons…") : undefined}>{tb("Prolonger")}</button>
+                  <button type="button" disabled={troncons.size === 0} onClick={() => setTroncons(new Set())}>{tb("Désélectionner tout")}</button>
+                  <button type="button" className="primaire" disabled={troncons.size === 0 || occupe} onClick={allerAuFormulaire}>{tb("Enregistrer…")}</button>
+                  <button type="button" onClick={basculerBalayage}>{tb("Quitter le balayage")}</button>
                   {messageBalayage && !reseauOuvert && <span className="discret" role="status">{messageBalayage}</span>}
                 </div>
               )}

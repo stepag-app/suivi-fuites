@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Crosshair, ExternalLink, Navigation, RefreshCw, Satellite } from "lucide-react";
+import { useLangueApk } from "@/lib/langue-apk";
 import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -94,6 +95,7 @@ export function CommandesCarte({ placees, sansPosition, chargement, erreur, rece
   /** Bouton satellite (C5) ; null : clé Esri absente, bouton masqué. */
   satellite?: { actif: boolean; basculer: () => void } | null;
 }) {
+  const { tb } = useLangueApk();
   return (
     <>
       <div
@@ -104,15 +106,15 @@ export function CommandesCarte({ placees, sansPosition, chargement, erreur, rece
           decalee ? "left-[calc(min(290px,92vw)+0.5rem)]" : "left-2",
         )}
       >
-        <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label="Recentrer la carte" title="Recentrer"><Crosshair /></Button>
-        <Button size="icon-sm" variant="ghost" onClick={actualiser} disabled={chargement} aria-label="Actualiser" title="Actualiser"><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
+        <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label={tb("Recentrer")} title={tb("Recentrer")}><Crosshair /></Button>
+        <Button size="icon-sm" variant="ghost" onClick={actualiser} disabled={chargement} aria-label={tb("Actualiser")} title={tb("Actualiser")}><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
         {satellite && (
-          <Button size="sm" variant={satellite.actif ? "default" : "ghost"} onClick={satellite.basculer} aria-pressed={satellite.actif} title="Image satellite">
+          <Button size="sm" variant={satellite.actif ? "default" : "ghost"} onClick={satellite.basculer} aria-pressed={satellite.actif} title={tb("Image satellite")}>
             <Satellite data-icon="inline-start" />Satellite
           </Button>
         )}
         <span className="px-2 text-muted-foreground text-xs tabular-nums" aria-live="polite">
-          {placees} sur la carte{sansPosition > 0 ? ` · ${sansPosition} sans position` : ""}
+          {tb("{n} sur la carte", { n: placees })}{sansPosition > 0 ? tb(" · {n} sans position", { n: sansPosition }) : ""}
         </span>
       </div>
       {erreur && (

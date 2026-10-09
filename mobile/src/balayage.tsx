@@ -3,7 +3,7 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
-import { t, tx, useLangue } from './langue';
+import { langueCourante, t, tx, useLangue } from './langue';
 import { supabase } from './supabase';
 import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
@@ -12,7 +12,8 @@ import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 export const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
 const PAGE_SESSION = `${PANNEAU}/session`;
-const SUITE = encodeURIComponent('/carte?mode=balayage');
+// Langue de la tablette transmise au panneau (partie Balayage traduite : web/src/lib/langue-apk.ts).
+const suite = () => encodeURIComponent(`/carte?mode=balayage${langueCourante() === 'fr' ? '' : `&langue=${langueCourante()}`}`);
 // Large : sur un réseau lent, la première connexion à un nom d'hôte peut prendre une dizaine de secondes (DNS).
 const DELAI_SONDE_MS = 15000;
 // Le panneau garde sa propre copie de la session et la renouvelle lui-même ~1,5 min avant l'échéance, avec le
@@ -23,7 +24,7 @@ const HORS_LIGNE = 'La carte du réseau a besoin de la connexion.';
 
 const adresse = (session: Session) =>
   `${PAGE_SESSION}#access_token=${encodeURIComponent(session.access_token)}` +
-  `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${SUITE}`;
+  `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${suite()}`;
 const estPanneau = (url: string) => url === ORIGINE || url.startsWith(`${ORIGINE}/`);
 const estPageSession = (url: string) => url.split(/[#?]/)[0].replace(/\/$/, '') === PAGE_SESSION;
 

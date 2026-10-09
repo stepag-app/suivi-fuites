@@ -29,8 +29,8 @@ const TYPES = [
   ...[...sql.matchAll(/alter type public\.type_donnee add value if not exists '([a-z_]+)'/g)].map((m) => m[1]),
 ];
 
-// Verrous admis par la contrainte « verrous_admin_droit_connu » de la migration du lot Q.
-const contrainte = sql.match(/constraint verrous_admin_droit_connu check \(([\s\S]*?)\n  \)\n\);/)[1];
+// Verrous admis par la contrainte « verrous_admin_droit_connu » de la dernière migration qui la redéfinit (S1 ajoute « refections »).
+const contrainte = [...sql.matchAll(/constraint verrous_admin_droit_connu check \(([\s\S]*?)\n\);/g)].at(-1)[1];
 const OBJETS_DROITS = listeSql(contrainte.match(/objet in \(([^)]*)\)/)[1]);
 const ACTIONS_DROITS = listeSql(contrainte.match(/action in \(([^)]*)\)/)[1]);
 const RESERVEES = [...contrainte.matchAll(/\('([a-z_]+)', '([a-z_]+)'\)/g)].map((m) => `${m[1]}.${m[2]}`);
@@ -58,12 +58,12 @@ const CONTROLES_PAR_LA_BASE = [
 ];
 
 ok('les migrations sont lues (types, verrous admis, modèles de rôles)', () => {
-  assert.equal(TYPES.length, 12);
+  assert.equal(TYPES.length, 13);
   assert.ok(TYPES.includes('evenements') && TYPES.includes('attachements'));
   assert.deepEqual(new Set(OBJETS_DROITS), new Set(TYPES), 'la contrainte des verrous couvre tous les types de donnée');
   assert.deepEqual(ACTIONS_DROITS, ['lire', 'creer', 'modifier', 'supprimer', 'valider']);
   assert.deepEqual(RESERVEES, ['attachements.rouvrir', 'attachements.forcer', 'marches.desactiver', 'marches.copier', 'comptes.revoquer']);
-  assert.equal(MODELES.length, 19);
+  assert.equal(MODELES.length, 20);
   assert.deepEqual(Object.keys(TITRES_TYPES).sort(), [...TYPES].sort());
 });
 

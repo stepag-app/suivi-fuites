@@ -3,12 +3,10 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-07, fin de matinée (**livraison des chantiers de la nuit**, § 9) : PR [#44](https://github.com/stepag-app/suivi-fuites/pull/44) à
-[#50](https://github.com/stepag-app/suivi-fuites/pull/50) fusionnées ; panneau en ligne sur https://fuites.stepag.ma ; migrations `20261007100000` (codes de secteur
-courts) et `20261007120000` (essai de charge) **déployées** ; APK de `main` (trois langues, liste au repos, 24 Mo)
-installée sur l'émulateur (connexion bloquée par le DNS de l'émulateur, § 2). Reste ouverte : PR [#40](https://github.com/stepag-app/suivi-fuites/pull/40) (photos R2, migration à renuméroter, § 2).
-Précédentes, même jour : essai de charge à 3 000 fuites (§ 8) ; session 9, plan du réseau recalé et import guidé (§ 7) ;
-APK au style « Studio Admin » (PR [#43](https://github.com/stepag-app/suivi-fuites/pull/43)).
+Dernière mise à jour : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
+est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
+`docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
 
 ## 1. Fait
 
@@ -72,151 +70,48 @@ APK au style « Studio Admin » (PR [#43](https://github.com/stepag-app/suivi-fu
 | **APK : requêtes bornées** (2026-10-07) : le fetch de l'APK (`expo/fetch` dans Expo SDK 57, sur le client OkHttp de React Native) n'a aucun délai ; une requête restée sans réponse sur une connexion 4G morte figeait la file d'attente (une seule synchro à la fois : minuteur des 30 s, retour sur l'appli et « Envoyer maintenant » attendaient la même) jusqu'à l'expiration TCP (souvent un quart d'heure) ou un redémarrage. Chaque requête Supabase (API, connexion, photos) est maintenant abandonnée après **60 s**, **3 min** pour l'envoi d'une photo ; l'abandon compte comme une coupure (saisie gardée sans message, renvoyée au tour suivant) et n'est pas relancé par supabase-js ; la liste garde ses 20 s (PR #48). Limite probable, à voir sur la tablette : une connexion HTTP/2 morte reste dans le pool d'OkHttp après l'abandon, les requêtes suivantes peuvent s'y bloquer aussi (60 s chacune) jusqu'à ce qu'Android la ferme ; piste : délai de lecture natif d'OkHttp (fait : ligne suivante, PR #53) | `mobile/src/reseau.ts`, `mobile/src/supabase.ts` ; `mobile/README.md` § Hors ligne ; essai sans pile 42/42 (section 9, horloge simulée ; 6 mutations détectées) ; vrai supabase-js 2.117 contre un fetch muet (insertion, lecture sans relance, photo, renouvellement de session) | PR [#51](https://github.com/stepag-app/suivi-fuites/pull/51), **fusionnée** le 2026-10-07 ; tsc et bundle Android verts ; **non essayée sur l'émulateur ni la tablette** |
 | **APK : connexion HTTP/2 morte écartée** (2026-10-07) : après un abandon par JavaScript (`reseau.ts` ; liste : 20 s), OkHttp n'y voyait qu'une annulation locale et gardait la connexion morte dans son pool, sans PING de contrôle (aucun délai natif) : les requêtes suivantes s'y bloquaient à leur tour jusqu'à ce qu'Android ferme le socket. Plugin de configuration Expo : délais d'**inactivité** du client OkHttp de l'APK (fetch, images) : connexion 10 s, lecture et écriture **15 s**, 60 s pour un corps de plus de 16 Ko (photos) ; dépassé, un délai envoie un PING, et sans réponse en 1 s OkHttp écarte la connexion. Délais plus courts que ceux de JavaScript pour tomber avant eux (à 60 s chacun, l'abandon JavaScript gagne toujours la course) ; pas de PING régulier (batterie) | `mobile/plugins/okhttp-delais.js` (déclaré dans `mobile/app.json`, posé par `expo prebuild` dans `MainApplication.kt`, non versionné) ; `mobile/README.md` § Hors ligne | PR [#53](https://github.com/stepag-app/suivi-fuites/pull/53) (après la #51) ; tsc, essai sans pile 42/42, CI verte (fabrique vue dans le code compilé de l'APK, OkHttp 4.9.2) ; essai sur la JVM avec OkHttp 4.9.2 et le bloc Kotlin généré, vraie connexion HTTP/2 vers Supabase à travers un proxy « trou noir » : avant, la connexion morte resservait après chaque abandon ; après, délai à 15,0 s puis connexion neuve dès la requête suivante (60,0 s pour un envoi de 300 Ko) ; **non essayée sur l’émulateur** ni sur la tablette : essai tenté par un proxy de l'émulateur (qui contourne sa panne DNS), mais Supabase a refusé le jeton gardé, d'où plus de session ; APK et réglages de l'émulateur remis comme avant  ; **fusionnée** le 2026-10-07 |
 
-## 2. En attente d'Issam
+## 2. En attente d'Issam (état au 2026-10-09)
 
-**Keystore de production (2026-10-07)** : créé (PKCS12, alias `stepag`, valable jusqu'en 2056, SHA-256 `94:09:38:AF:…:78:0A`),
-stocké hors dépôt dans `~/Documents/STEPAG-KEYSTORE/` sur le Mac d'Issam ; mot de passe noté sur papier. Secrets GitHub
-`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` ; `apk.yml` signe et vérifie le certificat
-(PR [#55](https://github.com/stepag-app/suivi-fuites/pull/55), CI verte). Les APK signés avec la clé de test d'Expo (émulateur)
-sont incompatibles : désinstaller avant d'installer. **Sans ce fichier, plus de mise à jour possible** : copie sur clé USB
-à faire. PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54) : liste hors ligne avec jeton expiré (non testée sur appareil).
-**En stand by (attente d'une vraie tablette)** : test terrain, Vercel Pro, désactivation de DEMO. Réseau et articles : importés.
+**Facturation GitHub (urgent).** GitHub Actions a été bloqué le 2026-10-08 (« recent account payments have failed or your
+spending limit needs to be increased ») : quota gratuit de minutes épuisé, aucune carte enregistrée, limite de dépense à 0 $, environ
+12 $ de minutes brutes consommées en octobre. Pour que la CI tourne gratuitement, le dépôt est resté **public** pendant la fin du
+chantier (aucun secret ni donnée sensible n'y figure) ; il doit être repassé en **privé** à la fin de S8 (par la session parente). Une fois
+privé, la CI consomme de nouveau le quota : **enregistrer une carte et fixer une limite de dépense** dans GitHub (Settings > Billing),
+faute de quoi les compilations d'APK et le déploiement automatique de la base s'arrêtent de nouveau.
 
-**Langues de l'APK (2026-10-07)** : dictionnaire entièrement validé ; essayer les trois modes sur la tablette avec
-l'APK de la PR [#45](https://github.com/stepag-app/suivi-fuites/pull/45) (empilée sur la #43 : fusionner la #43 d'abord). Les listes paramétrées (natures de revêtement, motifs, équipes)
-restent en français tant qu'une colonne arabe n'est pas ajoutée en base (à décider).
+**Secrets et réglages à créer**
+- `GOOGLE_SERVICES_JSON` (fichier Firebase de l'APK) et `FIREBASE_SERVICE_ACCOUNT` (fonction `envoyer-push`) : **absents**, donc APK sans
+  notifications push et fonction « non configurée ». Le reste marche (cloche du panneau, notifications en base). Pas-à-pas Firebase : PR #67.
+- `NEXT_PUBLIC_ESRI_CLE` sur Vercel (compte Esri, clé restreinte à `fuites.stepag.ma`) : sans elle, pas de bouton Satellite (C5).
+- Règle CORS du compartiment R2 avec l'en-tête `Range` (texte dans `web/README.md` § Tuiles), puis **Paramètres > Réseau > Générer les tuiles** (X5).
+- Facultatif : règle de cycle de vie Cloudflare (préfixe `sauvegardes/base/`, 30 jours) et miroir des photos déjà dans R2 (voir `supabase/README.md`).
+- Vérifier dans le SQL Editor que la tâche `pg_cron` `alertes-reparation` existe (`select jobname, schedule from cron.job;`) ; sinon activer
+  l'extension (Database > Extensions) puis `select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');`
+  (la CI n'affiche pas les NOTICE ; à vérifier aussi pour `pg_net`, déclencheur du push).
 
-**APK (2026-10-07)** : l'APK de `main` réunit les PR #43, #45, #46, #47 et #48 (artefact `suivi-fuites-apk` du run
-[37609921370](https://github.com/stepag-app/suivi-fuites/actions/runs/37609921370), 24 Mo) ; même code que la compilation de la
-PR #45, installée sur l'émulateur par-dessus la précédente (session gardée). À installer sur la tablette Samsung de la même façon, puis essayer les trois langues
-(bouton « FR / ع + FR / ع »), la liste au repos et le Balayage.
-**PR [#40](https://github.com/stepag-app/suivi-fuites/pull/40) (photos R2)** : migration renumérotée `20261007130000`
-(après `20261007120000`), `main` fusionné (2026-10-07). **Fait par Issam le 2026-10-07** dans Cloudflare : compartiment
-privé `suivi-fuites-photos` (WEUR, r2.dev désactivé), CORS (`https://fuites.stepag.ma`, l'ancienne adresse Vercel,
-`http://localhost:3000` ; GET, PUT, HEAD), jeton de compte `suivi-fuites-photos-serveur` (Object Read & Write sur ce
-seul compartiment), clés rangées dans son gestionnaire de mots de passe. **Après la fusion** : secrets GitHub
-`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, puis « Déploiement de la base » à la main, puis essai d'une
-photo (`photos.stockage = 'r2'`).
-**Émulateur, DNS (constaté le 2026-10-07 vers 10 h 50 UTC)** : le Mac a changé de réseau (DNS `192.168.0.1`) et
-l'émulateur relaie encore vers l'ancien routeur : plus aucun nom ne se résout (`UnknownHostException`, Balayage « a
-besoin de la connexion »). Redémarrer l'émulateur à froid (Android Studio > Device Manager > ⋮ > Cold Boot Now), puis
-rouvrir l'appli et **se reconnecter** : le jeton gardé sur l'émulateur a été refusé par Supabase au premier rafraîchissement (2026-10-07, 12 h 38 UTC, essai de la PR #53 par un proxy), la session n'y est plus.
-**Défaut relevé sur l'APK (antérieur à cette livraison)** : au démarrage **sans réseau** avec un jeton expiré (plus
-d'une heure), `supabase.auth.getSession()` renvoyait `null` (supabase-js 2.117 garde la session en stockage mais ne la
-rend pas tant que le rafraîchissement échoue, et l'événement `INITIAL_SESSION` arrive sans session) : l'APK affichait
-l'écran **Connexion** au lieu de la liste hors ligne. **Corrigé par la PR [#56](https://github.com/stepag-app/suivi-fuites/pull/56), à fusionner sur accord d'Issam** :
-- au démarrage, la session est relue du stockage et l'appli ouvre la liste hors ligne sur le dernier contexte connu
-  (profil, marchés, droits) ;
-- le jeton est renouvelé au retour du réseau : minuteur d'auth-js, et essai aussitôt au retour sur l'appli (arrêté en
-  arrière-plan). La file d'attente repart ensuite, et le contexte est rechargé du serveur ;
-- rien n'est envoyé sans jeton valide ;
-- « Quitter » marche aussi hors ligne (avant, `signOut()` échouait sans rien effacer) ;
-- seul un renouvellement refusé par le serveur ramène à l'écran Connexion.
+**Keystore de production (créé le 2026-10-07)** : PKCS12, alias `stepag`, valable jusqu'en 2056, **hors dépôt** dans
+`~/Documents/STEPAG-KEYSTORE/` ; secrets GitHub `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` ; `apk.yml` signe et vérifie le
+certificat. **Sans ce fichier, plus de mise à jour de l'APK possible** : faire la copie sur clé USB. Les APK signées avec la clé de test d'Expo
+(émulateur) sont incompatibles : désinstaller avant d'installer.
 
-Vérifié par l'essai sans pile avec le vrai client Supabase (25 vérifications, horloge simulée) et sur l'émulateur :
-- session fictive au jeton expiré, DNS en panne : liste hors ligne au bout de 44 s ;
-- « Quitter » : écran Connexion en moins de 3 s ;
-- APK d'origine remise ensuite.
+**Tâches manuelles**
+1. Double authentification : GitHub, Google (`stepag.app@gmail.com`), 2ᵉ application pour Supabase, Cloudflare.
+2. **Vercel Pro** (environ 20 USD/mois) avant toute mise en production pour le client.
+3. **Désactiver le marché DEMO** avant la production (Paramètres > Marchés).
+4. **Informer les agents du suivi GPS** avant son usage (réponse Q14 : pas de déclaration CNDP) ; exclure l'appli de l'optimisation de batterie Samsung sur chaque tablette.
+5. **Essai sur une vraie tablette Samsung** : installer l'APK de `main` (artefact `suivi-fuites-apk`, signée STEPAG), parcours complet, mode avion, trois langues, suivi GPS.
+6. **Relire l'arabe** : les listes paramétrées (natures dont carrelage, REVSOL, faïence, pavé ciment ; motifs ; ouvrages) et les 121 libellés ajoutés par S7 (artefact de relecture).
+7. Importer `produits.csv` et activer les articles utiles (Paramètres > Articles), relire le zonage, importer le réseau en production (§ 7) si ce n'est pas fait.
+8. Essai de restauration réelle de la sauvegarde sur un projet Supabase neuf (étapes 1 à 6 de `supabase/README.md`).
+9. Dolibarr : bons 6804 et 6814 rattachés au projet 30, bon 6796 en brouillon, pose non saisie (voir § 3) ; à décider avec le magasinier.
 
-**Ouverture rapide : PR [#57](https://github.com/stepag-app/suivi-fuites/pull/57), empilée sur la #56, à fusionner
-après elle, sur accord d'Issam.** Avec la #56 seule, l'ouverture restait lente : auth-js réessaie le renouvellement
-près de 25 s avant de rendre la main, et les requêtes de la liste attendaient ce jeton. Sur l'émulateur (DNS en panne),
-la liste arrivait 80 à 100 s après le lancement. Avec la #57 :
-- l'appli n'attend le renouvellement que 1,5 s, puis s'ouvre sur les copies de la tablette (contexte, liste, fiches,
-  paramètres, secteurs) ; aucune requête ne part tant que le jeton n'est pas renouvelé ;
-- « Quitter » et « Enregistrer » répondent aussitôt, même pendant les reprises d'auth-js ;
-- mesures : liste au bout de 1,5 s simulées (25,4 s avant) ; sur l'émulateur, 3,7 s après le début du JS (68,6 et
-  89,0 s avant), soit 14,9 s après le lancement, dont 11 s de démarrage lent de l'émulateur (Mac sur batterie presque
-  vide) ;
-- essai sans pile : 38 vérifications.
+**Comportement à connaître.** Les champs obligatoires d'une nouvelle fuite (tournée, secteur, ouvrage, visibilité, nature de dégradation) sont
+**rétablis en base** pour SRM et DEMO par la migration `20261011900000` (S8) : une tablette qui n'a pas la nouvelle APK ne peut plus créer de fuite
+SRM / DEMO tant qu'elle n'est pas mise à jour.
 
-**Jeton qui expire pendant l'utilisation hors ligne : PR [#58](https://github.com/stepag-app/suivi-fuites/pull/58),
-empilée sur la #57, à fusionner après elle, sur accord d'Issam.** Avec la #57, l'état « jeton à renouveler » n'était
-posé qu'au démarrage. Appli ouverte, réseau perdu, le jeton (valable 1 h) n'est plus renouvelé et auth-js ne prévient
-pas : « Quitter » attendait jusqu'à 25 s, le contrôle des doublons et les lectures attendaient de même, puis partaient
-avec la clé anonyme (refusées). Avec la #58 :
-- 90 s avant l'échéance du jeton (marge d'auth-js), s'il n'a pas été renouvelé, l'appli passe sur les copies de la
-  tablette, sans requête, jusqu'au renouvellement ; contrôle aussi au retour au premier plan (tablette en veille) ;
-- une lecture lancée par un écran pas encore prévenu (mise à jour de la liste au retour sur l'appli, contrôle des
-  doublons) ne part pas non plus ; « Quitter » et « Enregistrer » répondent aussitôt ;
-- avec le réseau, rien ne change : auth-js renouvelle le jeton avant ce moment-là ;
-- essai sans pile : 52 vérifications (cas 9 et 10 ; 9 en échec sur le code de la #57). Pas d'essai sur l'émulateur :
-  il était arrêté.
-
-**Conflit à résoudre avant la fusion de la #56** : la PR [#54](https://github.com/stepag-app/suivi-fuites/pull/54)
-(autre session, correctif partiel du même défaut) a été **fusionnée** le 2026-10-07 à 13 h 33 UTC au lieu d'être
-fermée. La #56 (et donc la #57) est en conflit avec `main` sur deux fichiers :
-- `mobile/src/session.tsx` : garder la version de la #56 ;
-- `mobile/src/supabase.ts` : garder `CLE_SESSION` et retirer `cleSessionStockee` (même valeur, plus utilisée).
-
-Sur l'émulateur du Mac, la première connexion à un nouveau nom d'hôte prend une dizaine de secondes (DNS du routeur
-local) : premier chargement, vignettes et carte du Balayage lents à l'ouverture, sans lien avec l'appli.
-
-**Priorité (session 8)** : la nouvelle interface, le lot S et le lot T sont en ligne (PR #39). À faire maintenant :
-1. **Paramètres > Articles** (administrateur) : « Importer produits.csv » (`data-private/dolibarr/produits.csv` ou un nouvel
-   export ; familles RAC, CND, ROB, AEP, VRI), puis **activer** les articles utiles (recherche + « Tout sélectionner » +
-   « Activer la sélection ») ; les produits déjà rapprochés en production (lot P1), s'il y en avait, sont déjà activés.
-   Le responsable peut aussi activer. Ensuite **Paramètres > Bordereau** : règles d'article suggéré (robinet et collier PEC).
-2. **Essayer la nouvelle interface** (ordinateur et tablette) : menu, carte, fiche, attachements, Utilisateurs > Droits.
-3. **Lot S** : relire le zonage, puis, avec accord, importer le réseau en production (§ 7).
-- Procédure courante (Issam) : exports Dolibarr fréquents → réimport de `produits.csv` → activation des nouveaux articles.
-- **Fusionné et déployé le 2026-10-06** (PR #31 à #35). ~~Importer `produits.csv` puis rapprocher le catalogue~~
-  (remplacé par le lot T) ; essais
-  sur DEMO : matrice des droits et verrous (Utilisateurs > Droits), corrections à l'attachement (fuites N° 9, 10, 18),
-  travaux hors bordereau, seuil du PE (Paramètres > Marché).
-- **Lot R, réponses d'Issam du 2026-10-06 appliquées** : corrections du bureau selon leur nature (remplacement, oubli,
-  retrait), pas de délai, seuil du PE réglable par marché. **Confirmé le 2026-10-06** : le responsable qui recopie une
-  fiche papier est l'auteur de la réparation, ses pièces restent « terrain » même plus tard. **Lot APK à prévoir** : afficher
-  sur la tablette les pièces remplacées ou retirées (barrées) avec la nature et le motif des corrections.
-- ~~Défaut antérieur~~ **corrigé le 2026-10-06** (migration `20261006110000`) : `private.peut(…)` renvoyait `null` et non
-  `false` quand l'auteur d'une saisie était inconnu ; `avant_modification_saisie` ne bloquait donc pas un agent « les
-  siennes » sur une saisie sans auteur.
-- **Questions du lot P1** : « BU » = « BIYOU » ? « ASTOR » traité comme une marque ? 6 libellés en double dans les
-  familles RAC à VRI à corriger dans Dolibarr.
-- **Dans Dolibarr** (relevé par l'export) : bons 6804 et 6814 arrivés dans l'entrepôt 76 mais rattachés au projet 30
-  (entretien) ; bon 6796 du 2026-10-02 resté en brouillon (8 produits) ; la pose n'est pas saisie (aucune
-  « consommation pour le projet » sur l'entrepôt 76) : à décider avec le magasinier.
-- **Corriger l'export de la sauvegarde** (lot à lancer, `sauvegarde-base.yml` + `supabase/README.md`) : exclure
-  `storage.buckets_vectors` et `storage.vector_indexes`, supprimer le doublon `donnees_auth.sql`, sauvegarder aussi le
-  déclencheur `creer_profil_apres_inscription` et les règles de `storage.objects` ; le test du lot K doit alors passer
-  sans contournement. D'ici là, la restauration se fait à la main (`supabase/README.md` § Sauvegarde et restauration).
-- **Essais des lots K, L, M** (fusionnés) : lot M en mode avion sur la tablette (fiche déjà vue, photos).
-- **Essais en production des lots F à J**, fusionnés : logos (Paramètres > Marché), carte imprimée, tableau de bord,
-  marché désactivé ; APK du lot H (artefact de la compilation sur `main`).
-- **Photos sur R2 (lot N)** : code prêt (PR lot N) ; R2 Paid actif depuis le 2026-10-06 (carte enregistrée).
-  **À faire par Issam** : compartiment privé `suivi-fuites-photos`, CORS, jeton Object Read & Write, essai
-  `node scripts/essai-r2.mjs` avec ses clés, puis secrets GitHub et « Run workflow » du déploiement
-  (`docs/feuille-de-route.md` § 3, étapes 1 à 6). Tant que les secrets manquent, les photos restent sur Supabase.
-
-Fournir les **logos** STEPAG et SRM (PNG de préférence) et confirmer le droit d'usage du logo SRM.
-Questions : tableau de bord (page d'accueil du responsable ? délais en heures ou jours ? date de réparation =
-dernière réparation ou passage à « achevée » ? comparaison avec la période précédente ? export PDF ?) ;
-gabarit de la carte imprimée (visas, Lambert Nord Maroc en plus du WGS84, n° de planche, A3 ou échelle imposés).
-
-0. **Essais sur le marché DEMO** (sélecteur en haut du panneau) : lot d'attachement de septembre
-   (« + Nouveau lot », date au 30/09, cocher la régularisation de la fuite N° 2 et la réfection de la
-   N° 3, réfection anticipée sur la N° 10), exports, alertes. Pour essayer l'APK sur DEMO, affecter un
-   agent au marché DEMO (Utilisateurs). **Après les essais** : désactiver le marché DEMO.
-   Dans le marché SRM : **Paramètres > Marché**, relire la fiche et compléter téléphones et e-mails.
-1. **Test sur la tablette Samsung** (Chrome, « Ajouter à l'écran d'accueil ») : signaler une fuite avec GPS et photo, saisir réparation et réfection, vérifier les prix de la fiche. Noter tout ce qui gêne (boutons, étapes, champs manquants, lenteur, réseau).
-2. **Plan du réseau `Reseau aep oujda.dwg`** : sera transmis plus tard. Voir § 4.
-3. **Relecture** des libellés arabes (motifs, natures de réfection) et du découpage des 34 secteurs.
-4. ~~Sauvegarde nocturne~~ **active depuis le 2026-10-05** : secret `SAUVEGARDE_PASSPHRASE` créé par Issam (phrase
-   dans son gestionnaire de mots de passe), deux exécutions manuelles réussies à 16 h 05 UTC (runs 37337525271 et
-   37337615644, archive chiffrée de 155 Ko, contenu contrôlé par le workflow : schéma, `marches`, comptes). Test de
-   restauration : lot K (PR #27), vert, mais **trois défauts de l'export** à corriger (voir la priorité ci-dessus). Historique : elle **échouait chaque nuit** (constaté le 2026-10-05 à
-   02 h 30 : « Secret SAUVEGARDE_PASSPHRASE manquant dans GitHub »), donc **aucune sauvegarde n'existe**.
-   Créer le secret GitHub `SAUVEGARDE_PASSPHRASE` (phrase secrète rangée dans le gestionnaire de mots de
-   passe ; Settings > Secrets and variables > Actions), puis lancer « Sauvegarde de la base » à la main et
-   vérifier l'artefact. **Ensuite** (demande d'Issam du 2026-10-05) : copie de la sauvegarde hors de GitHub
-   (Gmail ou autre), restaurable à tout moment, **photos comprises** ; stockage et destination à décider
-   (voir `docs/feuille-de-route.md` § 4, point 10).
-5. **Secret GitHub `EXPO_PUBLIC_SUPABASE_ANON_KEY`** : **créé le 2026-10-04** ; la compilation APK n° 13 sur `main`
-   (run 37241834456) l'a bien prise, artefact `suivi-fuites-apk` disponible jusqu'au 18/10/2026 : APK connectable.
-   Reste : l'installer sur la tablette (sources inconnues autorisées, batterie « Non restreinte ») et le tester
-   (avec le lot A une fois fusionné : fiche, réparation, réfection, hors ligne), puis le keystore de production.
-6. **Keystore de production** de l'APK : à créer hors du dépôt, en deux copies, avant toute distribution (l'APK actuel est signé avec la clé de test d'Expo).
-7. Faits : inscriptions publiques désactivées, fournisseur e-mail réglé, projet Vercel créé, premier agent créé.
+**Hors de cette liste, reporté.** X8 : envoi automatique Dolibarr → Supabase (tâche planifiée côté Dolibarr qui pousse vers une fonction Supabase protégée ;
+`importer_mouvements_dolibarr` est prête en `service_role`). V4 « photo obligatoire » réglable par marché et par étape (pas de colonne en base).
+Mesures de débit et pénalités de performance (§ 4).
 
 ## 3. Décisions prises (à respecter)
 
@@ -321,6 +216,11 @@ Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donne
 
 ## 5. Prochaines étapes proposées
 
+**Après le chantier v2 (2026-10-09)**, par ordre : (1) régler la facturation GitHub et les secrets Firebase (§ 2) ; (2) installer l'APK de
+`main` sur la tablette et dérouler le parcours terrain ; (3) corriger selon les retours ; (4) X8, l'envoi automatique Dolibarr ;
+(5) mesures de débit et pénalités de performance ; (6) V4 « photo obligatoire » par marché et par étape si la SRM l'exige.
+Le reste de ce paragraphe est l'historique des sessions 5 à 8 (plusieurs points sont faits, voir § 10).
+
 **Fait en session 5** : lots F (logos), G (impression de la carte), H (tablette), I (tableau de bord),
 J (marché désactivé en lecture seule) ; **fusionnés et déployés en session 6**.
 
@@ -364,18 +264,15 @@ passer une session **locale** sur le Mac avec aperçu navigateur ; tout le reste
 ## 6. Prompt pour démarrer une nouvelle session
 
 ```text
-Lis CLAUDE.md, docs/etat-avancement.md, supabase/README.md, web/README.md et mobile/README.md.
-Lis aussi web/MAQUETTE-SHADCN.md (interface Studio Admin) et docs/lots/lot-articles-dolibarr.md.
-Contexte : tout jusqu'à la PR #50 est fusionné et déployé, sauf la #40 (photos R2, migration à renuméroter) :
-interface « Studio Admin » (panneau et APK), lots S et T, APK en trois langues, essai de charge (§ 8), plan recalé
-et codes de secteur courts (§ 7). Vérifie qu'Issam a importé produits.csv et activé des articles (Paramètres > Articles), et où en est
-l'import du réseau en production (§ 7). Ensuite : corriger l'export de la sauvegarde (3 défauts, § 2), puis relancer
-les lots P3 et P4 sur le modèle du lot T (migrations après 20261006140000), voir § 5 et docs/feuille-de-route.md.
-Pour vérifier l'interface sans compte : NEXT_PUBLIC_MODE_DEMO=1 (mode démonstration, jamais sur Vercel).
-Objectif de cette session : [à préciser : corriger les retours du premier test, puis la prochaine
-fonctionnalité].
-Travaille en français, sur une branche dédiée avec une PR en brouillon ; ne touche pas au projet
-Supabase de production sans mon accord explicite ; aucun secret dans le dépôt ni dans le chat.
+Lis CLAUDE.md, docs/etat-avancement.md (§ 2 et § 10), supabase/README.md, web/README.md et mobile/README.md.
+Lis aussi docs/lots/chantier-v2.md et docs/lots/chantier-v2-audit-s8.md (ce qui est livré, partiel, reporté).
+Contexte : le chantier v2 est entièrement fusionné dans main et déployé (PR #59 à #70, migrations jusqu'à 20261011900000).
+Reste à Issam : facturation GitHub (dépôt privé), secrets Firebase, clé Esri, tuiles du réseau, essai sur tablette (§ 2).
+Avant de commencer : gh pr list --state all --limit 20 et git worktree list (sessions parallèles), puis vérifie la CI de main.
+Objectif de cette session : [à préciser : retours du test sur tablette, X8 envoi automatique Dolibarr, V4, ou autre].
+Pour vérifier l'interface sans compte : NEXT_PUBLIC_MODE_DEMO=1 (jamais sur Vercel).
+Travaille en français, sur une branche dédiée avec une PR ; ne touche pas au projet Supabase de production hors déploiement
+automatique ; aucun secret dans le dépôt ni dans le chat ; ne touche pas au keystore.
 Mets à jour docs/etat-avancement.md en fin de session.
 ```
 
@@ -472,3 +369,31 @@ d'attente ; puis la CI de chaque PR. Seuls conflits : en-tête de ce fichier, et
 (`mobile/src/ecrans.tsx`) entre les langues (#45, `t()`) et la liste au repos (#48, chargement discret) : les deux gardés.
 Relecture arabe : les 323 réponses de l'artefact sont identiques à `docs/traduction/revues-issam.json`.
 
+## 10. Chantier v2 (2026-10-08 et 2026-10-09) : circuit de validation, saisie terrain, notifications, comptes, cartes
+
+Cadrage : `docs/lots/chantier-v2.md` (tâches R, V, F, P, A, N, L, C, X ; réponses d'Issam § 6). Audit de S8 :
+`docs/lots/chantier-v2-audit-s8.md` (tableau fait / partiel / manquant, vérifications rejouées).
+
+| Session | PR | Contenu |
+|---|---|---|
+| S0 | [#59](https://github.com/stepag-app/suivi-fuites/pull/59) | plan du chantier |
+| S4 | [#60](https://github.com/stepag-app/suivi-fuites/pull/60) | X1 : export de sauvegarde corrigé, copie R2, fichiers Storage, restauration sans contournement |
+| S1, S2 | [#62](https://github.com/stepag-app/suivi-fuites/pull/62), [#61](https://github.com/stepag-app/suivi-fuites/pull/61) | base : rôle Réfection, comptes, validation par étape, notifications ; référentiels terrain, rues OSM, suggestions, non réparée, anticipation |
+| S9 | [#63](https://github.com/stepag-app/suivi-fuites/pull/63) | X3 : inventaire des fournitures posées, rapprochement Dolibarr |
+| S3 | [#64](https://github.com/stepag-app/suivi-fuites/pull/64) | listes, tableau de bord, Droits, exports à rubriques |
+| (#65) | [#65](https://github.com/stepag-app/suivi-fuites/pull/65) | champs obligatoires suspendus (provisoire, rétablis par S8) |
+| S6, S5 | [#66](https://github.com/stepag-app/suivi-fuites/pull/66), [#68](https://github.com/stepag-app/suivi-fuites/pull/68) | comptes, cloche, anticipation ; À valider, fiche par étape, formulaires |
+| S7 | [#67](https://github.com/stepag-app/suivi-fuites/pull/67) | APK : saisie séquentielle, validation, suggestions, push, mise à jour, 121 libellés arabes |
+| S10 | [#69](https://github.com/stepag-app/suivi-fuites/pull/69) | réseau en tuiles vectorielles privées, balayage plein écran, satellite, mini-carte |
+| S11 | [#70](https://github.com/stepag-app/suivi-fuites/pull/70) | X6 : suivi GPS en arrière-plan, un tracé par agent et par jour |
+| S8 | (cette PR) | audit, scripts recalés, champs obligatoires rétablis (`20261011900000`), documentation |
+
+**Vérifié par S8 (2026-10-09)** : 1 055 vérifications pgTAP (PostgreSQL 17), `tsc` et `build` du panneau, 16 scripts web, `tsc` et
+4 essais sans pile de l'APK (180 vérifications), dictionnaire arabe complet, CI de `main` verte (y compris « Déploiement de la base »).
+**Non rejoué** : le parcours sur l'émulateur (arrêté) ; l'APK de la CI de `main` (artefact `suivi-fuites-apk`, 22,7 Mo) reste à installer.
+
+**Écarts relevés (même mineurs)** : (1) champs obligatoires de la fuite vides en production pour SRM et DEMO depuis la #65 → rétablis par S8 ;
+(2) `verifier-matrice-droits.mjs` en échec sur `main` (hors CI) → recalé ; (3) V4 « photo obligatoire » sans réglage en base ; (4) R7 : les
+corrections de champs restent visibles du terrain, seules les pièces du bureau sont masquées ; (5) push et satellite inactifs faute de
+secrets / clé ; (6) ce fichier décrivait la PR #40 comme ouverte et les PR APK #56 à #58 comme à fusionner alors qu'elles sont fusionnées ;
+(7) copies de travail P3 / P4 (`.claude/worktrees/agent-a717…`, `agent-a3be…`) toujours présentes : à supprimer par Issam.

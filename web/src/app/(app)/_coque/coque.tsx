@@ -48,7 +48,7 @@ export function Coque({ children, defaultOpen, variant, collapsible }: {
   const accesContenu = marche || (admin && chemin.startsWith("/marches"));
 
   return (
-    <SidebarProvider defaultOpen={defaultOpen} style={{ "--sidebar-width": "calc(var(--spacing) * 58)" } as React.CSSProperties}>
+    <SidebarProvider defaultOpen={defaultOpen} style={{ "--sidebar-width": "calc(var(--spacing) * 52)" } as React.CSSProperties}>
       <AppSidebar
         variant={variant} collapsible={collapsible} groupes={groupes} peutCreer={peut("fuites", "creer")}
         nom={nom} identifiant={identifiant} admin={admin} deconnecter={deconnecter}

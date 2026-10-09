@@ -111,18 +111,22 @@ export async function telechargerRapportBalayage(
 ): Promise<{ fichiers: number; nonAttribuees: number }> {
   const { du, au } = periode.du <= periode.au ? periode : { du: periode.au, au: periode.du };
   const sb = getSupabase();
-  const [{ chargerContexteRapport }, rj, { telecharger }] = await Promise.all([
+  const [{ chargerContexteRapport }, rj, { telecharger }, { chargerMatricules }] = await Promise.all([
     import('@/lib/export/rapport-fuite'), import('@/lib/export/rapport-journalier'), import('@/lib/export/modele'),
+    import('@/lib/export/matricules'),
   ]);
-  const [ctx, l, f] = await Promise.all([
+  const [ctx, l, f, matricules] = await Promise.all([
     chargerContexteRapport(marcheId, false),
     sb.from('v_balayage_journalier').select('*').eq('marche_id', marcheId).gte('date_balayage', du).lte('date_balayage', au),
     sb.from('v_fuites_export').select(COLONNES_FUITES).eq('marche_id', marcheId).gte('jour_detection', du).lte('jour_detection', au).order('numero'),
+    chargerMatricules(marcheId),
   ]);
   if (l.error) throw l.error;
   if (f.error) throw f.error;
+  // R4 : agents désignés par leur matricule dans le rapport
   const lignes = ((l.data as LigneVueJournalier[] | null) ?? [])
-    .filter((x) => (!filtres.equipe || x.equipe_id === filtres.equipe) && (!filtres.secteur || x.secteur_id === filtres.secteur));
+    .filter((x) => (!filtres.equipe || x.equipe_id === filtres.equipe) && (!filtres.secteur || x.secteur_id === filtres.secteur))
+    .map((x) => ({ ...x, agent: matricules.agent(x.agent_id, x.agent) }));
   const fuites = ((f.data as FuiteJour[] | null) ?? [])
     .filter((x) => (!filtres.equipe || x.equipe_id === filtres.equipe) && (!filtres.secteur || x.secteur_id === filtres.secteur));
   if (lignes.length === 0) throw new Error(du === au ? 'Aucun balayage ce jour-là.' : 'Aucun balayage sur la période choisie.');

@@ -128,7 +128,7 @@ export function OngletAttachement({ marcheId, modifiable }: { marcheId: string; 
       </div>
       <label className="ligne">
         <input type="checkbox" checked={saisie.refection_anticipee} disabled={!modifiable} onChange={(e) => maj({ refection_anticipee: e.target.checked })} />
-        Autoriser l&apos;attachement d&apos;une réfection avant son exécution (avec l&apos;accord du maître d&apos;ouvrage)
+        Le maître d&apos;ouvrage accepte l&apos;attachement par anticipation (articles du panier, cochés « Anticipable » dans Bordereau)
       </label>
       <label className="ligne">
         <input type="checkbox" checked={saisie.verrouiller_a_l_arret} disabled={!modifiable} onChange={(e) => maj({ verrouiller_a_l_arret: e.target.checked })} />

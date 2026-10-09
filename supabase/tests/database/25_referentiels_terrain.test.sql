@@ -173,9 +173,8 @@ select lives_ok($$ insert into reparations (marche_id, fuite_id, resultat) value
 -- -----------------------------------------------------------------------------
 -- 5. F1, F2, F4 : nouveaux champs et champs obligatoires
 -- -----------------------------------------------------------------------------
-select is((select champs_obligatoires_fuite from marches where code = 'SRM-4500004453'),
-  array['reference_srm', 'secteur_id', 'ouvrage', 'visibilite', 'nature_degradation_id'],
-  'SRM : tournée, secteur, ouvrage, visibilité et nature de dégradation obligatoires');
+select is((select champs_obligatoires_fuite from marches where code = 'SRM-4500004453'), '{}'::text[],
+  'SRM : champs obligatoires suspendus jusqu''aux formulaires de la vague 2 (20261010200000)');
 select is((select champs_obligatoires_fuite from marches where id = 'aaaaaaaa-0000-0000-0000-000000000001'), '{}'::text[],
   'nouveau marché sans copie : aucun champ obligatoire par défaut');
 
@@ -226,6 +225,8 @@ create temporary table t_ids (cle text primary key, id uuid);
 grant select, insert on t_ids to authenticated;
 update prix set anticipable = false
  where marche_id = (select id from marches where code = 'SRM-4500004453') and numero = '5';
+update marches set champs_obligatoires_fuite = array['reference_srm', 'secteur_id', 'ouvrage', 'visibilite', 'nature_degradation_id']
+ where code = 'SRM-4500004453';
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated"}', true);
 insert into t_ids values ('copie', copier_marche((select id from marches where code = 'SRM-4500004453'), 'COPIE-S2', '9', 'Copie S2'));

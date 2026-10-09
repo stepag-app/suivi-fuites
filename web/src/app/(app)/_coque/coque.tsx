@@ -13,6 +13,7 @@ import { DOMAINE_AGENTS, MODE_DEMO } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "./app-sidebar";
 import { BasculeTheme } from "./bascule-theme";
+import { Cloche } from "./cloche";
 import { ControlesAffichage } from "./controles-affichage";
 import { elementsNav } from "./elements-nav";
 import { MenuCompte } from "./menu-compte";
@@ -76,6 +77,7 @@ export function Coque({ children, defaultOpen, variant, collapsible }: {
             </div>
             <div className="flex items-center gap-2">
               <SelecteurMarche marches={marches} marche={marche} choisir={choisirMarche} admin={admin} />
+              <Cloche moi={session.user.id} marches={marches} />
               <ControlesAffichage />
               <BasculeTheme />
               <MenuCompte nom={nom} identifiant={identifiant} admin={admin} deconnecter={deconnecter} />

@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import { Camera, ExternalLink, FileText, MapPinned, MoreHorizontal, Navigation } from "lucide-react";
-import { BadgeStatut, BadgesAlertes } from "@/components/statut";
+import { BadgeAnticipe, BadgeStatut, BadgesAlertes } from "@/components/statut";
+import type { FuiteAnticipee } from "@/lib/anticipation";
 import { EnTeteTriable } from "@/components/tableau/outils-tableau";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,8 @@ export const LIBELLES_COLONNES: Record<string, string> = {
   statut: "Statut", alertes: "Alertes", nb_photos: "Photos",
 };
 
-export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: FuiteListe) => void; peutRapport: boolean }): ColumnDef<FuiteListe>[] {
+export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: FuiteListe) => void; peutRapport: boolean },
+  anticipees?: Map<string, FuiteAnticipee>): ColumnDef<FuiteListe>[] {
   return [
     {
       id: "select",
@@ -88,7 +90,13 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
     {
       accessorKey: "statut",
       header: "Statut",
-      cell: ({ row }) => <BadgeStatut statut={row.original.statut} court />,
+      meta: { classe: "whitespace-normal" },
+      cell: ({ row }) => (
+        <span className="flex flex-wrap items-center gap-1">
+          <BadgeStatut statut={row.original.statut} court />
+          {anticipees?.has(row.original.id) && <BadgeAnticipe lot={anticipees.get(row.original.id)?.premier_lot} />}
+        </span>
+      ),
     },
     {
       id: "alertes",

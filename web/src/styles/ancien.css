@@ -92,6 +92,17 @@
   }
   .ancien .etiquette-alerte { @apply bg-destructive/10 text-destructive; }
   .ancien .etiquette.symbole { @apply ml-0 min-w-9 justify-center; }
+  /* Attachement par anticipation (A1) : couleur propre, distincte des régularisations et des alertes */
+  .ancien .etiquette-anticipe { @apply bg-violet-500/10 text-violet-700 dark:text-violet-300; }
+  .ancien .carte.propositions-anticipees {
+    @apply border-l-4 border-violet-500 bg-violet-50 ring-violet-200 dark:border-violet-400 dark:bg-violet-950/50 dark:ring-violet-900;
+  }
+  .ancien .propositions-anticipees h2 { @apply text-violet-800 dark:text-violet-200; }
+  .ancien .propositions-anticipees tbody tr:hover { @apply bg-violet-100/70 dark:bg-violet-900/30; }
+  /* Même chaîne de :not() que la règle générale des champs, pour la surcharger */
+  .ancien .propositions-anticipees input.quantite:not([data-slot]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]) {
+    @apply mt-0 inline-block w-24 text-right tabular-nums;
+  }
 
   /* Statuts : texte coloré précédé d'un point */
   .ancien .badge, .maplibregl-popup .badge {

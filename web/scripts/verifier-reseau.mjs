@@ -448,6 +448,11 @@ ok('préparation des balayages : une ligne par tronçon, uuid créé sur l\'appa
   assert.deepEqual([sans[0].equipe_id, sans[0].methode, sans[0].observation, sans[0].source_saisie], [null, null, null, 'tablette']);
   assert.throws(() => balayage.preparerBalayages(['t1'], { marcheId: 'm1', equipeId: null, dateBalayage: '06/10/2026', methode: null, observation: null }), /Date/);
   assert.equal(balayage.preparerBalayages([], { marcheId: 'm1', equipeId: null, dateBalayage: '2026-10-06', methode: null, observation: null }).length, 0);
+  // Second passage : motif sur les seuls tronçons déjà balayés.
+  const rep = balayage.preparerBalayages(['t1', 't2'], { marcheId: 'm1', equipeId: null, dateBalayage: '2026-10-06', methode: null, observation: null, motifRepasse: 'fuite_suspectee' },
+    () => uuid(++i), new Set(['t2']));
+  assert.deepEqual([rep[0].motif_repasse, rep[1].motif_repasse], [undefined, 'fuite_suspectee']);
+  assert.equal(balayage.MOTIFS_REPASSE.map((m) => m.valeur).join(','), 'fuite_suspectee,controle,autre');
 });
 
 ok('mise en file d\'un envoi « balayage » : identifiant et marché à part, colonnes dans `ligne`', () => {

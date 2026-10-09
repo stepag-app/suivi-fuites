@@ -9,6 +9,13 @@ export const METHODES: { valeur: MethodeBalayage; libelle: string }[] = [
   { valeur: 'enregistreurs', libelle: 'Enregistreurs de bruit' },
 ];
 
+export type MotifRepasse = 'fuite_suspectee' | 'controle' | 'autre';
+export const MOTIFS_REPASSE: { valeur: MotifRepasse; libelle: string }[] = [
+  { valeur: 'fuite_suspectee', libelle: 'Fuite suspectée' },
+  { valeur: 'controle', libelle: 'Contrôle' },
+  { valeur: 'autre', libelle: 'Autre (voir observation)' },
+];
+
 export interface ChoixBalayage {
   marcheId: string;
   equipeId: string | null;
@@ -16,6 +23,8 @@ export interface ChoixBalayage {
   methode: MethodeBalayage | null;
   observation: string | null;
   sourceSaisie?: 'tablette' | 'web';
+  /** Motif des seconds passages (tronçons de `dejaBalayes`), confirmé par l'agent. */
+  motifRepasse?: MotifRepasse | null;
 }
 
 export interface LigneBalayageEnvoi {
@@ -27,18 +36,23 @@ export interface LigneBalayageEnvoi {
   methode: MethodeBalayage | null;
   observation: string | null;
   source_saisie: 'tablette' | 'web';
+  /** Seulement pour un second passage : absent sinon (envois en attente d'avant la colonne inchangés). */
+  motif_repasse?: MotifRepasse;
 }
 
 export const CLE_EQUIPE_MEMORISEE = 'suivi-fuites:balayage:equipe';
 
 /** Une ligne par tronçon sélectionné, identifiant uuid créé ici (renvoyer deux fois ne crée pas de doublon). */
-export function preparerBalayages(tronconIds: Iterable<string>, choix: ChoixBalayage, uuid: () => string = () => crypto.randomUUID()): LigneBalayageEnvoi[] {
+export function preparerBalayages(
+  tronconIds: Iterable<string>, choix: ChoixBalayage, uuid: () => string = () => crypto.randomUUID(), dejaBalayes: ReadonlySet<string> = new Set(),
+): LigneBalayageEnvoi[] {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(choix.dateBalayage)) throw new Error('Date de balayage invalide.');
   const vus = new Set<string>();
   const lignes: LigneBalayageEnvoi[] = [];
   for (const troncon of tronconIds) {
     if (!troncon || vus.has(troncon)) continue;
     vus.add(troncon);
+    const motif = dejaBalayes.has(troncon) ? choix.motifRepasse : null;
     lignes.push({
       id: uuid(),
       marche_id: choix.marcheId,
@@ -48,6 +62,7 @@ export function preparerBalayages(tronconIds: Iterable<string>, choix: ChoixBala
       methode: choix.methode || null,
       observation: choix.observation?.trim() || null,
       source_saisie: choix.sourceSaisie ?? 'web',
+      ...(motif ? { motif_repasse: motif } : {}),
     });
   }
   return lignes;

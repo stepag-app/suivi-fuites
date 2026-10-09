@@ -5,7 +5,7 @@
 // cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente).
 import { useEffect, useState } from 'react';
 import { basculerZone, etatCaseZone, totauxChoisis, tousLesSecteurs } from '@/lib/reseau/arbre';
-import { CLE_EQUIPE_MEMORISEE, METHODES, aujourdhuiMaroc, type ChoixBalayage } from '@/lib/reseau/balayage';
+import { CLE_EQUIPE_MEMORISEE, METHODES, MOTIFS_REPASSE, aujourdhuiMaroc, type ChoixBalayage, type MotifRepasse } from '@/lib/reseau/balayage';
 import { compterEtats } from '@/lib/reseau/etat';
 import { COULEUR_NON_ZONE, TYPES_NOEUD, classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import { formaterLineaire } from '@/lib/reseau/selection';
@@ -23,6 +23,8 @@ export interface BalayagePanneau {
   basculer: () => void;
   selection: Set<string>;
   lineaire: number;
+  /** Tronçons de la sélection déjà balayés : seconds passages, motif à confirmer. */
+  dejaBalayes: Set<string>;
   vider: () => void;
   enregistrer: (choix: Omit<ChoixBalayage, 'marcheId'>) => Promise<void>;
   occupe: boolean;
@@ -212,6 +214,7 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
   const [date, setDate] = useState(() => aujourdhuiMaroc());
   const [methode, setMethode] = useState<MethodeBalayage | ''>('');
   const [observation, setObservation] = useState('');
+  const [motifRepasse, setMotifRepasse] = useState<MotifRepasse | ''>('');
   const detection = equipes.filter((e) => e.actif && e.type !== 'reparation');
 
   // Dernière équipe choisie, mémorisée sur l'appareil.
@@ -237,6 +240,7 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
   };
 
   const n = balayage.selection.size;
+  const repasses = balayage.dejaBalayes.size;
   return (
     <section className={styles.balayage} aria-label="Mode balayage">
       <button type="button" className={`gros ${styles['bouton-panneau']}`} aria-pressed={balayage.actif} onClick={balayage.basculer}>
@@ -273,10 +277,25 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
             Observation (facultative)
             <input value={observation} maxLength={300} onChange={(e) => setObservation(e.target.value)} />
           </label>
+          {repasses > 0 && (
+            <div className={styles.avertissementRepasse} role="alert">
+              <p>
+                <strong>{nombre(repasses, 0)} tronçon{repasses > 1 ? 's' : ''} déjà balayé{repasses > 1 ? 's' : ''}</strong> : enregistré{repasses > 1 ? 's' : ''} comme
+                second passage (gardé dans l&apos;historique, compté à part, jamais payé deux fois).
+              </p>
+              <label>
+                Motif du second passage
+                <select value={motifRepasse} onChange={(e) => setMotifRepasse(e.target.value as MotifRepasse | '')}>
+                  <option value="">— à choisir —</option>
+                  {MOTIFS_REPASSE.map((m) => <option key={m.valeur} value={m.valeur}>{m.libelle}</option>)}
+                </select>
+              </label>
+            </div>
+          )}
           {balayage.message && <p className={balayage.message.startsWith('Erreur') ? 'erreur' : 'info'} role="status">{balayage.message}</p>}
           <div className="actions">
-            <button className="primaire gros" disabled={n === 0 || balayage.occupe || !/^\d{4}-\d{2}-\d{2}$/.test(date)}
-              onClick={() => balayage.enregistrer({ equipeId: equipe || null, dateBalayage: date, methode: methode || null, observation: observation || null })}>
+            <button className="primaire gros" disabled={n === 0 || balayage.occupe || !/^\d{4}-\d{2}-\d{2}$/.test(date) || (repasses > 0 && !motifRepasse)}
+              onClick={() => balayage.enregistrer({ equipeId: equipe || null, dateBalayage: date, methode: methode || null, observation: observation || null, motifRepasse: motifRepasse || null })}>
               {balayage.occupe ? 'Enregistrement…' : `Enregistrer ${n > 0 ? `(${n})` : ''}`}
             </button>
             <button type="button" disabled={n === 0 || balayage.occupe} onClick={balayage.vider}>Vider la sélection</button>

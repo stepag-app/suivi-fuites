@@ -11,7 +11,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(113);
+select plan(116);
 
 -- -----------------------------------------------------------------------------
 -- Jeu d'essai : a = admin, b = détection A, c = chef réparation A,
@@ -288,28 +288,32 @@ select is((select statut_balayage::text from secteurs where id = 'aaaaaaaa-3333-
 select lives_ok($$ insert into balayages (id, marche_id, troncon_id, equipe_id, balaye_le) values
   ('aaaaaaaa-8888-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', (select id from t_ids where cle = 'T1'),
    'aaaaaaaa-7777-0000-0000-000000000001', now() - interval '1 hour') $$,
-  'détection : second balayage de T1 envoyé sans erreur (file hors ligne)');
-select is((select count(*)::int from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000002'), 0,
-  'second balayage de T1 ignoré : un tronçon ne se balaie qu''une fois');
-select throws_ok($$ update balayages set observation = 'x' where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
-  '23514', null, 'un balayage ne se modifie pas');
-select throws_ok($$ update balayages set annule_le = now() where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
-  '23514', 'Motif d''annulation obligatoire', 'annulation sans motif refusée');
-select lives_ok($$ update balayages set annule_le = now(), motif_annulation = 'Erreur de tronçon'
-                    where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
-  'détection : annule son propre balayage');
-select results_eq($$ select annule_par::text, premier_passage from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
-  $$ values ('00000000-0000-0000-0000-00000000000b', false) $$, 'annulation : auteur enregistré');
-select throws_ok($$ update balayages set annule_le = null, motif_annulation = null where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
-  '23514', 'Ce balayage est déjà annulé', 'un balayage annulé ne se rétablit pas');
+  'détection : second passage sur T1');
+select is((select premier_passage from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000002'), false,
+  'second passage : premier_passage faux');
+select throws_ok($$ insert into balayages (marche_id, troncon_id, motif_repasse) values
+  ('aaaaaaaa-0000-0000-0000-000000000001', (select id from t_ids where cle = 'T1'), 'pour voir') $$,
+  '23514', null, 'motif de second passage hors liste refusé');
 select lives_ok($$ insert into balayages (id, marche_id, troncon_id, equipe_id, balaye_le) values
   ('aaaaaaaa-8888-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001', (select id from t_ids where cle = 'T1'),
-   'aaaaaaaa-7777-0000-0000-000000000001', now() - interval '30 minutes') $$,
-  'détection : T1 se balaie de nouveau après l''annulation');
+   'aaaaaaaa-7777-0000-0000-000000000001', now() - interval '3 hours') $$,
+  'détection : balayage plus ancien synchronisé après coup');
 select results_eq($$ select id::text, premier_passage from balayages
-                      where troncon_id = (select id from t_ids where cle = 'T1') and annule_le is null $$,
-  $$ values ('aaaaaaaa-8888-0000-0000-000000000003', true) $$,
-  'T1 : un seul balayage actif, premier passage');
+                      where troncon_id = (select id from t_ids where cle = 'T1') order by balaye_le $$,
+  $$ values ('aaaaaaaa-8888-0000-0000-000000000003', true), ('aaaaaaaa-8888-0000-0000-000000000001', false),
+            ('aaaaaaaa-8888-0000-0000-000000000002', false) $$,
+  'premier_passage recalculé : le plus ancien balayage non annulé');
+select throws_ok($$ update balayages set observation = 'x' where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
+  '23514', null, 'un balayage ne se modifie pas');
+select throws_ok($$ update balayages set annule_le = now() where id = 'aaaaaaaa-8888-0000-0000-000000000002' $$,
+  '23514', 'Motif d''annulation obligatoire', 'annulation sans motif refusée');
+select lives_ok($$ update balayages set annule_le = now(), motif_annulation = 'Erreur de tronçon'
+                    where id = 'aaaaaaaa-8888-0000-0000-000000000002' $$,
+  'détection : annule son propre balayage');
+select results_eq($$ select annule_par::text, premier_passage from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000002' $$,
+  $$ values ('00000000-0000-0000-0000-00000000000b', false) $$, 'annulation : auteur enregistré');
+select throws_ok($$ update balayages set annule_le = null, motif_annulation = null where id = 'aaaaaaaa-8888-0000-0000-000000000002' $$,
+  '23514', 'Ce balayage est déjà annulé', 'un balayage annulé ne se rétablit pas');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 select lives_ok($$ insert into balayages (id, marche_id, troncon_id, equipe_id) values
@@ -330,9 +334,9 @@ select throws_ok($$ update balayages set annule_le = now(), motif_annulation = '
 select lives_ok($$ insert into balayages (id, marche_id, troncon_id, equipe_id) values
   ('aaaaaaaa-8888-0000-0000-000000000007', 'aaaaaaaa-0000-0000-0000-000000000001', (select id from t_ids where cle = 'T5'),
    'aaaaaaaa-7777-0000-0000-000000000001') $$,
-  'détection : repasse sur T5, envoyée sans erreur');
-select is((select count(*)::int from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000007'), 0,
-  'repasse sur T5 ignorée : le balayage du responsable fait foi');
+  'détection : repasse sur T5');
+select is((select premier_passage from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000007'), false,
+  'repassage : premier_passage faux');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select throws_ok($$ insert into balayages (marche_id, troncon_id) values
@@ -345,6 +349,11 @@ select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000
 select lives_ok($$ update balayages set annule_le = now(), motif_annulation = 'Doublon'
                     where id = 'aaaaaaaa-8888-0000-0000-000000000003' $$,
   'responsable (toutes) : annule le balayage de l''agent');
+select is((select premier_passage from balayages where id = 'aaaaaaaa-8888-0000-0000-000000000001'), true,
+  'premier_passage recalculé après annulation : le suivant devient premier');
+select lives_ok($$ update balayages set annule_le = now(), motif_annulation = 'Doublon'
+                    where id = 'aaaaaaaa-8888-0000-0000-000000000001' $$,
+  'responsable : annule le dernier balayage de T1');
 select is((select statut_balayage::text from secteurs where id = 'aaaaaaaa-3333-0000-0000-000000000001'), 'a_balayer',
   'secteur S1 : plus aucun balayage → à balayer');
 reset role;
@@ -354,7 +363,7 @@ select ok(exists (select 1 from journal where table_nom = 'balayages' and operat
                     and utilisateur_id = '00000000-0000-0000-0000-00000000000d'
                     and changements ->> 'motif_annulation' = 'Doublon'),
   'journal : annulation tracée au nom du responsable, avec le motif');
-select is((select count(*)::int from journal where table_nom = 'balayages'), 2,
+select is((select count(*)::int from journal where table_nom = 'balayages'), 3,
   'journal : une entrée par annulation, aucune par balayage');
 
 -- -----------------------------------------------------------------------------
@@ -367,8 +376,8 @@ select results_eq($$ select premier_le = (now() at time zone 'Africa/Casablanca'
                             nb_passages, equipe_id::text, agent_id::text
                       from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001')
                      where troncon_id = (select id from t_ids where cle = 'T5') $$,
-  $$ values (true, true, 1, 'aaaaaaaa-7777-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000d') $$,
-  'etat_balayage : un seul passage sur T5 (responsable), sa repasse ayant été ignorée');
+  $$ values (true, true, 2, 'aaaaaaaa-7777-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b') $$,
+  'etat_balayage : deux passages sur T5 (responsable puis agent), équipe et agent du dernier passage');
 select results_eq($$ select (select count(*)::int from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001')),
                             (select count(*)::int from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001',
                                array['aaaaaaaa-3333-0000-0000-000000000001']::uuid[])) $$,
@@ -522,11 +531,13 @@ select results_eq($$ select equipe, agent, zone, secteur, nb_troncons, lineaire_
                         and secteur_id = 'aaaaaaaa-3333-0000-0000-000000000002' $$,
   $$ values ('Équipe détection 1', 'Responsable A', 'Zone 1', 'Secteur 2', 2, true, 0.00::numeric(12,2), 1, 1) $$,
   'v_balayage_journalier : premiers passages du responsable, nœud d''extrémité, fuite du jour');
-select is((select count(*)::int from v_balayage_journalier
-             where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'
-               and agent_id = '00000000-0000-0000-0000-00000000000b'), 0,
-  'v_balayage_journalier : rien pour l''agent (balayages annulés, repasse ignorée)');
-select is((select count(*)::int from v_balayage_journalier where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 2,
+select results_eq($$ select nb_troncons, lineaire_m, lineaire_repasse_m between 90 and 93, nb_noeuds, nb_fuites
+                       from v_balayage_journalier
+                      where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+                        and agent_id = '00000000-0000-0000-0000-00000000000b' $$,
+  $$ values (0, 0.00::numeric(12,2), true, 1, 1) $$,
+  'v_balayage_journalier : repassage de l''agent compté à part (aucun tronçon en premier passage)');
+select is((select count(*)::int from v_balayage_journalier where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 3,
   'v_balayage_journalier : une ligne par jour, équipe, agent, zone et secteur');
 reset role;
 

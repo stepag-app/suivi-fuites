@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
-import { Check, Eye, EyeOff, KeyRound, MoreHorizontal, Plus, Search, ShieldCheck, UserRoundCheck, UserRoundX, Wand2 } from "lucide-react";
+import { Check, Eye, EyeOff, IdCard, KeyRound, MoreHorizontal, Plus, Search, ShieldCheck, Trash2, UserRoundCheck, UserRoundCog, UserRoundX, Wand2 } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarBadge, AvatarFallback, AvatarGroup, AvatarGroupCount } from "@/components/ui/avatar";
@@ -30,11 +30,16 @@ import { Droits } from "./Droits";
 
 interface Affectation { id: string; profil_id: string; marche_id: string; roles: string[]; actif: boolean }
 
+// Rôles cumulables par marché (contrat S1 § 1) ; l'administrateur est hors rôles.
 const ROLES: Record<string, string> = {
   detection: "Détection",
-  chef_reparation: "Chef d'équipe réparation",
-  responsable: "Responsable (bureau)",
+  chef_reparation: "Réparation",
+  refection: "Réfection",
+  responsable: "Responsable",
 };
+const ENTREPRISE_DEFAUT = "STEPAG";
+
+interface EtatSuppression { supprimable: boolean; raison: string | null }
 
 const TONS = [
   "[&_[data-slot=avatar-fallback]]:bg-amber-100 [&_[data-slot=avatar-fallback]]:text-amber-700 dark:[&_[data-slot=avatar-fallback]]:bg-amber-500/15 dark:[&_[data-slot=avatar-fallback]]:text-amber-300",
@@ -59,7 +64,7 @@ export default function PageUtilisateurs() {
 
 // Onglet et marché de la matrice dans l'adresse : /utilisateurs?onglet=droits&marche=<uuid>
 function Utilisateurs() {
-  const { profil, marches, marche, verrouille } = useSession();
+  const { profil, marches, marche, verrouille, recharger } = useSession();
   const router = useRouter();
   const chemin = usePathname();
   const parametres = useSearchParams();
@@ -82,16 +87,22 @@ function Utilisateurs() {
   const [recherche, setRecherche] = useState("");
   const [etat, setEtat] = useState<"tous" | "actifs" | "revoques">("tous");
   const [marcheFiltre, setMarcheFiltre] = useState("tous");
-  const [role, setRole] = useState<Profil | null>(null);
+  const [roles, setRoles] = useState<Profil | null>(null);
+  const [edition, setEdition] = useState<Profil | null>(null);
+  const [suppressions, setSuppressions] = useState<Record<string, EtatSuppression | "lecture">>({});
   const [chargement, setChargement] = useState(true);
 
   const charger = useCallback(async () => {
     const sb = getSupabase();
-    const [p, a] = await Promise.all([
-      sb.from("profils").select("id, identifiant, nom_complet, telephone, langue, est_admin, actif").order("nom_complet"),
+    const colonnes = "id, identifiant, nom_complet, telephone, langue, est_admin, actif";
+    const [complet, a] = await Promise.all([
+      sb.from("profils").select(`${colonnes}, nom, prenom, matricule, entreprise`).order("nom_complet"),
       sb.from("affectations").select("id, profil_id, marche_id, roles, actif"),
     ]);
+    // Base pas encore à jour (colonnes du chantier v2 absentes) : colonnes d'origine
+    const p = complet.error?.code === "42703" ? await sb.from("profils").select(colonnes).order("nom_complet") : complet;
     if (p.error) setErreur(messageErreur(p.error));
+    setSuppressions({});
     setProfils((p.data as Profil[] | null) ?? []);
     setAffectations((a.data as Affectation[] | null) ?? []);
     setChargement(false);
@@ -134,7 +145,7 @@ function Utilisateurs() {
       if (etat === "actifs" && !p.actif) return false;
       if (etat === "revoques" && p.actif) return false;
       if (marcheFiltre !== "tous" && !affectations.some((a) => a.profil_id === p.id && a.marche_id === marcheFiltre && a.actif)) return false;
-      return !t || p.nom_complet.toLowerCase().includes(t) || p.identifiant.toLowerCase().includes(t);
+      return !t || p.nom_complet.toLowerCase().includes(t) || p.identifiant.toLowerCase().includes(t) || (p.matricule ?? "").toLowerCase().includes(t);
     });
   }, [profils, affectations, recherche, etat, marcheFiltre]);
 
@@ -155,6 +166,57 @@ function Utilisateurs() {
       await charger();
       setErreur((e) => `Accès révoqué dans la base, mais la connexion n'a pas pu être bloquée : ${e}`);
     }
+  }
+
+  // R2 : « Supprimer » seulement sans aucune saisie (règle vérifiée en base) ; sinon grisé avec la raison, et révocation.
+  async function verifierSuppression(p: Profil) {
+    if (suppressions[p.id]) return;
+    setSuppressions((s) => ({ ...s, [p.id]: "lecture" }));
+    const { data, error } = await getSupabase().rpc("compte_supprimable", { p_profil: p.id });
+    const etat: EtatSuppression = error || !data
+      ? { supprimable: false, raison: error ? `Vérification impossible : ${messageErreur(error)}` : "Vérification impossible" }
+      : { supprimable: !!(data as EtatSuppression).supprimable, raison: (data as EtatSuppression).raison ?? null };
+    setSuppressions((s) => ({ ...s, [p.id]: etat }));
+  }
+
+  async function supprimer(p: Profil) {
+    if (!window.confirm(`Supprimer définitivement le compte ${p.nom_complet} (${p.identifiant}) ? Il n'a aucune saisie.`)) return;
+    if (await appeler({ action: "supprimer", profil_id: p.id })) setInfo(`Compte ${p.nom_complet} supprimé.`);
+  }
+
+  // R3, R4, R6 : nom, prénom, matricule, entreprise (administrateur, son propre compte compris) ; la base recompose
+  // nom_complet en « NOM Prénom ».
+  async function enregistrerCompte(p: Profil, v: ValeursCompte): Promise<boolean> {
+    setErreur("");
+    setInfo("");
+    const { data, error } = await getSupabase().from("profils").update(v).eq("id", p.id).select("id");
+    if (error || !data?.length) {
+      setErreur(error?.code === "23505" ? `Le matricule « ${v.matricule} » est déjà celui d'un autre compte.`
+        : error ? messageErreur(error) : "Action non autorisée pour votre compte.");
+      return false;
+    }
+    setInfo(`Compte de ${[v.nom?.toUpperCase(), v.prenom].filter(Boolean).join(" ") || p.nom_complet} enregistré.`);
+    await charger();
+    if (p.id === profil?.id) recharger();
+    return true;
+  }
+
+  // R2 : rôles par marché ; liste vide = compte retiré du marché (droits effacés). Droits recalculés par la base.
+  async function enregistrerRoles(p: Profil, changements: { marche_id: string; roles: string[] }[]): Promise<boolean> {
+    setErreur("");
+    setInfo("");
+    const sb = getSupabase();
+    for (const c of changements) {
+      const { error } = await sb.rpc("modifier_roles", { p_profil: p.id, p_marche: c.marche_id, p_roles: c.roles });
+      if (error) {
+        setErreur(`${marcheDe(c.marche_id)} : ${messageErreur(error)}`);
+        await charger();
+        return false;
+      }
+    }
+    setInfo(`Rôles de ${p.nom_complet} enregistrés (${changements.length} marché${changements.length > 1 ? "s" : ""}).`);
+    await charger();
+    return true;
   }
 
   if (!profil?.est_admin) return <Vide>Réservé à l&apos;administrateur.</Vide>;
@@ -238,6 +300,12 @@ function Utilisateurs() {
                               <div className="min-w-0">
                                 <div className="truncate font-medium text-sm">{p.nom_complet}</div>
                                 <div className="truncate text-muted-foreground text-sm">{p.identifiant}@{DOMAINE_AGENTS}{p.telephone ? ` · ${p.telephone}` : ""}</div>
+                                {p.entreprise !== undefined && (
+                                  <div className="truncate text-muted-foreground text-xs">
+                                    {p.matricule ? <>Matricule <span className="font-medium text-foreground tabular-nums">{p.matricule}</span></> : <span className="text-amber-700 dark:text-amber-300">Sans matricule</span>}
+                                    {" · "}{p.entreprise || ENTREPRISE_DEFAUT}
+                                  </div>
+                                )}
                               </div>
                             </div>
                           </TableCell>
@@ -266,31 +334,46 @@ function Utilisateurs() {
                             </Badge>
                           </TableCell>
                           <TableCell className="py-3 text-right">
-                            {p.id !== profil.id && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button aria-label={`Actions pour ${p.nom_complet}`} className="size-8 rounded-md text-muted-foreground hover:bg-muted/50" size="icon-sm" variant="ghost"><MoreHorizontal className="size-4" /></Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onSelect={() => setRole(p)}><UserRoundCheck />Ajouter un rôle</DropdownMenuItem>
+                            <DropdownMenu onOpenChange={(o) => o && p.id !== profil.id && !p.est_admin && verifierSuppression(p)}>
+                              <DropdownMenuTrigger asChild>
+                                <Button aria-label={`Actions pour ${p.nom_complet}`} className="size-8 rounded-md text-muted-foreground hover:bg-muted/50" size="icon-sm" variant="ghost"><MoreHorizontal className="size-4" /></Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="min-w-56">
+                                <DropdownMenuItem onSelect={() => setEdition(p)}><IdCard />Nom, matricule, entreprise</DropdownMenuItem>
+                                {!p.est_admin && <DropdownMenuItem onSelect={() => setRoles(p)}><UserRoundCog />Rôles par marché</DropdownMenuItem>}
+                                {p.id !== profil.id && (
                                   <DropdownMenuItem onSelect={async () => {
                                     const mdp = window.prompt(`Nouveau mot de passe pour ${p.identifiant} (8 caractères minimum) :`);
                                     if (!mdp) return;
                                     if (await appeler({ action: "mot_de_passe", profil_id: p.id, mot_de_passe: mdp })) setInfo("Mot de passe modifié.");
                                   }}><KeyRound />Changer le mot de passe</DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  {p.actif ? (
-                                    <DropdownMenuItem variant="destructive" disabled={revocationVerrouillee} onSelect={() => revoquer(p)}>
-                                      <UserRoundX />{revocationVerrouillee ? "Révoquer l'accès (verrouillé par vous)" : "Révoquer l'accès"}
-                                    </DropdownMenuItem>
-                                  ) : (
-                                    <DropdownMenuItem onSelect={() => appeler({ action: "activer", profil_id: p.id, actif: true })}>
-                                      <UserRoundCheck />Réactiver
-                                    </DropdownMenuItem>
-                                  )}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
+                                )}
+                                {p.id !== profil.id && <DropdownMenuSeparator />}
+                                {p.id !== profil.id && (p.actif ? (
+                                  <DropdownMenuItem variant="destructive" disabled={revocationVerrouillee} onSelect={() => revoquer(p)}>
+                                    <UserRoundX />{revocationVerrouillee ? "Révoquer l'accès (verrouillé par vous)" : "Révoquer l'accès"}
+                                  </DropdownMenuItem>
+                                ) : (
+                                  <DropdownMenuItem onSelect={() => appeler({ action: "activer", profil_id: p.id, actif: true })}>
+                                    <UserRoundCheck />Réactiver
+                                  </DropdownMenuItem>
+                                ))}
+                                {p.id !== profil.id && !p.est_admin && (() => {
+                                  const etat = suppressions[p.id];
+                                  const lecture = !etat || etat === "lecture";
+                                  const raison = lecture ? "Vérification des saisies…" : etat.supprimable ? null : etat.raison;
+                                  return (
+                                    // Élément grisé : le survol passe à l'enveloppe, qui porte la raison
+                                    <div title={raison ?? undefined}>
+                                      <DropdownMenuItem variant="destructive" disabled={lecture || !!raison} onSelect={() => supprimer(p)}>
+                                        {lecture ? <Spinner /> : <Trash2 />}Supprimer le compte
+                                      </DropdownMenuItem>
+                                      {raison && !lecture && <p className="max-w-64 px-1.5 pb-1 text-muted-foreground text-xs leading-snug">{raison}</p>}
+                                    </div>
+                                  );
+                                })()}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </TableCell>
                         </TableRow>
                       );
@@ -315,6 +398,7 @@ function Utilisateurs() {
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="py-3 font-normal">Marché</TableHead><TableHead className="py-3 font-normal">Compte</TableHead>
                     <TableHead className="py-3 font-normal">Rôles</TableHead><TableHead className="py-3 font-normal">Statut</TableHead>
+                    <TableHead className="py-3 text-right font-normal">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -326,10 +410,13 @@ function Utilisateurs() {
                         <TableCell className="py-3">{p?.nom_complet ?? a.profil_id.slice(0, 8)} <span className="text-muted-foreground text-xs">{p?.identifiant}</span></TableCell>
                         <TableCell className="py-3"><div className="flex flex-wrap gap-1">{a.roles.map((r) => <Badge key={r} variant="secondary" className="rounded-sm">{ROLES[r] ?? r}</Badge>)}{!a.roles.length && <span className="text-muted-foreground">aucun rôle</span>}</div></TableCell>
                         <TableCell className="py-3"><Badge variant="outline" className={a.actif ? "border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300" : "text-muted-foreground"}>{a.actif ? "Active" : "Retirée"}</Badge></TableCell>
+                        <TableCell className="py-3 text-right">
+                          {p && !p.est_admin && <Button size="sm" variant="ghost" onClick={() => setRoles(p)}><UserRoundCog data-icon="inline-start" />Modifier</Button>}
+                        </TableCell>
                       </TableRow>
                     );
                   })}
-                  {affectations.length === 0 && <TableRow><TableCell colSpan={4} className="h-24 text-center text-muted-foreground">Aucune affectation.</TableCell></TableRow>}
+                  {affectations.length === 0 && <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Aucune affectation.</TableCell></TableRow>}
                 </TableBody>
               </Table>
             </CardContent>
@@ -359,47 +446,161 @@ function Utilisateurs() {
         </SheetContent>
       </Sheet>
 
-      <Dialog open={!!role} onOpenChange={(o) => !o && setRole(null)}>
+      <Dialog open={!!roles} onOpenChange={(o) => !o && setRoles(null)}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Rôles par marché</DialogTitle>
+            <DialogDescription>
+              {roles?.nom_complet} : rôles cumulables. Un rôle ajouté donne ses droits ; un rôle retiré reprend ceux que lui
+              seul accordait. Tout décocher retire le compte du marché.
+            </DialogDescription>
+          </DialogHeader>
+          {roles && (
+            <RolesParMarche key={roles.id} marches={marches} affectations={affectations.filter((a) => a.profil_id === roles.id)}
+              annuler={() => setRoles(null)}
+              enregistrer={async (changements) => {
+                const ok = await enregistrerRoles(roles, changements);
+                if (ok) setRoles(null);
+              }} />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!edition} onOpenChange={(o) => !o && setEdition(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Ajouter un rôle</DialogTitle>
-            <DialogDescription>{role?.nom_complet} : choisissez le marché et le rôle à ajouter.</DialogDescription>
+            <DialogTitle>Nom, matricule, entreprise</DialogTitle>
+            <DialogDescription>
+              {edition?.identifiant}@{DOMAINE_AGENTS}. Le nom reste à l&apos;écran ; le matricule le remplace dans les documents
+              imprimés et exportés.
+            </DialogDescription>
           </DialogHeader>
-          {role && <AjoutAffectation marches={marches} onAjouter={async (marche_id, r) => {
-            const ok = await appeler({ action: "affecter", profil_id: role.id, marche_id, role: r });
-            if (ok) setRole(null);
-            return ok;
-          }} annuler={() => setRole(null)} />}
+          {edition && (
+            <FormCompte key={edition.id} profil={edition} annuler={() => setEdition(null)}
+              enregistrer={async (v) => {
+                const ok = await enregistrerCompte(edition, v);
+                if (ok) setEdition(null);
+              }} />
+          )}
         </DialogContent>
       </Dialog>
     </div>
   );
 }
 
-function AjoutAffectation({ marches, onAjouter, annuler }: { marches: Marche[]; onAjouter: (marche_id: string, role: string) => Promise<boolean>; annuler: () => void }) {
-  const [marcheId, setMarcheId] = useState(marches[0]?.id ?? "");
-  const [role, setRole] = useState("detection");
+type ValeursCompte = { nom: string | null; prenom: string | null; matricule: string | null; entreprise: string; telephone: string | null };
+
+// R3, R4, R6 : champs du compte (administrateur compris). Nom en capitales à l'affichage (« BOUSALAM Issam »).
+function FormCompte({ profil, enregistrer, annuler }: { profil: Profil; enregistrer: (v: ValeursCompte) => Promise<void>; annuler: () => void }) {
+  const [nom, setNom] = useState(profil.nom ?? "");
+  const [prenom, setPrenom] = useState(profil.prenom ?? "");
+  const [matricule, setMatricule] = useState(profil.matricule ?? "");
+  const [entreprise, setEntreprise] = useState(profil.entreprise ?? ENTREPRISE_DEFAUT);
+  const [telephone, setTelephone] = useState(profil.telephone ?? "");
   const [occupe, setOccupe] = useState(false);
+  const apercu = [nom.trim().toUpperCase(), prenom.trim()].filter(Boolean).join(" ");
+  async function soumettre(e: FormEvent) {
+    e.preventDefault();
+    setOccupe(true);
+    await enregistrer({
+      nom: nom.trim() || null, prenom: prenom.trim() || null, matricule: matricule.trim() || null,
+      entreprise: entreprise.trim() || ENTREPRISE_DEFAUT, telephone: telephone.trim() || null,
+    });
+    setOccupe(false);
+  }
   return (
-    <>
+    <form onSubmit={soumettre} className="flex flex-col gap-4">
       <FieldGroup className="gap-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="cpt-nom">Nom</FieldLabel>
+            <Input id="cpt-nom" value={nom} onChange={(e) => setNom(e.target.value)} required autoCapitalize="characters" />
+          </Field>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="cpt-prenom">Prénom</FieldLabel>
+            <Input id="cpt-prenom" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+          </Field>
+        </div>
+        <FieldDescription className="-mt-2">Affiché : <span className="font-medium text-foreground">{apercu || profil.nom_complet}</span></FieldDescription>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="cpt-matricule">Matricule</FieldLabel>
+            <Input id="cpt-matricule" value={matricule} onChange={(e) => setMatricule(e.target.value)} autoCapitalize="characters" placeholder="ex. 1024" />
+          </Field>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="cpt-entreprise">Entreprise</FieldLabel>
+            <Input id="cpt-entreprise" value={entreprise} onChange={(e) => setEntreprise(e.target.value)} placeholder={ENTREPRISE_DEFAUT} />
+          </Field>
+        </div>
+        <FieldDescription className="-mt-2">Matricule unique ; entreprise : {ENTREPRISE_DEFAUT} ou le sous-traitant.</FieldDescription>
         <Field className="gap-1.5">
-          <FieldLabel htmlFor="aff-marche">Marché</FieldLabel>
-          <NativeSelect id="aff-marche" className="w-full" value={marcheId} onChange={(e) => setMarcheId(e.target.value)}>
-            {marches.map((m) => <NativeSelectOption key={m.id} value={m.id}>{m.code} · {m.intitule.slice(0, 50)}</NativeSelectOption>)}
-          </NativeSelect>
-        </Field>
-        <Field className="gap-1.5">
-          <FieldLabel htmlFor="aff-role">Rôle</FieldLabel>
-          <NativeSelect id="aff-role" className="w-full" value={role} onChange={(e) => setRole(e.target.value)}>
-            {Object.entries(ROLES).map(([k, v]) => <NativeSelectOption key={k} value={k}>{v}</NativeSelectOption>)}
-          </NativeSelect>
+          <FieldLabel htmlFor="cpt-tel">Téléphone (facultatif)</FieldLabel>
+          <Input id="cpt-tel" value={telephone} onChange={(e) => setTelephone(e.target.value)} inputMode="tel" />
         </Field>
       </FieldGroup>
       <DialogFooter>
+        <Button type="button" variant="outline" onClick={annuler}>Annuler</Button>
+        <Button type="submit" disabled={occupe || !nom.trim()}>{occupe && <Spinner />}Enregistrer</Button>
+      </DialogFooter>
+    </form>
+  );
+}
+
+// R2 : une ligne par marché, une case par rôle ; seuls les marchés modifiés sont envoyés (modifier_roles).
+function RolesParMarche({ marches, affectations, enregistrer, annuler }: {
+  marches: Marche[]; affectations: Affectation[];
+  enregistrer: (changements: { marche_id: string; roles: string[] }[]) => Promise<void>; annuler: () => void;
+}) {
+  const initiaux = useMemo(() => Object.fromEntries(marches.map((m) => {
+    const a = affectations.find((x) => x.marche_id === m.id);
+    return [m.id, a?.actif ? a.roles : []];
+  })), [marches, affectations]);
+  const [choix, setChoix] = useState<Record<string, string[]>>(initiaux);
+  const [occupe, setOccupe] = useState(false);
+  const ordre = Object.keys(ROLES);
+  const pareil = (a: string[], b: string[]) => a.length === b.length && a.every((r) => b.includes(r));
+  const changements = marches.filter((m) => !pareil(choix[m.id] ?? [], initiaux[m.id] ?? []))
+    .map((m) => ({ marche_id: m.id, roles: ordre.filter((r) => (choix[m.id] ?? []).includes(r)) }));
+  const retraits = changements.filter((c) => !c.roles.length).length;
+  const basculer = (m: string, r: string, coche: boolean) =>
+    setChoix((c) => ({ ...c, [m]: coche ? [...(c[m] ?? []), r] : (c[m] ?? []).filter((x) => x !== r) }));
+  return (
+    <>
+      <div className="overflow-x-auto rounded-lg border">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="font-normal">Marché</TableHead>
+              {ordre.map((r) => <TableHead key={r} className="text-center font-normal">{ROLES[r]}</TableHead>)}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {marches.map((m) => (
+              <TableRow key={m.id} className={cn(!pareil(choix[m.id] ?? [], initiaux[m.id] ?? []) && "bg-amber-500/5")}>
+                <TableCell className="font-medium">
+                  {m.code}
+                  {!(initiaux[m.id] ?? []).length && <span className="ml-1.5 text-muted-foreground text-xs">(non affecté)</span>}
+                </TableCell>
+                {ordre.map((r) => (
+                  <TableCell key={r} className="text-center">
+                    <Checkbox aria-label={`${m.code} : ${ROLES[r]}`} checked={(choix[m.id] ?? []).includes(r)}
+                      onCheckedChange={(c) => basculer(m.id, r, c === true)} />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+      {retraits > 0 && (
+        <p className="text-amber-700 text-sm dark:text-amber-300">
+          {retraits} marché{retraits > 1 ? "s" : ""} sans aucun rôle : le compte en sera retiré (ses droits y seront effacés).
+        </p>
+      )}
+      <DialogFooter>
         <Button variant="outline" onClick={annuler}>Annuler</Button>
-        <Button disabled={!marcheId || occupe} onClick={async () => { setOccupe(true); await onAjouter(marcheId, role); setOccupe(false); }}>
-          {occupe && <Spinner />}Ajouter ce rôle
+        <Button disabled={!changements.length || occupe} onClick={async () => { setOccupe(true); await enregistrer(changements); setOccupe(false); }}>
+          {occupe && <Spinner />}Enregistrer{changements.length ? ` (${changements.length})` : ""}
         </Button>
       </DialogFooter>
     </>
@@ -408,10 +609,16 @@ function AjoutAffectation({ marches, onAjouter, annuler }: { marches: Marche[]; 
 
 function FormCreation({ marches, marcheParDefaut, onAnnuler, onCreer }: {
   marches: Marche[]; marcheParDefaut: string; onAnnuler: () => void;
-  onCreer: (c: { identifiant: string; nom_complet: string; mot_de_passe: string; telephone: string; affectations: { marche_id: string; roles: string[] }[] }) => Promise<void>;
+  onCreer: (c: {
+    identifiant: string; nom_complet: string; nom: string; prenom: string; matricule: string; entreprise: string;
+    mot_de_passe: string; telephone: string; affectations: { marche_id: string; roles: string[] }[];
+  }) => Promise<void>;
 }) {
   const [identifiant, setIdentifiant] = useState("");
   const [nom, setNom] = useState("");
+  const [prenom, setPrenom] = useState("");
+  const [matricule, setMatricule] = useState("");
+  const [entreprise, setEntreprise] = useState(ENTREPRISE_DEFAUT);
   const [motDePasse, setMotDePasse] = useState("");
   const [telephone, setTelephone] = useState("");
   const [marcheId, setMarcheId] = useState(marcheParDefaut);
@@ -430,7 +637,9 @@ function FormCreation({ marches, marcheParDefaut, onAnnuler, onCreer }: {
     e.preventDefault();
     setOccupe(true);
     await onCreer({
-      identifiant: identifiant.trim().toLowerCase(), nom_complet: nom.trim(), mot_de_passe: motDePasse, telephone: telephone.trim(),
+      identifiant: identifiant.trim().toLowerCase(), nom_complet: [nom.trim().toUpperCase(), prenom.trim()].filter(Boolean).join(" "),
+      nom: nom.trim(), prenom: prenom.trim(), matricule: matricule.trim(), entreprise: entreprise.trim() || ENTREPRISE_DEFAUT,
+      mot_de_passe: motDePasse, telephone: telephone.trim(),
       affectations: marcheId && roles.length ? [{ marche_id: marcheId, roles }] : [],
     });
     setOccupe(false);
@@ -444,10 +653,28 @@ function FormCreation({ marches, marcheParDefaut, onAnnuler, onCreer }: {
           <Input id="identifiant" value={identifiant} onChange={(e) => setIdentifiant(e.target.value)} pattern="[a-zA-Z0-9._\-]{3,40}" autoCapitalize="none" required placeholder="ex. agent3" />
           <FieldDescription>Lettres, chiffres, point, tiret ; devient identifiant@{DOMAINE_AGENTS}.</FieldDescription>
         </Field>
-        <Field className="gap-1.5">
-          <FieldLabel htmlFor="nom">Nom complet</FieldLabel>
-          <Input id="nom" value={nom} onChange={(e) => setNom(e.target.value)} required />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="nom">Nom</FieldLabel>
+            <Input id="nom" value={nom} onChange={(e) => setNom(e.target.value)} required autoCapitalize="characters" />
+          </Field>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="prenom">Prénom</FieldLabel>
+            <Input id="prenom" value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+          </Field>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="matricule">Matricule</FieldLabel>
+            <Input id="matricule" value={matricule} onChange={(e) => setMatricule(e.target.value)} autoCapitalize="characters" />
+            <FieldDescription>Imprimé à la place du nom.</FieldDescription>
+          </Field>
+          <Field className="gap-1.5">
+            <FieldLabel htmlFor="entreprise">Entreprise</FieldLabel>
+            <Input id="entreprise" value={entreprise} onChange={(e) => setEntreprise(e.target.value)} placeholder={ENTREPRISE_DEFAUT} />
+            <FieldDescription>{ENTREPRISE_DEFAUT} ou le sous-traitant.</FieldDescription>
+          </Field>
+        </div>
         <Field className="gap-1.5">
           <FieldLabel htmlFor="mdp">Mot de passe</FieldLabel>
           <InputGroup>

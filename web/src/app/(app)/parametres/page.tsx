@@ -32,7 +32,7 @@ const OngletArticles = dynamic(() => import("./OngletArticles").then((m) => m.On
 // Plan du réseau (import GeoJSON, carte de zonage MapLibre) : chargé seulement à l'ouverture de l'onglet.
 const OngletReseau = dynamic(() => import("./OngletReseau").then((m) => m.OngletReseau), { ssr: false, loading: chargementOnglet });
 
-interface Ouvrier { id: string; nom_complet: string; telephone: string | null; actif: boolean }
+interface Ouvrier { id: string; nom_complet: string; matricule?: string | null; telephone: string | null; actif: boolean }
 interface Equipe { id: string; type: "detection" | "reparation" | "mixte"; numero: number; libelle: string; actif: boolean }
 interface MotifLigne {
   id: string; categorie: "sans_reparation" | "sans_refection"; code: string;
@@ -50,7 +50,7 @@ const DESCRIPTIONS: Record<Onglet, string> = {
   bordereau: "Articles du bordereau des prix, avenants et versions, règles de proposition.",
   attachement: "Règles des lots d'attachement : périodicité, mentions obligatoires, verrouillage.",
   evenements: "Journal des événements du marché, pièces jointes, catégories, export.",
-  ouvriers: "Ouvriers sans compte, rattachés aux réparations. Jamais supprimés : on les désactive.",
+  ouvriers: "Ouvriers sans compte, rattachés aux réparations ; le matricule remplace le nom dans les documents imprimés. Jamais supprimés : on les désactive.",
   equipes: "Équipes de détection et de réparation.",
   motifs: "Listes proposées sur la fiche d'une fuite non réparée et à la clôture sans réfection.",
   secteurs: "Zones et secteurs du marché : code, libellé, ordre, linéaire.",
@@ -96,7 +96,7 @@ function Parametres() {
     if (!marcheId) return;
     const sb = getSupabase();
     const [o, e, m] = await Promise.all([
-      sb.from("ouvriers").select("id, nom_complet, telephone, actif").eq("marche_id", marcheId).order("nom_complet"),
+      sb.from("ouvriers").select("id, nom_complet, matricule, telephone, actif").eq("marche_id", marcheId).order("nom_complet"),
       sb.from("equipes").select("id, type, numero, libelle, actif").eq("marche_id", marcheId).order("type").order("numero"),
       sb.from("motifs").select("id, categorie, code, libelle_fr, libelle_ar, terrassement_paye, actif").eq("marche_id", marcheId).order("categorie").order("ordre"),
     ]);
@@ -118,7 +118,7 @@ function Parametres() {
     const sb = getSupabase();
     const { error } = id ? await sb.from(table).update(valeurs).eq("id", id) : await sb.from(table).insert({ ...valeurs, marche_id: marcheId });
     if (error) {
-      setErreur(error.code === "23505" ? "Cet élément existe déjà (même numéro, code ou nom)." : messageErreur(error));
+      setErreur(error.code === "23505" ? "Cet élément existe déjà (même numéro, code, nom ou matricule)." : messageErreur(error));
       return false;
     }
     await charger();
@@ -297,7 +297,7 @@ function LigneOuvrier({ o, editable, ecrire, basculer }: { o: Ouvrier; editable:
       <ItemMedia><div className="grid size-9 place-items-center rounded-md border bg-background font-medium text-xs">{o.nom_complet.split(/\s+/).slice(0, 2).map((m) => m[0]?.toUpperCase()).join("")}</div></ItemMedia>
       <ItemContent>
         <ItemTitle>{o.nom_complet}</ItemTitle>
-        <ItemDescription>{o.telephone ?? "Sans téléphone"}{o.actif ? "" : " · désactivé"}</ItemDescription>
+        <ItemDescription>{o.matricule ? `Matricule ${o.matricule}` : "Sans matricule"} · {o.telephone ?? "sans téléphone"}{o.actif ? "" : " · désactivé"}</ItemDescription>
       </ItemContent>
       {editable && (
         <ItemActions>
@@ -311,15 +311,17 @@ function LigneOuvrier({ o, editable, ecrire, basculer }: { o: Ouvrier; editable:
 
 function FormOuvrier({ initial, onSubmit, annuler }: { initial?: Ouvrier; onSubmit: (v: Record<string, unknown>) => void; annuler: () => void }) {
   const [nom, setNom] = useState(initial?.nom_complet ?? "");
+  const [matricule, setMatricule] = useState(initial?.matricule ?? "");
   const [tel, setTel] = useState(initial?.telephone ?? "");
   const envoyer = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit({ nom_complet: nom.trim(), telephone: tel.trim() || null });
+    onSubmit({ nom_complet: nom.trim(), matricule: matricule.trim() || null, telephone: tel.trim() || null });
   };
   return (
     <form onSubmit={envoyer}>
-      <div className="deux">
+      <div className="trois">
         <label>Nom complet<input value={nom} onChange={(e) => setNom(e.target.value)} required /></label>
+        <label>Matricule<input value={matricule} onChange={(e) => setMatricule(e.target.value)} autoCapitalize="characters" placeholder="Imprimé à la place du nom" /></label>
         <label>Téléphone<input value={tel} onChange={(e) => setTel(e.target.value)} inputMode="tel" /></label>
       </div>
       <div className="actions"><button className="primaire" disabled={!nom.trim()}>Enregistrer</button><button type="button" onClick={annuler}>Annuler</button></div>

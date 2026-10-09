@@ -79,20 +79,23 @@ export default function PageBalayage() {
     setExportEnCours(format);
     setErreur('');
     try {
-      const [{ exporter: lancer }, { construireSection }, { construireEntete }, { chargerContexteRapport }] = await Promise.all([
+      const [{ exporter: lancer }, { construireSection }, { construireEntete }, { chargerContexteRapport }, { chargerMatricules }] = await Promise.all([
         import('@/lib/export/generer'), import('@/lib/export/modele'), import('@/lib/export/jeux'), import('@/lib/export/rapport-fuite'),
+        import('@/lib/export/matricules'),
       ]);
-      const ctx = await chargerContexteRapport(marcheId, false);
+      const [ctx, matricules] = await Promise.all([chargerContexteRapport(marcheId, false), chargerMatricules(marcheId)]);
       const periode = filtres.du && filtres.au ? `du ${new Date(`${filtres.du}T12:00:00`).toLocaleDateString('fr-FR')} au ${new Date(`${filtres.au}T12:00:00`).toLocaleDateString('fr-FR')}` : 'toute la période';
       const infos = [
         `Balayages ${periode}`,
         filtres.equipe ? `Équipe : ${equipes.find((e) => e.id === filtres.equipe)?.libelle ?? ''}` : 'Toutes les équipes',
         filtres.secteur ? `Secteur : ${secteurs.find((s) => s.id === filtres.secteur)?.libelle ?? ''}` : 'Tous les secteurs',
       ];
-      const section = construireSection(visibles as unknown as Record<string, unknown>[], [
+      // R4 : l'agent est désigné par son matricule dans le document
+      const lignesDoc = visibles.map((l) => ({ ...l, agent: matricules.agent(l.agent_id, l.agent) }));
+      const section = construireSection(lignesDoc as unknown as Record<string, unknown>[], [
         { cle: 'date_balayage', titre: 'Date', groupe: 'Journal', type: 'date', largeur: 12 },
         { cle: 'equipe', titre: 'Équipe', groupe: 'Journal', largeur: 16 },
-        { cle: 'agent', titre: 'Agent', groupe: 'Journal', largeur: 20 },
+        { cle: 'agent', titre: 'Agent (matricule)', groupe: 'Journal', largeur: 20 },
         { cle: 'zone', titre: 'Zone', groupe: 'Journal', largeur: 14 },
         { cle: 'secteur', titre: 'Secteur', groupe: 'Journal', largeur: 18 },
         { cle: 'nb_troncons', titre: 'Tronçons', groupe: 'Journal', type: 'nombre', decimales: 0, total: true },

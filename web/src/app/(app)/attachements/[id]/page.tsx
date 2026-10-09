@@ -30,6 +30,8 @@ import { useControles } from "../useControles";
 import { AAttacher, LienFuite } from "./AAttacher";
 import { CorrectionsFuite } from "./CorrectionsFuite";
 import { FormAnticipation, FormForcage, FormLigneLibre, type ArticleChoix } from "./FormsLignes";
+import { PropositionsAnticipees } from "./PropositionsAnticipees";
+import { useFuitesAnticipees } from "@/lib/anticipation";
 
 interface Os { id: string; numero: string; date_os: string; nature: string }
 interface Zone { id: string; libelle: string }
@@ -45,7 +47,7 @@ export default function DetailLot() {
   const [os, setOs] = useState<Os[]>([]);
   const [zones, setZones] = useState<Zone[]>([]);
   const [articles, setArticles] = useState<ArticleChoix[]>([]);
-  const [prixRefection, setPrixRefection] = useState<Set<string>>(new Set());
+  const [prixAnticipables, setPrixAnticipables] = useState<Set<string>>(new Set());
   const [dernierNumero, setDernierNumero] = useState<number | null>(null);
   const [erreur, setErreur] = useState("");
   const [info, setInfo] = useState("");
@@ -71,7 +73,7 @@ export default function DetailLot() {
       sb.from("parametres_attachement").select("*").eq("marche_id", marcheId).maybeSingle(),
       sb.from("ordres_service").select("id, numero, date_os, nature").eq("marche_id", marcheId).order("date_os"),
       sb.from("zones").select("id, libelle").eq("marche_id", marcheId).order("numero"),
-      sb.from("prix").select("id, numero, designation, unite, famille, actif").eq("marche_id", marcheId).order("hors_bordereau").order("ordre"),
+      sb.from("prix").select("id, numero, designation, unite, famille, actif, anticipable").eq("marche_id", marcheId).order("hors_bordereau").order("ordre"),
       sb.from("natures_refection").select("prix_id").eq("marche_id", marcheId).not("prix_id", "is", null),
       sb.from("attachements").select("numero").eq("marche_id", marcheId).eq("statut", "arrete").is("supprime_le", null).order("numero", { ascending: false }).limit(1),
     ]);
@@ -83,10 +85,11 @@ export default function DetailLot() {
     setRegles((rg.data as ReglesAttachement | null) ?? null);
     setOs((o.data as Os[] | null) ?? []);
     setZones((z.data as Zone[] | null) ?? []);
-    const prix = (p.data as ArticleChoix[] | null) ?? [];
+    const prix = (p.data as (ArticleChoix & { anticipable?: boolean })[] | null) ?? [];
     setArticles(prix);
+    // Panier d'anticipation du marché (A1) ; base sans la colonne : articles de réfection, comme avant
     const lies = new Set(((n.data as { prix_id: string }[] | null) ?? []).map((x) => x.prix_id));
-    setPrixRefection(new Set(prix.filter((x) => x.famille === "refection" || lies.has(x.id)).map((x) => x.id)));
+    setPrixAnticipables(new Set(prix.filter((x) => (x.anticipable ?? (x.famille === "refection" || lies.has(x.id)))).map((x) => x.id)));
     setDernierNumero(((dn.data as { numero: number }[] | null) ?? [])[0]?.numero ?? null);
   }, [id, marcheId]);
 
@@ -97,6 +100,7 @@ export default function DetailLot() {
   const rafraichir = () => setVersion((v) => v + 1);
   // Contrôles de cohérence (lot R), relus à chaque changement du lot
   const { parFuite: controles, erreur: erreurControles } = useControles(marcheId, version);
+  const { parFuite: anticipees } = useFuitesAnticipees(marcheId, version);
   const dec = regles?.decimales;
 
   const groupes = useMemo(() => {
@@ -324,14 +328,17 @@ export default function DetailLot() {
                 <tbody>
                   {groupes.map((g, i) => {
                     const t = g[0];
-                    const refectionAttendue = modifiable && regles?.refection_anticipee && t.fuite_id && !t.refectionnee_le && !g.some((l) => l.nature === "anticipation");
+                    const anticipable = modifiable && regles?.refection_anticipee && t.fuite_id && !t.refectionnee_le && !g.some((l) => l.nature === "anticipation");
                     const zebre = i % 2 === 1 ? "zebre" : "";
                     return (
                       <Fragment key={t.fuite_id ?? t.id}>
                         <tr className={zebre}>
                           {t.fuite_id ? (
                             <>
-                              <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
+                              <td className="nowrap">
+                                <LienFuite id={t.fuite_id} numero={t.fuite_numero} />
+                                {anticipees.has(t.fuite_id) && <span className="etiquette etiquette-anticipe" title={`Attachée par anticipation (lot N° ${anticipees.get(t.fuite_id)?.premier_lot ?? "?"}), exécution attendue`}>Anticipé</span>}
+                              </td>
                               <td><BadgeControles liste={controles.get(t.fuite_id)} /></td>
                               <td className="nowrap">{t.reference_srm ?? "—"}</td>
                               <td>{t.secteur ?? "—"}</td>
@@ -352,7 +359,7 @@ export default function DetailLot() {
                                 <span key={l.id} className="unite-ligne">
                                   P{l.prix_numero} <strong>{quantite(l.quantite, l.unite, dec)}</strong> {l.unite}
                                   {l.regularisation && <span className={`etiquette ${l.quantite < 0 ? "etiquette-alerte" : ""}`}>Régul. lot {l.lot_precedent}</span>}
-                                  {l.nature !== "solde" && l.fuite_id && <span className="etiquette">{NATURES_LIGNE[l.nature]}</span>}
+                                  {l.nature !== "solde" && l.fuite_id && <span className={`etiquette ${l.nature === "anticipation" ? "etiquette-anticipe" : ""}`}>{NATURES_LIGNE[l.nature]}</span>}
                                   {l.motif && <span className="discret" title={l.motif}>{l.motif.length > 40 ? `${l.motif.slice(0, 40)}…` : l.motif}</span>}
                                   {modifiable && g.length > 1 && (
                                     <button className="petit" onClick={() => retirer([l.id])} aria-label={`Retirer le prix ${l.prix_numero}`}>×</button>
@@ -363,7 +370,7 @@ export default function DetailLot() {
                           </td>
                           {modifiable && (
                             <td className="nowrap">
-                              {refectionAttendue && <button className="petit" onClick={() => setAnticipation(anticipation === t.fuite_id ? null : t.fuite_id)}>Réfection anticipée</button>}{" "}
+                              {anticipable && <button className="petit" onClick={() => setAnticipation(anticipation === t.fuite_id ? null : t.fuite_id)}>Attacher par anticipation</button>}{" "}
                               {peutCorriger && t.fuite_id && (
                                 <button className="petit" onClick={() => setCorrection(correction === t.fuite_id ? null : t.fuite_id)}>
                                   {correction === t.fuite_id ? "Fermer" : "Corriger"}
@@ -389,7 +396,7 @@ export default function DetailLot() {
                           <tr className={zebre}>
                             <td colSpan={modifiable ? 9 : 8}>
                               <FormAnticipation
-                                articles={articles.filter((a) => prixRefection.has(a.id))} prixPropose={t.prix_refection_prevu}
+                                articles={articles.filter((a) => prixAnticipables.has(a.id))} prixPropose={t.prix_refection_prevu}
                                 quantiteProposee={t.fouille_longueur_m != null && t.fouille_largeur_m != null ? Math.round(t.fouille_longueur_m * t.fouille_largeur_m * 1000) / 1000 : null}
                                 marcheId={marcheId!} lotId={lot.id} fuiteId={t.fuite_id}
                                 annuler={() => setAnticipation(null)} fini={() => { setAnticipation(null); rafraichir(); }} onErreur={setErreur}
@@ -407,11 +414,17 @@ export default function DetailLot() {
         </CardContent>
       </Card>
 
+      {modifiable && regles?.refection_anticipee && (
+        <div className="ancien">
+          <PropositionsAnticipees marcheId={marcheId!} lotId={lot.id} regles={regles} version={version} ajoute={rafraichir} onErreur={setErreur} />
+        </div>
+      )}
+
       {modifiable && regles && (
         <div className="ancien">
           <AAttacher
             marcheId={marcheId!} lotId={lot.id} regles={regles} zones={zones} version={version} ajoute={rafraichir} onErreur={setErreur}
-            controles={controles} bordereau={articles} peutCorriger={peutCorriger}
+            controles={controles} bordereau={articles} peutCorriger={peutCorriger} anticipees={anticipees}
           />
         </div>
       )}

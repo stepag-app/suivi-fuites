@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import type { FuiteAnticipee } from '@/lib/anticipation';
 import { quantite, type ReglesAttachement, type Unite } from '@/lib/attachements';
 import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
 import { getSupabase, lireTout } from '@/lib/supabase';
@@ -28,11 +29,12 @@ const cleUnite = (u: Pick<Unite, 'fuite_id' | 'prix_id'>) => `${u.fuite_id}|${u.
 // par fuite ou par article, puis ajoutés au brouillon. Contrôles en défaut par fuite et
 // corrections (requalification, ligne, pièce) : lot R.
 export function AAttacher({
-  marcheId, lotId, regles, zones, version, ajoute, onErreur, controles, bordereau, peutCorriger,
+  marcheId, lotId, regles, zones, version, ajoute, onErreur, controles, bordereau, peutCorriger, anticipees,
 }: {
   marcheId: string; lotId: string; regles: ReglesAttachement; zones: { id: string; libelle: string }[];
   version: number; ajoute: () => void; onErreur: (m: string) => void;
   controles: Map<string, Controle[]>; bordereau: ArticleChoix[]; peutCorriger: boolean;
+  anticipees?: Map<string, FuiteAnticipee>;
 }) {
   const [unites, setUnites] = useState<Unite[]>([]);
   const [chargement, setChargement] = useState(true);
@@ -199,7 +201,10 @@ export function AAttacher({
                         <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${t.fuite_numero}`}
                           onChange={(e) => basculer(cles, e.target.checked)} />
                       </td>
-                      <td className="nowrap"><LienFuite id={t.fuite_id} numero={t.fuite_numero} /></td>
+                      <td className="nowrap">
+                        <LienFuite id={t.fuite_id} numero={t.fuite_numero} />
+                        {anticipees?.has(t.fuite_id) && <span className="etiquette etiquette-anticipe" title="Attachée par anticipation : solde à régulariser après l'exécution">Anticipé</span>}
+                      </td>
                       <td className="nowrap">{t.reference_srm ?? '—'}</td>
                       <td>{t.secteur ?? '—'}</td>
                       <td className="nowrap">

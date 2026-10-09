@@ -13,7 +13,7 @@ import { ajouterEnvoi, effacerPhotos, mettreEnAttente, synchroniser, type PhotoA
 import { Icone } from './icones';
 import { enumerer, t, tx, useLangue } from './langue';
 import { libelleDb, libelleListe, optionsListe } from './listes';
-import { MiniCarte } from './mini-carte';
+import { MiniCarte, useCarteDisponible, type PositionCarte } from './mini-carte';
 import { champsChanges } from './modification';
 import { diametresDe, useParametres } from './parametres';
 import { prendrePhoto as photoCamera } from './photos';
@@ -70,6 +70,11 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
     m?.latitude != null && m.longitude != null ? { lat: m.latitude, lon: m.longitude, precision: 0 } : null,
   );
   const [gps, setGps] = useState(() => t('Recherche de la position…'));
+  // Mini-carte (F4) : épingle déplacée sur la carte (écart au GPS), suggestions reçues de la carte.
+  const [carte, setCarte] = useState(false);
+  const [ajustee, setAjustee] = useState<number | null>(null);
+  const suggestionsDeLaCarte = useRef(false);
+  const carteDisponible = useCarteDisponible();
   const [photos, setPhotos] = useState<PhotoAttente[]>([]);
   const [erreur, setErreur] = useState('');
   const [manquants, setManquants] = useState<string[]>([]);
@@ -122,6 +127,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
     try {
       const p = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       setPosition({ lat: p.coords.latitude, lon: p.coords.longitude, precision: p.coords.accuracy ?? 0 });
+      setAjustee(null);
       setGps('');
     } catch {
       setGps(t("Position introuvable. Sortez à l'air libre et réessayez."));
@@ -136,6 +142,11 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
   // Suggestions de localisation : rues, secteur, tronçon ; rayon selon la précision annoncée (base, S2).
   useEffect(() => {
     if (!marche || !position || m) return;
+    // Position validée sur la carte : ses suggestions sont déjà là (calculées pour l'épingle).
+    if (suggestionsDeLaCarte.current) {
+      suggestionsDeLaCarte.current = false;
+      return;
+    }
     if (aRenouveler || jetonARenouveler()) {
       setEtatSuggestions('hors_ligne');
       return;
@@ -231,6 +242,17 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
       { text: t('Non'), style: 'cancel' },
       { text: t('Oui, ouvrir la fiche'), onPress: ouvrirLaFiche },
     ]);
+  }
+
+  function positionCarte(p: PositionCarte) {
+    setCarte(false);
+    if (p.suggestions) {
+      suggestionsDeLaCarte.current = true;
+      setSuggestions(p.suggestions);
+      setEtatSuggestions('fait');
+    }
+    setPosition({ lat: p.latitude, lon: p.longitude, precision: p.precision_m ?? position?.precision ?? 0 });
+    setAjustee(p.deplacee ? Math.round(p.distance_gps_m ?? 0) : null);
   }
 
   const choisir = (cle: string, appliquer: () => void) => {
@@ -336,7 +358,10 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
             {position ? (
               <Text style={s.texte}>{position.lat.toFixed(6)}, {position.lon.toFixed(6)} (± {Math.round(position.precision)} m)</Text>
             ) : <Text style={s.discret}>{gps}</Text>}
-            {position && <MiniCarte latitude={position.lat} longitude={position.lon} precision={position.precision} tronconId={tronconId || tr?.id} />}
+            {ajustee != null && <Text style={s.petit}>{t('Position ajustée sur la carte, à {n} m du GPS.', { n: ajustee })}</Text>}
+            {carteDisponible && marche && (
+              <Bouton titre={t('Voir et ajuster sur la carte')} icone="map" onPress={() => setCarte(true)} style={{ alignSelf: 'flex-start' }} />
+            )}
           </Carte>
         )}
 
@@ -511,6 +536,10 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         />
         <Bouton titre={t('Annuler')} onPress={retour} desactive={!!envoi} />
       </ScrollView>
+
+      {marche && (
+        <MiniCarte visible={carte} marcheId={marche.id} gps={position} fermer={() => setCarte(false)} valider={positionCarte} />
+      )}
 
       <Modal visible={choixSecteur} animationType="slide" statusBarTranslucent onRequestClose={() => setChoixSecteur(false)}>
         <View style={s.ecran}>

@@ -448,6 +448,14 @@ export const TRADUCTIONS = {
   'Téléchargement impossible ({erreur}). Réessayez avec une meilleure connexion.': { ar: 'تعذّر التحميل ({erreur}). أعد المحاولة باتصال أفضل.' },
   'fichier incomplet': { ar: 'ملف ناقص' },
 
+  'Voir et ajuster sur la carte': { ar: 'عرض الموقع وضبطه على الخريطة' },
+  'Position ajustée sur la carte, à {n} m du GPS.': { ar: 'تم ضبط الموقع على الخريطة، على بُعد {n} م من GPS.' },
+  'Position sur la carte': { ar: 'الموقع على الخريطة' },
+  "Déplacez l'épingle si besoin, puis « Valider la position ».": { ar: 'حرّك الدبوس عند الحاجة، ثم اضغط «تأكيد الموقع».' },
+  'La carte a besoin de la connexion : la position GPS suffit pour enregistrer la fuite.': { ar: 'الخريطة تحتاج إلى الاتصال بالإنترنت: موقع GPS يكفي لتسجيل التسرب.' },
+  "La carte ne peut pas s'ouvrir. Réessayez.": { ar: 'تعذّر فتح الخريطة. أعد المحاولة.' },
+  'Retour au formulaire': { ar: 'العودة إلى الاستمارة' },
+
   // Accessibilité (lus par le lecteur d'écran)
   '{legende} : retirer la photo': { ar: '{legende}: إزالة الصورة' },
   'Avancement {progression} %': { ar: 'التقدّم {progression} %' },

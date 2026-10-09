@@ -29,7 +29,8 @@ export function useMiseAJour(): Version | null {
   const [version, setVersion] = useState<Version | null>(null);
   const dernier = useRef(0);
   const verifier = useCallback(async () => {
-    if (!session || aRenouveler || jetonARenouveler() || Date.now() - dernier.current < INTERVALLE_MS) return;
+    // Version de développement (APP_VARIANT=dev) : jamais remplacée par l'APK publiée, qui est une autre appli.
+    if (__DEV__ || !session || aRenouveler || jetonARenouveler() || Date.now() - dernier.current < INTERVALLE_MS) return;
     dernier.current = Date.now();
     const { data, error } = await supabase.functions.invoke('version-apk', { body: {} });
     if (error || !data || data.aucune) return;

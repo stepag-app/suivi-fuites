@@ -1,0 +1,62 @@
+name: APK de développement (tablette)
+
+# Appli « Suivi fuites DEV » (ma.stepag.suivifuites.dev), installée à côté de la vraie sur la tablette de test.
+# Compilation debug : elle ne contient pas le code JS, elle le charge depuis le Mac par le câble (Metro + adb reverse),
+# avec rechargement en direct. À recompiler seulement quand la partie native change (dépendances, permissions,
+# plugins) : voir mobile/README.md § Tablette de test.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile/package.json'
+      - 'mobile/package-lock.json'
+      - 'mobile/app.json'
+      - 'mobile/app.config.js'
+      - 'mobile/plugins/**'
+      - '.github/workflows/apk-dev.yml'
+  pull_request:
+    paths:
+      - 'mobile/package.json'
+      - 'mobile/package-lock.json'
+      - 'mobile/app.json'
+      - 'mobile/app.config.js'
+      - 'mobile/plugins/**'
+      - '.github/workflows/apk-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  apk-dev:
+    name: Compilation de l'APK de développement
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_NO_TELEMETRY: '1'
+      APP_VARIANT: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npx expo prebuild --platform android --no-install
+      # Clé de debug du modèle Expo : la même à chaque compilation, une nouvelle APK DEV s'installe par-dessus.
+      - name: Compilation (debug)
+        working-directory: mobile/android
+        run: ./gradlew assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: suivi-fuites-dev-apk
+          path: mobile/android/app/build/outputs/apk/debug/*.apk
+          retention-days: 30

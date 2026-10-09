@@ -104,3 +104,13 @@ export function BadgesAlertes({ fuite, libelles, verrouillee, sansPhoto = false,
     </div>
   );
 }
+
+/** A1 : fuite attachée par anticipation dont l'exécution manque (prioritaire jusqu'à l'exécution réelle). */
+export function BadgeAnticipe({ className, lot }: { className?: string; lot?: number | null }) {
+  return (
+    <Badge variant="outline" className={cn("border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300", className)}
+      title={`Attaché par anticipation${lot ? ` (lot N° ${lot})` : ""} : travaux à exécuter en priorité`}>
+      Anticipé
+    </Badge>
+  );
+}

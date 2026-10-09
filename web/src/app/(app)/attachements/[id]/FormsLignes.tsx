@@ -59,7 +59,7 @@ export function FormLigneLibre({ articles, marcheId, lotId, annuler, fini, onErr
   );
 }
 
-// Réfection attachée avant son exécution, avec l'accord du maître d'ouvrage.
+// Article du panier d'anticipation attaché avant son exécution, avec l'accord du maître d'ouvrage (A1).
 export function FormAnticipation({
   articles, prixPropose, quantiteProposee, fuiteId, marcheId, lotId, annuler, fini, onErreur,
 }: Props & { prixPropose: string | null; quantiteProposee: number | null; fuiteId: string }) {
@@ -75,16 +75,16 @@ export function FormAnticipation({
   return (
     <form onSubmit={envoyer} className="sous-formulaire">
       <p className="discret">
-        La surface proposée est celle de la fouille (L × l). Quand la vraie réfection sera saisie, la différence apparaîtra
-        en régularisation dans un lot suivant.
+        Ligne marquée « Attaché par anticipation ». Pour une réfection, la surface proposée est celle de la fouille (L × l).
+        Quand le travail réel sera saisi, la différence apparaîtra en régularisation dans un lot suivant.
       </p>
       <div className="deux">
         <ChoixArticle articles={articles} valeur={prixId} maj={setPrixId} />
-        <label>Surface (m2)<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
+        <label>Quantité ({articles.find((a) => a.id === prixId)?.unite ?? 'm2'})<input value={qte} onChange={(e) => setQte(e.target.value)} inputMode="decimal" required /></label>
       </div>
       <label>Accord du maître d&apos;ouvrage (nom, date) *<input value={motif} onChange={(e) => setMotif(e.target.value)} required placeholder="Ex. accord de M. X le 30/10/2026" /></label>
       <div className="actions">
-        <button className="primaire" disabled={!prixId || !valide(qte) || !motif.trim()}>Attacher la réfection</button>
+        <button className="primaire" disabled={!prixId || !valide(qte) || !motif.trim()}>Attacher par anticipation</button>
         <button type="button" onClick={annuler}>Annuler</button>
       </div>
     </form>

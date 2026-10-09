@@ -24,11 +24,11 @@ export const ADMIN_ID = id("d", 1);
 export const EMAIL_DEMO = "issam@agents.stepag.ma";
 
 export const profils: Profil[] = [
-  { id: ADMIN_ID, identifiant: "issam", nom_complet: "Issam Bousalam", telephone: "0661 00 00 01", langue: "fr", est_admin: true, actif: true },
-  { id: id("d", 2), identifiant: "karim", nom_complet: "Karim El Amrani", telephone: "0661 00 00 02", langue: "fr_ar", est_admin: false, actif: true },
-  { id: id("d", 3), identifiant: "youssef", nom_complet: "Youssef Benali", telephone: "0661 00 00 03", langue: "ar", est_admin: false, actif: true },
-  { id: id("d", 4), identifiant: "nadia", nom_complet: "Nadia Rahmouni", telephone: null, langue: "fr", est_admin: false, actif: true },
-  { id: id("d", 5), identifiant: "hamid", nom_complet: "Hamid Zerouali", telephone: "0661 00 00 05", langue: "fr_ar", est_admin: false, actif: false },
+  { id: ADMIN_ID, identifiant: "issam", nom_complet: "BOUSALAM Issam", nom: "Bousalam", prenom: "Issam", matricule: null, entreprise: "STEPAG", telephone: "0661 00 00 01", langue: "fr", est_admin: true, actif: true },
+  { id: id("d", 2), identifiant: "karim", nom_complet: "EL AMRANI Karim", nom: "El Amrani", prenom: "Karim", matricule: "1021", entreprise: "STEPAG", telephone: "0661 00 00 02", langue: "fr_ar", est_admin: false, actif: true },
+  { id: id("d", 3), identifiant: "youssef", nom_complet: "BENALI Youssef", nom: "Benali", prenom: "Youssef", matricule: "1022", entreprise: "STEPAG", telephone: "0661 00 00 03", langue: "ar", est_admin: false, actif: true },
+  { id: id("d", 4), identifiant: "nadia", nom_complet: "RAHMOUNI Nadia", nom: "Rahmouni", prenom: "Nadia", matricule: null, entreprise: "STEPAG", telephone: null, langue: "fr", est_admin: false, actif: true },
+  { id: id("d", 5), identifiant: "hamid", nom_complet: "ZEROUALI Hamid", nom: "Zerouali", prenom: "Hamid", matricule: "ST-07", entreprise: "Travaux Oriental (sous-traitant)", telephone: "0661 00 00 05", langue: "fr_ar", est_admin: false, actif: false },
 ];
 
 export const MARCHE_SRM = id("c", 1);
@@ -52,7 +52,7 @@ export const marches: (Marche & Ligne)[] = [
 
 export const affectations: Ligne[] = [
   { id: id("a", 101), profil_id: id("d", 2), marche_id: MARCHE_SRM, roles: ["detection"], actif: true },
-  { id: id("a", 102), profil_id: id("d", 3), marche_id: MARCHE_SRM, roles: ["chef_reparation"], actif: true },
+  { id: id("a", 102), profil_id: id("d", 3), marche_id: MARCHE_SRM, roles: ["chef_reparation", "refection"], actif: true },
   { id: id("a", 103), profil_id: id("d", 4), marche_id: MARCHE_SRM, roles: ["responsable"], actif: true },
   { id: id("a", 104), profil_id: id("d", 5), marche_id: MARCHE_SRM, roles: ["detection"], actif: false },
   { id: id("a", 105), profil_id: id("d", 2), marche_id: MARCHE_DEMO, roles: ["detection", "chef_reparation"], actif: true },
@@ -82,7 +82,8 @@ const RUES = ["Bd Mohammed V", "Rue de Marrakech", "Av. Hassan II", "Rue Ibn Sin
   "Bd Derfoufi", "Rue Oued Ziz", "Rue de Taza", "Av. Idriss Al Akbar", "Rue Al Qods", "Bd Zerktouni", "Rue Oujda-Angad", "Av. des FAR"];
 const OUVRAGES = ["branchement", "branchement", "conduite", "vanne", "compteur", "piece_speciale", "bouche_incendie"];
 const EMPLACEMENTS = ["trottoir", "chaussee", "chaussee", "terrain_naturel"];
-const AGENTS = ["Karim El Amrani", "Hamid Zerouali", "Karim El Amrani"];
+const AGENTS = ["EL AMRANI Karim", "ZEROUALI Hamid", "EL AMRANI Karim"];
+const AGENTS_ID: Record<string, string> = { "EL AMRANI Karim": id("d", 2), "ZEROUALI Hamid": id("d", 5) };
 
 interface Plan { statut: StatutFuite; n: number }
 const PLAN_SRM: Plan[] = [
@@ -117,7 +118,8 @@ function fabriquerFuites(marcheId: string, plan: Plan[], secteursDu: (Secteur & 
         origine: r() < 0.12 ? "srm" : "stepag", visibilite: r() < 0.6 ? "visible" : "invisible", ouvrage: choix(OUVRAGES), statut: p.statut,
         zone: zone?.libelle as string ?? null, secteur_id: secteur.id, secteur: secteur.libelle,
         adresse: `${entre(2, 180)} ${choix(RUES)}`, latitude: 34.6814 + (r() - 0.5) * 0.06, longitude: -1.9086 + (r() - 0.5) * 0.08,
-        date_detection: detection, detectee_par: choix(AGENTS), source_saisie: r() < 0.8 ? "tablette" : "web",
+        ...(() => { const agent = choix(AGENTS); return { detectee_par: agent, auteur_terrain_id: AGENTS_ID[agent] }; })(),
+        date_detection: detection, source_saisie: r() < 0.8 ? "tablette" : "web",
         date_communication_srm: r() < 0.7 ? il_y_a(Math.max(1, age - 2)) : null, validation_srm_le: p.statut === "achevee" && r() < 0.6 ? refection : null,
         validation_srm_par: p.statut === "achevee" && r() < 0.6 ? "M. Tahiri" : null, avis_terrassement_srm_le: reparee && r() < 0.6 ? il_y_a(Math.max(1, age - 4)) : null,
         derniere_reparation_le: reparation, derniere_refection_le: refection, emplacement_fouille: reparee ? emplacement : null, nb_photos: nbPhotos,
@@ -156,7 +158,7 @@ const BORDEREAU: [string, string, string, number, number, string][] = [
 ];
 export const prix: Ligne[] = BORDEREAU.map(([numero, designation, unite, qm, pu, famille], i) => ({
   id: id("9", i + 1), marche_id: MARCHE_SRM, numero, ordre: i + 1, designation, unite, quantite_marche: qm, pu_ht: pu, famille,
-  hors_bordereau: false, actif: true, version: 1, avenant_id: null, motif: null,
+  hors_bordereau: false, actif: true, version: 1, avenant_id: null, motif: null, anticipable: famille === "refection",
 }));
 
 export const parametresAttachement: Ligne[] = [{
@@ -335,11 +337,73 @@ export const equipes: Ligne[] = [
   { id: id("a", 204), marche_id: MARCHE_SRM, type: "detection", numero: 1, libelle: "Détection 1", actif: true },
 ];
 export const ouvriers: Ligne[] = ["Rachid Bouzid", "Mustapha Lahlou", "Abdelkader Ziani", "Said Mimouni", "Omar Belkacem", "Brahim Taleb"].map((nom, i) => ({
-  id: id("8", i + 1), marche_id: MARCHE_SRM, nom_complet: nom, telephone: i % 2 ? `0662 00 00 ${String(i).padStart(2, "0")}` : null, actif: i !== 5,
+  id: id("8", i + 1), marche_id: MARCHE_SRM, nom_complet: nom, matricule: i < 4 ? `OUV-${String(i + 1).padStart(2, "0")}` : null, telephone: i % 2 ? `0662 00 00 ${String(i).padStart(2, "0")}` : null, actif: i !== 5,
 }));
 export const vAnomalies: Ligne[] = vFuites.filter((f) => f.marche_id === MARCHE_SRM && f.statut === "achevee").slice(0, 3).map((f, i) => ({
   marche_id: MARCHE_SRM, fuite_id: f.id, reparation_id: null, anomalie: ["fouille_superieure_2m", "reference_srm_format", "prix_hors_bordereau"][i],
 }));
+
+// A1 : deux fuites réparées attachées par anticipation au dernier lot arrêté (réfection pas encore faite) ; les autres
+// réfections dues sont proposées dans le brouillon (surface de fouille).
+const dues = vFuites.filter((f) => f.marche_id === MARCHE_SRM && f.statut === "reparee" && f.emplacement_fouille !== "terrain_naturel");
+const repDe = (f: VFuite) => reparations.find((x) => x.fuite_id === f.id);
+const surface = (f: VFuite) => { const x = repDe(f); return x ? Number(((x.fouille_longueur_m as number) * (x.fouille_largeur_m as number)).toFixed(2)) : 1; };
+const prixRefection = (f: VFuite) => prixPar(f.emplacement_fouille === "chaussee" ? "11" : "12");
+export const anticipeesDemo = dues.slice(0, 2);
+anticipeesDemo.forEach((f) => {
+  const p = prixRefection(f);
+  lignesAttachement.push({
+    id: id("7", ++numLigne), attachement_id: id("e", 3), attachement_statut: "arrete", nature: "anticipation", marche_id: MARCHE_SRM, fuite_id: f.id,
+    fuite_numero: f.numero, reference_srm: f.reference_srm, adresse: f.adresse, statut: f.statut, verrouillee: true, zone: f.zone, secteur_id: f.secteur_id,
+    secteur: f.secteur, equipe: null, reparee_le: f.derniere_reparation_le, refectionnee_le: null, prix_id: p.id, prix_numero: p.numero, prix_ordre: p.ordre,
+    prix_designation: p.designation, unite: p.unite, famille: p.famille, pu_ht: p.pu_ht, quantite: surface(f), fouille_longueur_m: null, fouille_largeur_m: null,
+    fouille_profondeur_m: null, volume_m3: null, surface_refection_m2: null, regularisation: false, regularisation_negative: false, lot_precedent: null,
+    designation: null, motif: "Attaché par anticipation (accord du maître d'ouvrage, règles du marché)", prix_refection_prevu: null,
+  });
+});
+export const propositionsAnticipation: Ligne[] = dues.slice(2).map((f) => {
+  const p = prixRefection(f);
+  return {
+    marche_id: MARCHE_SRM, fuite_id: f.id, fuite_numero: f.numero, reference_srm: f.reference_srm, adresse: f.adresse, statut: f.statut, zone_id: null,
+    secteur_id: f.secteur_id, reparation_id: repDe(f)?.id ?? null, resultat_reparation: "reparee", reparee_le: f.derniere_reparation_le,
+    nature_code: f.emplacement_fouille === "chaussee" ? "chaussee_enrobe" : "trottoir_carrele",
+    nature_libelle_fr: f.emplacement_fouille === "chaussee" ? "Chaussée en enrobé" : "Trottoir carrelé", prix_id: p.id, prix_numero: p.numero,
+    prix_ordre: p.ordre, prix_designation: p.designation, unite: p.unite, quantite_proposee: surface(f), brouillon_id: null,
+  };
+});
+
+// N1 : notifications de l'administrateur (texte prêt à afficher, comme le produit la base)
+const fuitesSrm = vFuites.filter((f) => f.marche_id === MARCHE_SRM);
+export const notifications: Ligne[] = [
+  ["fuite_detectee", 0, 0.3, "Nouvelle fuite N° {n} détectée", true],
+  ["reparation_saisie", 1, 1.5, "Fuite N° {n} : réparation saisie, à valider", true],
+  ["alerte_reparation", 2, 5, "Fuite N° {n} non réparée depuis plus de 48 h", true],
+  ["refection_saisie", 3, 26, "Fuite N° {n} : réfection faite", false],
+  ["reparation_validee", 4, 50, "Fuite N° {n} réparée et validée : réfection à faire", false],
+].map(([evenement, k, h, titre, nonLue], i) => {
+  const f = fuitesSrm[k as number];
+  return {
+    id: i + 1, destinataire_id: ADMIN_ID, marche_id: MARCHE_SRM, evenement, fuite_id: f.id, titre: String(titre).replace("{n}", String(f.numero)),
+    corps: f.adresse, cree_le: il_y_a(h as number), lue_le: nonLue ? null : il_y_a((h as number) - 0.1), auteur_id: id("d", 2),
+  };
+});
+
+// Vues des exports (R4 : noms des agents et ouvriers que les documents remplacent par leur matricule)
+const CHEF_DEMO = { id: id("d", 3), nom: "BENALI Youssef" };
+export const vFuitesExport: Ligne[] = vFuites.map((f) => {
+  const rep = reparations.find((x) => x.fuite_id === f.id);
+  return { ...f, jour_detection: f.date_detection.slice(0, 10), reparation_le: rep?.realisee_le ?? null, resultat_reparation: rep?.resultat ?? null,
+    equipe_reparation: rep ? `Réparation ${(f.numero % 3) + 1}` : null, chef_reparation: rep ? CHEF_DEMO.nom : null };
+});
+export const vPiecesPosees: Ligne[] = reparationPieces.map((p) => {
+  const rep = reparations.find((x) => x.id === p.reparation_id)!;
+  const f = vFuites.find((x) => x.id === rep.fuite_id)!;
+  const produit = produitsDolibarr.find((x) => x.dolibarr_id === p.produit_id);
+  return { id: p.id, marche_id: f.marche_id, reparation_id: rep.id, fuite_id: f.id, fuite_numero: f.numero, reference_srm: f.reference_srm, zone: f.zone,
+    secteur_id: f.secteur_id, secteur: f.secteur, equipe_id: rep.equipe_id, equipe: `Réparation ${(f.numero % 3) + 1}`, chef_id: CHEF_DEMO.id, chef: CHEF_DEMO.nom,
+    realisee_le: rep.realisee_le, jour: String(rep.realisee_le).slice(0, 10), designation: produit?.designation ?? "?", famille: produit?.famille ?? null,
+    unite: produit?.unite ?? "U", quantite: p.quantite, provenance: "terrain" };
+});
 
 /** Tables et vues servies par le client de démonstration. */
 export const TABLES: Record<string, Ligne[]> = {
@@ -350,4 +414,5 @@ export const TABLES: Record<string, Ligne[]> = {
   natures_refection: naturesRefection, motifs, produits_dolibarr: produitsDolibarr, imports_dolibarr: importsDolibarr, suggestions_articles: [],
   equipes, ouvriers, v_anomalies: vAnomalies, v_controles_attachement: [], v_pieces_reelles: [], verrous_admin: [],
   modeles_export: [], evenements: [], categories_evenements: [], avenants: [], arrets: [], evenements_pieces: [],
+  notifications, v_propositions_anticipation: propositionsAnticipation, v_fuites_export: vFuitesExport, v_pieces_posees: vPiecesPosees,
 };

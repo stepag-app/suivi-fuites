@@ -10,3 +10,10 @@ verify_jwt = true
 
 [functions.photos-r2]
 verify_jwt = true
+
+# Appelée par la base (pg_net, pg_cron) avec sa clé d'appel, sans JWT : elle la fait vérifier par la base.
+[functions.envoyer-push]
+verify_jwt = false
+
+[functions.version-apk]
+verify_jwt = true

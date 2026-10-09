@@ -31,6 +31,9 @@ export function tx(texte: string): string {
   return texte in TRADUCTIONS ? t(texte as Cle) : texte;
 }
 
+/** Langue en cours, hors des composants (libellés des listes venues de la base : listes.ts). */
+export const langueCourante = (): Langue => courante;
+
 /** « a, b, c » avec la virgule de la langue (، en arabe). */
 export const enumerer = (elements: string[]) => elements.join(courante === 'fr' ? ', ' : '، ');
 

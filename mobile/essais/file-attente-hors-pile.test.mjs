@@ -252,6 +252,44 @@ verifier(erreur?.name === 'AbortError' && /timeout/.test(erreur.message),
 globalThis.setTimeout = vraiSetTimeout;
 globalThis.clearTimeout = vraiClearTimeout;
 
+console.log('10. Modifications de champs (V2, V3) : fuite et réfection pas encore validées, photo retirée ou retypée');
+sim.reseau = true;
+sim.coupureDans = null;
+sim.droits = { modifier: 'siennes', supprimer: 'siennes' };
+const F5 = uuid(), RF5 = uuid();
+const ph5 = photo('detection');
+await mettreEnAttente({ id: F5, marche_id: M, position: null, photos: [ph5], ligne: { adresse: 'Rue de la maj', ouvrage: 'branchement' } });
+await ajouterEnvoi({
+  type: 'refection', id: RF5, marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [],
+  ligne: { fuite_id: F5, resultat: 'faite', realisee_le: new Date().toISOString(), longueur_m: 1, largeur_m: 1 },
+});
+// Modifiées sur la tablette AVANT l'envoi de la fuite : parties après elle, dans l'ordre.
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'fuites', ligne_id: F5, champs: { visibilite: 'visible', adresse: 'Rue corrigée' } });
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'refections', ligne_id: RF5, champs: { longueur_m: 2.5 } });
+reste = await synchroniser();
+const f5 = sim.tables.fuites.find((x) => x.id === F5);
+verifier(reste === 0 && f5.adresse === 'Rue corrigée' && f5.visibilite === 'visible' && f5.ouvrage === 'branchement',
+  'fuite créée puis modifiée (seuls les champs changés), dans l\'ordre de la file');
+verifier(sim.tables.refections.find((x) => x.id === RF5)?.longueur_m === 2.5, 'réfection modifiée après sa création');
+const p5 = sim.tables.photos.find((x) => x.id === ph5.id);
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'photos', ligne_id: ph5.id, champs: { type: 'autre' } });
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'photos', ligne_id: ph5.id, champs: { supprime_le: new Date().toISOString() } });
+reste = await synchroniser();
+verifier(reste === 0 && p5.type === 'autre' && !!p5.supprime_le, 'photo retypée puis retirée (retrait logique, ligne gardée)');
+p5.saisi_par = 'collegue';
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'photos', ligne_id: ph5.id, champs: { type: 'detection' } });
+reste = await synchroniser();
+verifier(reste === 1 && /Droit insuffisant/.test((await lireAttente())[0].erreur ?? ''), 'photo d\'un collègue : refus clair, modification gardée sur la tablette');
+await abandonner((await lireAttente())[0].id);
+sim.reseau = false;
+const RF6 = uuid();
+await ajouterEnvoi({ type: 'refection', id: RF6, marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], ligne: { fuite_id: F5, resultat: 'faite' } });
+await ajouterEnvoi({ type: 'maj', id: uuid(), marche_id: M, fuite_id: F5, fuite_libelle: 'x', photos: [], table: 'refections', ligne_id: RF6, champs: { largeur_m: 1 } });
+verifier((await dependants(RF6)).map((x) => x.type).join() === 'maj', 'abandonner une réfection en attente emporte sa modification');
+await abandonner(RF6);
+verifier((await lireAttente()).length === 0, 'réfection et modification retirées de la tablette');
+sim.reseau = true;
+
 verifier(!sim.sansJeton.length, 'toutes les requêtes de données ont porté le jeton de la session (jamais la clé anonyme)', sim.sansJeton);
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);

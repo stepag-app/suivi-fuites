@@ -138,7 +138,7 @@ export function BoutonBarre({ titre, onPress, icone }: { titre: string; onPress:
  */
 export function Bouton({ titre, onPress, primaire, danger, fantome, desactive, occupe, icone, compteur, grand, style }: {
   titre: string; onPress: () => void; primaire?: boolean; danger?: boolean; fantome?: boolean; desactive?: boolean;
-  occupe?: boolean; icone?: NomIcone; compteur?: number; grand?: boolean; style?: StyleProp<ViewStyle>;
+  occupe?: boolean; icone?: NomIcone; compteur?: number | string; grand?: boolean; style?: StyleProp<ViewStyle>;
 }) {
   const inactif = !!(desactive || occupe);
   const couleur = primaire ? COULEURS.principalTexte : danger ? COULEURS.danger : COULEURS.texte;
@@ -155,7 +155,7 @@ export function Bouton({ titre, onPress, primaire, danger, fantome, desactive, o
       accessibilityState={{ disabled: inactif, busy: !!occupe }}
     >
       {occupe ? <ActivityIndicator color={couleur} /> : icone && <Icone nom={icone} couleur={couleur} />}
-      <Text style={[s.texteBouton, { color: couleur }]} numberOfLines={2}>{titre}</Text>
+      {!!titre && <Text style={[s.texteBouton, { color: couleur }]} numberOfLines={2}>{titre}</Text>}
       {compteur != null && (
         <View style={[s.compteur, primaire && { backgroundColor: COULEURS.principalTexte }]}>
           <Text style={[s.texteCompteur, primaire && { color: COULEURS.principal }]}>{compteur}</Text>
@@ -417,9 +417,12 @@ export function Selecteur({ valeur, indication, onPress }: { valeur?: string | n
   );
 }
 
-/** Vignettes de photos (fichier local ou adresse signée) ; un appui retire la photo si `retirer` est fourni. */
+/**
+ * Vignettes de photos (fichier local ou adresse signée) ; un appui retire la photo si `retirer` est fourni, ou ouvre
+ * ses actions (changer le type, retirer) si la photo a `toucher`.
+ */
 export function Vignettes({ photos, retirer }: {
-  photos: { id: string; uri?: string; legende: string }[]; retirer?: (id: string) => void;
+  photos: { id: string; uri?: string; legende: string; toucher?: () => void }[]; retirer?: (id: string) => void;
 }) {
   const { t } = useLangue();
   if (!photos.length) return null;
@@ -428,8 +431,8 @@ export function Vignettes({ photos, retirer }: {
       {photos.map((p) => (
         <Pressable
           key={p.id}
-          onPress={retirer ? () => retirer(p.id) : undefined}
-          disabled={!retirer}
+          onPress={retirer ? () => retirer(p.id) : p.toucher}
+          disabled={!retirer && !p.toucher}
           style={s.vignette}
           accessibilityLabel={retirer ? t('{legende} : retirer la photo', { legende: p.legende }) : p.legende}
         >
@@ -443,6 +446,7 @@ export function Vignettes({ photos, retirer }: {
           )}
           <View style={s.etiquetteVignette}><Text style={s.texteEtiquetteVignette} numberOfLines={1}>{p.legende}</Text></View>
           {retirer && <View style={s.retirerVignette}><Icone nom="x" taille={18} /></View>}
+          {!retirer && p.toucher && <View style={s.retirerVignette}><Icone nom="pencil" taille={16} /></View>}
         </Pressable>
       ))}
     </View>

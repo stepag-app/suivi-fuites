@@ -9,7 +9,11 @@ name: Déploiement de la base
 #  * SUPABASE_DB_PASSWORD : mot de passe de la base du projet
 #  * R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY (facultatifs) : clés du compartiment privé
 #    Cloudflare R2 des photos, passées à la fonction photos-r2 ; absentes, les photos restent sur
-#    Supabase Storage. Variable R2_BUCKET (facultative, défaut suivi-fuites-photos).
+#    Supabase Storage. Variable R2_BUCKET (facultative, défaut suivi-fuites-photos). Mêmes secrets pour version-apk
+#    (mise à jour de l'APK publiée dans R2 par le workflow apk.yml).
+#  * FIREBASE_SERVICE_ACCOUNT (facultatif) : fichier JSON du compte de service Firebase (Paramètres du projet >
+#    Comptes de service > Générer une clé privée), passé à la fonction envoyer-push ; absent, aucune notification
+#    push ne part (la cloche de l'appli reste à jour).
 
 on:
   push:
@@ -109,3 +113,18 @@ jobs:
             R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
       - name: Déployer photos-r2
         run: supabase functions deploy photos-r2 --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Déployer version-apk
+        run: supabase functions deploy version-apk --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Secret Firebase de envoyer-push
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT" ]; then
+            echo "Secret FIREBASE_SERVICE_ACCOUNT absent : envoyer-push répondra « non configuré » (pas de push)."
+            exit 0
+          fi
+          # JSON sur une ligne (le fichier téléchargé de Firebase en compte plusieurs).
+          COMPTE=$(printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('type')=='service_account' and d.get('private_key'), 'compte de service invalide'; print(json.dumps(d, separators=(',', ':')))")
+          supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" FIREBASE_SERVICE_ACCOUNT="$COMPTE"
+      - name: Déployer envoyer-push
+        run: supabase functions deploy envoyer-push --no-verify-jwt --project-ref "$SUPABASE_PROJECT_ID"

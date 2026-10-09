@@ -5,7 +5,7 @@ import type { PieceAttente } from './file-attente';
 
 /** Champs de `reparations` modifiables depuis la tablette. */
 export const CHAMPS_REPARATION = [
-  'resultat', 'motif_id', 'realisee_le', 'equipe_id', 'ouvrage', 'materiau', 'diametre_mm', 'representant_srm',
+  'resultat', 'motif_id', 'realisee_le', 'equipe_id', 'ouvrage', 'materiau', 'diametre_mm', 'representant_srm', 'representant_srm_id',
   'tuyau_repare', 'robinet_pec_change', 'collier_pec_change', 'bouche_a_cle_mise_a_niveau', 'element_remplace',
   'longueur_pe_m', 'fouille_longueur_m', 'fouille_largeur_m', 'fouille_profondeur_m', 'emplacement',
   'nature_revetement_id', 'observation',
@@ -23,10 +23,10 @@ export interface Changements {
 
 const vide = (v: unknown) => v === null || v === undefined || v === '';
 
-function memeValeur(champ: string, a: unknown, b: unknown): boolean {
+export function memeValeur(champ: string, a: unknown, b: unknown): boolean {
   if (vide(a) || vide(b)) return vide(a) && vide(b);
   // Le serveur renvoie « …+00:00 », la tablette « ….000Z » : on compare des instants.
-  if (champ === 'realisee_le') return new Date(String(a)).getTime() === new Date(String(b)).getTime();
+  if (champ === 'realisee_le' || champ === 'date_detection') return new Date(String(a)).getTime() === new Date(String(b)).getTime();
   if (typeof a === 'number' || typeof b === 'number') return Number(a) === Number(b);
   return a === b;
 }
@@ -72,3 +72,10 @@ export function differences(avant: EtatReparation, apres: EtatReparation): Chang
 export const aucunChangement = (c: Changements) =>
   !Object.keys(c.ligne).length && !c.pieces_ajoutees.length && !c.pieces_retirees.length && !c.quantites.length
   && !c.ouvriers_ajoutes.length && !c.ouvriers_retires.length;
+
+/** Champs d'une ligne qui diffèrent de l'état de départ (fuite ou réfection modifiée : envoi « maj »). */
+export function champsChanges(avant: Record<string, unknown>, apres: Record<string, unknown>): Record<string, unknown> {
+  const champs: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(apres)) if (!memeValeur(k, avant[k], v)) champs[k] = v ?? null;
+  return champs;
+}

@@ -337,3 +337,21 @@
     margin-left: 1.2rem;
   }
 }
+
+/* Second passage : avertissement et motif avant l'enregistrement. */
+.avertissementRepasse {
+  display: grid;
+  gap: 0.4rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #f59e0b;
+  border-radius: 8px;
+  background: #fffbeb;
+  color: #78350f;
+}
+.avertissementRepasse p {
+  margin: 0;
+}
+.repasse {
+  color: #b45309;
+  font-weight: 600;
+}

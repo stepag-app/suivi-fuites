@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Network, PanelLeftClose, PanelLeftOpen, Route } from "lucide-react";
+import { texteEtatTroncon } from "@/lib/reseau/etat";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
@@ -214,15 +215,15 @@ function CarteDesFuites() {
       /* stockage indisponible */
     }
   }, [marcheId]);
-  // Un tronçon ne se balaie qu'une fois : ceux déjà balayés ne se sélectionnent pas.
+  // Tronçon déjà balayé : sélectionnable, avec un avertissement ; l'enregistrement demande le motif du second passage.
   const etatsBalayage = useRef(reseau.etats);
   etatsBalayage.current = reseau.etats;
   const surSelection = useCallback((ids: string[], mode: ModeSelection) => {
-    const deja = mode === "retirer" ? 0 : ids.filter((id) => etatsBalayage.current.get(id)?.balaye).length;
-    const libres = deja ? ids.filter((id) => !etatsBalayage.current.get(id)?.balaye) : ids;
-    if (deja) setMessageBalayage(`${deja} tronçon${deja > 1 ? "s" : ""} déjà balayé${deja > 1 ? "s" : ""}, ignoré${deja > 1 ? "s" : ""} : un tronçon ne se balaie qu'une fois.`);
+    const deja = mode === "retirer" ? [] : ids.filter((id) => etatsBalayage.current.get(id)?.balaye);
+    if (deja.length === 1 && ids.length === 1) setMessageBalayage(`Déjà balayé : ${texteEtatTroncon(etatsBalayage.current.get(deja[0]))}. Ce sera un second passage.`);
+    else if (deja.length) setMessageBalayage(`${deja.length} tronçons déjà balayés dans la sélection : seconds passages.`);
     setTronconsEtat((courante) => {
-      const s = appliquerSelection(courante, libres, mode);
+      const s = appliquerSelection(courante, ids, mode);
       if (marcheId) {
         try {
           window.sessionStorage.setItem(cleSelection(marcheId), JSON.stringify([...s]));
@@ -235,6 +236,7 @@ function CarteDesFuites() {
   }, [marcheId]);
 
   const lineaire = useMemo(() => lineaireSelection(troncons, reseau.longueurs), [troncons, reseau.longueurs]);
+  const dejaBalayes = useMemo(() => new Set([...troncons].filter((id) => reseau.etats.get(id)?.balaye)), [troncons, reseau.etats]);
 
   // Outils du mode balayage : toucher un par un, lasso au doigt, « Prolonger » le long de la rue.
   const [outilBalayage, setOutilBalayage] = useState<"toucher" | "lasso">("toucher");
@@ -276,7 +278,7 @@ function CarteDesFuites() {
     setMessageBalayage("");
     try {
       // Saisi dans l'APK (WebView) : sur la tablette ; sinon dans le panneau web.
-      const lignes = preparerBalayages(troncons, { ...choix, marcheId, sourceSaisie: estContexteApk() ? "tablette" : "web" });
+      const lignes = preparerBalayages(troncons, { ...choix, marcheId, sourceSaisie: estContexteApk() ? "tablette" : "web" }, undefined, dejaBalayes);
       const { restants } = await enregistrerBalayages(lignes);
       setTroncons(new Set());
       setMessageBalayage(restants === 0
@@ -322,7 +324,7 @@ function CarteDesFuites() {
   };
 
   const balayage: BalayagePanneau = {
-    peut: peutBalayer, actif: modeBalayage, basculer: basculerBalayage, selection: troncons, lineaire,
+    peut: peutBalayer, actif: modeBalayage, basculer: basculerBalayage, selection: troncons, lineaire, dejaBalayes,
     vider: () => setTroncons(new Set()), enregistrer, occupe, message: messageBalayage, enAttente, envoyer, peutAnnuler,
   };
 
@@ -488,6 +490,7 @@ function CarteDesFuites() {
                   )}
                   <span className={styles.compte} aria-live="polite">
                     {nombre(troncons.size, 0)} tronçon{troncons.size > 1 ? "s" : ""} · {formaterLineaire(lineaire)}
+                    {dejaBalayes.size > 0 && <span className={styles.repasse}> · dont {nombre(dejaBalayes.size, 0)} déjà balayé{dejaBalayes.size > 1 ? "s" : ""}</span>}
                   </span>
                   <button type="button" aria-pressed={outilBalayage === "toucher"} className={outilBalayage === "toucher" ? "actif" : ""} onClick={() => setOutilBalayage("toucher")}>Toucher</button>
                   <button type="button" aria-pressed={outilBalayage === "lasso"} className={outilBalayage === "lasso" ? "actif" : ""} onClick={() => { setOutilBalayage("lasso"); setGeometriesDemandees(true); }}>Lasso</button>

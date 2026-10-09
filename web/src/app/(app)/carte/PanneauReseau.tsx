@@ -11,6 +11,7 @@ import { COULEUR_NON_ZONE, TYPES_NOEUD, classeDiametre, entreesLegendeReseau } f
 import { formaterLineaire } from '@/lib/reseau/selection';
 import { SANS_SECTEUR, type Coloration } from '@/lib/reseau/types';
 import { nombre } from '@/lib/format';
+import { useLangueApk } from '@/lib/langue-apk';
 import type { MethodeBalayage } from '@/lib/types';
 import styles from './reseau.module.css';
 import type { EtatReseau } from './useReseau';
@@ -71,18 +72,24 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
   }
   const zonesAffichees = arbre.filter((z) => z.secteurs.some((s) => choisis.has(s.id)));
   const legende = entreesLegendeReseau(coloration, palette, zonesAffichees, nombres);
+  const { tb, rtl } = useLangueApk();
+  // Libellé « Zone n · nom » de la palette : traduit en gardant le nom.
+  const libelleLegende = (l: string) => {
+    const z = /^Zone (\d+) · (.*)$/.exec(l);
+    return z ? tb('Zone {n} · {libelle}', { n: z[1], libelle: z[2] }) : tb(l);
+  };
 
   return (
-    <aside className={styles.panneau} role="region" aria-label="Réseau d'eau">
+    <aside className={styles.panneau} role="region" aria-label="Réseau d'eau" dir={rtl ? 'rtl' : undefined}>
       <div className={styles.entete}>
-        <h2>Réseau d&apos;eau</h2>
-        <button onClick={fermer}>Fermer</button>
+        <h2>{tb("Réseau d'eau")}</h2>
+        <button onClick={fermer}>{tb('Fermer')}</button>
       </div>
 
       <div className={`choix-boutons ${styles.onglets}`} role="tablist" aria-label="Rubriques du panneau">
         {ONGLETS.filter(([o]) => o !== 'balayage' || balayage.peut).map(([o, texte]) => (
           <button key={o} type="button" role="tab" aria-selected={onglet === o} className={onglet === o ? 'actif' : ''} onClick={() => changerOnglet(o)}>
-            {texte}{o === 'balayage' && balayage.selection.size > 0 ? ` (${balayage.selection.size})` : ''}
+            {tb(texte)}{o === 'balayage' && balayage.selection.size > 0 ? ` (${balayage.selection.size})` : ''}
           </button>
         ))}
       </div>
@@ -90,11 +97,11 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
       {onglet === 'secteurs' && <>
       <label className={styles.interrupteur}>
         <input type="checkbox" checked={reseau.actif} onChange={(e) => reseau.setActif(e.target.checked)} />
-        Afficher le réseau
+        {tb('Afficher le réseau')}
       </label>
 
       {reseau.erreur && <p className="erreur">{reseau.erreur}</p>}
-      {reseau.actif && reseau.chargement && <p className={styles.vide}>Chargement des zones et secteurs…</p>}
+      {reseau.actif && reseau.chargement && <p className={styles.vide}>{tb('Chargement des zones et secteurs…')}</p>}
 
       {reseau.actif && contexte?.disponible && (
         <>
@@ -102,18 +109,19 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
             {COLORATIONS.map(([v, texte]) => (
               <button key={v} type="button" role="radio" aria-checked={coloration === v} className={coloration === v ? 'actif' : ''}
                 onClick={() => setColoration(v)}>
-                {texte}
+                {tb(texte)}
               </button>
             ))}
           </div>
 
           <div className={styles.outils}>
-            <button type="button" onClick={() => setChoisis(new Set([...tousLesSecteurs(arbre), ...(nbSans ? [SANS_SECTEUR] : [])]))}>Tout</button>
-            <button type="button" onClick={() => setChoisis(new Set())}>Aucun</button>
+            <button type="button" onClick={() => setChoisis(new Set([...tousLesSecteurs(arbre), ...(nbSans ? [SANS_SECTEUR] : [])]))}>{tb('Tout')}</button>
+            <button type="button" onClick={() => setChoisis(new Set())}>{tb('Aucun')}</button>
             <span className={styles.compteur}>
-              {totaux.secteurs} secteur{totaux.secteurs > 1 ? 's' : ''} · {formaterLineaire(totaux.lineaire)}
-              {totaux.lineaire > 0 ? ` · ${nombre(totaux.pct, 1)} % balayé` : ''}
-              {reseau.nbEnChargement > 0 ? ` · ${reseau.tuiles ? 'préparation' : 'chargement'} (${reseau.nbEnChargement})…` : ''}
+              {tb('{n} secteurs · {l}', { n: totaux.secteurs, l: formaterLineaire(totaux.lineaire) },
+                `${totaux.secteurs} secteur${totaux.secteurs > 1 ? 's' : ''} · ${formaterLineaire(totaux.lineaire)}`)}
+              {totaux.lineaire > 0 ? tb(' · {p} % balayé', { p: nombre(totaux.pct, 1) }) : ''}
+              {reseau.nbEnChargement > 0 ? tb(reseau.tuiles ? ' · préparation ({n})…' : ' · chargement ({n})…', { n: reseau.nbEnChargement }) : ''}
             </span>
           </div>
 
@@ -126,7 +134,7 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
                     <input type="checkbox" checked={etat === 'tous'} ref={(el) => { if (el) el.indeterminate = etat === 'partiel'; }}
                       onChange={() => setChoisis(basculerZone(z, choisis))} />
                     <span className={styles.pastille} style={{ background: z.couleur }} aria-hidden="true" />
-                    <span className={styles.texte}>Zone {z.numero} · {z.libelle}</span>
+                    <span className={styles.texte}>{tb('Zone {n} · {libelle}', { n: z.numero, libelle: z.libelle })}</span>
                     <span className={styles.compteur}>{formaterLineaire(z.lineaire)}</span>
                   </label>
                   <ul className={styles.secteurs}>
@@ -136,14 +144,14 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
                           <input type="checkbox" checked={choisis.has(s.id)} onChange={() => basculerSecteur(s.id)} />
                           <span className={styles.trait} style={{ borderTopColor: s.couleur }} aria-hidden="true" />
                           <span className={styles.texte} title={`${s.code} · ${s.libelle}`}>{s.code} · {s.libelle}</span>
-                          <span className={styles.jauge} title={`${nombre(s.pct, 1)} % balayé`} aria-hidden="true">
+                          <span className={styles.jauge} title={tb('{p} % balayé', { p: nombre(s.pct, 1) })} aria-hidden="true">
                             <span style={{ width: `${Math.min(100, Math.max(0, s.pct))}%` }} />
                           </span>
                           <span className={styles.compteur}>{formaterLineaire(s.lineaire)}</span>
                         </label>
                       </li>
                     ))}
-                    {z.secteurs.length === 0 && <li className={styles.vide}>Aucun secteur</li>}
+                    {z.secteurs.length === 0 && <li className={styles.vide}>{tb('Aucun secteur')}</li>}
                   </ul>
                 </li>
               );
@@ -153,16 +161,16 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
                 <label className={styles.ligne}>
                   <input type="checkbox" checked={choisis.has(SANS_SECTEUR)} onChange={() => basculerSecteur(SANS_SECTEUR)} />
                   <span className={`${styles.trait} ${styles.pointille}`} style={{ borderTopColor: COULEUR_NON_ZONE }} aria-hidden="true" />
-                  <span className={styles.texte}>Tronçons non zonés</span>
+                  <span className={styles.texte}>{tb('Tronçons non zonés')}</span>
                   <span className={styles.compteur}>{nombre(nbSans, 0)} · {formaterLineaire(Number(sansSecteur?.lineaire_m) || 0)}</span>
                 </label>
               </li>
             )}
-            {arbre.length === 0 && <li className={styles.vide}>Aucune zone ni secteur dans ce marché (Paramètres › Secteurs).</li>}
+            {arbre.length === 0 && <li className={styles.vide}>{tb('Aucune zone ni secteur dans ce marché (Paramètres › Secteurs).')}</li>}
           </ul>
 
           {reseau.etatTuiles === 'perimees' && (
-            <p className={styles.vide}>Affichage par secteur : le réseau a changé depuis la dernière génération des tuiles (Paramètres › Réseau › Tuiles).</p>
+            <p className={styles.vide}>{tb('Affichage par secteur : le réseau a changé depuis la dernière génération des tuiles (Paramètres › Réseau › Tuiles).')}</p>
           )}
         </>
       )}
@@ -174,14 +182,14 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
             {legende.map((e) => (
               <li key={e.libelle}>
                 <span className={styles.trait} style={{ borderTopColor: e.fond }} aria-hidden="true" />
-                <span className={styles.texte}>{e.libelle}</span>
+                <span className={styles.texte}>{libelleLegende(e.libelle)}</span>
                 <span className={styles.compteur}>{e.nombre > 0 ? nombre(e.nombre, 0) : ''}</span>
               </li>
             ))}
             {nbSans > 0 && choisis.has(SANS_SECTEUR) && coloration === 'secteur' && (
               <li>
                 <span className={`${styles.trait} ${styles.pointille}`} style={{ borderTopColor: COULEUR_NON_ZONE }} aria-hidden="true" />
-                <span className={styles.texte}>Non zoné</span>
+                <span className={styles.texte}>{tb('Non zoné')}</span>
               </li>
             )}
           </ul>
@@ -189,20 +197,20 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
             {TYPES_NOEUD.map((t) => (
               <li key={t.type}>
                 <span className={styles.point} style={{ background: t.couleur, width: t.equipement ? 12 : 7, height: t.equipement ? 12 : 7 }} aria-hidden="true" />
-                <span className={styles.texte}>{t.libelle}{t.sigle ? ` (${t.sigle})` : ''}</span>
+                <span className={styles.texte}>{tb(t.libelle)}{t.sigle ? ` (${t.sigle})` : ''}</span>
               </li>
             ))}
           </ul>
-          <p className={styles.vide}>Nœuds à partir du zoom 15, sigles à partir du zoom 17. Diamètre et matériau écrits le long des conduites de près (« Ø110 PVC », zoom 16).</p>
+          <p className={styles.vide}>{tb('Nœuds à partir du zoom 15, sigles à partir du zoom 17. Diamètre et matériau écrits le long des conduites de près (« Ø110 PVC », zoom 16).')}</p>
           {reseau.tuiles && <p className={styles.vide}>Réseau affiché en tuiles vectorielles{reseau.tuiles.infos ? ` (générées le ${new Date(reseau.tuiles.infos.genere_le).toLocaleDateString('fr-FR')})` : ''}.</p>}
         </>
       )}
-      {onglet === 'legende' && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>Affichez le réseau (onglet Secteurs) pour voir sa légende.</p>}
+      {onglet === 'legende' && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>{tb('Affichez le réseau (onglet Secteurs) pour voir sa légende.')}</p>}
 
       {onglet === 'balayage' && balayage.peut && reseau.actif && contexte?.disponible && (
         <BlocBalayage balayage={balayage} equipes={reseau.equipes} />
       )}
-      {onglet === 'balayage' && balayage.peut && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>Affichez le réseau (onglet Secteurs) pour balayer.</p>}
+      {onglet === 'balayage' && balayage.peut && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>{tb('Affichez le réseau (onglet Secteurs) pour balayer.')}</p>}
     </aside>
   );
 }
@@ -239,77 +247,77 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
     }
   };
 
+  const { tb, te } = useLangueApk();
   const n = balayage.selection.size;
   const repasses = balayage.dejaBalayes.size;
   return (
     <section className={styles.balayage} aria-label="Mode balayage">
       <button type="button" className={`gros ${styles['bouton-panneau']}`} aria-pressed={balayage.actif} onClick={balayage.basculer}>
-        {balayage.actif ? 'Quitter le mode balayage' : 'Mode balayage'}
+        {tb(balayage.actif ? 'Quitter le mode balayage' : 'Mode balayage')}
       </button>
       {balayage.actif && (
         <>
           <p className={styles.vide}>
-            Touchez les tronçons balayés (un second appui retire le tronçon), ou tracez un lasso au doigt ; « Prolonger »
-            suit la rue jusqu&apos;à la prochaine jonction. Les outils sont dans la barre en haut de la carte.
+            {tb("Touchez les tronçons balayés (un second appui retire le tronçon), ou tracez un lasso au doigt ; « Prolonger » suit la rue jusqu'à la prochaine jonction. Les outils sont dans la barre en haut de la carte.")}
           </p>
           <p>
-            <span className={styles.chiffre}>{nombre(n, 0)}</span> tronçon{n > 1 ? 's' : ''} · <span className={styles.chiffre}>{formaterLineaire(balayage.lineaire)}</span>
+            <span className={styles.chiffre}>{tb('{n} tronçons · {l}', { n: nombre(n, 0), l: formaterLineaire(balayage.lineaire) }, `${nombre(n, 0)} tronçon${n > 1 ? 's' : ''} · ${formaterLineaire(balayage.lineaire)}`)}</span>
           </p>
           <label id="formulaire-balayage">
-            Équipe
+            {tb('Équipe')}
             <select value={equipe} onChange={(e) => choisirEquipe(e.target.value)}>
-              <option value="">— sans équipe —</option>
-              {detection.map((e) => <option key={e.id} value={e.id}>{e.libelle}</option>)}
+              <option value="">{tb('— sans équipe —')}</option>
+              {detection.map((e) => <option key={e.id} value={e.id}>{te(e.libelle)}</option>)}
             </select>
           </label>
           <label>
-            Date du balayage
+            {tb('Date du balayage')}
             <input type="date" value={date} max={aujourdhuiMaroc()} onChange={(e) => setDate(e.target.value)} />
           </label>
           <label>
-            Méthode (facultative)
+            {tb('Méthode (facultative)')}
             <select value={methode} onChange={(e) => setMethode(e.target.value as MethodeBalayage | '')}>
               <option value="">—</option>
-              {METHODES.map((m) => <option key={m.valeur} value={m.valeur}>{m.libelle}</option>)}
+              {METHODES.map((m) => <option key={m.valeur} value={m.valeur}>{tb(m.libelle)}</option>)}
             </select>
           </label>
           <label>
-            Observation (facultative)
+            {tb('Observation (facultative)')}
             <input value={observation} maxLength={300} onChange={(e) => setObservation(e.target.value)} />
           </label>
           {repasses > 0 && (
             <div className={styles.avertissementRepasse} role="alert">
               <p>
-                <strong>{nombre(repasses, 0)} tronçon{repasses > 1 ? 's' : ''} déjà balayé{repasses > 1 ? 's' : ''}</strong> : enregistré{repasses > 1 ? 's' : ''} comme
-                second passage (gardé dans l&apos;historique, compté à part, jamais payé deux fois).
+                <strong>{tb('{n} tronçons déjà balayés', { n: nombre(repasses, 0) }, `${nombre(repasses, 0)} tronçon${repasses > 1 ? 's' : ''} déjà balayé${repasses > 1 ? 's' : ''}`)}</strong>
+                {tb(" : enregistrés comme second passage (gardé dans l'historique, compté à part, jamais payé deux fois).")}
               </p>
               <label>
-                Motif du second passage
+                {tb('Motif du second passage')}
                 <select value={motifRepasse} onChange={(e) => setMotifRepasse(e.target.value as MotifRepasse | '')}>
-                  <option value="">— à choisir —</option>
-                  {MOTIFS_REPASSE.map((m) => <option key={m.valeur} value={m.valeur}>{m.libelle}</option>)}
+                  <option value="">{tb('— à choisir —')}</option>
+                  {MOTIFS_REPASSE.map((m) => <option key={m.valeur} value={m.valeur}>{tb(m.libelle)}</option>)}
                 </select>
               </label>
             </div>
           )}
-          {balayage.message && <p className={balayage.message.startsWith('Erreur') ? 'erreur' : 'info'} role="status">{balayage.message}</p>}
+          {balayage.message && <p className={/^\u200f?(Erreur|خطأ)/.test(balayage.message) ? 'erreur' : 'info'} role="status">{balayage.message}</p>}
           <div className="actions">
             <button className="primaire gros" disabled={n === 0 || balayage.occupe || !/^\d{4}-\d{2}-\d{2}$/.test(date) || (repasses > 0 && !motifRepasse)}
               onClick={() => balayage.enregistrer({ equipeId: equipe || null, dateBalayage: date, methode: methode || null, observation: observation || null, motifRepasse: motifRepasse || null })}>
-              {balayage.occupe ? 'Enregistrement…' : `Enregistrer ${n > 0 ? `(${n})` : ''}`}
+              {balayage.occupe ? tb('Enregistrement…') : n > 0 ? tb('Enregistrer ({n})', { n }) : tb('Enregistrer')}
             </button>
-            <button type="button" disabled={n === 0 || balayage.occupe} onClick={balayage.vider}>Vider la sélection</button>
+            <button type="button" disabled={n === 0 || balayage.occupe} onClick={balayage.vider}>{tb('Vider la sélection')}</button>
           </div>
         </>
       )}
       {balayage.enAttente > 0 && (
         <p className={styles.attente} role="status">
-          {balayage.enAttente} balayage{balayage.enAttente > 1 ? 's' : ''} à envoyer.{' '}
-          <button type="button" className="petit" onClick={balayage.envoyer}>Envoyer maintenant</button>
+          {tb('{n} balayages à envoyer.', { n: balayage.enAttente }, `${balayage.enAttente} balayage${balayage.enAttente > 1 ? 's' : ''} à envoyer.`)}{' '}
+          <button type="button" className="petit" onClick={balayage.envoyer}>{tb('Envoyer maintenant')}</button>
         </p>
       )}
       {balayage.peutAnnuler && balayage.actif && (
-        <p className={styles.vide}>Pour annuler un balayage : quittez le mode balayage, touchez le tronçon puis « Annuler le balayage ».</p>
+        <p className={styles.vide}>{tb('Pour annuler un balayage : quittez le mode balayage, touchez le tronçon puis « Annuler le balayage ».')}</p>
       )}
     </section>
   );

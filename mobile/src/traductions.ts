@@ -44,6 +44,7 @@ export const TRADUCTIONS = {
   'Y aller': { ar: 'الذهاب إلى الموقع' },
   'Y aller (pas de position GPS)': { ar: 'الذهاب إلى الموقع (لا يوجد موقع GPS)' },
   'Référence client': { ar: 'مرجع الزبون' },
+  'Référence SRM / tournée': { ar: 'مرجع SRM / الجولة' },
   'Fuites': { ar: 'التسربات' },
   'Toutes': { ar: 'الكل' },
   '{n} fuites': { ar: 'عدد التسربات: {n}' },

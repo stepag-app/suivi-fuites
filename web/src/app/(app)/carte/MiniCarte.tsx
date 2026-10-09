@@ -5,6 +5,7 @@
 // (`suggestions_localisation`, suggestions seulement : rien n'est pré-rempli), réseau autour (tuiles, sinon le secteur
 // de la position), image satellite activable. Réutilisable : route /mini-carte (WebView de l'APK) et formulaires du
 // panneau. Chaque changement de position est remonté par `surChangement`.
+import { useLangueApk } from '@/lib/langue-apk';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GeoJSONSource, Map as CarteMapLibre, Marker, StyleSpecification } from 'maplibre-gl';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -58,6 +59,7 @@ export function MiniCarte({ marcheId, gps, langue = 'fr', satelliteInitial = fal
   const epingle = useRef<Marker | null>(null);
   const gestion = useRef<GestionReseau | null>(null);
   const [pret, setPret] = useState(false);
+  const { tb } = useLangueApk();
   const [erreur, setErreur] = useState('');
   const [satellite, setSatellite] = useState(satelliteInitial && satelliteDisponible());
   const [bornes, setBornes] = useState<[number, number, number, number] | null>(null);
@@ -250,7 +252,7 @@ export function MiniCarte({ marcheId, gps, langue = 'fr', satelliteInitial = fal
   return (
     <div className={className ?? 'relative h-full min-h-72 w-full overflow-hidden bg-muted'} dir={langue === 'ar' ? 'rtl' : 'ltr'}>
       <div ref={conteneur} className="carte-maplibre absolute inset-0" aria-label="Mini-carte de localisation" />
-      {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center text-muted-foreground text-sm">Chargement de la carte…</p>}
+      {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center text-muted-foreground text-sm">{tb('Chargement de la carte…')}</p>}
       {erreur && <p className="absolute inset-x-3 top-3 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       <div className="absolute top-3 left-3 z-[3] flex gap-2" dir="ltr">
         {gps && <Button size="sm" variant="outline" className="bg-background shadow-sm" onClick={recentrer}><Crosshair data-icon="inline-start" />{texte('maPosition', langue)}</Button>}

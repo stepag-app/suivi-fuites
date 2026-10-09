@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche, nombre } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
-import { texteEtatTroncon } from '@/lib/reseau/etat';
+import { langueApk, texteEtatTronconApk, traduire, useLangueApk } from '@/lib/langue-apk';
 import type { PaletteReseau } from '@/lib/reseau/palette';
 import { formaterLineaire, type ModeSelection } from '@/lib/reseau/selection';
 import { enregistrerProtocole, type TuilesReseau } from '@/lib/reseau/tuiles';
@@ -69,6 +69,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   const avecTextesRef = useRef(false);
   const [versionGestion, setVersionGestion] = useState(0);
   const [pret, setPret] = useState(false);
+  const { tb } = useLangueApk();
   const [fondIndisponible, setFondIndisponible] = useState(false);
   const [erreur, setErreur] = useState('');
   const router = useRouter();
@@ -353,7 +354,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   return (
     <div className="relative h-full min-h-72 w-full overflow-hidden bg-muted">
       <div ref={conteneur} className="carte-maplibre absolute inset-0" aria-label="Carte des fuites" />
-      {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center p-4 text-center text-muted-foreground text-sm">Chargement de la carte…</p>}
+      {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center p-4 text-center text-muted-foreground text-sm">{tb('Chargement de la carte…')}</p>}
       {erreur && <p className="absolute inset-x-4 bottom-4 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       {fondIndisponible && pret && (
         <p className="absolute top-3 right-14 left-3 m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
@@ -424,9 +425,9 @@ function bulleTroncon(
   racine.append(el('strong', undefined, `${CATEGORIES_TRONCON[p.c] ?? 'Tronçon'}${p.d ? ` DN ${nombre(p.d, 0)}` : ''}${p.m ? ` · ${p.m}` : ''}`));
   racine.append(el('div', undefined, noms ? `${noms.zone} · ${noms.secteur}` : 'Non zoné'));
   racine.append(el('div', 'discret', `Longueur ${formaterLineaire(p.l)}${p.d ? '' : ' · diamètre inconnu'}`));
-  racine.append(el('div', `${styles.etat} ${etat?.balaye ? styles.balaye : styles.non}`, texteEtatTroncon(etat)));
+  racine.append(el('div', `${styles.etat} ${etat?.balaye ? styles.balaye : styles.non}`, texteEtatTronconApk(etat)));
   if (annuler && etat?.balaye) {
-    const b = el('button', 'danger', 'Annuler le balayage') as HTMLButtonElement;
+    const b = el('button', 'danger', traduire(langueApk(), 'Annuler le balayage')) as HTMLButtonElement;
     b.type = 'button';
     b.addEventListener('click', annuler);
     const boutons = el('div', 'bulle-boutons');

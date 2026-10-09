@@ -14,7 +14,7 @@ import {
   ajouterEnvoi, estFuite, fuiteDe, lireAttente, messageClair, surChangement, synchroniser,
   type Envoi, type EnvoiMaj, type EnvoiModification, type EnvoiRefection, type EnvoiReparation,
 } from './file-attente';
-import { enumerer, t, tx, useLangue } from './langue';
+import { enumerer, libelleEquipe, t, tx, useLangue } from './langue';
 import { libelleDb, libelleListe } from './listes';
 import { appliquer, type EtatReparation } from './modification';
 import { useParametres, type Parametres } from './parametres';
@@ -506,7 +506,7 @@ function BlocReparation({ b, parametres, photo, photos, modifier, valider, enVal
   modifier?: () => void; valider?: () => void; enValidation: boolean; occupe: boolean;
 }) {
   const r = b.etat.ligne as unknown as Reparation;
-  const equipe = parametres.equipes.find((e) => e.id === r.equipe_id)?.libelle;
+  const equipe = libelleEquipe(parametres.equipes.find((e) => e.id === r.equipe_id)?.libelle);
   const motif = libelleDb(parametres.motifs.find((m) => m.id === r.motif_id));
   const nature = libelleDb(parametres.natures.find((n) => n.id === r.nature_revetement_id));
   const travaux = ([

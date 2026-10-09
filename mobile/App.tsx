@@ -8,7 +8,7 @@ import { Connexion, EnAttente, Liste } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
 import { LangueProvider, useLangue } from './src/langue';
-import { BandeauMiseAJour, useMiseAJour } from './src/mise-a-jour';
+import { BandeauMiseAJour, FenetreMiseAJour, useMiseAJour } from './src/mise-a-jour';
 import { EcranNotifications, useNonLues, useToucherNotification } from './src/notifications';
 import { NouvelleFuite } from './src/nouvelle-fuite';
 import { enregistrerPush, retenirLangue } from './src/push';
@@ -36,6 +36,8 @@ function Racine() {
     : v.nom === 'nouvelle' && v.modification ? { nom: 'fiche', id: v.modification.id } : LISTE);
   const [nonLues, relireNonLues] = useNonLues();
   const miseAJour = useMiseAJour();
+  // Fenêtre de mise à jour refermée (« Plus tard ») : numéro de la version, jusqu'au prochain démarrage.
+  const [reportee, setReportee] = useState<number | null>(null);
   const uid = session?.user.id;
   // Suivi GPS (X6) : démarré tant que la session est ouverte, arrêté à « Quitter ».
   const [suivi, relireSuivi] = useSuiviGps(uid, marche?.id);
@@ -147,7 +149,14 @@ function Racine() {
           suiviGps={() => setVue({ nom: 'suivigps' })}
           suivi={suivi}
           nonLues={nonLues}
-          miseAJour={miseAJour ? <BandeauMiseAJour version={miseAJour} /> : null}
+          miseAJour={miseAJour ? (
+            <>
+              <BandeauMiseAJour version={miseAJour} />
+              {reportee !== miseAJour.version_code && (
+                <FenetreMiseAJour version={miseAJour} plusTard={() => setReportee(miseAJour.version_code)} />
+              )}
+            </>
+          ) : null}
           ouvrir={ouvrir}
         />
       );

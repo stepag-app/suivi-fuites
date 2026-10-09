@@ -447,6 +447,10 @@ export const TRADUCTIONS = {
   'Téléchargement… {n} %': { ar: 'جارٍ التحميل… {n} %' },
   'Téléchargement impossible ({erreur}). Réessayez avec une meilleure connexion.': { ar: 'تعذّر التحميل ({erreur}). أعد المحاولة باتصال أفضل.' },
   'fichier incomplet': { ar: 'ملف ناقص' },
+  'Mise à jour disponible': { ar: 'تحديث متوفر' },
+  "La version {version} de l'application est prête à être installée.": { ar: 'النسخة {version} من التطبيق جاهزة للتثبيت.' },
+  'Installer maintenant': { ar: 'ثبّت الآن' },
+  'Plus tard': { ar: 'لاحقًا' },
 
   'Voir et ajuster sur la carte': { ar: 'عرض الموقع وضبطه على الخريطة' },
   'Position ajustée sur la carte, à {n} m du GPS.': { ar: 'تم ضبط الموقع على الخريطة، على بُعد {n} م من GPS.' },

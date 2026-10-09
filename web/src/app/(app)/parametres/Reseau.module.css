@@ -102,7 +102,8 @@
 .plein-ecran {
   position: fixed;
   inset: 0;
-  z-index: 30;
+  /* Au-dessus de la barre du haut de l'appli (z-50). */
+  z-index: 60;
   display: grid;
   grid-template-columns: minmax(300px, 360px) 1fr;
   background: var(--carte);
@@ -227,4 +228,96 @@
 .total-zone td {
   font-weight: 600;
   background: var(--zebre);
+}
+
+.restant {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem;
+  border: 1px solid var(--bord);
+  border-radius: 0.6rem;
+  background: var(--fond-doux, var(--muted));
+}
+.restant p {
+  margin: 0;
+}
+.restant strong {
+  font-variant-numeric: tabular-nums;
+}
+.restant button {
+  min-height: var(--h-cmd-gros);
+}
+.etape {
+  display: grid;
+  gap: 0.45rem;
+  border-top: 1px solid var(--bord-doux);
+  padding-top: 0.6rem;
+}
+.etape h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.95rem;
+}
+.etape h3 span {
+  display: inline-grid;
+  place-items: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--principal);
+  color: var(--primary-foreground);
+  font-size: 0.8rem;
+}
+.ligneSecteur {
+  display: flex;
+  gap: 0.4rem;
+}
+.ligneSecteur select {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--h-cmd-gros);
+}
+.ligneSecteur button {
+  min-height: var(--h-cmd-gros);
+}
+.avance {
+  border-top: 1px solid var(--bord-doux);
+  padding-top: 0.6rem;
+  display: grid;
+  gap: 0.45rem;
+}
+.avance summary {
+  cursor: pointer;
+  color: var(--discret);
+  font-size: 0.9rem;
+}
+
+.guide {
+  display: grid;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.guide h3 {
+  margin: 0.4rem 0 0;
+  font-size: 0.95rem;
+}
+.guide p,
+.guide ol,
+.guide ul {
+  margin: 0;
+}
+.guide ol,
+.guide ul {
+  padding-left: 1.2rem;
+  display: grid;
+  gap: 0.3rem;
+}
+.guide ol {
+  list-style: decimal;
+}
+.guide ul {
+  list-style: disc;
 }

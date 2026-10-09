@@ -134,6 +134,25 @@ npx expo start           # nécessite Expo Go ou un build de développement
 `expo install` et `expo-doctor` interrogent des serveurs Expo : les versions des modules natifs se lisent
 dans `node_modules/expo/bundledNativeModules.json` si ces serveurs sont inaccessibles.
 
+### Tablette de test branchée au Mac (rechargement en direct)
+
+Appli distincte **« Suivi fuites DEV »** (`ma.stepag.suivifuites.dev`), installée à côté de la vraie : son code JS
+vient du Mac par le câble USB, chaque fichier enregistré s'affiche sur la tablette en quelques secondes.
+
+1. Une fois (et après tout changement natif : dépendance, permission, plugin) : APK du workflow
+   « APK de développement (tablette) » (`apk-dev.yml`, artefact `suivi-fuites-dev-apk`), puis `adb install -r <apk>`.
+2. À chaque séance, tablette branchée (débogage USB autorisé) :
+
+```bash
+cd mobile
+adb reverse tcp:8081 tcp:8081
+npx expo start --clear
+```
+
+puis ouvrir « Suivi fuites DEV » sur la tablette. `.env` doit contenir l'adresse et la clé anon. Secouer la
+tablette ou `adb shell input keyevent 82` ouvre le menu de développement (recharger). Pas de notifications push ni
+de proposition de mise à jour dans cette appli ; sa session est séparée de celle de la vraie appli.
+
 ## Compilation de l'APK (GitHub Actions)
 
 Workflow `.github/workflows/apk.yml` : types, essais sans pile, `expo prebuild`, `gradlew assembleRelease`, APK en

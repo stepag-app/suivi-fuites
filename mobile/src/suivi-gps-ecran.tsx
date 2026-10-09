@@ -1,5 +1,6 @@
 // Suivi GPS (X6) : démarrage automatique tant que la session est ouverte (useSuiviGps) et écran d'activation clair
 // (autorisations, activation, batterie Samsung, points en attente).
+import * as Application from 'expo-application';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, ScrollView, Text, View } from 'react-native';
@@ -10,7 +11,7 @@ import {
 } from './suivi-gps';
 import { BarreApp, Bouton, Carte, Message, s, useBas } from './ui';
 
-const PAQUET = 'ma.stepag.suivifuites';
+const PAQUET = Application.applicationId ?? 'ma.stepag.suivifuites';
 
 /**
  * Démarre le suivi pour le compte et le marché choisis (si les autorisations sont accordées et que l'agent ne l'a pas

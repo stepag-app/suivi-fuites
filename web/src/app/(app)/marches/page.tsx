@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import {
-  Briefcase, Check, ChevronDown, CircleDashed, Copy, EllipsisVertical, Plus, Power, RefreshCw, Search, Settings, Users,
+  Briefcase, Check, ChevronDown, CircleDashed, Copy, EllipsisVertical, Footprints, Plus, Power, RefreshCw, Search, Settings, Users,
 } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -108,6 +108,19 @@ export default function Marches() {
     setInfo(`Marché ${m.code} ${m.actif ? "désactivé" : "réactivé"}.`);
     await charger();
     recharger();
+  }
+
+  // Fin du marché : tracés GPS effacés (X6), seulement sur un marché désactivé.
+  async function purgerTraces(m: MarcheLigne) {
+    if (!window.confirm(`Effacer définitivement tous les tracés GPS des agents du marché ${m.code} ? Les fuites, photos et attachements ne sont pas touchés.`)) return;
+    setErreur("");
+    setInfo("");
+    const { data, error } = await getSupabase().rpc("purger_traces_marche", { p_marche: m.id });
+    if (error) {
+      setErreur(messageErreur(error));
+      return;
+    }
+    setInfo(`Marché ${m.code} : ${Number(data ?? 0)} tracé${Number(data) > 1 ? "s" : ""} GPS effacé${Number(data) > 1 ? "s" : ""}.`);
   }
 
   function ouvrir(m: MarcheLigne) {
@@ -217,7 +230,7 @@ export default function Marches() {
                   <Button variant="ghost" size="sm" className="-ml-1.5 sm:ml-0" onClick={() => ouvrir(m)}><Settings data-icon="inline-start" />Paramètres</Button>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="outline" size="icon-sm" aria-label="Actions"><EllipsisVertical /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-48" align="end">
+                    <DropdownMenuContent className="w-56" align="end">
                       <DropdownMenuGroup>
                         <DropdownMenuItem onSelect={() => { choisirMarche(m.id); router.push("/tableau-de-bord"); }}><Briefcase />Ouvrir ce marché</DropdownMenuItem>
                         <DropdownMenuItem onSelect={() => ouvrir(m)}><Settings />Paramètres</DropdownMenuItem>
@@ -231,6 +244,7 @@ export default function Marches() {
                         ) : (
                           <DropdownMenuItem variant={m.actif ? "destructive" : "default"} onSelect={() => basculer(m)}><Power />{m.actif ? "Désactiver" : "Réactiver"}</DropdownMenuItem>
                         )}
+                        {!m.actif && <DropdownMenuItem variant="destructive" onSelect={() => purgerTraces(m)}><Footprints />Effacer les tracés GPS</DropdownMenuItem>}
                       </DropdownMenuGroup>
                     </DropdownMenuContent>
                   </DropdownMenu>

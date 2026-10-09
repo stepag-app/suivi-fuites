@@ -1,5 +1,5 @@
 import {
-  Boxes, Briefcase, CheckCheck, CloudUpload, Droplets, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
+  Boxes, Briefcase, CheckCheck, CloudUpload, Droplets, Footprints, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
 
@@ -87,6 +87,8 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
     ...(lireFuites ? [
       { id: "carte", title: "Carte", url: "/carte", icon: MapPinned },
       ...(peut("balayage", "lire") ? [{ id: "balayage", title: "Balayage", url: "/balayage", icon: Route }] : []),
+      // Suivi GPS (S11) : tracés des agents, responsable et administrateur (la base filtre aussi)
+      ...(admin || peut("fuites", "valider") ? [{ id: "suivi-gps", title: "Suivi GPS", url: "/suivi-gps", icon: Footprints }] : []),
       { id: "alertes", title: "Alertes", url: "/alertes", icon: Siren },
       { id: "a-faire", title: "À faire", url: "/a-faire", icon: ListTodo },
     ] : []),

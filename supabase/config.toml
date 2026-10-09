@@ -10,3 +10,6 @@ verify_jwt = true
 
 [functions.photos-r2]
 verify_jwt = true
+
+[functions.reseau-tuiles]
+verify_jwt = true

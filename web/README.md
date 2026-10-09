@@ -168,7 +168,7 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
 ## Carte (`/carte`)
 
 - **MapLibre GL JS 6** (BSD, libre), fond **OpenFreeMap « positron »** (`tiles.openfreemap.org`, tuiles
-  OpenStreetMap, sans compte ni clé, attribution OSM affichée par le style). Pas d'image satellite.
+  OpenStreetMap, sans compte ni clé, attribution OSM affichée par le style). Image satellite activable : voir § Satellite.
 - Chargée **seulement à l'ouverture de la carte** : `scripts/copier-maplibre.mjs` (lancé par `predev` et
   `prebuild`) copie les modules ES de MapLibre dans `public/maplibre/` (ignoré par git), que la page importe
   en module natif. Webpack casse le chargement du « worker » de la v6 s'il l'intègre au bundle ; la v5 (un
@@ -196,6 +196,76 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   Vérification : `node scripts/verifier-carte-pdf.mjs` (4 formats, légendes longues en portrait et en paysage, rubriques).
 - Réseau d'eau et balayage : voir § Réseau et balayage. Hors périmètre pour l'instant : tracés GPS des agents.
 
+### Tuiles vectorielles du réseau (X5)
+
+- **Pourquoi** : lu secteur par secteur (une source GeoJSON par secteur, 132 couches pour Oujda), tout le réseau rendait
+  la carte lente sur la tablette. En tuiles : une seule source PMTiles, 5 couches de réseau, les secteurs cochés filtrent
+  l'affichage sans rien recharger.
+- **Archive** : `reseau/<marche_id>/reseau.pmtiles` dans le compartiment **privé** R2 (le même que les photos). Couches
+  `troncons` (identifiant entier, propriétés `s` secteur, `c` catégorie, `d` diamètre, `m` matériau) et `noeuds`
+  (`s`, `t` type, zooms 14 à 16), zooms 10 à 16 (MapLibre agrandit au-delà) ; métadonnées : index des tronçons (uuid,
+  longueur, secteur, diamètre : légende et sélection sans géométrie), date, empreinte du réseau. Oujda : 323 tuiles,
+  4,7 Mo, fabriquée en 1,5 à 3 s. Code : `src/lib/reseau/pmtiles.ts` (fabrication), `tuiles-format.ts` (format,
+  empreinte), `tuiles.ts` (lecture), `src/app/(app)/carte/{couches,reseau-carte}.ts` (couches, état de balayage).
+- **Accès** : jamais public. La fonction serveur `reseau-tuiles` (droits de l'appelant, RLS) délivre une **URL signée**
+  de 6 h ; le navigateur lit l'archive **par plages d'octets** (en-tête et répertoire en une lecture de 16 Ko, puis une
+  tuile par requête) et redemande une URL quand elle expire. Plages gardées dans le cache du navigateur (Cache Storage
+  `suivi-fuites-tuiles`, clé = archive + ETag ; une archive régénérée purge l'ancienne).
+- **Garde-fou** : l'archive porte l'**empreinte** du réseau (`estampilleReseau` : tronçons, linéaire, dernière
+  modification et nœuds par secteur, non zonés). Si la base a changé depuis (import, zonage, correction), la carte
+  revient d'elle-même à la lecture par secteur (toujours juste) et le panneau Réseau l'indique. Même repli sans archive,
+  sans R2 configuré, ou si la lecture par plages échoue (règle CORS ci-dessous absente).
+- **Régénérer après un import du réseau ou un zonage** : Paramètres › Réseau › bloc « Tuiles du réseau » ›
+  **Régénérer les tuiles** (administrateur ou « paramètres / modifier »). Le navigateur lit tout le réseau
+  (`reseau_geojson`, `noeuds_geojson`), fabrique l'archive et la dépose dans R2 par une URL signée (15 min) ; l'état
+  passe à « À jour ». Les tablettes la prennent à la prochaine ouverture de la carte.
+- **Mode balayage en tuiles** : « Toucher » marche tout de suite ; le lasso et « Prolonger » ont besoin de la
+  géométrie : elle est lue en arrière-plan 4 s après l'ouverture (ou au premier lasso / Prolonger), depuis le cache de
+  l'appareil après la première fois, sans être dessinée une seconde fois.
+- **Règle CORS du compartiment R2** (Cloudflare › R2 › `suivi-fuites-photos` › Settings › CORS policy) : la lecture
+  par plages envoie l'en-tête `Range` ; règle à poser (remplace la règle des photos, qui y est comprise) :
+  ```json
+  [{ "AllowedOrigins": ["https://fuites.stepag.ma", "http://localhost:3000"],
+     "AllowedMethods": ["GET", "PUT", "HEAD"],
+     "AllowedHeaders": ["Content-Type", "Range"],
+     "ExposeHeaders": ["ETag", "Content-Range", "Content-Length"],
+     "MaxAgeSeconds": 3600 }]
+  ```
+- **Mesures** (essai local, tout Oujda : 44 044 tronçons, 30 820 nœuds ; Chrome sans tête, écran 1280 × 800 à 1,5,
+  processeur bridé ×4, `/carte?mode=balayage`) :
+
+  | | Avant (GeoJSON par secteur) | Après (tuiles) |
+  |---|---:|---:|
+  | Réseau complet affiché, cache vide | 7,9 s | 2,9 s |
+  | Réseau complet affiché, cache de l'appareil | 5,0 s | 1,7 à 1,9 s |
+  | Images par seconde (8 s de déplacements et zooms) | 27 à 32 | 59 à 60 (48 pendant la préparation du lasso) |
+  | Images de plus de 50 ms | 37 à 49 | 0 (14 à 20 pendant la préparation) |
+  | Couches MapLibre | 132 | 73 |
+
+  Outil : `node scripts/mesurer-carte.mjs http://localhost:3110 [bridage] [passages] [chemin]` sur un panneau construit
+  avec `NEXT_PUBLIC_MESURE_CARTE=1` (expose la carte au script ; **jamais sur Vercel**) et une base d'essai locale.
+  Vérification du format : `node scripts/verifier-tuiles.mjs [troncons.geojson noeuds.geojson]` (15 ; avec les deux
+  fichiers, génère le vrai réseau et vérifie que chaque tronçon est dans les tuiles du zoom 16).
+
+### Satellite (C5)
+
+- **Esri World Imagery** (offre gratuite ArcGIS Location Platform, 2 millions de tuiles par mois), tuiles en ligne
+  demandées **seulement quand la couche est activée** (bouton « Satellite » en bas à gauche de la carte, choix mémorisé
+  sur l'appareil), **bornées à l'emprise du réseau + 1 km** (bornes de l'archive, sinon des secteurs et des zones) et
+  aux **zooms 13 à 19** : MapLibre ne demande rien en dehors. Pas de copie locale ni dans R2 (conditions d'utilisation).
+- L'image passe sous les noms de rues du fond ; un **contour blanc** s'ajoute sous les conduites pour qu'elles restent
+  lisibles ; attribution « Powered by Esri » affichée. Pas de satellite sur la carte imprimée.
+- **Clé** : `NEXT_PUBLIC_ESRI_CLE` (clé publique restreinte au domaine, voir § Variables) ; **sans clé, le bouton
+  n'apparaît pas**. Code : `src/app/(app)/carte/satellite.ts`.
+
+### Mini-carte de localisation (F4)
+
+- Route `/mini-carte` (hors du menu, comme `/session`) pour la WebView de la tablette, et composant `MiniCarte`
+  (`src/app/(app)/carte/MiniCarte.tsx`) réutilisable dans les formulaires du panneau : zoom rapproché sur la position
+  GPS, cercle de précision, épingle déplaçable, conduite la plus proche en surbrillance avec diamètre et matériau
+  (`suggestions_localisation`), réseau autour, satellite. Position et suggestions renvoyées à l'APK par `postMessage`.
+- Contrat d'appel et messages : `docs/lots/chantier-v2-mini-carte.md`.
+
 ## Réseau et balayage (lot S)
 
 - **Panneau « Réseau »** de `/carte` (tous ceux qui voient les fuites) : interrupteur général (mémorisé), arbre
@@ -208,7 +278,12 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
   (`suivi-fuites-reseau`, invalidé quand `modifie_le` du secteur change) ; l'état de balayage est relu à chaque
   ouverture et posé par `setFeatureState`, jamais mêlé à la géométrie en cache. Code : `src/lib/reseau/`,
   `src/app/(app)/carte/{PanneauReseau.tsx,useReseau.ts,reseau-carte.ts,lasso.ts}`.
-- **Mode balayage** (droit « balayage / créer », `/carte?mode=balayage`, aussi dans l'APK) : **Toucher** un
+- **Panneau en onglets** (C4 ; le même dans le panneau web et dans l'APK) : **Secteurs** (interrupteur, coloration,
+  arbre, linéaire et % balayé), **Légende** (traits, nœuds par type, étiquettes), **Balayage** (enregistrement, file
+  d'attente). De près : diamètre et matériau écrits le long des conduites (« Ø110 PVC », zoom 16), vannes, bouches
+  d'incendie, ventouses, vidanges, compteurs et réservoirs en couleur (zoom 15), sigle à côté (zoom 17).
+- **Mode balayage** (droit « balayage / créer », `/carte?mode=balayage`, aussi dans l'APK) : **carte en plein écran**
+  (par-dessus l'en-tête et le menu), le panneau s'ouvre au besoin par « Réseau » dans la barre. **Toucher** un
   tronçon, **Lasso** au doigt (milieu du tronçon dans la forme), **Prolonger** le long de la rue jusqu'à la
   prochaine jonction (± 20°), « Désélectionner tout », compteur « n tronçons · x,xx km » ; « Enregistrer » : équipe
   (la dernière est mémorisée), date, méthode ; identifiants créés sur l'appareil, **file d'attente hors ligne**
@@ -300,6 +375,8 @@ Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
 
 | `NEXT_PUBLIC_NOM_ORGANISATION` | facultative : nom affiché à la connexion (défaut STEPAG) |
 | `NEXT_PUBLIC_DOMAINE_AGENTS` | facultative : domaine technique des identifiants (défaut `agents.stepag.ma`, même valeur que `DOMAINE_AGENTS` de la fonction serveur) |
+| `NEXT_PUBLIC_ESRI_CLE` | facultative : clé d'API ArcGIS Location Platform (satellite, § Satellite), **restreinte au domaine** `fuites.stepag.ma` ; absente : pas de bouton Satellite |
+| `NEXT_PUBLIC_MESURE_CARTE` | essais locaux seulement (`1` : carte exposée à `scripts/mesurer-carte.mjs`) ; **jamais sur Vercel** |
 
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.

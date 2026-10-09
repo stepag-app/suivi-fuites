@@ -5,7 +5,6 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Network, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { useSidebar } from "@/components/ui/sidebar";
 import { Spinner } from "@/components/ui/spinner";
 import { STATUT_STYLE } from "@/components/statut";
 import { libellesMarche, messageErreur, nombre } from "@/lib/format";
@@ -15,6 +14,7 @@ import { annulerDernierBalayage, enregistrerBalayages, messageReseau } from "@/l
 import {
   appliquerSelection, construireAdjacence, formaterLineaire, idsIndexDansAnneau, lineaireSelection, prolongerSelection, type ModeSelection,
 } from "@/lib/reseau/selection";
+import { SANS_SECTEUR } from "@/lib/reseau/types";
 import { useSession } from "@/lib/session";
 import { estContexteApk, getSupabase, lireTout } from "@/lib/supabase";
 import type { StatutFuite } from "@/lib/types";
@@ -25,8 +25,9 @@ import { ApercuFuite, CommandesCarte, FiltresCarteForm, OngletsCarte, TabsConten
 import type { ChoixImpression } from "./impression";
 import { ListeCarte } from "./liste-carte";
 import { PanneauImpression } from "./PanneauImpression";
-import { PanneauReseau, type BalayagePanneau } from "./PanneauReseau";
+import { PanneauReseau, type BalayagePanneau, type OngletReseau } from "./PanneauReseau";
 import styles from "./reseau.module.css";
+import { ZOOM_MIN_SATELLITE, satelliteDisponible } from "./satellite";
 import { useReseau } from "./useReseau";
 
 type SecteurCarte = Contour & { zone_id: string | null };
@@ -35,6 +36,7 @@ const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString
 const FILTRES_VIDES: FiltresCarte = { secteur: "", du: "", au: "", alertes: false };
 // Sélection de balayage non enregistrée : gardée le temps de la session (la WebView de l'APK se recharge).
 const cleSelection = (marcheId: string) => `suivi-fuites:balayage:selection:${marcheId}`;
+const CLE_SATELLITE = "suivi-fuites:carte:satellite";
 
 export default function PageCarte() {
   return (
@@ -62,13 +64,44 @@ function CarteDesFuites() {
   const [selection, setSelection] = useState<string | null>(null);
   const [onglet, setOnglet] = useState("fuite");
   const [feuille, setFeuille] = useState(false);
-  const [reseauOuvert, setReseauOuvert] = useState(ouvertureBalayage);
+  // C4 : en balayage, la carte occupe tout l'écran ; le panneau (secteurs, légende, enregistrement) s'ouvre au besoin.
+  const [reseauOuvert, setReseauOuvert] = useState(false);
   const carte = useRef<CarteRef>(null);
 
   const marcheId = marche?.id;
   const peutBalayer = peut("balayage", "creer");
   const peutAnnuler = peut("balayage", "supprimer") || peut("balayage", "valider");
-  const reseau = useReseau(marcheId, peut("balayage", "lire"), ouvertureBalayage);
+  // Mode balayage : la géométrie des tronçons est lue (lasso, « Prolonger ») même quand le réseau s'affiche en tuiles.
+  // Lecture différée de 4 s (ou dès le premier lasso / « Prolonger ») : l'affichage en tuiles passe d'abord.
+  const [modeBalayage, setModeBalayage] = useState(ouvertureBalayage && peutBalayer);
+  const [geometriesDemandees, setGeometriesDemandees] = useState(false);
+  useEffect(() => {
+    if (!modeBalayage) return;
+    const minuteur = setTimeout(() => setGeometriesDemandees(true), 4000);
+    return () => clearTimeout(minuteur);
+  }, [modeBalayage]);
+  const reseau = useReseau(marcheId, peut("balayage", "lire"), ouvertureBalayage, modeBalayage && geometriesDemandees);
+  const [ongletReseau, setOngletReseau] = useState<OngletReseau>("secteurs");
+
+  // Satellite (C5) : choix mémorisé sur l'appareil ; bouton absent tant que la clé Esri n'est pas posée.
+  const [satellite, setSatelliteEtat] = useState(false);
+  const [zoom, setZoom] = useState(12);
+  useEffect(() => {
+    try {
+      setSatelliteEtat(satelliteDisponible() && window.localStorage.getItem(CLE_SATELLITE) === "1");
+    } catch {
+      /* stockage indisponible */
+    }
+  }, []);
+  const basculerSatellite = () => {
+    const v = !satellite;
+    setSatelliteEtat(v);
+    try {
+      window.localStorage.setItem(CLE_SATELLITE, v ? "1" : "0");
+    } catch {
+      /* stockage indisponible */
+    }
+  };
   const derniereDemande = useRef(0);
   const charger = useCallback(async () => {
     if (!marcheId) return;
@@ -134,7 +167,6 @@ function CarteDesFuites() {
   }, [fuites]);
 
   // ---- Mode balayage : sélection au doigt, enregistrement, file d'attente -----------------------------
-  const [modeBalayage, setModeBalayage] = useState(ouvertureBalayage && peutBalayer);
   const [troncons, setTronconsEtat] = useState<Set<string>>(new Set());
   const [occupe, setOccupe] = useState(false);
   const [messageBalayage, setMessageBalayage] = useState("");
@@ -173,14 +205,7 @@ function CarteDesFuites() {
     });
   }, [marcheId]);
 
-  const longueurs = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const [id, t] of reseau.index) m.set(id, t.longueur);
-    return m;
-    // L'index vit hors de l'état React : il suit les secteurs affichés.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reseau.secteursAffiches]);
-  const lineaire = useMemo(() => lineaireSelection(troncons, longueurs), [troncons, longueurs]);
+  const lineaire = useMemo(() => lineaireSelection(troncons, reseau.longueurs), [troncons, reseau.longueurs]);
 
   // Outils du mode balayage : toucher un par un, lasso au doigt, « Prolonger » le long de la rue.
   const [outilBalayage, setOutilBalayage] = useState<"toucher" | "lasso">("toucher");
@@ -190,6 +215,7 @@ function CarteDesFuites() {
     if (ids.length) surSelection(ids, "ajouter");
   }, [indexReseau, surSelection]);
   const prolonger = () => {
+    setGeometriesDemandees(true);
     const ajoutes = prolongerSelection(indexReseau, construireAdjacence(indexReseau.values()), troncons);
     if (ajoutes.length) {
       surSelection(ajoutes, "ajouter");
@@ -257,26 +283,6 @@ function CarteDesFuites() {
     }
   }, [reseau]);
 
-  // Mode balayage : la barre latérale se replie pour laisser toute la largeur à la carte (tablette),
-  // puis reprend son état à la sortie du mode.
-  const { open: menuOuvert, setOpen: ouvrirMenu } = useSidebar();
-  const menuAvantBalayage = useRef<boolean | null>(null);
-  const ouvrirMenuRef = useRef(ouvrirMenu);
-  ouvrirMenuRef.current = ouvrirMenu;
-  // Page quittée en plein balayage : le menu reprend aussi son état.
-  useEffect(() => () => {
-    if (menuAvantBalayage.current) ouvrirMenuRef.current(true);
-  }, []);
-  useEffect(() => {
-    if (modeBalayage && menuAvantBalayage.current === null) {
-      menuAvantBalayage.current = menuOuvert;
-      if (menuOuvert) ouvrirMenu(false);
-    } else if (!modeBalayage && menuAvantBalayage.current !== null) {
-      if (menuAvantBalayage.current) ouvrirMenu(true);
-      menuAvantBalayage.current = null;
-    }
-  }, [modeBalayage, menuOuvert, ouvrirMenu]);
-
   const basculerBalayage = () => {
     if (!modeBalayage) {
       reseau.setActif(true);
@@ -293,13 +299,14 @@ function CarteDesFuites() {
   const reseauCarte: ReseauCarteProps | undefined = reseau.actif ? {
     secteurs: reseau.secteursAffiches, coloration: reseau.coloration, palette: reseau.palette, etats: reseau.etats,
     libelles: reseau.libelles, modeBalayage, outil: outilBalayage, selection: troncons, surSelection, surLasso, peutAnnuler, annuler,
-    surZoom: reseau.surZoom,
+    surZoom: reseau.surZoom, tuiles: reseau.tuiles,
   } : undefined;
 
   // « Enregistrer… » : ouvre le panneau Réseau et amène le formulaire du balayage (équipe, date, méthode) à l'écran,
   // même si le panneau était déjà ouvert (sur la tablette, il est en bas d'une longue liste de secteurs).
   const allerAuFormulaire = () => {
     setReseauOuvert(true);
+    setOngletReseau("balayage");
     const montrer = (essais: number) => {
       const el = document.getElementById("formulaire-balayage");
       if (el) {
@@ -321,7 +328,16 @@ function CarteDesFuites() {
     filtres.alertes && "alertes seulement",
     texte.trim() && `recherche « ${texte.trim()} »`,
   ].filter(Boolean).join(" ; ");
-  const nbSecteursReseau = reseau.actif ? reseau.secteursAffiches.filter((s) => s.data).length : 0;
+  const nbSecteursReseau = reseau.actif ? (reseau.tuiles ? reseau.choisis.size : reseau.secteursAffiches.filter((s) => s.data).length) : 0;
+  // Bornes des secteurs cochés (cadrage de la carte imprimée quand le réseau s'affiche en tuiles).
+  const bornesChoisis = useMemo<[number, number, number, number] | null>(() => {
+    const coords = (reseau.contexte?.secteurs ?? []).filter((x) => reseau.choisis.has(x.id) && x.geom)
+      .flatMap((x) => (x.geom!.type === "Polygon" ? x.geom!.coordinates.flat() : x.geom!.coordinates.flat(2)));
+    if (!coords.length || reseau.choisis.has(SANS_SECTEUR)) return reseau.bornes;
+    const xs = coords.map((c) => c[0]);
+    const ys = coords.map((c) => c[1]);
+    return [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)];
+  }, [reseau.contexte, reseau.choisis, reseau.bornes]);
   const descriptionReseau = nbSecteursReseau > 0
     ? ` ; réseau : ${nbSecteursReseau} secteur${nbSecteursReseau > 1 ? "s" : ""}, coloré par ${reseau.coloration === "balayage" ? "état de balayage" : reseau.coloration === "diametre" ? "diamètre" : "secteur"}`
     : "";
@@ -333,7 +349,10 @@ function CarteDesFuites() {
     const { imprimerCarte } = await import("./impression");
     const r = await imprimerCarte(marcheId, choix, {
       etat, fuites: filtrees, zones: zonesAffichees, secteurs: secteursAffiches, filtres: filtresImpression, libelleReference: libelles.reference,
-      reseau: reseau.actif ? { secteurs: reseau.secteursAffiches, coloration: reseau.coloration, palette: reseau.palette, etats: reseau.etats } : null,
+      reseau: reseau.actif ? {
+        secteurs: reseau.secteursAffiches, coloration: reseau.coloration, palette: reseau.palette, etats: reseau.etats,
+        tuiles: reseau.tuiles, inventaire: reseau.tuiles ? reseau.inventaire : undefined, bornes: reseau.tuiles ? bornesChoisis : null,
+      } : null,
       zonesReseau: reseau.contexte?.zones ?? [],
     }, etape);
     return `PDF téléchargé (${(r.octets / 1048576).toFixed(1).replace(".", ",")} Mo, ${Math.max(1, Math.round(r.secondes))} s).`;
@@ -407,12 +426,14 @@ function CarteDesFuites() {
             texte={texte} changerTexte={setTexte} selection={selection} choisir={choisir} libelles={libelles}
             filtresActifs={filtresActifs} effacer={effacer} ouvrirFiltres={() => { setOnglet("filtres"); if (window.innerWidth < 1024) setFeuille(true); }} />
         </div>
-        <div className={cn("order-1 shrink-0 overflow-hidden lg:order-2 lg:h-full", modeBalayage ? "h-full flex-1" : "h-[44vh]")}>
+        {/* Mode balayage (C4) : la carte en plein écran, par-dessus l'en-tête et le menu (tablette comme panneau web). */}
+        <div className={cn("order-1 shrink-0 overflow-hidden lg:order-2 lg:h-full", modeBalayage ? cn("h-full flex-1", styles.pleinEcran) : "h-[44vh]")}>
           <div className="grid h-full min-h-0 grid-rows-[minmax(0,1fr)_auto] overflow-hidden">
             <div className="relative min-h-0 overflow-hidden">
-              <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} reseau={reseauCarte} />
+              <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} reseau={reseauCarte}
+                satellite={satellite} bornesReseau={reseau.bornes} surZoom={setZoom} />
               {/* Réseau d'eau et mode balayage (lot S) : commandes posées sur la carte, visibles aussi sur la tablette */}
-              {!reseauOuvert && (
+              {!reseauOuvert && !modeBalayage && (
                 <div className="absolute top-3 left-3 z-[3] flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" className="bg-background shadow-sm" onClick={() => setReseauOuvert(true)}>
                     <Network data-icon="inline-start" />Réseau{reseau.actif && nbSecteursReseau > 0 ? ` (${nbSecteursReseau})` : ""}
@@ -426,12 +447,18 @@ function CarteDesFuites() {
               )}
               {modeBalayage && (
                 <div className={cn("ancien", styles.barreBalayage, reseauOuvert && styles.avecPanneau)} role="toolbar" aria-label="Outils du mode balayage">
+                  {!reseauOuvert && (
+                    <button type="button" onClick={() => setReseauOuvert(true)} title="Secteurs, légende et enregistrement">
+                      <Network aria-hidden="true" className="me-1 inline size-4 align-[-3px]" />Réseau
+                    </button>
+                  )}
                   <span className={styles.compte} aria-live="polite">
                     {nombre(troncons.size, 0)} tronçon{troncons.size > 1 ? "s" : ""} · {formaterLineaire(lineaire)}
                   </span>
                   <button type="button" aria-pressed={outilBalayage === "toucher"} className={outilBalayage === "toucher" ? "actif" : ""} onClick={() => setOutilBalayage("toucher")}>Toucher</button>
-                  <button type="button" aria-pressed={outilBalayage === "lasso"} className={outilBalayage === "lasso" ? "actif" : ""} onClick={() => setOutilBalayage("lasso")}>Lasso</button>
-                  <button type="button" disabled={troncons.size === 0} onClick={prolonger}>Prolonger</button>
+                  <button type="button" aria-pressed={outilBalayage === "lasso"} className={outilBalayage === "lasso" ? "actif" : ""} onClick={() => { setOutilBalayage("lasso"); setGeometriesDemandees(true); }}>Lasso</button>
+                  <button type="button" disabled={troncons.size === 0 || (!!reseau.tuiles && reseau.nbEnChargement > 0)} onClick={prolonger}
+                    title={reseau.tuiles && reseau.nbEnChargement > 0 ? "Préparation des tronçons…" : undefined}>Prolonger</button>
                   <button type="button" disabled={troncons.size === 0} onClick={() => setTroncons(new Set())}>Désélectionner tout</button>
                   <button type="button" className="primaire" disabled={troncons.size === 0 || occupe} onClick={allerAuFormulaire}>Enregistrer…</button>
                   <button type="button" onClick={basculerBalayage}>Quitter le balayage</button>
@@ -440,11 +467,17 @@ function CarteDesFuites() {
               )}
               {reseauOuvert && (
                 <div className="ancien">
-                  <PanneauReseau reseau={reseau} balayage={balayage} fermer={() => setReseauOuvert(false)} />
+                  <PanneauReseau reseau={reseau} balayage={balayage} fermer={() => setReseauOuvert(false)} onglet={ongletReseau} changerOnglet={setOngletReseau} />
                 </div>
               )}
               <CommandesCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur}
-                recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert} />
+                recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert}
+                satellite={satelliteDisponible() ? { actif: satellite, basculer: basculerSatellite } : null} />
+              {satellite && zoom < ZOOM_MIN_SATELLITE && (
+                <p className={cn("absolute bottom-20 z-[3] m-0 rounded-lg border bg-background/95 px-3 py-1.5 text-muted-foreground text-xs shadow-sm", reseauOuvert ? "left-[calc(min(340px,92vw)+0.5rem)]" : "left-2")}>
+                  Image satellite à partir du zoom {ZOOM_MIN_SATELLITE} : rapprochez-vous.
+                </p>
+              )}
               {chargement && fuites.length === 0 && (
                 <div className="absolute inset-0 grid place-items-center bg-background/60 text-muted-foreground text-sm"><span className="flex items-center gap-2"><Spinner />Chargement des fuites…</span></div>
               )}

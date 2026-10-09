@@ -3,7 +3,7 @@
 // Paramètres > Réseau (administrateur ou « paramètres / modifier ») : tableau des secteurs depuis
 // v_lineaire_secteurs (tronçons, linéaire, % balayé, linéaire du contrat, écart), sous-total par zone
 // (le CPS ne fixe le linéaire du contrat que par zone), ligne « Non zonés »,
-// carte de zonage plein écran, import GeoJSON (administrateur).
+// carte de zonage plein écran, import GeoJSON (administrateur), tuiles vectorielles du réseau (X5).
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { nombre } from '@/lib/format';
@@ -11,6 +11,7 @@ import { construireArbre } from '@/lib/reseau/arbre';
 import { chargerContexteReseau, messageReseau, viderCacheReseau, type ContexteReseau } from '@/lib/reseau/donnees';
 import { paletteSecteurs } from '@/lib/reseau/palette';
 import { formaterLineaire } from '@/lib/reseau/selection';
+import { BlocTuilesReseau } from './BlocTuilesReseau';
 import { OngletReseauImport } from './OngletReseauImport';
 import styles from './Reseau.module.css';
 
@@ -100,6 +101,8 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
         </div>
         {chargement && <p className="discret">Chargement…</p>}
       </section>
+
+      {!chargement && contexte?.disponible && <BlocTuilesReseau marcheId={marcheId} contexte={contexte} />}
 
       {!chargement && vue === 'secteurs' && contexte?.disponible && (
         <section className="carte">

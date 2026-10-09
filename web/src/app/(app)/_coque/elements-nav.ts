@@ -1,5 +1,5 @@
 import {
-  Boxes, Briefcase, CloudUpload, Droplets, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
+  Boxes, Briefcase, CheckCheck, CloudUpload, Droplets, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
 
@@ -81,6 +81,9 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
   const suivi: NavMainItem[] = [
     ...(lireFuites ? [{ id: "tableau-de-bord", title: "Tableau de bord", url: "/tableau-de-bord", icon: LayoutDashboard }] : []),
     { id: "fuites", title: "Fuites", url: "/fuites", icon: Droplets },
+    // Validation par étape (chantier v2, V1) : responsable et administrateur
+    ...(peut("fuites", "valider") || peut("interventions", "valider") || peut("refections", "valider")
+      ? [{ id: "a-valider", title: "À valider", url: "/a-valider", icon: CheckCheck }] : []),
     ...(lireFuites ? [
       { id: "carte", title: "Carte", url: "/carte", icon: MapPinned },
       ...(peut("balayage", "lire") ? [{ id: "balayage", title: "Balayage", url: "/balayage", icon: Route }] : []),

@@ -27,7 +27,7 @@ cd web && npm install && npm run dev
 | Default (Recent customers) | `/tableau-de-bord` › Dernières fuites | tableau des dernières fuites |
 | Finance | `/tableau-de-bord` › Attachements, `/attachements` | cellules KPI juxtaposées, liste `Item` des lots récents, raccourcis en boutons ronds, alerte « travaux à attacher » |
 | Tasks + Kanban | `/fuites` | tableau TanStack (sélection, tri par colonne, colonnes masquables, pagination), filtres à facettes (secteur), période, « alertes seulement », onglets par statut avec compteurs, vue en colonnes par statut (sans glisser-déposer) ; cartes sur écran étroit |
-| Profile | `/fuites/[id]` | fil d'Ariane, en-tête avec anneau d'avancement et badges, onglets Vue d'ensemble / Réparations / Réfections / Photos / Quantités / Historique, colonne « État du dossier » et étapes |
+| Profile | `/fuites/[id]` | fil d'Ariane, en-tête avec anneau d'avancement et badges, onglets Vue d'ensemble / Réparations / Réfections / Photos / Quantités / Historique, colonne « État du dossier » et étapes ; formulaires de réparation et de réfection en étapes numérotées, choix en boutons, capsules de pièces et récapitulatif (chantier v2) |
 | File manager | `/fuites/[id]` › Photos | grille de cartes photo |
 | Logistics | `/carte` | liste de cartes à gauche (anneau de progression, ligne pointillée), carte MapLibre à droite, onglets Fuite / Filtres / Impression sous la carte, feuille (Sheet) sur écran étroit |
 | Invoice | `/attachements/[id]` | formulaire d'en-tête à gauche, « papier » du récapitulatif à droite, travaux du lot et « À attacher » en dessous |
@@ -40,7 +40,7 @@ cd web && npm install && npm run dev
 ## Ce qui reste à l'ancienne
 
 Les onglets des paramètres (Marché, Bordereau, Attachement, Événements, Secteurs, Réseau, Natures, Articles), le panneau
-d'export, les formulaires de réparation / réfection, le bloc « À attacher », les corrections à l'attachement, la matrice
+d'export, le bloc « À attacher », les corrections à l'attachement, la matrice
 des droits, le journal des balayages, les travaux hors bordereau et le panneau Réseau de la carte gardent leur code
 d'origine, habillé par `src/styles/ancien.css` (classes `.carte`, `.badge`, `.etiquette`, boutons, champs, tableaux)
 sous un conteneur `.ancien` ; les anciens jetons de couleur de leurs modules CSS sont rapportés aux jetons shadcn en

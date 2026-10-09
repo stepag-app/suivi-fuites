@@ -1,7 +1,7 @@
 // Consultation sans réseau d'une fiche déjà vue : règles pures (sans navigateur ni réseau),
 // vérifiées par `node scripts/verifier-fiche-hors-ligne.mjs`. Le stockage est dans `src/lib/hors-ligne.ts`.
 import type { PieceAffichee } from '@/app/(app)/attachements/controles';
-import type { Action, PhotoLigne, Quantite, Refection, Reparation, TypeDonnee, VFuite } from '@/lib/types';
+import type { Action, FuiteV2, PhotoLigne, Quantite, Refection, Reparation, TypeDonnee, VFuite } from '@/lib/types';
 
 /** Taille bornée : les 50 dernières fiches ouvertes et 400 photos au plus (≈ 40 Mo après réduction). */
 export const LIMITES_HORS_LIGNE = { fiches: 50, photos: 400 } as const;
@@ -36,6 +36,8 @@ export interface ContenuFiche {
   quantites: Quantite[];
   liens: LiensReparations;
   noms: NomsFiche;
+  /** Colonnes v2 de la fuite (validation, corrections, nouveaux champs) ; absentes d'une copie plus ancienne. */
+  v2?: FuiteV2 | null;
 }
 
 /** En-tête d'une copie : propriétaire, ordre de purge, poids en photos. */
@@ -68,11 +70,15 @@ const garder = <T extends { id: string }>(liste: T[], ids: (string | null | unde
  * Noms affichés sur la fiche, réduits à ceux qu'elle cite : la copie ne garde ni la liste
  * des comptes (téléphones) ni les référentiels entiers du marché.
  */
-export function nomsUtiles(reparations: Reparation[], refections: Refection[], listes: Listes): NomsFiche {
+export function nomsUtiles(
+  reparations: Reparation[], refections: Refection[], listes: Listes,
+  autres: { profils?: (string | null | undefined)[]; natures?: (string | null | undefined)[] } = {},
+): NomsFiche {
+  const autresProfils = autres.profils ?? [];
   return {
-    natures: garder(listes.natures, refections.map((r) => r.nature_id), (n) => n.libelle_fr),
+    natures: garder(listes.natures, [...refections.map((r) => r.nature_id), ...reparations.map((r) => r.nature_revetement_id), ...(autres.natures ?? [])], (n) => n.libelle_fr),
     motifs: garder(listes.motifs, [...reparations.map((r) => r.motif_id), ...refections.map((r) => r.motif_id)], (m) => m.libelle_fr),
-    profils: garder(listes.profils, reparations.map((r) => r.auteur_terrain_id), (p) => p.nom_complet),
+    profils: garder(listes.profils, [...reparations.map((r) => r.auteur_terrain_id), ...autresProfils], (p) => p.nom_complet),
     equipes: garder(listes.equipes, reparations.map((r) => r.equipe_id), (e) => e.libelle),
   };
 }
@@ -145,14 +151,16 @@ export interface ActionsFiche {
   suiviClient: boolean;
   ajouterReparation: boolean;
   ajouterRefection: boolean;
-  interventionsBloquees: boolean;
   modifierQuantites: boolean;
   changerStatut: boolean;
   supprimer: boolean;
   ajouterPhoto: boolean;
 }
 
-/** Actions proposées sur la fiche : selon les droits en ligne, aucune écriture sur une copie hors ligne. */
+/**
+ * Actions proposées sur la fiche : selon les droits en ligne, aucune écriture sur une copie hors ligne.
+ * Fuite verrouillée par un lot (V6) : l'agent ajoute encore réparation, réfection et photo (la base fige le reste).
+ */
 export function actionsFiche(peut: Droit, etat: { horsLigne: boolean; verrouillee: boolean }): ActionsFiche {
   const enLigne = !etat.horsLigne;
   const valider = peut('fuites', 'valider');
@@ -161,8 +169,7 @@ export function actionsFiche(peut: Droit, etat: { horsLigne: boolean; verrouille
     verrouiller: enLigne && valider,
     suiviClient: enLigne && (peut('fuites', 'modifier') || valider),
     ajouterReparation: enLigne && peut('interventions', 'creer'),
-    ajouterRefection: enLigne && peut('interventions', 'creer'),
-    interventionsBloquees: etat.verrouillee && !peut('interventions', 'valider'),
+    ajouterRefection: enLigne && peut('refections', 'creer'),
     modifierQuantites: enLigne && peut('quantites', 'modifier'),
     changerStatut: enLigne && valider,
     supprimer: enLigne && peut('fuites', 'supprimer'),

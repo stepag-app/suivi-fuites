@@ -41,12 +41,15 @@ export const marches: (Marche & Ligne)[] = [
     delai_alerte_reparation_h: 48, devise: "DH", logo_titulaire: null, logo_maitre_ouvrage: null,
     titulaire: "STEPAG SARL", maitre_ouvrage: "Société Régionale Multiservices de l'Oriental", date_commencement: jour(il_y_a(24 * 120)),
     duree_mois: 12, montant_ht: 1_850_000, os_commencement_id: id("e", 91), telephone_titulaire: "05 36 00 00 00", email_titulaire: "contact@stepag.ma",
+    // Contrôle de la base suspendu pendant la transition (PR #65) : le panneau exige quand même le jeu F1.
+    champs_obligatoires_fuite: [],
   },
   {
     id: MARCHE_DEMO, code: "DEMO", numero: "DEMO-2026", intitule: "Marché de démonstration (données fictives)", client: "Client fictif", ville: "Oujda",
     actif: true, taux_majoration: 0, taux_tva: 20, rayon_redetection_m: 25, client_sigle: "DEMO", libelle_reference: "Référence client",
     masque_reference: null, jalons_client: false, delai_alerte_reparation_h: 48, devise: "DH", logo_titulaire: null, logo_maitre_ouvrage: null,
     titulaire: "STEPAG SARL", maitre_ouvrage: "Client fictif", date_commencement: jour(il_y_a(24 * 400)), duree_mois: 6, montant_ht: 250_000,
+    champs_obligatoires_fuite: ["reference_srm", "secteur_id", "ouvrage", "visibilite", "nature_degradation_id"],
   },
 ];
 
@@ -59,7 +62,7 @@ export const affectations: Ligne[] = [
   { id: id("a", 106), profil_id: id("d", 4), marche_id: MARCHE_DEMO, roles: ["responsable"], actif: true },
 ];
 
-const TYPES_DONNEE = ["fuites", "interventions", "photos", "quantites", "parametres", "ouvriers", "journal", "exports", "balayage", "mesures_debit", "attachements", "evenements"] as const;
+const TYPES_DONNEE = ["fuites", "interventions", "refections", "photos", "quantites", "parametres", "ouvriers", "journal", "exports", "balayage", "mesures_debit", "attachements", "evenements"] as const;
 export const droits: Droit[] = [MARCHE_SRM, MARCHE_DEMO].flatMap((m) => TYPES_DONNEE.map((t) => ({
   marche_id: m, type_donnee: t, lire: true, creer: true, modifier: "toutes" as const, supprimer: "toutes" as const, valider: true,
 })));
@@ -305,6 +308,9 @@ export const naturesRefection: Ligne[] = [
   { id: id("3", 1), marche_id: MARCHE_SRM, code: "chaussee_enrobe", libelle_fr: "Chaussée en enrobé", libelle_ar: "طريق مزفت", symbole: "CH", emplacement: "chaussee", prix_id: id("9", 11), necessite_refection: true, actif: true, ordre: 1 },
   { id: id("3", 2), marche_id: MARCHE_SRM, code: "trottoir_carrele", libelle_fr: "Trottoir carrelé", libelle_ar: "رصيف مبلط", symbole: "TC", emplacement: "trottoir", prix_id: id("9", 12), necessite_refection: true, actif: true, ordre: 2 },
   { id: id("3", 3), marche_id: MARCHE_SRM, code: "trottoir_beton", libelle_fr: "Trottoir en béton", libelle_ar: "رصيف خرساني", symbole: "TB", emplacement: "trottoir", prix_id: id("9", 12), necessite_refection: true, actif: true, ordre: 3 },
+  { id: id("3", 5), marche_id: MARCHE_SRM, code: "carrelage", libelle_fr: "Carrelage", libelle_ar: "بلاط", symbole: "CR", emplacement: "trottoir", prix_id: id("9", 12), necessite_refection: true, actif: true, ordre: 5 },
+  { id: id("3", 6), marche_id: MARCHE_SRM, code: "faience", libelle_fr: "Faïence", libelle_ar: "زليج", symbole: "F", emplacement: "trottoir", prix_id: id("9", 12), necessite_refection: true, actif: true, ordre: 6 },
+  { id: id("3", 7), marche_id: MARCHE_SRM, code: "pave_ciment", libelle_fr: "Pavé ciment", libelle_ar: "حجر الرصف الإسمنتي", symbole: "PV", emplacement: "trottoir", prix_id: id("9", 12), necessite_refection: true, actif: true, ordre: 7 },
   { id: id("3", 4), marche_id: MARCHE_SRM, code: "terrain_naturel", libelle_fr: "Terrain naturel (sans réfection)", libelle_ar: "أرض طبيعية", symbole: "TN", emplacement: "terrain_naturel", prix_id: null, necessite_refection: false, actif: true, ordre: 4 },
 ];
 export const motifs: Ligne[] = [
@@ -341,6 +347,60 @@ export const vAnomalies: Ligne[] = vFuites.filter((f) => f.marche_id === MARCHE_
   marche_id: MARCHE_SRM, fuite_id: f.id, reparation_id: null, anomalie: ["fouille_superieure_2m", "reference_srm_format", "prix_hors_bordereau"][i],
 }));
 
+// ---- Chantier v2 (S1, S2) : validation par étape, auteurs, nouveaux champs, référentiels de la saisie ----
+const KARIM = id("d", 2);
+const YOUSSEF = id("d", 3);
+const NADIA = id("d", 4);
+const MATERIAUX_DEMO = ["polyethylene", "pvc", "amiante_ciment", "fonte_ductile"];
+vFuites.forEach((f, i) => {
+  const ancienne = f.statut === "achevee" || f.statut === "sans_reparation" || (f.statut === "reparee" && i % 3 === 0);
+  // Quelques fuites saisies au bureau après coup (saisie différée)
+  const differee = f.source_saisie === "web" && i % 2 === 0;
+  const cree = differee ? new Date(new Date(f.date_detection).getTime() + 30 * H).toISOString() : f.date_detection;
+  const materiau = MATERIAUX_DEMO[i % MATERIAUX_DEMO.length];
+  Object.assign(f, {
+    validee_le: ancienne ? new Date(new Date(cree).getTime() + 5 * H).toISOString() : null, validee_par: ancienne ? NADIA : null,
+    auteur_terrain_id: KARIM, saisi_par: differee ? NADIA : KARIM, cree_le: cree, saisie_differee: differee,
+    motif_correction: null, corrigee_par: null, corrigee_le: null,
+    nature_degradation_id: f.marche_id === MARCHE_SRM && i % 4 !== 3 ? (i % 2 ? id("3", 1) : id("3", 2)) : null,
+    materiau: i % 3 ? materiau : null, diametre_mm: i % 3 ? [32, 63, 110, 160][i % 4] : null, troncon_id: null, precision_gps_m: 6 + (i % 9),
+  });
+});
+reparations.forEach((r, i) => {
+  const f = vFuites.find((x) => x.id === r.fuite_id)!;
+  const validee = f.statut === "achevee" || (f.statut === "reparee" && i % 2 === 0);
+  Object.assign(r, {
+    validee_le: validee ? new Date(new Date(r.realisee_le as string).getTime() + 8 * H).toISOString() : null, validee_par: validee ? NADIA : null,
+    saisi_par: YOUSSEF, cree_le: r.realisee_le, representant_srm_id: null,
+  });
+});
+refections.forEach((r, i) => {
+  Object.assign(r, {
+    validee_le: i % 4 ? new Date(new Date(r.realisee_le as string).getTime() + 6 * H).toISOString() : null, validee_par: i % 4 ? NADIA : null,
+    auteur_terrain_id: YOUSSEF, saisi_par: YOUSSEF, cree_le: r.realisee_le, source_saisie: "tablette",
+    reparation_id: reparations.find((x) => x.fuite_id === r.fuite_id)?.id ?? null,
+  });
+});
+photos.forEach((p) => {
+  const rep = p.type === "apres" || p.type === "pendant" ? reparations.find((x) => x.fuite_id === p.fuite_id) : null;
+  Object.assign(p, { reparation_id: rep?.id ?? null, refection_id: null, auteur_terrain_id: rep ? YOUSSEF : KARIM, saisi_par: rep ? YOUSSEF : KARIM, cree_le: p.prise_le });
+});
+
+const STANDARD: [string, number[]][] = [
+  ["polyethylene", [20, 25, 32, 40, 50, 63, 75, 90, 110, 125, 160, 200]], ["pvc", [63, 75, 90, 110, 125, 160, 200, 250, 315]],
+  ["amiante_ciment", [60, 80, 100, 125, 150, 200, 250, 300, 350, 400]], ["fonte_ductile", [60, 80, 100, 125, 150, 200, 250, 300, 400, 500, 600]],
+  ["fonte_grise", [60, 80, 100, 125, 150, 200, 250, 300, 400, 500, 600]], ["acier_galvanise", [15, 20, 26, 33, 40, 50]], ["ppr", [20, 25, 32, 40, 50, 63]],
+];
+export const diametresMateriau: Ligne[] = [MARCHE_SRM, MARCHE_DEMO].flatMap((m, k) => STANDARD.flatMap(([materiau, liste], j) => liste.map((d, n) => ({
+  id: id("4", k * 1000 + j * 50 + n + 1), marche_id: m, materiau, diametre_mm: d, source: "standard", actif: true,
+}))));
+diametresMateriau.push({ id: id("4", 999), marche_id: MARCHE_SRM, materiau: "amiante_ciment", diametre_mm: 175, source: "reseau", actif: true });
+export const representantsSrm: Ligne[] = [
+  { id: id("4", 2001), marche_id: MARCHE_SRM, nom: "Abdelkhalek", ordre: 1, actif: true },
+  { id: id("4", 2002), marche_id: MARCHE_SRM, nom: "M. Tahiri", ordre: 2, actif: true },
+  { id: id("4", 2003), marche_id: MARCHE_DEMO, nom: "Abdelkhalek", ordre: 1, actif: true },
+];
+
 /** Tables et vues servies par le client de démonstration. */
 export const TABLES: Record<string, Ligne[]> = {
   profils: profils as unknown as Ligne[], marches, affectations, droits: droits as unknown as Ligne[], zones, secteurs: [...secteurs, ...secteursDemo] as unknown as Ligne[],
@@ -350,4 +410,5 @@ export const TABLES: Record<string, Ligne[]> = {
   natures_refection: naturesRefection, motifs, produits_dolibarr: produitsDolibarr, imports_dolibarr: importsDolibarr, suggestions_articles: [],
   equipes, ouvriers, v_anomalies: vAnomalies, v_controles_attachement: [], v_pieces_reelles: [], verrous_admin: [],
   modeles_export: [], evenements: [], categories_evenements: [], avenants: [], arrets: [], evenements_pieces: [],
+  diametres_materiau: diametresMateriau, representants_srm: representantsSrm,
 };

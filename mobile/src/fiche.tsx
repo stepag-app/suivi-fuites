@@ -291,6 +291,7 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
   const photosEtape = (lien: { reparation_id?: string; refection_id?: string }) => [
     ...photosVisibles.filter((p) => (lien.reparation_id ? p.reparation_id === lien.reparation_id && !p.refection_id : p.refection_id === lien.refection_id)).map(vignette),
     ...locaux.filter((e) => (e.type === 'photos' && (lien.reparation_id ? e.reparation_id === lien.reparation_id : e.refection_id === lien.refection_id))
+      || (e.type === 'modification' && !!lien.reparation_id && e.reparation_id === lien.reparation_id)
       || (e.id === (lien.reparation_id ?? lien.refection_id) && (e.type === 'reparation' || e.type === 'refection')))
       .flatMap((e) => e.photos.map((p) => ({
         id: p.id, uri: p.fichier, legende: t('{type} (à envoyer)', { type: libelleListe('type_photo', p.type ?? 'autre', TYPES_PHOTO[p.type ?? 'autre']) }),

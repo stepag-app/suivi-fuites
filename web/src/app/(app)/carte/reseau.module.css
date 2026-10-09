@@ -355,3 +355,8 @@
   color: #b45309;
   font-weight: 600;
 }
+
+/* Panneau en arabe (APK) : les noms en lettres latines (secteurs, zones) gardent leur sens de lecture, coupés à la fin. */
+.panneau[dir='rtl'] .texte {
+  unicode-bidi: plaintext;
+}

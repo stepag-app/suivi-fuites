@@ -146,17 +146,33 @@ const MOTS_EQUIPE: [RegExp, string, string?][] = [
 let courante: LangueApk | null = null;
 const valide = (v: string | null): v is LangueApk => v === 'fr' || v === 'hybride' || v === 'ar';
 
+// Gardée seulement une fois lue (adresse ou onglet) : pendant le passage de /session à la carte, la page s'affiche
+// avant que l'adresse ne change ; un « fr » par défaut gardé à ce moment-là masquerait la langue demandée.
 function lire(): LangueApk {
   if (courante) return courante;
   try {
     const p = new URLSearchParams(window.location.search).get('langue');
     if (valide(p)) window.sessionStorage.setItem(CLE, p);
     const s = window.sessionStorage.getItem(CLE);
-    courante = valide(p) ? p : valide(s) ? s : 'fr';
+    const l = valide(p) ? p : valide(s) ? s : null;
+    if (l) courante = l;
+    return l ?? 'fr';
   } catch {
-    courante = 'fr';
+    return 'fr';
   }
-  return courante;
+}
+
+/** Page /session (APK) : langue de la suite demandée gardée pour l'onglet avant d'ouvrir la carte. */
+export function memoriserLangueApk(suite: string) {
+  try {
+    const p = new URLSearchParams(suite.split('?')[1]?.split('#')[0] ?? '').get('langue');
+    if (valide(p)) {
+      window.sessionStorage.setItem(CLE, p);
+      courante = p;
+    }
+  } catch {
+    /* stockage indisponible : la carte relira l'adresse */
+  }
 }
 
 const remplir = (texte: string, valeurs?: Record<string, string | number>) =>

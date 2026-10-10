@@ -442,7 +442,8 @@ PR [#86](https://github.com/stepag-app/suivi-fuites/pull/86) fusionnée (`a71c04
   Drive ».
 - **Si la copie échoue** : « Connexion au Drive » en échec = jeton révoqué ou expiré (refaire la note, recréer le secret) ; Drive
   presque plein = Google One 100 Go (15 Go gratuits partagés avec Gmail) ; les APK de R2 ne sont jamais supprimées du Drive.
-- **Reste** : relire les deux pages publiques ; activer les notifications d'échec d'Actions (compte GitHub) ; e-mail d'échec par
-  M2 (S18) ; refaire les parties 2 et 3 de la note lors de la rotation des secrets (S23) ; surveiller les minutes d'Actions une fois le
+- **Notifications d'échec** : réglées le 2026-10-10 sur le compte GitHub `stepag-app` (Settings > Notifications > Actions : on
+  GitHub et e-mail, « failed workflows only ») ; un échec de la sauvegarde nocturne arrive de `notifications@github.com`.
+- **Reste** : relire les deux pages publiques ; e-mail d'échec par M2 (S18) ; refaire les parties 2 et 3 de la note lors de la rotation des secrets (S23) ; surveiller les minutes d'Actions une fois le
   dépôt privé (Z4) : la sauvegarde nocturne, le job Drive et le test hebdomadaire en consomment ; S22 (purge de DEMO) peut s'appuyer
   sur cette copie.

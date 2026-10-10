@@ -191,16 +191,16 @@ Opus 5.5 partout, sauf S14 et S21 (Sonnet 5.5 : scripts et rangement) et S20 (Fa
 quota Max est partagé avec l'application de paie du client (priorité au client, `CLAUDE.md` § 12) : point de consommation
 après la vague 1 ; si la limite approche, S16 puis S19 attendent.
 
-## 5. Décisions à confirmer (valeur appliquée sans réponse)
+## 5. Décisions (réponses d'Issam du 2026-10-10 ; sinon valeur appliquée sans réponse)
 
-| Q | Question | Par défaut |
+| Q | Question | Réponse ou valeur par défaut |
 |---|---|---|
-| 1 | Envoi des e-mails depuis `contact@stepag.ma` : **Resend** (service d'envoi : trois enregistrements DNS dans Cloudflare, gratuit jusqu'à 3 000 e-mails par mois) ou **SMTP de l'hébergeur** de la boîte (mot de passe de la boîte gardé côté serveur) | Resend ; la boîte reste chez l'hébergeur (MX de stepag.ma), seuls les envois passent par Resend |
-| 2 | Destination de la sauvegarde hors plateformes : Drive du compte `stepag.app` (15 Go gratuits ; base : quelques Mo par jour ; photos : 2 à 7 Go par an), Drive personnel, ou en plus le serveur local H24 | Drive `stepag.app` ; Google One 100 Go si la place manque |
+| 1 | Envoi des e-mails depuis `contact@stepag.ma` : **Resend** (service d'envoi : trois enregistrements DNS dans Cloudflare, gratuit jusqu'à 3 000 e-mails par mois) ou **SMTP de l'hébergeur** de la boîte (mot de passe de la boîte gardé côté serveur) | **Resend** (Issam) ; la boîte reste chez l'hébergeur (MX de stepag.ma), seuls les envois passent par Resend |
+| 2 | Destination de la sauvegarde hors plateformes : Drive du compte `stepag.app` (15 Go gratuits ; base : quelques Mo par jour ; photos : 2 à 7 Go par an), Drive personnel, ou en plus le serveur local H24 | **Drive `stepag.app`** (Issam) ; Google One 100 Go si la place manque |
 | 3 | Débits : assiette des pénalités (zone ou marché entier), points proportionnels ou entiers | par zone, proportionnels (à confirmer avec la SRM) |
 | 4 | Débits : mode de saisie par défaut | minimum de la nuit ; relevés détaillés et import possibles par campagne |
 | 5 | Ouvriers sans compte | gardés |
-| 6 | Fusion dès CI verte, migrations en production comprises | oui, comme au v2 |
+| 6 | Fusion dès CI verte, migrations en production comprises | **oui** (Issam : vague 1 lancée avec fusion du plan) |
 
 ## 6. Double authentification : liste à vérifier une par une
 

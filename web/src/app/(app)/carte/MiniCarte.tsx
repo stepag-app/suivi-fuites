@@ -9,7 +9,7 @@ import { useLangueApk } from '@/lib/langue-apk';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GeoJSONSource, Map as CarteMapLibre, Marker, StyleSpecification } from 'maplibre-gl';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Crosshair, Satellite } from 'lucide-react';
+import { Crosshair } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { nombre } from '@/lib/format';
 import { chargerNoeudsSecteur, chargerTronconsSecteur } from '@/lib/reseau/donnees';
@@ -24,6 +24,7 @@ import { CENTRE_DEFAUT, MODULE_MAPLIBRE, STYLE_FOND } from './commun';
 import { STYLE_SECOURS, vide } from './couches';
 import { creerGestionReseau, creerGestionTuiles, type GestionReseau } from './reseau-carte';
 import { afficherSatellite, satelliteDisponible } from './satellite';
+import { VignetteFond } from './VignetteFond';
 
 export interface PositionGps { latitude: number; longitude: number; precision?: number | null }
 
@@ -256,12 +257,12 @@ export function MiniCarte({ marcheId, gps, langue = 'fr', satelliteInitial = fal
       {erreur && <p className="absolute inset-x-3 top-3 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       <div className="absolute top-3 left-3 z-[3] flex gap-2" dir="ltr">
         {gps && <Button size="sm" variant="outline" className="bg-background shadow-sm" onClick={recentrer}><Crosshair data-icon="inline-start" />{texte('maPosition', langue)}</Button>}
-        {satelliteDisponible() && (
-          <Button size="sm" variant={satellite ? 'default' : 'outline'} className={satellite ? 'shadow-sm' : 'bg-background shadow-sm'} aria-pressed={satellite} onClick={() => setSatellite((v) => !v)}>
-            <Satellite data-icon="inline-start" />{satellite ? texte('plan', langue) : texte('satellite', langue)}
-          </Button>
-        )}
       </div>
+      {satelliteDisponible() && (
+        <VignetteFond satellite={satellite} basculer={() => setSatellite((v) => !v)} className="absolute right-3 bottom-24 z-[3]"
+          centre={bornes ? [(bornes[0] + bornes[2]) / 2, (bornes[1] + bornes[3]) / 2] : gps ? [gps.longitude, gps.latitude] : CENTRE_DEFAUT}
+          libelles={{ satellite: texte('satellite', langue), plan: texte('plan', langue) }} />
+      )}
       <div className="absolute inset-x-3 bottom-8 z-[3] rounded-lg border bg-background/95 p-3 text-sm shadow-sm" role="status" aria-live="polite">
         {recherche === 'en_cours' && <p className="m-0 text-muted-foreground">{texte('recherche', langue)}</p>}
         {recherche === 'erreur' && <p className="m-0 text-muted-foreground">{texte('horsReseau', langue)}</p>}

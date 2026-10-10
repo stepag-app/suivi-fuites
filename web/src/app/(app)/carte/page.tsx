@@ -21,7 +21,7 @@ import { estContexteApk, getSupabase, lireTout } from "@/lib/supabase";
 import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Carte, type CarteRef, type ReseauCarteProps } from "./Carte";
-import { COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
+import { CENTRE_DEFAUT, COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
 import { ApercuFuite, CommandesCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
 import type { ChoixImpression } from "./impression";
 import { ListeCarte } from "./liste-carte";
@@ -29,6 +29,7 @@ import { PanneauImpression } from "./PanneauImpression";
 import { PanneauReseau, type BalayagePanneau, type OngletReseau } from "./PanneauReseau";
 import styles from "./reseau.module.css";
 import { ZOOM_MIN_SATELLITE, satelliteDisponible } from "./satellite";
+import { VignetteFond } from "./VignetteFond";
 import { useReseau } from "./useReseau";
 
 type SecteurCarte = Contour & { zone_id: string | null };
@@ -512,8 +513,12 @@ function CarteDesFuites() {
                 </div>
               )}
               <CommandesCarte placees={placees.length} sansPosition={sansPosition} chargement={chargement} erreur={erreur}
-                recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert}
-                satellite={satelliteDisponible() ? { actif: satellite, basculer: basculerSatellite } : null} />
+                recentrer={() => carte.current?.recentrer()} actualiser={actualiser} decalee={reseauOuvert} />
+              {satelliteDisponible() && (
+                <VignetteFond satellite={satellite} basculer={basculerSatellite} className="absolute right-2.5 bottom-8 z-[3]"
+                  centre={reseau.bornes ? [(reseau.bornes[0] + reseau.bornes[2]) / 2, (reseau.bornes[1] + reseau.bornes[3]) / 2] : CENTRE_DEFAUT}
+                  libelles={{ satellite: tb("Satellite"), plan: tb("Plan") }} />
+              )}
               {satellite && zoom < ZOOM_MIN_SATELLITE && (
                 <p className={cn("absolute bottom-20 z-[3] m-0 rounded-lg border bg-background/95 px-3 py-1.5 text-muted-foreground text-xs shadow-sm", reseauOuvert ? "left-[calc(min(290px,92vw)+0.5rem)]" : "left-2")}>
                   Image satellite à partir du zoom {ZOOM_MIN_SATELLITE} : rapprochez-vous.

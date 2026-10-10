@@ -44,3 +44,13 @@ export function afficherSatellite(m: CarteMapLibre, visible: boolean, bornes: [n
   if (m.getLayer(COUCHE)) m.setLayoutProperty(COUCHE, 'visibility', visible ? 'visible' : 'none');
   return visible;
 }
+
+/** Une tuile Esri de la ville (zoom 16) pour l'aperçu de la vignette « Satellite ». */
+export function urlApercuSatellite([lon, lat]: [number, number]): string {
+  const z = 16;
+  const n = 2 ** z;
+  const x = Math.floor(((lon + 180) / 360) * n);
+  const r = (lat * Math.PI) / 180;
+  const y = Math.floor(((1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2) * n);
+  return URL_TUILES.replace('{z}', String(z)).replace('{y}', String(y)).replace('{x}', String(x)) + `?token=${encodeURIComponent(CLE_ESRI)}`;
+}

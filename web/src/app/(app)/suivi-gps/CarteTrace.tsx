@@ -7,7 +7,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Feature, FeatureCollection } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
 import { Satellite } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { ouvrirTuilesReseau, enregistrerProtocole } from '@/lib/reseau/tuiles';
 import { SANS_SECTEUR } from '@/lib/reseau/types';
@@ -43,7 +43,8 @@ function sources(traces: TraceAffichee[]) {
   return { lignes: fc(lignes), points: fc(points), bornes: fc(bornes) };
 }
 
-export function CarteTrace({ marcheId, traces }: { marcheId: string; traces: TraceAffichee[] }) {
+/** `legende` : encart posé sur la carte (pauses du jour, qui n'ont pas de lieu). */
+export function CarteTrace({ marcheId, traces, legende }: { marcheId: string; traces: TraceAffichee[]; legende?: ReactNode }) {
   const conteneur = useRef<HTMLDivElement>(null);
   const carte = useRef<CarteMapLibre | null>(null);
   const gestion = useRef<GestionReseau | null>(null);
@@ -163,6 +164,7 @@ export function CarteTrace({ marcheId, traces }: { marcheId: string; traces: Tra
       <div ref={conteneur} className="carte-maplibre absolute inset-0" aria-label="Carte des tracés GPS" />
       {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center text-muted-foreground text-sm">Chargement de la carte…</p>}
       {erreur && <p className="absolute inset-x-3 top-3 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
+      {legende && <div className="absolute right-3 bottom-8 z-[3]">{legende}</div>}
       {satelliteDisponible() && (
         <div className="absolute top-3 left-3 z-[3]">
           <Button size="sm" variant={satellite ? 'default' : 'outline'} className={satellite ? 'shadow-sm' : 'bg-background shadow-sm'} aria-pressed={satellite} onClick={() => setSatellite((v) => !v)}>

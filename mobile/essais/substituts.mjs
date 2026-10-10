@@ -19,6 +19,7 @@ const SUBSTITUTS = {
   'expo-image-manipulator': 'expo.js',
   'expo-image-picker': 'expo.js',
   'expo-location': 'expo.js',
+  'expo-notifications': 'expo.js',
   'expo-task-manager': 'expo.js',
   'react-native': 'react-native.js',
   'react-native-url-polyfill/auto': 'vide.js',

@@ -101,6 +101,7 @@ td.note textarea { margin-top: 0; font-size: .88rem }
       <li><b>10 octobre (chantier v3, S12) :</b> « Équipe » retiré (G35, R14). L'équipe, c'est désormais le compte du chef d'équipe : l'application ne demande plus de choisir une équipe.</li>
       <li><b>10 octobre : toutes les propositions validées par Issam</b> (« je vous demande de tout valider ») : les 495 lignes sont cochées OK ; les corrections déjà faites restent. Les libellés du suivi GPS et de l'accessibilité, absents de ce tableau, sont validés de la même façon.</li>
       <li><b>Nouveau (10 octobre, chantier v3, S19) : 53 libellés de l'écran « Mesures de nuit »</b> (D01 à D53) : campagne de mesure, nuit, points de mesure, débit minimum ou relevés de 0 h à 6 h, photo de l'afficheur, messages d'envoi. En hybride, le titre de l'écran et les types de campagne (Qi, Qf, maintien, libre) restent en français, comme « Balayage » et « Suivi GPS » ; tout le reste est en arabe. Filtrez « v3 · Mesures de nuit » dans la liste des écrans. Termes proposés : débit de nuit « التدفق الليلي », campagne « حملة القياس », point de mesure « نقطة القياس », relevé « قراءة », afficheur « شاشة العداد ».</li>
+      <li><b>Nouveau (10 octobre) : 34 libellés du suivi GPS</b> (T01 à T34) : le suivi ne tourne que pendant les heures de travail, la « Pause » remplace « Désactiver le suivi », motif du suivi (preuve du linéaire balayé pour la SRM, sécurité), notification, rappel du matin, jours de la semaine, alerte « suivi coupé » reçue par le responsable. En hybride, toutes ces phrases sont en arabe (seul le bouton « Suivi GPS » reste en français). Filtrez « v3 · Suivi GPS ». Termes proposés : pause « استراحة », heures de travail « ساعات العمل », tronçon coché « مقطع مؤشَّر عليه », linéaire balayé « طول الشبكة الممسوح ».</li>
     </ul>
   </div>
 
@@ -652,6 +653,42 @@ const LIBELLES = [
   ["D51", "v3 · Mesures de nuit (envoi)", "Relevés refusés : heures de 00:00 à 06:00, débits positifs, une seule valeur par heure.", null, "القراءات مرفوضة: الساعات من 00:00 إلى 06:00، تدفقات موجبة، وقيمة واحدة لكل ساعة."],
   ["D52", "v3 · Mesures de nuit (envoi)", "Saisissez le débit minimum de la nuit ou au moins un relevé.", null, "أدخل أدنى تدفق خلال الليل أو قراءة واحدة على الأقل."],
   ["D53", "v3 · Mesures de nuit (envoi)", "En attente : la saisie précédente de cette mesure n'est pas encore passée.", null, "في الانتظار: الإدخال السابق لهذا القياس لم يُرسَل بعد."],
+
+  // Suivi GPS, compromis du 10 octobre (heures de travail, pause, motif, alerte « suivi coupé »), à relire
+  ["T01", "v3 · Suivi GPS", "Suivi GPS des heures de travail ({debut}-{fin})", null, "تتبع الموقع خلال ساعات العمل ({debut}-{fin})"],
+  ["T02", "v3 · Suivi GPS", "Preuve du linéaire balayé pour la SRM. Rien n'est enregistré hors des heures ni pendant une pause.", null, "إثبات طول الشبكة الممسوح أمام SRM. لا يُسجَّل أي شيء خارج ساعات العمل ولا أثناء الاستراحة."],
+  ["T03", "v3 · Suivi GPS", "Pause jusqu'à {heure}", null, "استراحة حتى الساعة {heure}"],
+  ["T04", "v3 · Suivi GPS", "Aucune position enregistrée pendant la pause. Le suivi reprend seul à {heure}.", null, "لا يُسجَّل أي موقع أثناء الاستراحة. يُستأنف التتبع تلقائيًا على الساعة {heure}."],
+  ["T05", "v3 · Suivi GPS", "Début des heures de travail", null, "بداية ساعات العمل"],
+  ["T06", "v3 · Suivi GPS", "Touchez ici pour reprendre le suivi GPS de la journée.", null, "المس هنا لاستئناف تتبع الموقع لهذا اليوم."],
+  ["T07", "v3 · Suivi GPS", "En pause jusqu'à {heure} : aucune position n'est enregistrée.", null, "استراحة حتى الساعة {heure}: لا يُسجَّل أي موقع."],
+  ["T08", "v3 · Suivi GPS", "Hors des heures de travail : aucune position n'est enregistrée.", null, "خارج ساعات العمل: لا يُسجَّل أي موقع."],
+  ["T09", "v3 · Suivi GPS", "Plus de pause possible aujourd'hui.", null, "لم تعد الاستراحة ممكنة اليوم."],
+  ["T10", "v3 · Suivi GPS", "Reprendre le suivi", null, "استئناف التتبع"],
+  ["T11", "v3 · Suivi GPS", "Pause ({n} min)", null, "استراحة ({n} دقيقة)"],
+  ["T12", "v3 · Suivi GPS", "Pourquoi ce suivi ?", null, "لماذا هذا التتبع؟"],
+  ["T13", "v3 · Suivi GPS", "Le tracé prouve à la SRM le linéaire réellement balayé : le balayage est payé au linéaire, et un tronçon coché peut être contesté. Il sert aussi à votre sécurité quand vous travaillez seul sur la voie publique.", null, "يُثبت المسار أمام SRM طول الشبكة الذي تم مسحه فعلًا: يُؤدّى مقابل المسح حسب الطول، ويمكن الطعن في مقطع مؤشَّر عليه. كما يخدم سلامتك عندما تعمل وحدك على الطريق العام."],
+  ["T14", "v3 · Suivi GPS", "Quand ?", null, "متى؟"],
+  ["T15", "v3 · Suivi GPS", "Seulement pendant les heures de travail : {heures}, {jours}. Rien n'est enregistré en dehors, ni pendant une pause. Une notification reste affichée tant que le suivi tourne.", null, "فقط خلال ساعات العمل: {heures}، {jours}. لا يُسجَّل أي شيء خارجها، ولا أثناء الاستراحة. يبقى إشعار ظاهرًا ما دام التتبع يعمل."],
+  ["T16", "v3 · Suivi GPS", "Qui le voit ?", null, "من يراه؟"],
+  ["T17", "v3 · Suivi GPS", "Seul votre responsable (et l'administrateur de l'application) voit votre tracé. Il est conservé jusqu'à la fin du marché.", null, "لا يرى مسارك إلا مسؤولك (ومسؤول التطبيق). ويُحفظ إلى نهاية الصفقة."],
+  ["T18", "v3 · Suivi GPS", "Pause", null, "الاستراحة"],
+  ["T19", "v3 · Suivi GPS", "{n} min au plus d'affilée, {total} min par jour. Le suivi reprend seul à la fin, ou dès que vous signalez une fuite ou cochez un tronçon. Votre responsable voit l'heure et la durée de vos pauses, jamais le lieu.", null, "{n} دقيقة متواصلة على الأكثر، و{total} دقيقة في اليوم. يُستأنف التتبع تلقائيًا عند انتهائها، أو بمجرد الإبلاغ عن تسرب أو التأشير على مقطع. يرى مسؤولك وقت استراحاتك ومدتها، ولا يرى المكان أبدًا."],
+  ["T20", "v3 · Suivi GPS", "Pause restante aujourd'hui : {n} min", null, "الاستراحة المتبقية اليوم: {n} دقيقة"],
+  ["T21", "v3 · Suivi GPS", "En pause jusqu'à {heure}. Touchez ici pour reprendre.", null, "استراحة حتى الساعة {heure}. المس هنا للاستئناف."],
+  ["T22", "v3 · Suivi GPS", "{debut} à {fin}", null, "من {debut} إلى {fin}"],
+  ["T23", "v3 · Suivi GPS", "tous les jours", null, "كل الأيام"],
+  ["T24", "v3 · Suivi GPS", "du {premier} au {dernier}", null, "من {premier} إلى {dernier}"],
+  ["T25", "v3 · Suivi GPS", "lundi", null, "الاثنين"],
+  ["T26", "v3 · Suivi GPS", "mardi", null, "الثلاثاء"],
+  ["T27", "v3 · Suivi GPS", "mercredi", null, "الأربعاء"],
+  ["T28", "v3 · Suivi GPS", "jeudi", null, "الخميس"],
+  ["T29", "v3 · Suivi GPS", "vendredi", null, "الجمعة"],
+  ["T30", "v3 · Suivi GPS", "samedi", null, "السبت"],
+  ["T31", "v3 · Suivi GPS", "dimanche", null, "الأحد"],
+  ["T32", "v3 · Suivi GPS", "Suivi GPS interrompu : {agent}", null, "انقطع تتبع الموقع: {agent}"],
+  ["T33", "v3 · Suivi GPS", "Autorisation de position refusée sur la tablette ; aucune position depuis {heure}.", null, "إذن الموقع مرفوض على الجهاز اللوحي؛ لا يوجد أي موقع منذ {heure}."],
+  ["T34", "v3 · Suivi GPS", "Aucune position depuis {heure} : application fermée, autorisation retirée, tablette éteinte ou sans réseau.", null, "لا يوجد أي موقع منذ {heure}: التطبيق مغلق، أو الإذن مسحوب، أو الجهاز اللوحي مطفأ أو بدون شبكة."],
 ];
 
 const etat = {};          // id -> { hyb, ar, ok, note, garder }

@@ -115,7 +115,7 @@ export function EcranNotifications({ retour, ouvrir, lues }: { retour: () => voi
             const texte = texteNotification(item);
             return (
               <Pressable
-                onPress={() => ouvrir(item.fuite_id)}
+                onPress={() => item.fuite_id && ouvrir(item.fuite_id)}
                 style={({ pressed }) => [no.ligne, pressed && s.appuye]}
                 accessibilityRole="button"
               >

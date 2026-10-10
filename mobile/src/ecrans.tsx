@@ -13,6 +13,7 @@ import { t, tx, useLangue } from './langue';
 import { chargerListe } from './liste-donnees';
 import { useSession } from './session';
 import type { EtatSuivi } from './suivi-gps';
+import { heureLocale, hhmm } from './suivi-gps-regles';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { StatutFuite, VFuite } from './types';
 import {
@@ -248,9 +249,14 @@ export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notificat
           </View>
         </View>
         {!!message && <Message ton="attention" icone="wifi-off">{message}</Message>}
-        {!!suivi && suivi.voulu && !suivi.actif && (
+        {!!suivi && (suivi.mode === 'arrete' || suivi.mode === 'autorisation') && (
           <Pressable onPress={suiviGps} accessibilityRole="button">
             <Message ton="attention" icone="locate-fixed">{t("Le suivi de position n'est pas actif. Touchez ici pour l'activer.")}</Message>
+          </Pressable>
+        )}
+        {!!suivi?.pause && suivi.mode === 'pause' && (
+          <Pressable onPress={suiviGps} accessibilityRole="button">
+            <Message ton="info" icone="pause">{t("En pause jusqu'à {heure}. Touchez ici pour reprendre.", { heure: hhmm(heureLocale(suivi.pause.finPrevue).minutes) })}</Message>
           </Pressable>
         )}
         {miseAJour}

@@ -34,6 +34,9 @@ update affectations set roles = array['responsable'] where profil_id = '00000000
 update affectations set roles = array['detection'] where profil_id in
   ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000f', '00000000-0000-0000-0000-000000000010');
 update profils set actif = false where identifiant = 'revo';
+-- Heures de travail (compromis du suivi, 2026-10-10) : toute la journée, tous les jours, pour essayer ici le seul
+-- tracé (minuit compris) ; les heures et les pauses ont leurs essais dans 45_suivi_gps_heures_pauses.
+update marches set suivi_gps_debut = '00:00', suivi_gps_fin = '24:00', suivi_gps_jours = '{1,2,3,4,5,6,7}';
 
 -- Horodatages : deux jours d'Oujda, il y a 1 et 2 jours à midi UTC (midi à Oujda, pas de bascule autour).
 create temp table h on commit drop as

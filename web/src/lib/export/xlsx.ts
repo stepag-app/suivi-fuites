@@ -6,19 +6,17 @@ import {
   decimalesPour, dimensionsLogo, etendueLibelle, lignesEntete, mmEnPixels, octetsDataUrl, parcourir,
   type DocumentExport, type LogoEntete, type SectionDoc,
 } from './modele';
+import { heureMurale as heureDuMaroc } from '@/lib/heure-maroc';
 
 type Cellule = Record<string, unknown> | null;
 
 const BORDURE = { borderStyle: 'thin', borderColor: '#AFBAC4' };
 
-// Excel n'a pas de fuseau : on écrit l'heure de Casablanca telle qu'on la lit.
+// Excel n'a pas de fuseau : on écrit l'heure du Maroc telle qu'on la lit, à la minute.
 function heureMurale(d: Date): Date {
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat('en-GB', {
-      timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-    }).formatToParts(d).map((x) => [x.type, x.value]),
-  );
-  return new Date(Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute));
+  const m = heureDuMaroc(d);
+  m.setUTCSeconds(0, 0);
+  return m;
 }
 
 const formatNombre = (dec: number) => (dec > 0 ? `#,##0.${'0'.repeat(dec)}` : '#,##0');

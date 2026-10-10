@@ -3,6 +3,7 @@
 // boutons et préviennent avant l'envoi, elles ne remplacent aucun contrôle.
 // Seuls des imports de types : scripts/verifier-saisie.mjs charge ce fichier directement avec Node.
 import type { Action, TypeDonnee } from '@/lib/types';
+import { heureMurale, instantMaroc } from '../heure-maroc.ts';
 
 export type Peut = (type: TypeDonnee, action: Action) => boolean;
 export type Etape = 'detection' | 'reparation' | 'refection';
@@ -418,15 +419,9 @@ export function distanceM(a: { latitude: number; longitude: number }, b: { latit
 // Dates (P5) : champ datetime-local à l'heure du Maroc
 // ---------------------------------------------------------------------------------------------
 
-const FUSEAU = 'Africa/Casablanca';
-
 /** ISO → valeur d'un champ datetime-local (AAAA-MM-JJTHH:MM) à l'heure du Maroc. */
 export function versChampDate(iso: string | Date): string {
-  const d = typeof iso === 'string' ? new Date(iso) : iso;
-  const p = Object.fromEntries(new Intl.DateTimeFormat('fr-FR', {
-    timeZone: FUSEAU, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-  }).formatToParts(d).map((x) => [x.type, x.value]));
-  return `${p.year}-${p.month}-${p.day}T${p.hour}:${p.minute}`;
+  return heureMurale(iso).toISOString().slice(0, 16);
 }
 
 /** Valeur d'un champ datetime-local (heure du Maroc) → ISO ; vide ou illisible : null. */
@@ -434,12 +429,7 @@ export function depuisChampDate(valeur: string): string | null {
   const r = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(valeur);
   if (!r) return null;
   const [a, mo, j, h, mi] = r.slice(1).map(Number);
-  // Décalage du Maroc à cette date (heure légale et ramadan compris), par aller-retour.
-  const approx = Date.UTC(a, mo - 1, j, h, mi);
-  for (const essai of [approx - 3_600_000, approx, approx - 7_200_000, approx + 3_600_000]) {
-    if (versChampDate(new Date(essai)) === valeur) return new Date(essai).toISOString();
-  }
-  return new Date(approx).toISOString();
+  return instantMaroc(Date.UTC(a, mo - 1, j, h, mi)).toISOString();
 }
 
 /** Date dans le futur (au-delà de 5 minutes) : avertissement. */

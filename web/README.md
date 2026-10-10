@@ -241,7 +241,7 @@ et paysage et classeurs Excel relus, conseil « tableaux chargés » confronté 
 - **Période** : jour (flèches jour par jour), semaine (du lundi au dimanche du jour choisi), dates libres. Titre par
   défaut « État journalier du … », « État hebdomadaire du … au … » ou « État de la période du … au … », modifiable.
 - **Rubriques** (une section du PDF, une feuille Excel par tableau) : synthèse (chiffres des rubriques cochées), fuites
-  détectées (jour de détection), réparations et réfections (faites sur la période, jour de Casablanca), balayage
+  détectées (jour de détection), réparations et réfections (faites sur la période, jour du Maroc), balayage
   (`v_balayage_journalier`, droit « balayage / lire »), débits de nuit (droit « mesures_debit / lire » : nuits de la
   période `v_debits_nuits` et situation des performances `debits_resultats`, montants des pénalités seulement avec
   « quantités / lire »), pièces posées (`v_pieces_posees`), fuites en attente et alertes (non achevées ou en alerte, à la
@@ -513,6 +513,17 @@ Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
   fonction manque (migration pas encore déployée, mode démonstration), la page retombe sur l'ancienne lecture.
 - « Alertes » ne lit que les fuites en alerte et celles des courbes des 14 derniers jours.
 - Vérification : `node scripts/verifier-essai-charge.mjs` (11).
+
+## Heure du Maroc
+
+Le Maroc est à **UTC+0 depuis le 2026-09-20 à 01:00 UTC**. Chrome 152 (navigateur intégré de l'app Claude), Node 24 et
+Deno (rendu serveur sur Vercel compris) le croyaient encore à UTC+1 en octobre 2026 ; Chrome 154 était à jour. Toute
+date ou heure du Maroc passe donc par `src/lib/heure-maroc.ts` (même règle que `private.heure_maroc` de la base) :
+`jourMaroc` (AAAA-MM-JJ), `dateMaroc`, `dateHeureMaroc`, `formatMaroc` (Intl avec le bon fuseau), `heureMurale` et
+`instantMaroc` (champs datetime-local, Excel). Aucun autre fichier n'écrit `'Africa/Casablanca'` :
+`node scripts/verifier-heure-maroc.mjs` le vérifie, avec la règle et la concordance avec la migration. Les modules
+chargés tels quels par Node dans les scripts de vérification l'importent en relatif avec l'extension
+(`../heure-maroc.ts`, permis par `allowImportingTsExtensions`).
 
 ## Variables d'environnement (Vercel et `web/.env.local`)
 

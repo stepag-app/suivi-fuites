@@ -1,7 +1,8 @@
 // Indicateurs de la liste des fuites (widgets) : calculs purs, à partir des lignes de v_fuites.
-// Jours comptés en heure de Casablanca. Les séries servent aux mini-courbes (une valeur par jour
+// Jours comptés à l'heure du Maroc (heure-maroc.ts). Les séries servent aux mini-courbes (une valeur par jour
 // ou par semaine, la plus récente en dernier).
 import type { VFuite } from '@/lib/types';
+import { formatMaroc, jourMaroc } from '../heure-maroc.ts';
 
 export interface Indicateur {
   valeur: number | null;
@@ -10,10 +11,10 @@ export interface Indicateur {
 }
 
 const JOUR = 86_400_000;
-const jourCasa = (d: Date) => d.toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+const jourCasa = (d: Date) => jourMaroc(d);
 const t = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() : null);
 
-// Fin de journée (Casablanca) pour les n derniers jours, du plus ancien au plus récent.
+// Fin de journée (heure du Maroc) pour les n derniers jours, du plus ancien au plus récent.
 function finsDeJour(n: number, maintenant: Date): number[] {
   const fins: number[] = [];
   for (let i = n - 1; i >= 0; i--) fins.push(i === 0 ? maintenant.getTime() : maintenant.getTime() - i * JOUR);
@@ -36,7 +37,7 @@ export function fuitesDuMois(fuites: Pick<VFuite, 'date_detection'>[], maintenan
     valeur: duMois,
     commentaire: `${sept} sur les 7 derniers jours`,
     serie: jours.map((j) => parJour.get(j)!),
-    mois: maintenant.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca', month: 'long' }),
+    mois: formatMaroc(maintenant, 'fr-FR', { month: 'long' }),
   };
 }
 

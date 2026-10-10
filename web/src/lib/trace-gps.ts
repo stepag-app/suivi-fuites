@@ -1,5 +1,6 @@
 // Suivi GPS (S11, X6) : calculs sans écran sur les tracés lus par `trace_gps` (points [longitude, latitude, horodatage Unix]).
 // Vérifiés par scripts/verifier-trace-gps.mjs.
+import { formatMaroc, jourMaroc } from './heure-maroc.ts';
 
 export type PointTrace = [lon: number, lat: number, t: number];
 
@@ -67,10 +68,10 @@ export function duree(s: number): string {
 }
 
 export const heureMaroc = (t: number) =>
-  new Date(t * 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Casablanca' });
+  formatMaroc(t * 1000, 'fr-FR', { hour: '2-digit', minute: '2-digit' });
 
 /** Jour civil à Oujda (AAAA-MM-JJ). */
-export const jourDe = (date: Date) => date.toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+export const jourDe = (date: Date) => jourMaroc(date);
 
 /** Jour décalé de `n` jours (AAAA-MM-JJ), sans passer par un fuseau. */
 export function decalerJour(jour: string, n: number): string {

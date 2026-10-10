@@ -25,12 +25,13 @@ const fuite = (o) => ({
   ...SANS_ALERTE, ...o,
 });
 
-// Lundi 5 octobre 2026, 10 h à Casablanca (UTC+1)
+// Lundi 5 octobre 2026, 9 h au Maroc (UTC+0 depuis le 20/09/2026)
 const MAINTENANT = new Date('2026-10-05T09:00:00Z');
 
-ok('jour à l\'heure de Casablanca (23 h 30 UTC = lendemain à Casablanca)', () => {
-  assert.equal(jourCasa('2026-09-30T23:30:00Z'), '2026-10-01');
-  assert.equal(jourCasa('2026-09-30T22:30:00Z'), '2026-09-30');
+ok('jour à l\'heure du Maroc (UTC+0 depuis le 20/09/2026, UTC+1 avant)', () => {
+  assert.equal(jourCasa('2026-09-30T23:30:00Z'), '2026-09-30');
+  assert.equal(jourCasa('2026-10-01T00:30:00Z'), '2026-10-01');
+  assert.equal(jourCasa('2026-08-31T23:30:00Z'), '2026-09-01');
 });
 
 ok('semaines ISO et lundis', () => {
@@ -75,8 +76,8 @@ ok('médiane', () => {
 
 // Jeu de fuites : septembre et octobre 2026
 const FUITES = [
-  // Détectée le 01/10 (Casablanca) à 00 h 30, réparée 24 h plus tard : achevée
-  fuite({ date_detection: '2026-09-30T23:30:00Z', derniere_reparation_le: '2026-10-01T23:30:00Z', derniere_refection_le: '2026-10-03T10:00:00Z', statut: 'achevee' }),
+  // Détectée le 01/10 (heure du Maroc) à 00 h 30, réparée 24 h plus tard : achevée
+  fuite({ date_detection: '2026-10-01T00:30:00Z', derniere_reparation_le: '2026-10-02T00:30:00Z', derniere_refection_le: '2026-10-03T10:00:00Z', statut: 'achevee' }),
   // Détectée le 02/10, réparée 48 h plus tard, réfection chaussée à faire
   fuite({ date_detection: '2026-10-02T08:00:00Z', derniere_reparation_le: '2026-10-04T08:00:00Z', statut: 'reparee', emplacement_fouille: 'chaussee', secteur_id: 's2', secteur: 'Secteur B' }),
   // Détectée le 03/10, toujours non réparée, en alerte, sans photo

@@ -9,6 +9,7 @@ import { classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import type { StatutFuite } from '@/lib/types';
 import { capturerCarte, type EtatCarte, type ReseauImpression } from './capture';
 import { COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, aUneAlerte, type Contour, type FuiteCarte } from './commun';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 // La légende du PDF (lib/export/carte-pdf.ts, hors lot S) dessine des pastilles : on y ajoute au plus
 // six entrées pour le réseau, pour que le cartouche garde sa place.
@@ -149,7 +150,7 @@ export async function fabriquerCarte(
   ]);
   const ctx = await chargerContexteRapport(marcheId, false);
   const blob = await fabriquerPdfCarte(ctx, choix, d, etape);
-  const date = new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+  const date = jourMaroc(new Date());
   return { blob, nom: `${nomFichierSur(`carte-fuites-${String(ctx.marche.code ?? '')}-${choix.format}-${choix.orientation}`)}-${date}.pdf` };
 }
 

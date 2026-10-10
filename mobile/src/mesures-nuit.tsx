@@ -267,10 +267,12 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
       ) : (
         <>
           {saisie.mode === 'minimum' ? (
-            <Champ
-              libelle={t('Débit minimum de la nuit (m³/h)')} nombre indication="0,0"
-              valeur={saisie.minimum} onChange={(v) => setSaisie({ ...saisie, minimum: v })}
-            />
+            <View style={s.ligne}>
+              <Champ
+                libelle={t('Débit minimum de la nuit (m³/h)')} nombre indication="0,0"
+                valeur={saisie.minimum} onChange={(v) => setSaisie({ ...saisie, minimum: v })}
+              />
+            </View>
           ) : (
             <View style={{ gap: 10 }}>
               <Text style={s.etiquette}>{t("Relevés de 0 h à 6 h (m³/h), au quart d'heure")}</Text>
@@ -293,10 +295,12 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
               </Text>
             </View>
           )}
-          <Champ
-            libelle={t('Observation (facultative)')} multiligne
-            valeur={saisie.observation} onChange={(v) => setSaisie({ ...saisie, observation: v })}
-          />
+          <View style={s.ligne}>
+            <Champ
+              libelle={t('Observation (facultative)')} multiligne
+              valeur={saisie.observation} onChange={(v) => setSaisie({ ...saisie, observation: v })}
+            />
+          </View>
           <View style={{ gap: 10 }}>
             <Text style={s.etiquette}>{t("Photo de l'afficheur (facultative)")}</Text>
             {photo ? (
@@ -319,7 +323,7 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
   return (
     <View style={s.ecran}>
       <BarreApp titre={t('Mesures de nuit')} sousTitre={marche?.code} retour={retour} />
-      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[s.defile, large && { maxWidth: 1400 }, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         {!lecture ? (
           <Message ton="attention">
             {t("Votre compte n'a pas le droit de lire les débits de nuit sur ce marché : voyez avec l'administrateur.")}

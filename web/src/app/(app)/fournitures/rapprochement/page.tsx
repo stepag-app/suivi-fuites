@@ -3,7 +3,8 @@
 // Rapprochement posé / transféré (lot P4, chantier v2 X3) : par article Dolibarr, ce qui est parti au chantier (bons de
 // transfert vers l'entrepôt du marché, retours déduits, annulations neutralisées), ce qui a été posé (inventaire réel des
 // réparations) et l'écart, sur la période choisie et en cumul ; seuil d'alerte réglable par marché ; import du CSV des
-// mouvements (administrateur, en secours) ; état de l'envoi automatique depuis le serveur Dolibarr (X8) ; export Excel. Responsable et administrateur (« quantités / lire »). Jamais de prix.
+// mouvements (administrateur, en secours) ; synchronisation Dolibarr (X8 : lecture de l'API toutes les 15 minutes, bouton
+// « Synchroniser maintenant ») ; export Excel. Responsable et administrateur (« quantités / lire »). Jamais de prix.
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CarteIndicateur, GrilleIndicateurs } from '@/components/carte-indicateur';
@@ -198,7 +199,7 @@ export default function PageRapprochement() {
         </section>
       )}
 
-      {reglages?.entrepot_dolibarr_id != null && <EnvoiAutomatique envois={envois} maintenant={chargeLe} />}
+      {reglages?.entrepot_dolibarr_id != null && <EnvoiAutomatique envois={envois} maintenant={chargeLe} admin={admin} apresSynchro={charger} />}
 
       {admin && <ImportMouvements entrepotMarche={reglages?.entrepot_dolibarr_id ?? null} dernierImport={dernierImport} apresImport={charger} />}
 

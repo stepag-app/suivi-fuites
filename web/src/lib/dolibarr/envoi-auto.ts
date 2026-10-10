@@ -1,8 +1,11 @@
-// État de l'envoi automatique Dolibarr (X8) lu dans le journal envois_dolibarr : la tâche planifiée du serveur Dolibarr
-// passe toutes les 15 minutes ; chaque passage laisse au moins un signe de vie (statut « rien » regroupé). Logique pure,
-// vérifiée par scripts/verifier-envoi-dolibarr.mjs (aucun import à l'exécution).
+// État de la synchronisation Dolibarr (X8) lu dans le journal envois_dolibarr : Supabase lit l'API REST de Dolibarr
+// toutes les 15 minutes (pg_cron), ou à la demande (bouton « Synchroniser maintenant ») ; chaque passage laisse au moins
+// un signe de vie (statut « rien » regroupé) ou une erreur. Logique pure, vérifiée par scripts/verifier-envoi-dolibarr.mjs
+// (aucun import à l'exécution).
 
 export type StatutEnvoi = 'recu' | 'rien' | 'erreur';
+/** fonction : refus à l'import ; api : lecture de Dolibarr impossible ; script : ancien script du serveur (retiré). */
+export type OrigineEnvoi = 'fonction' | 'script' | 'api';
 
 export interface EnvoiDolibarr {
   id: number;
@@ -10,7 +13,7 @@ export interface EnvoiDolibarr {
   dernier_le: string;
   appels: number;
   statut: StatutEnvoi;
-  origine: 'fonction' | 'script';
+  origine: OrigineEnvoi;
   mouvements: number;
   nouveaux: number;
   modifies: number;
@@ -26,7 +29,7 @@ export type EtatEnvoi = 'jamais' | 'en_service' | 'en_retard' | 'en_erreur';
 
 export interface ResumeEnvoi {
   etat: EtatEnvoi;
-  /** Dernier passage du serveur, réussi ou non. */
+  /** Dernier passage, réussi ou non. */
   dernierContact: string | null;
   /** Dernier passage réussi (mouvements reçus ou rien de neuf). */
   dernierSucces: EnvoiDolibarr | null;
@@ -37,7 +40,7 @@ export interface ResumeEnvoi {
   minutesDepuisContact: number | null;
 }
 
-/** Passage toutes les 15 minutes : au-delà d'une heure sans nouvelles, la tâche est « en retard ». */
+/** Passage toutes les 15 minutes : au-delà d'une heure sans nouvelles, la lecture planifiée est « en retard ». */
 export const RETARD_MINUTES = 60;
 
 const temps = (iso: string) => new Date(iso).getTime();
@@ -64,6 +67,12 @@ export const LIBELLES_ETAT: Record<EtatEnvoi, string> = {
   en_erreur: 'En erreur',
 };
 
+export const LIBELLES_ORIGINE: Record<OrigineEnvoi, string> = {
+  api: 'lecture de Dolibarr',
+  fonction: 'import',
+  script: 'serveur Dolibarr',
+};
+
 export function depuis(minutes: number | null): string {
   if (minutes == null) return '—';
   if (minutes < 1) return 'à l\'instant';
@@ -83,4 +92,29 @@ export function libelleEnvoi(e: EnvoiDolibarr): string {
   if (e.modifies) parts.push(`${e.modifies} mis à jour`);
   if (e.ignores) parts.push(`${e.ignores} ignoré${e.ignores > 1 ? 's' : ''} (entrepôt non suivi)`);
   return parts.join(', ');
+}
+
+/** Réponse de la fonction dolibarr-mouvements au bouton « Synchroniser maintenant ». */
+export interface BilanSynchro {
+  statut: 'recu' | 'rien' | 'erreur' | 'occupe';
+  mouvements: number;
+  nouveaux: number;
+  modifies: number;
+  ignores: number;
+  erreur?: string;
+  depuis?: string;
+}
+
+export function libelleBilan(b: BilanSynchro): string {
+  if (b.statut === 'occupe') {
+    const heure = b.depuis ? new Date(b.depuis).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '';
+    return `Une lecture est déjà en cours${heure ? ` (commencée à ${heure})` : ''} : réessayez dans une minute.`;
+  }
+  if (b.statut === 'erreur') return `Lecture impossible : ${b.erreur ?? 'erreur sans message'}`;
+  const lus = `${pluriel(b.mouvements, 'mouvement')} lu${b.mouvements > 1 ? 's' : ''}`;
+  if (b.statut === 'rien') return `Synchronisé : rien de neuf (${lus}).`;
+  const parts: string[] = [];
+  if (b.nouveaux) parts.push(pluriel(b.nouveaux, 'nouveau', 'nouveaux'));
+  if (b.modifies) parts.push(`${b.modifies} mis à jour`);
+  return `Synchronisé : ${parts.join(', ')} (${lus}).`;
 }

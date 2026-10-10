@@ -102,7 +102,7 @@ ok('la migration expose les colonnes que lit le panneau (v_traces_gps) et la fon
   assert.match(sql, /function public\.purger_traces_marche\(p_marche uuid\)/);
   assert.match(sql, /enable row level security/);
 });
-const compromis = readFileSync(join(MIGRATIONS, '20261014600000_suivi_gps_heures_pauses.sql'), 'utf8');
+const compromis = readFileSync(join(MIGRATIONS, '20261014800000_suivi_gps_heures_pauses.sql'), 'utf8');
 ok('la migration du compromis expose ce que lit le panneau (pauses, état, réglages)', () => {
   for (const col of ['suivi_gps_debut', 'suivi_gps_fin', 'suivi_gps_jours', 'suivi_gps_pause_min', 'suivi_gps_pause_jour_min',
     'fin_prevue', 'motif_fin', 'coupe_depuis', 'pause_fin_prevue', 'dernier_signe']) {

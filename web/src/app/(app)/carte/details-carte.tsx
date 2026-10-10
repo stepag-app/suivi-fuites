@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Crosshair, ExternalLink, Navigation, RefreshCw, Satellite } from "lucide-react";
+import { Crosshair, ExternalLink, Navigation, RefreshCw } from "lucide-react";
 import { useLangueApk } from "@/lib/langue-apk";
 import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -90,10 +90,8 @@ export function FiltresCarteForm({ filtres, changer, secteurs }: { filtres: Filt
  * recentrer, actualiser, nombre de fuites placées ; message d'erreur en haut. Elles remplacent la bande
  * qui prenait de la hauteur à la carte.
  */
-export function CommandesCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser, decalee, satellite }: {
+export function CommandesCarte({ placees, sansPosition, chargement, erreur, recentrer, actualiser, decalee }: {
   placees: number; sansPosition: number; chargement: boolean; erreur: string; recentrer: () => void; actualiser: () => void; decalee: boolean;
-  /** Bouton satellite (C5) ; null : clé Esri absente, bouton masqué. */
-  satellite?: { actif: boolean; basculer: () => void } | null;
 }) {
   const { tb } = useLangueApk();
   return (
@@ -108,11 +106,6 @@ export function CommandesCarte({ placees, sansPosition, chargement, erreur, rece
       >
         <Button size="icon-sm" variant="ghost" onClick={recentrer} aria-label={tb("Recentrer")} title={tb("Recentrer")}><Crosshair /></Button>
         <Button size="icon-sm" variant="ghost" onClick={actualiser} disabled={chargement} aria-label={tb("Actualiser")} title={tb("Actualiser")}><RefreshCw className={chargement ? "animate-spin" : undefined} /></Button>
-        {satellite && (
-          <Button size="sm" variant={satellite.actif ? "default" : "ghost"} onClick={satellite.basculer} aria-pressed={satellite.actif} title={tb("Image satellite")}>
-            <Satellite data-icon="inline-start" />Satellite
-          </Button>
-        )}
         <span className="px-2 text-muted-foreground text-xs tabular-nums" aria-live="polite">
           {tb("{n} sur la carte", { n: placees })}{sansPosition > 0 ? tb(" · {n} sans position", { n: sansPosition }) : ""}
         </span>

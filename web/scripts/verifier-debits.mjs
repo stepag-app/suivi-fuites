@@ -57,11 +57,13 @@ ok('25 instants de 0 h à 6 h toutes les 15 minutes', () => {
   assert.equal(HEURES_NUIT[1], '00:15');
   assert.equal(HEURES_NUIT[24], '06:00');
 });
-ok('points de pénalité : τ positif ou nul, proportionnels, entiers, plafond, inconnu', () => {
+ok('points de pénalité : τ positif ou nul, proportionnels, entiers arrondis au plus proche, plafond, inconnu', () => {
   assert.equal(penalitePoints(5), 0);
   assert.equal(penalitePoints(0), 0);
   assert.equal(penalitePoints(-3.4), 3.4);
   assert.equal(penalitePoints(-3.4, 25, 'entiers'), 3);
+  assert.equal(penalitePoints(-3.5, 25, 'entiers'), 4);
+  assert.equal(penalitePoints(-9.6, 25, 'entiers'), 10);
   assert.equal(penalitePoints(-30), 25);
   assert.equal(penalitePoints(-25, 25, 'entiers'), 25);
   assert.equal(penalitePoints(null), null);
@@ -105,11 +107,11 @@ ok('zone 2 : τ1 −40 %, plafond 25 points, 37,50 DH, alerte « arrêt de zone 
   const z = calculer().res.find((r) => r.zone_numero === 2);
   assert.deepEqual([z.tau1_pct, z.points_balayage, z.penalite_balayage, z.alerte_arret], [-40, 25, 37.5, true]);
 });
-ok('maintien zone 1 : deux contrôles à 7 jours, moyenne 120, τ2 −9,09 %, 40,91 DH, dégradation 50 %', () => {
+ok('maintien zone 1 : deux contrôles à 7 jours, moyenne 120, τ2 −9,09 %, 9 points (arrondis), 40,50 DH, dégradation 50 %', () => {
   const z = calculer().res.find((r) => r.zone_numero === 1);
   assert.deepEqual([z.nb_controles, z.dernier_controle, z.dernier_controle_m3h, z.ecart_controles_max_j, z.q_maintien_moyen_m3h],
     [2, '2027-02-17', 125, 7, 120]);
-  assert.deepEqual([z.tau2_pct, z.points_maintien, z.montant_maintien, z.penalite_maintien], [-9.09, 9.09, 450, 40.91]);
+  assert.deepEqual([z.tau2_pct, z.points_maintien, z.montant_maintien, z.penalite_maintien], [-9.09, 9, 450, 40.5]);
   assert.deepEqual([z.degradation_m3h, z.degradation_pct, z.alerte_degradation], [10, 50, true]);
 });
 ok('marché, assiette zone : sommes, pénalité 67,50 DH, τ2 global inconnu', () => {
@@ -118,9 +120,9 @@ ok('marché, assiette zone : sommes, pénalité 67,50 DH, τ2 global inconnu', (
   assert.deepEqual([m.qi_m3h, m.qf_m3h, m.tau1_pct, m.penalite_balayage, m.montant_balayage, m.alerte_arret, m.tau2_pct],
     [220, 180, -20, 67.5, 450, true, null]);
 });
-ok('points entiers : 9 points, 40,50 DH', () => {
-  const z = calculer(mesures, { ...REGLAGES_DEFAUT, debits_points: 'entiers' }).res.find((r) => r.zone_numero === 1);
-  assert.deepEqual([z.points_maintien, z.penalite_maintien], [9, 40.5]);
+ok('points proportionnels : 9,09 points, 40,91 DH', () => {
+  const z = calculer(mesures, { ...REGLAGES_DEFAUT, debits_points: 'proportionnels' }).res.find((r) => r.zone_numero === 1);
+  assert.deepEqual([z.points_maintien, z.penalite_maintien], [9.09, 40.91]);
 });
 ok('assiette « marché » : τ1 global −20 % sur 450 DH, 90 DH ; aucune pénalité par zone', () => {
   const { res } = calculer(mesures, { ...REGLAGES_DEFAUT, debits_assiette: 'marche' });
@@ -184,6 +186,10 @@ ok('concordance avec la migration : réglages, seuils, colonnes de debits_result
   }
   const bloc = sql.slice(sql.indexOf('create function public.debits_resultats'), sql.indexOf('language sql', sql.indexOf('create function public.debits_resultats')));
   const colonnes = [...bloc.matchAll(/^\s{2}([a-z0-9_]+) (?:text|uuid|integer|numeric|boolean|date)/gm)].map((m) => m[1]);
+  const arrondi = readFileSync(join(racine, 'supabase/migrations/20261014500000_penalites_arrondi_normal.sql'), 'utf8');
+  assert.ok(arrondi.includes("alter column debits_points set default 'entiers'"));
+  assert.ok(arrondi.includes("when p_mode = 'entiers' then round(-p_tau)"));
+  assert.equal(REGLAGES_DEFAUT.debits_points, 'entiers');
   const exemple = calculer().res[0];
   assert.deepEqual(colonnes.sort(), Object.keys(exemple).sort());
   assert.ok(sql.includes("type in ('avant', 'apres', 'maintien', 'libre')"));

@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(91);
+select plan(93);
 
 -- a admin, b agent de détection (droits débits ouverts : lire, saisir, les siennes), c agent de
 -- détection sans droit débits, d responsable, e responsable de l'autre marché
@@ -60,13 +60,15 @@ select results_eq(
   $$values (1, 126.00, 133.00, 158.00), (2, 130.00, 136.00, 162.00), (3, 118.00, 133.00, 148.00), (4, 112.00, 99.00, 140.00), (5, 83.00, 79.00, 104.00)$$,
   'SRM : Q exigé, plus bas historique et débit actuel du tableau n° 1');
 select results_eq($$select debits_mode_saisie, debits_assiette, debits_points, debits_plafond_pct from marches where code = 'TEST-D'$$,
-  $$values ('minimum'::text, 'zone'::text, 'proportionnels'::text, 25.00)$$, 'réglages par défaut : minimum, zone, proportionnels, 25 %');
+  $$values ('minimum'::text, 'zone'::text, 'entiers'::text, 25.00)$$, 'réglages par défaut : minimum, zone, points entiers, 25 %');
 
 -- 2. Points de pénalité
 select is(penalite_points(5, 25, 'proportionnels'), 0::numeric, 'τ positif : aucune pénalité');
 select is(penalite_points(0, 25, 'proportionnels'), 0::numeric, 'τ nul : aucune pénalité');
 select is(penalite_points(-3.4, 25, 'proportionnels'), 3.4, 'τ = −3,4 % : 3,4 points (proportionnels)');
-select is(penalite_points(-3.4, 25, 'entiers'), 3::numeric, 'τ = −3,4 % : 3 points (entiers)');
+select is(penalite_points(-3.4, 25, 'entiers'), 3::numeric, 'τ = −3,4 % : 3 points (entiers, arrondi au plus proche)');
+select is(penalite_points(-3.5, 25, 'entiers'), 4::numeric, 'τ = −3,5 % : 4 points (demi-point vers le haut)');
+select is(penalite_points(-9.6, 25, 'entiers'), 10::numeric, 'τ = −9,6 % : 10 points (pas de troncature)');
 select is(penalite_points(-30, 25, 'proportionnels'), 25::numeric, 'plafond de 25 points');
 select is(penalite_points(-25, 25, 'entiers'), 25::numeric, 'τ = −25 % : 25 points');
 select is(penalite_points(null, 25, 'proportionnels'), null::numeric, 'τ inconnu : rien');
@@ -231,6 +233,7 @@ select is((select q_m3h from v_debits_campagnes where campagne_id = 'aaaaaaaa-00
 select is((select origine from mesures_nuit where campagne_id = 'aaaaaaaa-0000-0000-0000-0000000000d4' limit 1), 'import', 'origine « import » gardée');
 
 -- 9. Résultats : assiette par zone, points proportionnels
+update marches set debits_points = 'proportionnels' where id = 'aaaaaaaa-0000-0000-0000-000000000001';
 create temp table r on commit drop as select * from debits_resultats('aaaaaaaa-0000-0000-0000-000000000001');
 select results_eq($$select niveau, zone_numero from r$$,
   $$values ('zone'::text, 1), ('zone'::text, 2), ('marche'::text, null::integer)$$, 'une ligne par zone, puis le marché');
@@ -252,10 +255,10 @@ select results_eq($$select qi_m3h, qf_m3h, tau1_pct, penalite_balayage, montant_
   $$values (220.000, 180.000, -20.00, 67.50, 450.00, true, null::numeric)$$,
   'marché (assiette zone) : sommes des zones, pénalité = 30 + 37,50, τ2 global inconnu (zone 2 sans contrôle)');
 
--- 10. Points entiers, puis assiette « marché »
+-- 10. Points entiers (arrondis au plus proche), puis assiette « marché »
 update marches set debits_points = 'entiers' where id = 'aaaaaaaa-0000-0000-0000-000000000001';
 select results_eq($$select points_maintien, penalite_maintien from debits_resultats('aaaaaaaa-0000-0000-0000-000000000001') where zone_numero = 1$$,
-  $$values (9::numeric, 40.50)$$, 'points entiers : 9 points, 40,50 DH');
+  $$values (9::numeric, 40.50)$$, 'points entiers : τ2 −9,09 % → 9 points, 40,50 DH');
 update marches set debits_points = 'proportionnels', debits_assiette = 'marche' where id = 'aaaaaaaa-0000-0000-0000-000000000001';
 select results_eq($$select tau1_pct, points_balayage, montant_balayage, penalite_balayage from debits_resultats('aaaaaaaa-0000-0000-0000-000000000001') where niveau = 'marche'$$,
   $$values (-20.00, 20.00, 450.00, 90.00)$$, 'assiette « marché » : τ1 global −20 % sur 1 500 m × 0,30 = 450 DH, pénalité 90 DH');

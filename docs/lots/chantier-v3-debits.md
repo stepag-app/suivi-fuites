@@ -13,7 +13,7 @@
 | `phases` (existant) | balayage, `maintien_1`, `maintien_2` : la fin de `maintien%` marque la pénalité de maintien définitive | idem |
 | `marches.debits_mode_saisie` | `minimum` (défaut), `releves`, `import` : mode proposé | « paramètres / modifier » |
 | `marches.debits_assiette` | `zone` (défaut : linéaire de la zone × prix) ou `marche` (τ global sur le montant total du prix) | idem |
-| `marches.debits_points` | `proportionnels` (défaut) ou `entiers` (points complets, troncature) | idem |
+| `marches.debits_points` | `entiers` (défaut depuis le 2026-10-10 : arrondis au point le plus proche, −3,5 → 4) ou `proportionnels` (τ sans arrondi) | idem |
 | `marches.debits_plafond_pct`, `debits_seuil_arret_pct`, `debits_seuil_degradation_pct` | 25, 25, 25 par défaut | idem |
 | `points_mesure` | ouvrage de comptage : `zone_id` (obligatoire), `secteur_id` (de la même zone), `code` unique par marché, `libelle`, `equipement`, `ordre`, `actif` | lecture : affectés ; création « paramètres / créer », modification « paramètres / modifier » ; jamais supprimé (désactivé) |
 | `campagnes_debit` | `type` (`avant`, `apres`, `maintien`, `libre`), `zone_id` (null = toutes les zones), `date_debut`, `date_fin` (défaut : +2 jours pour avant / après, même jour sinon ; 31 nuits au plus), `mode_saisie`, `libelle`, `observation`, `pv_chemin`, `pv_signe_le`, `supprime_le` | lecture « mesures_debit / lire » ; création, modification, suppression logique « mesures_debit / valider » (bureau) |
@@ -34,7 +34,7 @@ rien par défaut et s'ouvrent dans la matrice des droits (Utilisateurs › Droit
 
 | Objet | Contenu |
 |---|---|
-| `penalite_points(tau, plafond = 25, mode = 'proportionnels')` | `null` si τ inconnu, 0 si τ ≥ 0, sinon `least(plafond, −τ)` (entiers : `floor(−τ)`) |
+| `penalite_points(tau, plafond = 25, mode = 'proportionnels')` | `null` si τ inconnu, 0 si τ ≥ 0, sinon `least(plafond, −τ)` (entiers : `round(−τ)`, migration `20261014500000`) |
 | vue `v_debits_nuits` | par campagne, zone et nuit (mesures **validées**) : `q_zone_m3h`, `approchee`, `complete`, `nb_points` (attendus : points actifs de la zone et points mesurés cette nuit), `nb_points_mesures`, `nb_points_releves`, `nb_instants`, `nb_valides`, `nb_a_valider`, `campagne_type`, `zone_numero`, `zone_libelle` |
 | vue `v_debits_campagnes` | par campagne et zone : `q_m3h` = minimum des nuits **complètes** (Qi, Qf : minimum des trois minimums ; contrôle : minimum de la nuit), `nuit_minimum`, `approchee` (la nuit retenue l'est), `nb_nuits`, `nb_nuits_completes`, `nb_a_valider` |
 | `debits_resultats(p_marche)` | une ligne par zone active (`niveau = 'zone'`) puis le marché (`'marche'`) ; colonnes ci-dessous |
@@ -110,7 +110,8 @@ mesure existante (même campagne, point, nuit) remplacée, sinon ajoutée ; droi
 
 ## 6. Points à confirmer avec la SRM
 
-1. Assiette (zone ou marché entier) et arrondi des points (R-CPS-150) : défauts « zone » et « proportionnels ».
+1. Assiette (zone ou marché entier) des pénalités (R-CPS-150) : défaut « zone ». Arrondi des points **tranché par Issam le
+   2026-10-10** : points entiers, arrondi normal au plus proche (mode « entiers », défaut).
 2. Lecture « marché entier » : τ global calculé sur les sommes des zones (hypothèse de S15).
 3. Dégradation des gains : seuil de 25 % rapporté au gain ΔQ de la zone (et non au Qf) ; le CPS parle « par secteur »,
    l'application calcule par zone (les points de mesure d'un secteur restent possibles).

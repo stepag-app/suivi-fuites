@@ -180,7 +180,7 @@ export function Synthese({ d, montants }: { d: DonneesDebits; montants: boolean 
           <CardTitle>Performances par zone</CardTitle>
           <CardDescription>
             τ1 = (Q exigé − Qf) / Q exigé ; τ2 = (Qf − moyenne des contrôles) / Qf ; 1 % du montant par point non atteint, plafond {d.reglages.debits_plafond_pct} %.
-            Assiette : {ASSIETTES[d.reglages.debits_assiette].toLowerCase()} ; points : {MODES_POINTS[d.reglages.debits_points].toLowerCase()} (à confirmer avec la SRM).
+            Assiette : {ASSIETTES[d.reglages.debits_assiette].toLowerCase()} ; points : {MODES_POINTS[d.reglages.debits_points].toLowerCase()} (assiette à confirmer avec la SRM).
           </CardDescription>
         </CardHeader>
         <CardContent>

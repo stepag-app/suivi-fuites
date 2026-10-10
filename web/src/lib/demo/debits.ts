@@ -21,7 +21,7 @@ zonesSrm.forEach((z, i) => {
   Object.assign(z, { lineaire_m: lin, q_exige_m3h: qe, q_plus_bas_historique_m3h: hist, q_actuel_m3h: act, balayage_acheve_le: i < 3 ? jourIlYA(21) : null });
 });
 for (const m of marches) {
-  Object.assign(m, { debits_mode_saisie: "minimum", debits_assiette: "zone", debits_points: "proportionnels", debits_plafond_pct: 25, debits_seuil_arret_pct: 25, debits_seuil_degradation_pct: 25 });
+  Object.assign(m, { debits_mode_saisie: "minimum", debits_assiette: "zone", debits_points: "entiers", debits_plafond_pct: 25, debits_seuil_arret_pct: 25, debits_seuil_degradation_pct: 25 });
 }
 
 export const phasesDemo: Ligne[] = [

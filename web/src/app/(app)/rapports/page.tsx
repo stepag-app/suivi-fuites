@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { BoutonEnvoyerEmail } from "@/components/envoyer-email";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -374,6 +375,8 @@ export default function PageRapports() {
                   {occupe && occupe !== "Aperçu…" ? <Spinner /> : choix.format === "pdf" ? <FileText data-icon="inline-start" /> : <FileSpreadsheet data-icon="inline-start" />}
                   Télécharger ({choix.format === "pdf" ? "PDF" : "Excel"})
                 </Button>
+                <BoutonEnvoyerEmail document="rapport" reference={choix.titre?.trim() || titreRapport(choix.periode, periode)}
+                  fabriquer={fabriquer} disabled={!sections || !ctx || !!occupe || !sections.length} />
               </div>
               {tropLarges.length > 0 && (
                 <Alert><AlertTitle>Tableaux chargés pour une page en {choix.orientation}</AlertTitle>
@@ -412,7 +415,7 @@ export default function PageRapports() {
                   );
                 })
               )}
-              <p className="text-muted-foreground text-xs">Dans le document, les agents et chefs d&apos;équipe sont désignés par leur matricule. L&apos;envoi par e-mail viendra avec le module d&apos;envoi (S18).</p>
+              <p className="text-muted-foreground text-xs">Dans le document, les agents et chefs d&apos;équipe sont désignés par leur matricule.</p>
             </CardContent>
           </Card>
         )}

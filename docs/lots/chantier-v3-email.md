@@ -69,4 +69,4 @@ Un échec du fournisseur ne compte pas dans la limite du jour. Les codes d'erreu
 | Carte › Impression | `carte` |
 | Panneau « Exporter » (lot d'attachement, liste des fuites, journal) | `attachement` sur la fiche d'un lot, `export` ailleurs |
 | Débits de nuit › procès-verbal d'une campagne | `pv_debits` |
-| Rapports (S17) | `rapport` — à brancher par la dernière des deux sessions fusionnée |
+| Rapports › Aperçu (S17) | `rapport` (le rapport de recherche de fuites J2, qui peut produire un fichier par agent, n'a pas de bouton) |

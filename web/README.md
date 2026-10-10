@@ -262,7 +262,7 @@ et paysage et classeurs Excel relus, conseil « tableaux chargés » confronté 
   droit. Le panneau « Exporter » et les rubriques des autres documents ignorent ces lignes.
 - **J2** : « Recherche de fuites » propose le rapport de recherche de fuites de la page Balayage (même code,
   `balayage/rapport.ts`) pour la période de l'écran, avec ses filtres agent et secteur et ses rubriques.
-- **Envoi par e-mail** : `fabriquer()` (Blob et nom) est séparé du téléchargement, prêt pour `BoutonEnvoyerEmail` de S18.
+- **Envoi par e-mail** : bouton « Envoyer par e-mail » de la carte Aperçu (`BoutonEnvoyerEmail`, document `rapport`), qui joint le fichier de `fabriquer()` (PDF ou Excel). Le rapport de recherche de fuites (J2) n'en a pas encore : il peut produire un fichier par agent.
 
 ### Rapport PDF par fuite
 
@@ -290,7 +290,7 @@ avant toute purge des anciennes photos (CLAUDE.md § 7).
 
 Bouton **Envoyer par e-mail** (responsable du marché et administrateur ; masqué pour les autres) : fiche d'une fuite
 (rapport PDF), dialogue « Rapports PDF (n) » de la liste, Carte › Impression, panneau « Exporter » (lot d'attachement,
-liste, journal), Débits de nuit › procès-verbal d'une campagne ; l'écran Rapports (S17) se branche de la même façon.
+liste, journal), Débits de nuit › procès-verbal d'une campagne, Rapports › Aperçu (S17).
 Le dialogue fabrique le document (même code que « Télécharger »), coche les destinataires « par défaut » du marché,
 accepte d'autres adresses (10 au plus), propose objet et message modifiables, affiche le poids de la pièce. Contrat
 complet : `docs/lots/chantier-v3-email.md`.

@@ -5,7 +5,6 @@ import type { EtatBalayageTroncon } from '@/lib/types';
 import type { EtatFeature } from './types';
 
 export interface NomsBalayage {
-  equipes?: Map<string, string>;
   agents?: Map<string, string>;
 }
 
@@ -21,7 +20,6 @@ export function etatsFeatures(lignes: EtatBalayageTroncon[], noms: NomsBalayage 
       passages,
       premier: l.premier_le ?? null,
       dernier: l.dernier_le ?? l.premier_le ?? null,
-      equipe: l.equipe_id ? noms.equipes?.get(l.equipe_id) ?? null : null,
       agent: l.agent_id ? noms.agents?.get(l.agent_id) ?? null : null,
     });
   }
@@ -34,16 +32,16 @@ export function differencesEtats(anciens: Map<string, EtatFeature>, nouveaux: Ma
   const retirer: string[] = [];
   for (const [id, e] of nouveaux) {
     const a = anciens.get(id);
-    if (!a || a.passages !== e.passages || a.dernier !== e.dernier || a.equipe !== e.equipe || a.agent !== e.agent) poser.push(id);
+    if (!a || a.passages !== e.passages || a.dernier !== e.dernier || a.agent !== e.agent) poser.push(id);
   }
   for (const id of anciens.keys()) if (!nouveaux.has(id)) retirer.push(id);
   return { poser, retirer };
 }
 
-/** « Balayé le 05/10/2026 par Ahmed (Détection 1), 2 passages » ou « Non balayé ». */
+/** « Balayé le 05/10/2026 par Ahmed, 2 passages » ou « Non balayé ». */
 export function texteEtatTroncon(etat: EtatFeature | undefined): string {
   if (!etat || !etat.balaye) return 'Non balayé';
-  const qui = [etat.agent, etat.equipe ? `(${etat.equipe})` : null].filter(Boolean).join(' ');
+  const qui = etat.agent ?? '';
   const quand = etat.dernier ? dateSeule(etat.dernier) : '—';
   const base = `Balayé le ${quand}${qui ? ` par ${qui}` : ''}`;
   return etat.passages > 1 ? `${base} · ${etat.passages} passages` : base;

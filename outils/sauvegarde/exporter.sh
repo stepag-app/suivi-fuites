@@ -32,7 +32,7 @@ donnees.sql                 données, comptes (auth) et enregistrements de fichi
 complement.sql              déclencheur de auth.users et règles de storage.objects (à charger en dernier)
 migrations_appliquees.txt   versions de migrations déjà appliquées (pour « supabase migration repair »)
 Restauration : voir supabase/README.md, section « Sauvegarde et restauration » (outils/sauvegarde/restaurer.sh).
-Les fichiers eux-mêmes (photos) ne sont pas dans cette archive : ils sont dans R2, préfixe sauvegardes/stockage-supabase/.
+Les fichiers eux-mêmes (photos) ne sont pas dans cette archive : ils sont dans R2 (préfixe sauvegardes/stockage-supabase/ pour Supabase Storage) et sur le Google Drive de stepag.app (dossiers r2/ et stockage-supabase/).
 LISEZMOI
 
 grep -q 'CREATE TABLE IF NOT EXISTS "public"."fuites"' "$d/schema.sql"

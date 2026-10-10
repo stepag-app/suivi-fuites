@@ -18,7 +18,6 @@ export interface NomsFiche {
   natures: Noms;
   motifs: Noms;
   profils: Noms;
-  equipes: Noms;
 }
 
 export interface LiensReparations {
@@ -52,13 +51,12 @@ export interface FicheConsultee extends ContenuFiche, EnteteFiche {
   version_le: string;
 }
 
-export const NOMS_VIDES: NomsFiche = { natures: {}, motifs: {}, profils: {}, equipes: {} };
+export const NOMS_VIDES: NomsFiche = { natures: {}, motifs: {}, profils: {} };
 
 interface Listes {
   natures: { id: string; libelle_fr: string }[];
   motifs: { id: string; libelle_fr: string }[];
   profils: { id: string; nom_complet: string }[];
-  equipes: { id: string; libelle: string }[];
 }
 
 const garder = <T extends { id: string }>(liste: T[], ids: (string | null | undefined)[], libelle: (x: T) => string): Noms => {
@@ -79,7 +77,6 @@ export function nomsUtiles(
     natures: garder(listes.natures, [...refections.map((r) => r.nature_id), ...reparations.map((r) => r.nature_revetement_id), ...(autres.natures ?? [])], (n) => n.libelle_fr),
     motifs: garder(listes.motifs, [...reparations.map((r) => r.motif_id), ...refections.map((r) => r.motif_id)], (m) => m.libelle_fr),
     profils: garder(listes.profils, [...reparations.map((r) => r.auteur_terrain_id), ...autresProfils], (p) => p.nom_complet),
-    equipes: garder(listes.equipes, reparations.map((r) => r.equipe_id), (e) => e.libelle),
   };
 }
 

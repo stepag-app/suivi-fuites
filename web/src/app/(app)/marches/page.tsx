@@ -344,7 +344,7 @@ function FormMarche({ marches, proposition, copieVerrouillee, onSubmit, annuler 
             <NativeSelect id="source" className="w-full" value={source} onChange={(e) => setSource(e.target.value)}>
               {marches.map((m) => <NativeSelectOption key={m.id} value={m.id}>{m.code} · {m.intitule.slice(0, 60)}{m.actif ? "" : " (désactivé)"}</NativeSelectOption>)}
             </NativeSelect>
-            <FieldDescription>Copiés : fiche, bordereau, zones et secteurs, équipes, natures, motifs, articles suggérés pour les pièces, règles d&apos;attachement, modèles d&apos;export.</FieldDescription>
+            <FieldDescription>Copiés : fiche, bordereau, zones et secteurs, natures, motifs, articles suggérés pour les pièces, règles d&apos;attachement, modèles d&apos;export.</FieldDescription>
           </Field>
         )}
         <div className="grid gap-4 sm:grid-cols-2">

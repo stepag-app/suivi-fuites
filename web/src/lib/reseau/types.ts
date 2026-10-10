@@ -55,7 +55,6 @@ export interface EtatFeature {
   passages: number;
   premier: string | null;
   dernier: string | null;
-  equipe: string | null;
   agent: string | null;
 }
 

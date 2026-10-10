@@ -1,14 +1,14 @@
 'use client';
 
-// Journal des balayages (droit « balayage / lire ») : lignes de `v_balayage_journalier` par jour, équipe,
-// agent, zone et secteur ; filtres période / équipe / secteur ; totaux ; export Excel ou CSV via lib/export ;
-// rapport de recherche de fuites de la période Du–Au (un seul PDF avec extrait de plan, ou un seul Excel ; Du = Au :
-// rapport journalier, par jour ou par équipe), rubriques à cocher ; rapport d'un jour depuis sa ligne.
+// Journal des balayages (droit « balayage / lire ») : lignes de `v_balayage_journalier` par jour, agent, zone et
+// secteur ; filtres période / agent / secteur ; totaux ; export Excel ou CSV via lib/export ; rapport de recherche
+// de fuites de la période Du–Au (un seul PDF avec extrait de plan, ou un seul Excel ; Du = Au : rapport journalier,
+// par jour ou par agent), rubriques à cocher ; rapport d'un jour depuis sa ligne.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChoixRubriques } from '@/lib/export/ChoixRubriques';
 import { dernierChoix } from '@/lib/export/rubriques';
 import { messageErreur, nombre } from '@/lib/format';
-import { chargerEquipes, chargerJournal, estBaseSansReseau, messageReseau, type EquipeReseau } from '@/lib/reseau/donnees';
+import { chargerJournal, estBaseSansReseau, messageReseau } from '@/lib/reseau/donnees';
 import { filtrerJournal, grouperParJour, periodeParDefaut, totauxJournal, type FiltresJournal } from '@/lib/reseau/journal';
 import { formaterLineaire } from '@/lib/reseau/selection';
 import { useSession } from '@/lib/session';
@@ -21,9 +21,8 @@ const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString
 export default function PageBalayage() {
   const { marche, peut } = useSession();
   const marcheId = marche?.id;
-  const [filtres, setFiltres] = useState<FiltresJournal>(() => ({ ...periodeParDefaut(), equipe: '', secteur: '' }));
+  const [filtres, setFiltres] = useState<FiltresJournal>(() => ({ ...periodeParDefaut(), agent: '', secteur: '' }));
   const [lignes, setLignes] = useState<LigneBalayageJournalier[]>([]);
-  const [equipes, setEquipes] = useState<EquipeReseau[]>([]);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
@@ -45,15 +44,13 @@ export default function PageBalayage() {
     setErreur('');
     try {
       const sb = getSupabase();
-      const [j, e, s] = await Promise.all([
+      const [j, s] = await Promise.all([
         chargerJournal(marcheId, { du: filtres.du, au: filtres.au }),
-        chargerEquipes(marcheId),
         sb.from('secteurs').select('id, zone_id, code, libelle').eq('marche_id', marcheId).eq('actif', true).order('ordre').order('code'),
       ]);
       if (demande !== derniereDemande.n) return;
       if (s.error) throw s.error;
       setLignes(j);
-      setEquipes(e);
       setSecteurs((s.data as Secteur[] | null) ?? []);
       setBaseAbsente(false);
     } catch (e) {
@@ -68,7 +65,12 @@ export default function PageBalayage() {
     charger();
   }, [charger]);
 
-  // Équipe et secteur filtrent localement (la période seule déclenche une relecture).
+  // Agent et secteur filtrent localement (la période seule déclenche une relecture).
+  const agents = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const l of lignes) if (l.agent_id) m.set(l.agent_id, l.agent ?? 'Agent sans nom');
+    return [...m.entries()].sort((a, b) => a[1].localeCompare(b[1], 'fr'));
+  }, [lignes]);
   const visibles = useMemo(() => filtrerJournal(lignes, filtres), [lignes, filtres]);
   const jours = useMemo(() => grouperParJour(visibles), [visibles]);
   const totaux = useMemo(() => totauxJournal(visibles), [visibles]);
@@ -87,14 +89,13 @@ export default function PageBalayage() {
       const periode = filtres.du && filtres.au ? `du ${new Date(`${filtres.du}T12:00:00`).toLocaleDateString('fr-FR')} au ${new Date(`${filtres.au}T12:00:00`).toLocaleDateString('fr-FR')}` : 'toute la période';
       const infos = [
         `Balayages ${periode}`,
-        filtres.equipe ? `Équipe : ${equipes.find((e) => e.id === filtres.equipe)?.libelle ?? ''}` : 'Toutes les équipes',
+        filtres.agent ? `Agent : ${matricules.agent(filtres.agent, agents.find(([id]) => id === filtres.agent)?.[1] ?? null) ?? ''}` : 'Tous les agents',
         filtres.secteur ? `Secteur : ${secteurs.find((s) => s.id === filtres.secteur)?.libelle ?? ''}` : 'Tous les secteurs',
       ];
       // R4 : l'agent est désigné par son matricule dans le document
       const lignesDoc = visibles.map((l) => ({ ...l, agent: matricules.agent(l.agent_id, l.agent) }));
       const section = construireSection(lignesDoc as unknown as Record<string, unknown>[], [
         { cle: 'date_balayage', titre: 'Date', groupe: 'Journal', type: 'date', largeur: 12 },
-        { cle: 'equipe', titre: 'Équipe', groupe: 'Journal', largeur: 16 },
         { cle: 'agent', titre: 'Agent (matricule)', groupe: 'Journal', largeur: 20 },
         { cle: 'zone', titre: 'Zone', groupe: 'Journal', largeur: 14 },
         { cle: 'secteur', titre: 'Secteur', groupe: 'Journal', largeur: 18 },
@@ -118,7 +119,7 @@ export default function PageBalayage() {
   }
 
   // Rapport de recherche de fuites (CPS art. II-21) : un seul fichier pour la période (Du = Au : la journée), ou,
-  // pour une journée, un fichier par équipe. Équipe et secteur choisis dans les filtres sont repris.
+  // pour une journée, un fichier par agent. Agent et secteur choisis dans les filtres sont repris.
   async function rapport(du: string, au: string, format: 'pdf' | 'xlsx', cle: string) {
     if (!marcheId) return;
     setRapportEnCours(`${cle}|${format}`);
@@ -126,11 +127,11 @@ export default function PageBalayage() {
     setInfoRapport('');
     try {
       const { telechargerRapportBalayage } = await import('./rapport');
-      const r = await telechargerRapportBalayage(marcheId, { du, au }, format, modeRapport, rubriques, { equipe: filtres.equipe, secteur: filtres.secteur });
+      const r = await telechargerRapportBalayage(marcheId, { du, au }, format, modeRapport, rubriques, { agent: filtres.agent, secteur: filtres.secteur });
       const quand = du === au ? `du ${jourFr(du)}` : `du ${jourFr(du)} au ${jourFr(au)}`;
       setInfoRapport(
         `${r.fichiers} rapport${r.fichiers > 1 ? 's' : ''} ${quand} téléchargé${r.fichiers > 1 ? 's' : ''}.`
-        + (r.nonAttribuees ? ` ${r.nonAttribuees} fuite${r.nonAttribuees > 1 ? 's' : ''} sans équipe identifiable (secteur balayé par plusieurs équipes) : renseigner l'équipe de détection sur la fiche ou utiliser le rapport du jour.` : ''),
+        + (r.nonAttribuees ? ` ${r.nonAttribuees} fuite${r.nonAttribuees > 1 ? 's' : ''} sans agent identifiable (secteur balayé par plusieurs agents, fuite saisie par un autre compte) : utiliser le rapport du jour.` : ''),
       );
     } catch (e) {
       setErreur(messageErreur(e));
@@ -176,12 +177,11 @@ export default function PageBalayage() {
           <input type="date" value={filtres.au} min={filtres.du || undefined} onChange={(e) => maj({ au: e.target.value })} />
         </label>
         <label>
-          Équipe
-          <select value={filtres.equipe} onChange={(e) => maj({ equipe: e.target.value })}>
-            <option value="">Toutes les équipes</option>
-            {equipes.filter((e) => e.type !== 'reparation' || e.id === filtres.equipe).map((e) => (
-              <option key={e.id} value={e.id}>{e.libelle}{e.actif ? '' : ' (désactivée)'}</option>
-            ))}
+          Agent
+          <select value={filtres.agent} onChange={(e) => maj({ agent: e.target.value })}>
+            <option value="">Tous les agents</option>
+            {filtres.agent && !agents.some(([id]) => id === filtres.agent) && <option value={filtres.agent}>Agent choisi (aucun balayage sur la période)</option>}
+            {agents.map(([id, nom]) => <option key={id} value={id}>{nom}</option>)}
           </select>
         </label>
         <label>
@@ -191,8 +191,8 @@ export default function PageBalayage() {
             {secteurs.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.libelle}</option>)}
           </select>
         </label>
-        {(filtres.equipe || filtres.secteur) && (
-          <button onClick={() => maj({ equipe: '', secteur: '' })}>Effacer équipe et secteur</button>
+        {(filtres.agent || filtres.secteur) && (
+          <button onClick={() => maj({ agent: '', secteur: '' })}>Effacer agent et secteur</button>
         )}
       </div>
 
@@ -203,15 +203,15 @@ export default function PageBalayage() {
             {!periodeDu ? 'Choisissez la période (Du, au) pour le rapport.'
               : uneJournee ? `Journée du ${jourFr(periodeDu)} : rapport journalier.`
               : `Un seul rapport du ${jourFr(periodeDu)} au ${jourFr(periodeAu)} : toutes les zones balayées, le linéaire par jour et la carte de la période.`}
-            {(filtres.equipe || filtres.secteur) && ' Équipe et secteur choisis ci-dessus sont repris.'}
+            {(filtres.agent || filtres.secteur) && ' Agent et secteur choisis ci-dessus sont repris.'}
           </p>
           <div className="filtres">
             {uneJournee && (
               <label>
                 Fichiers
                 <select value={modeRapport} onChange={(e) => setModeRapport(e.target.value as ModeRapport)}>
-                  <option value="jour">Un rapport pour la journée (toutes équipes)</option>
-                  <option value="equipe">Un rapport par équipe</option>
+                  <option value="jour">Un rapport pour la journée (tous les agents)</option>
+                  <option value="agent">Un rapport par agent</option>
                 </select>
               </label>
             )}
@@ -256,7 +256,7 @@ export default function PageBalayage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Jour</th><th>Équipe</th><th>Agent</th><th>Zone</th><th>Secteur</th>
+                    <th>Jour</th><th>Agent</th><th>Zone</th><th>Secteur</th>
                     <th className="num">Tronçons</th><th className="num">Linéaire</th><th className="num">Repassé</th>
                     <th className="num">Nœuds</th><th className="num">Fuites</th>
                     {peutRapport && <th>Rapport du jour</th>}
@@ -265,9 +265,8 @@ export default function PageBalayage() {
                 {jours.map((j) => (
                   <tbody key={j.jour}>
                     {j.lignes.map((l, i) => (
-                      <tr key={`${j.jour}-${l.equipe_id ?? ''}-${l.agent_id ?? ''}-${l.secteur_id ?? ''}-${i}`}>
+                      <tr key={`${j.jour}-${l.agent_id ?? ''}-${l.secteur_id ?? ''}-${i}`}>
                         <td>{i === 0 ? jourFr(j.jour) : ''}</td>
-                        <td>{l.equipe ?? '—'}</td>
                         <td>{l.agent ?? '—'}</td>
                         <td>{l.zone ?? '—'}</td>
                         <td>{l.secteur ?? 'Non zoné'}</td>
@@ -294,7 +293,7 @@ export default function PageBalayage() {
                     ))}
                     {j.lignes.length > 1 && (
                       <tr className="discret">
-                        <td colSpan={5}>Total du jour</td>
+                        <td colSpan={4}>Total du jour</td>
                         <td className="num">{nombre(j.totaux.nb_troncons, 0)}</td>
                         <td className="num">{formaterLineaire(j.totaux.lineaire_m)}</td>
                         <td className="num">{j.totaux.lineaire_repasse_m > 0 ? formaterLineaire(j.totaux.lineaire_repasse_m) : '—'}</td>
@@ -307,7 +306,7 @@ export default function PageBalayage() {
                 ))}
                 <tfoot>
                   <tr>
-                    <td colSpan={5}>Total de la période ({nombre(totaux.jours, 0)} jour{totaux.jours > 1 ? 's' : ''})</td>
+                    <td colSpan={4}>Total de la période ({nombre(totaux.jours, 0)} jour{totaux.jours > 1 ? 's' : ''})</td>
                     <td className="num">{nombre(totaux.nb_troncons, 0)}</td>
                     <td className="num">{formaterLineaire(totaux.lineaire_m)}</td>
                     <td className="num">{totaux.lineaire_repasse_m > 0 ? formaterLineaire(totaux.lineaire_repasse_m) : '—'}</td>

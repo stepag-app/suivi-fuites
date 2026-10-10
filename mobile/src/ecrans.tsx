@@ -94,7 +94,7 @@ const COL = {
   numero: { width: 56 }, reference: { width: 150 }, lieu: { flex: 1.3 }, date: { width: 168 }, statut: { width: 150 },
   alertes: { flex: 1 }, photos: { width: 64 }, aller: { width: 150 },
 };
-// Sans geste de l'agent, la liste suit les fuites des autres équipes à ce rythme (tirer la liste : tout de suite).
+// Sans geste de l'agent, la liste suit les fuites des autres agents à ce rythme (tirer la liste : tout de suite).
 const MISE_A_JOUR_MS = 5 * 60 * 1000;
 // Passé ce délai (jeton attendu par supabase-js compris), connexion tenue pour bloquée : dernière liste connue.
 const DELAI_LISTE_MS = 20000;

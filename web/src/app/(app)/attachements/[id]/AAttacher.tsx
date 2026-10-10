@@ -43,7 +43,7 @@ export function AAttacher({
   const [au, setAu] = useState('');
   const [zone, setZone] = useState('');
   const [secteur, setSecteur] = useState('');
-  const [equipe, setEquipe] = useState('');
+  const [chef, setChef] = useState('');
   const [article, setArticle] = useState('');
   const [etat, setEtat] = useState<ReglesAttachement['fuites_admissibles']>(regles.fuites_admissibles);
   const [texte, setTexte] = useState('');
@@ -69,8 +69,8 @@ export function AAttacher({
   }, [charger, version]);
 
   const disponibles = unites.filter((u) => u.brouillon_id !== lotId);
-  const options = (cle: 'secteur' | 'equipe', id: 'secteur_id' | 'equipe_id') =>
-    [...new Map(disponibles.filter((u) => u[id]).map((u) => [u[id] as string, u[cle] as string])).entries()]
+  const options = (cle: 'secteur' | 'chef_equipe', id: 'secteur_id' | 'chef_equipe_id') =>
+    [...new Map(disponibles.filter((u) => u[id]).map((u) => [u[id] as string, u[cle] ?? 'Compte inconnu'])).entries()]
       .sort((a, b) => a[1].localeCompare(b[1], 'fr'));
   const articles = [...new Map(disponibles.map((u) => [u.prix_id, u.prix_numero])).entries()];
 
@@ -80,13 +80,13 @@ export function AAttacher({
       const jour = u.reparee_le?.slice(0, 10) ?? '';
       return (!du || (jour && jour >= du)) && (!au || (jour && jour <= au))
         && (!zone || u.zone_id === zone) && (!secteur || u.secteur_id === secteur)
-        && (!equipe || u.equipe_id === equipe) && (!article || u.prix_id === article)
+        && (!chef || u.chef_equipe_id === chef) && (!article || u.prix_id === article)
         && (etat === 'toutes' || (etat === 'verrouillees' ? u.verrouillee : u.statut === 'achevee'))
         && (!enDefaut || controles.has(u.fuite_id))
         && (!t || String(u.fuite_numero) === t || (u.reference_srm ?? '').toLowerCase().includes(t)
           || (u.adresse ?? '').toLowerCase().includes(t));
     });
-  }, [disponibles, du, au, zone, secteur, equipe, article, etat, texte, enDefaut, controles]);
+  }, [disponibles, du, au, zone, secteur, chef, article, etat, texte, enDefaut, controles]);
 
   const parFuite = useMemo(() => {
     const m = new Map<string, Unite[]>();
@@ -145,10 +145,10 @@ export function AAttacher({
           </select>
         </label>
         <label>
-          Équipe
-          <select value={equipe} onChange={(e) => setEquipe(e.target.value)}>
-            <option value="">Toutes</option>
-            {options('equipe', 'equipe_id').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+          Chef d&apos;équipe
+          <select value={chef} onChange={(e) => setChef(e.target.value)}>
+            <option value="">Tous</option>
+            {options('chef_equipe', 'chef_equipe_id').map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
         </label>
         <label>
@@ -183,7 +183,7 @@ export function AAttacher({
             <thead>
               <tr>
                 <th aria-label="Toute la fuite" /><th>Fuite</th><th>Référence</th><th>Secteur</th><th>État</th><th>Contrôles</th>
-                <th>Réparée le</th><th>Réfection</th><th>Équipe</th><th>Unités à attacher (prix, reste)</th>
+                <th>Réparée le</th><th>Réfection</th><th>Chef d&apos;équipe</th><th>Unités à attacher (prix, reste)</th>
                 {peutCorriger && <th aria-label="Corrections" />}
               </tr>
             </thead>
@@ -214,7 +214,7 @@ export function AAttacher({
                       <td><BadgeControles liste={controles.get(t.fuite_id)} /></td>
                       <td className="nowrap">{dateSeule(t.reparee_le)}</td>
                       <td className="nowrap">{t.refectionnee_le ? dateSeule(t.refectionnee_le) : <span className="discret">non faite</span>}</td>
-                      <td>{t.equipe ?? '—'}</td>
+                      <td>{t.chef_equipe ?? '—'}</td>
                       <td>
                         <div className="unites-ligne">
                           {g.map((u) => (

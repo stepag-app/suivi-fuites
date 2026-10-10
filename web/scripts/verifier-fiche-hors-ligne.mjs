@@ -82,7 +82,7 @@ await ok('copies d\'un autre compte : toujours effacées', () => {
 // ---- Contenu gardé ---------------------------------------------------------------------------------
 
 await ok('noms gardés : seulement ceux cités par la fiche (ni téléphones ni référentiels entiers)', () => {
-  const reparations = [{ id: 'r1', auteur_terrain_id: 'pr1', equipe_id: 'e1', motif_id: null }];
+  const reparations = [{ id: 'r1', auteur_terrain_id: 'pr1', motif_id: null }];
   const refections = [{ id: 'rf1', nature_id: 'n2', motif_id: 'm3' }];
   const noms = nomsUtiles(reparations, refections, {
     natures: [{ id: 'n1', libelle_fr: 'Chaussée' }, { id: 'n2', libelle_fr: 'Trottoir' }],
@@ -91,13 +91,11 @@ await ok('noms gardés : seulement ceux cités par la fiche (ni téléphones ni 
       { id: 'pr1', nom_complet: 'Chef Un', telephone: '0600000000' },
       { id: 'pr2', nom_complet: 'Agent Deux', telephone: '0611111111' },
     ],
-    equipes: [{ id: 'e1', libelle: 'Équipe A' }, { id: 'e2', libelle: 'Équipe B' }],
   });
   assert.deepEqual(noms, {
     natures: { n2: 'Trottoir' },
     motifs: { m3: 'Refus du riverain' },
     profils: { pr1: 'Chef Un' },
-    equipes: { e1: 'Équipe A' },
   });
   assert.ok(!JSON.stringify(noms).includes('06'));
 });
@@ -105,7 +103,7 @@ await ok('noms gardés : seulement ceux cités par la fiche (ni téléphones ni 
 await ok('copie datée : version et consultation à l\'heure de la lecture, propriétaire, nombre de photos', () => {
   const contenu = {
     fuite: { id: 'f1', numero: 12 }, photos: [{ id: 'p1' }, { id: 'p2' }], reparations: [], refections: [], quantites: [],
-    liens: { ouvriers: {}, pieces: {} }, noms: { natures: {}, motifs: {}, profils: {}, equipes: {} },
+    liens: { ouvriers: {}, pieces: {} }, noms: { natures: {}, motifs: {}, profils: {} },
   };
   const fiche = ficheConsultee(contenu, MOI, new Date('2026-10-05T13:32:00Z'));
   assert.equal(fiche.id, 'f1');

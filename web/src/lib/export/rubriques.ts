@@ -22,7 +22,7 @@ export const RUBRIQUES: Record<DocumentRubriques, readonly Rubrique[]> = {
     { cle: 'jalons', libelle: 'Jalons du client', aide: 'communication, avis avant terrassement, validation', defaut: true },
     { cle: 'position', libelle: 'Coordonnées GPS et itinéraire', defaut: true },
     { cle: 'reparations', libelle: 'Réparations', aide: 'constat, travaux, fouille, emplacement, revêtement', defaut: true },
-    { cle: 'equipes', libelle: 'Équipes et ouvriers', aide: 'dans les réparations et réfections', defaut: true },
+    { cle: 'chef_equipe', libelle: 'Chef d\'équipe et ouvriers', aide: 'dans les réparations et réfections', defaut: true },
     { cle: 'pieces', libelle: 'Pièces posées', aide: 'dans les réparations', defaut: true },
     { cle: 'refections', libelle: 'Réfections', defaut: true },
     { cle: 'observations', libelle: 'Observations', defaut: true },
@@ -31,7 +31,7 @@ export const RUBRIQUES: Record<DocumentRubriques, readonly Rubrique[]> = {
     { cle: 'quantites', libelle: 'Articles et prix du bordereau', aide: 'quantités, prix unitaires, montants', defaut: false, droit: 'quantites' },
   ],
   rapport_balayage: [
-    { cle: 'identification', libelle: 'Identification', aide: 'société, journée ou période, équipes, agents, zones, secteurs, linéaire', defaut: true },
+    { cle: 'identification', libelle: 'Identification', aide: 'société, journée ou période, agents, zones, secteurs, linéaire', defaut: true },
     { cle: 'detail_jours', libelle: 'Linéaire par jour', aide: 'période de plusieurs jours', defaut: true },
     { cle: 'detail_secteurs', libelle: 'Linéaire par zone et secteur', aide: 'plusieurs secteurs', defaut: true },
     { cle: 'fuites', libelle: 'Fuites détectées', defaut: true },
@@ -65,10 +65,13 @@ export function choixParDefaut(document: DocumentRubriques): Set<string> {
   return new Set(RUBRIQUES[document].filter((r) => r.defaut).map((r) => r.cle));
 }
 
+// Rubriques renommées : un choix gardé sous l'ancien nom reste coché (« equipes » avant S12).
+const ANCIENS_NOMS: Record<string, string> = { equipes: 'chef_equipe' };
+
 /** Clés connues seulement (un modèle ancien peut nommer une rubrique retirée depuis). */
 export function normaliser(document: DocumentRubriques, cles: readonly string[]): Set<string> {
   const connues = new Set(RUBRIQUES[document].map((r) => r.cle));
-  return new Set(cles.filter((c) => connues.has(c)));
+  return new Set(cles.map((c) => ANCIENS_NOMS[c] ?? c).filter((c) => connues.has(c)));
 }
 
 /** Choix effectif : rubriques d'un droit absent toujours retirées. */

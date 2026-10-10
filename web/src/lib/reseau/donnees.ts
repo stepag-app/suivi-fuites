@@ -17,7 +17,6 @@ import {
   SANS_SECTEUR, type CollectionNoeuds, type CollectionTroncons, type ResultatImportReseau, type SecteurReseau, type ZoneReseau,
 } from './types';
 
-export interface EquipeReseau { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
 
 const CODES_BASE_ABSENTE = new Set(['42883', '42P01', 'PGRST202', 'PGRST205']);
 const codeDe = (e: unknown) => (e && typeof e === 'object' && 'code' in e ? String((e as { code: unknown }).code ?? '') : '');
@@ -181,23 +180,52 @@ export async function chargerNoeudsSecteur(marcheId: string, secteurId: string, 
   return collection;
 }
 
+// Le réseau entier en une seule requête (Oujda : 44 044 tronçons, 15 Mo de JSON) dépasse le délai maximal d'une requête
+// de l'API en production (« canceling statement due to statement timeout ») : lecture par paquets de secteurs, puis les
+// non zonés, chaque requête restant de l'ordre d'une seconde.
+const SECTEURS_PAR_LECTURE = 8;
+const LECTURES_SIMULTANEES = 4;
+
+async function lireParPaquetsDeSecteurs<T extends { type: 'FeatureCollection'; features: unknown[] }>(
+  marcheId: string,
+  lire: (secteurs: string[], sansSecteur: boolean) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<T> {
+  // Tous les secteurs du marché, actifs ou non, comme `p_secteurs` nul dans reseau_geojson et noeuds_geojson.
+  const secteurs = await lireTout<{ id: string }>((de, a) => getSupabase().from('secteurs').select('id').eq('marche_id', marcheId)
+    .order('id').range(de, a) as unknown as PromiseLike<{ data: { id: string }[] | null; error: { message: string } | null }>);
+  const paquets: [string[], boolean][] = [[[], true]];
+  for (let i = 0; i < secteurs.length; i += SECTEURS_PAR_LECTURE) {
+    paquets.push([secteurs.slice(i, i + SECTEURS_PAR_LECTURE).map((s) => s.id), false]);
+  }
+  const resultats: T[] = new Array(paquets.length);
+  let suivant = 0;
+  const ouvrier = async () => {
+    while (suivant < paquets.length) {
+      const i = suivant++;
+      const { data, error } = await lire(...paquets[i]);
+      if (error) throw error;
+      resultats[i] = normaliser<T>(data);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(LECTURES_SIMULTANEES, paquets.length) }, ouvrier));
+  return { type: 'FeatureCollection', features: resultats.flatMap((r) => r.features) } as unknown as T;
+}
+
 /** Tout le réseau du marché, zoné ou non, légèrement simplifié (carte de zonage ; jamais en cache). */
-export async function chargerReseauComplet(marcheId: string, tolerance = 0.000005): Promise<CollectionTroncons> {
-  const { data, error } = await getSupabase().rpc('reseau_geojson', {
-    p_marche: marcheId, p_secteurs: null, p_sans_secteur: true, p_tolerance: tolerance,
-  });
-  if (error) throw error;
-  return normaliser<CollectionTroncons>(data);
+export function chargerReseauComplet(marcheId: string, tolerance = 0.000005): Promise<CollectionTroncons> {
+  return lireParPaquetsDeSecteurs<CollectionTroncons>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('reseau_geojson', {
+    p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur, p_tolerance: tolerance,
+  }));
 }
 
 /** Tous les nœuds du marché, zonés ou non (tuiles du réseau ; jamais en cache). */
-export async function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
-  const { data, error } = await getSupabase().rpc('noeuds_geojson', { p_marche: marcheId, p_secteurs: null, p_sans_secteur: true });
-  if (error) throw error;
-  return normaliser<CollectionNoeuds>(data);
+export function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
+  return lireParPaquetsDeSecteurs<CollectionNoeuds>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('noeuds_geojson', {
+    p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur,
+  }));
 }
 
-// ---- État de balayage, équipes, noms --------------------------------------------------------------------
+// ---- État de balayage, noms --------------------------------------------------------------------
 
 /** Relu à chaque ouverture ; sans droit `balayage / lire` la base renvoie zéro ligne. */
 export async function chargerEtatBalayage(marcheId: string): Promise<EtatBalayageTroncon[]> {
@@ -211,16 +239,16 @@ export async function chargerEtatBalayage(marcheId: string): Promise<EtatBalayag
   return data ? deplierEtatBalayage(data as EtatBalayageCompact) : [];
 }
 
-/** Forme en colonnes de `etat_balayage_compact` (e / a : rang dans equipes / agents). */
+/** Forme en colonnes de `etat_balayage_compact` (a : rang dans agents). */
 export interface EtatBalayageCompact {
-  t: string[]; p: string[]; d: string[]; n: number[]; e: (number | null)[]; a: (number | null)[];
-  equipes: string[]; agents: string[];
+  t: string[]; p: string[]; d: string[]; n: number[]; a: (number | null)[];
+  agents: string[];
 }
 
 export function deplierEtatBalayage(c: EtatBalayageCompact): EtatBalayageTroncon[] {
   return c.t.map((troncon_id, i) => ({
     troncon_id, premier_le: c.p[i], dernier_le: c.d[i], nb_passages: c.n[i],
-    equipe_id: c.e[i] == null ? null : c.equipes[c.e[i]!], agent_id: c.a[i] == null ? null : c.agents[c.a[i]!],
+    agent_id: c.a[i] == null ? null : c.agents[c.a[i]!],
   }));
 }
 
@@ -228,13 +256,6 @@ export function deplierEtatBalayage(c: EtatBalayageCompact): EtatBalayageTroncon
 const chargerEtatBalayageEnLignes = (marcheId: string) =>
   lireTout<EtatBalayageTroncon>((de, a) => getSupabase().rpc('etat_balayage', { p_marche: marcheId })
     .order('troncon_id').range(de, a) as unknown as PromiseLike<{ data: EtatBalayageTroncon[] | null; error: { message: string } | null }>);
-
-export async function chargerEquipes(marcheId: string): Promise<EquipeReseau[]> {
-  const { data, error } = await getSupabase().from('equipes').select('id, type, numero, libelle, actif')
-    .eq('marche_id', marcheId).order('type').order('numero');
-  if (error) throw error;
-  return (data as EquipeReseau[] | null) ?? [];
-}
 
 /** Noms des agents (la RLS ne montre que les profils du même marché ; les autres restent anonymes). */
 export async function chargerNomsProfils(ids: Iterable<string>): Promise<Map<string, string>> {
@@ -360,9 +381,9 @@ export function chargerJournal(marcheId: string, f: Partial<FiltresJournal> = {}
     let q = sb.from('v_balayage_journalier').select('*').eq('marche_id', marcheId);
     if (f.du) q = q.gte('date_balayage', f.du);
     if (f.au) q = q.lte('date_balayage', f.au);
-    if (f.equipe) q = q.eq('equipe_id', f.equipe);
+    if (f.agent) q = q.eq('agent_id', f.agent);
     if (f.secteur) q = q.eq('secteur_id', f.secteur);
-    return q.order('date_balayage', { ascending: false }).order('equipe_id').order('agent_id').order('secteur_id')
+    return q.order('date_balayage', { ascending: false }).order('agent_id').order('secteur_id')
       .range(de, a) as unknown as PromiseLike<{ data: LigneBalayageJournalier[] | null; error: { message: string } | null }>;
   });
 }

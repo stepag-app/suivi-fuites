@@ -4,6 +4,9 @@ name: Test de restauration
 # restauration dans une base Supabase locale et vierge créée dans la CI, puis contrôle des tables, des
 # nombres de lignes, du déclencheur de création de profil et des règles de storage.objects. Aucun
 # contournement : toute table non restaurable, tout écart de lignes, tout objet manquant fait échouer le test.
+# Depuis la copie hors plateformes (X9) : l'archive restaurée est celle du Google Drive (comparée à l'artefact
+# GitHub par SHA-256), puis chaque photo et chaque fichier que la base restaurée référence doit exister sur le
+# Drive, et un échantillon est relu en entier. Secret SAUVEGARDE_DRIVE_CONFIG absent : échec (hors PR).
 #
 # Déclencheurs :
 #  * chaque lundi à 04:07 UTC (après la sauvegarde de 02:17) : dernière sauvegarde réussie de main ;
@@ -15,8 +18,8 @@ name: Test de restauration
 # Sécurité :
 #  * aucune connexion de ce job au projet Supabase de production : pas de « supabase link », ni
 #    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seuls l'artefact de sauvegarde et la copie R2 sont lus ;
-#  * secrets utilisés : SAUVEGARDE_PASSPHRASE (transmise à gpg par l'entrée standard, jamais en argument) et
-#    les clés R2 (lecture de la copie pour comparer son empreinte) ;
+#  * secrets utilisés : SAUVEGARDE_PASSPHRASE (transmise à gpg par l'entrée standard, jamais en argument),
+#    les clés R2 (lecture de la copie pour comparer son empreinte) et SAUVEGARDE_DRIVE_CONFIG (lecture du Drive) ;
 #  * aucune donnée affichée : journaux et résumé ne montrent que des noms de tables, des nombres de
 #    lignes et des messages d'erreur dont les valeurs sont masquées ; les fichiers déchiffrés ne sont
 #    jamais republiés et sont effacés en fin de job, même en cas d'échec.
@@ -52,6 +55,17 @@ defaults:
     shell: bash
 
 jobs:
+  essais-scripts:
+    name: Essais des scripts de copie (rotation, copie incrémentale, contrôles)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Installer rclone (version épinglée)
+        run: bash outils/sauvegarde/installer-rclone.sh
+      - name: Essais (dossiers locaux à la place du Drive et de R2)
+        run: bash outils/sauvegarde/essais/drive.test.sh
+
   sauvegarde:
     name: Sauvegarde préalable (PR seulement)
     if: github.event_name == 'pull_request'
@@ -146,11 +160,18 @@ jobs:
             echo "SAUVEGARDE_RUN_ID=$RUN_DEMANDE" >> "$GITHUB_ENV"
             exit 0
           fi
-          ligne="$(gh run list --repo "$GITHUB_REPOSITORY" --workflow sauvegarde-base.yml --branch main \
-                     --status success --limit 1 --json databaseId,createdAt \
-                     --jq '.[] | "\(.databaseId) \(.createdAt)"')"
+          # Dernière exécution dont le job d'export a réussi : une panne du Drive (job « drive ») ne doit pas
+          # masquer le test de la base ; elle est jugée plus bas, par la comparaison avec la copie du Drive.
+          ligne=""
+          while read -r id date_id; do
+            [ -n "$id" ] || continue
+            etat="$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json jobs \
+                      --jq '.jobs[] | select(.name == "Exporter, chiffrer et copier") | .conclusion')"
+            if [ "$etat" = "success" ]; then ligne="$id $date_id"; break; fi
+          done < <(gh run list --repo "$GITHUB_REPOSITORY" --workflow sauvegarde-base.yml --branch main \
+                     --limit 15 --json databaseId,createdAt --jq '.[] | "\(.databaseId) \(.createdAt)"')
           if [ -z "$ligne" ]; then
-            echo "::error::Aucune exécution réussie de « Sauvegarde de la base » sur main : rien à restaurer."
+            echo "::error::Aucune exécution de « Sauvegarde de la base » sur main n'a réussi son export parmi les 15 dernières : rien à restaurer."
             exit 1
           fi
           read -r run_id lancee_le <<< "$ligne"
@@ -203,6 +224,47 @@ jobs:
             exit 1
           fi
           echo "Copie R2 identique à l'artefact GitHub (SHA-256)."
+
+      - name: Configuration du Drive
+        id: drive
+        env:
+          SAUVEGARDE_DRIVE_CONFIG: ${{ secrets.SAUVEGARDE_DRIVE_CONFIG }}
+        run: |
+          if [ -z "$SAUVEGARDE_DRIVE_CONFIG" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              echo "::warning::Secret SAUVEGARDE_DRIVE_CONFIG absent : restauration depuis le Drive non testée (toléré sur une PR)."
+              echo "configure=non" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::Secret SAUVEGARDE_DRIVE_CONFIG manquant dans GitHub : la copie sur le Drive n'est pas configurée, la restauration depuis le Drive ne peut pas être testée."
+            exit 1
+          fi
+          echo "configure=oui" >> "$GITHUB_OUTPUT"
+          echo "RCLONE_CONFIG=$RUNNER_TEMP/rclone.conf" >> "$GITHUB_ENV"
+
+      - name: Installer rclone (version épinglée)
+        if: steps.drive.outputs.configure == 'oui'
+        run: bash outils/sauvegarde/installer-rclone.sh
+
+      - name: Restaurer l'archive du Drive (comparée à l'artefact GitHub)
+        if: steps.drive.outputs.configure == 'oui'
+        env:
+          SAUVEGARDE_DRIVE_CONFIG: ${{ secrets.SAUVEGARDE_DRIVE_CONFIG }}
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          bash outils/sauvegarde/copie-drive.sh preparer
+          if ! fichier="$(bash outils/sauvegarde/restaurer-drive.sh archive "$R/drive" "$SAUVEGARDE_NOM")"; then
+            echo "::error::L'archive $SAUVEGARDE_NOM n'est pas sur le Drive : la copie hors plateformes de cette sauvegarde a échoué (voir le job « Copie sur le Drive » de la sauvegarde)."
+            exit 1
+          fi
+          fichier="$(printf '%s\n' "$fichier" | tail -n 1)"
+          if [ "$(sha256sum "$fichier" | cut -d' ' -f1)" != "$(sha256sum "$SAUVEGARDE_ARCHIVE" | cut -d' ' -f1)" ]; then
+            echo "::error::L'archive du Drive diffère de l'artefact GitHub (empreintes SHA-256 différentes)."
+            exit 1
+          fi
+          echo "Archive du Drive identique à l'artefact GitHub (SHA-256) : c'est elle qui sera restaurée."
+          echo "SAUVEGARDE_ARCHIVE=$fichier" >> "$GITHUB_ENV"
+          echo "SOURCE_RESTAURATION=le Drive" >> "$GITHUB_ENV"
 
       - uses: supabase/setup-cli@v1
         with:
@@ -278,13 +340,29 @@ jobs:
             exit 1
           fi
 
+      - name: Contrôler les photos et les fichiers sur le Drive
+        if: steps.drive.outputs.configure == 'oui'
+        run: |
+          source "$RUNNER_TEMP/outils.sh"
+          # Fichiers que la base restaurée référence : photos dans R2 (existence) et objets de Supabase
+          # Storage (existence et taille). Seuls des nombres sont affichés.
+          psql_pile -At -F $'\t' -c "select 'r2', chemin, -1 from public.photos where stockage = 'r2' and supprime_le is null union all select 'stockage', bucket_id || '/' || name, coalesce((metadata->>'size')::bigint, -1) from storage.objects where name not like '%.emptyFolderPlaceholder' order by 1, 2" > "$R/photos-attendues.tsv"
+          echo "Fichiers référencés par la base restaurée : $(grep -c . "$R/photos-attendues.tsv")"
+          bash outils/sauvegarde/restaurer-drive.sh verifier "$R/photos-attendues.tsv" | tee "$R/photos-bilan.txt"
+
       - name: Résumé
         run: |
           source "$RUNNER_TEMP/outils.sh"
           {
             echo "## Test de restauration"
             echo
-            echo "Sauvegarde du $SAUVEGARDE_DATE (copie R2 identique, déclencheur et règles de storage restaurés)"
+            if [ "${SOURCE_RESTAURATION:-}" = "le Drive" ]; then
+              echo "Sauvegarde du $SAUVEGARDE_DATE, **restaurée depuis le Google Drive** (identique à l'artefact GitHub et à la copie R2, déclencheur et règles de storage restaurés)"
+              echo
+              sed 's/^/- /' "$R/photos-bilan.txt"
+            else
+              echo "Sauvegarde du $SAUVEGARDE_DATE (copie R2 identique, déclencheur et règles de storage restaurés ; **Drive non testé**)"
+            fi
             echo
             echo "| Table | Lignes |"
             echo "| --- | ---: |"
@@ -300,7 +378,7 @@ jobs:
       - name: Effacer les fichiers déchiffrés et arrêter la pile
         if: always()
         run: |
-          rm -rf "$RUNNER_TEMP/restauration" "$RUNNER_TEMP/outils.sh"
+          rm -rf "$RUNNER_TEMP/restauration" "$RUNNER_TEMP/outils.sh" "$RUNNER_TEMP/rclone.conf"
           gpgconf --kill gpg-agent 2> /dev/null || true
           if command -v supabase > /dev/null && [ -d "$RUNNER_TEMP/pile-supabase/supabase" ]; then
             (cd "$RUNNER_TEMP/pile-supabase" && supabase stop --no-backup) || true

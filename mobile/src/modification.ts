@@ -5,7 +5,7 @@ import type { PieceAttente } from './file-attente';
 
 /** Champs de `reparations` modifiables depuis la tablette. */
 export const CHAMPS_REPARATION = [
-  'resultat', 'motif_id', 'realisee_le', 'equipe_id', 'ouvrage', 'materiau', 'diametre_mm', 'representant_srm', 'representant_srm_id',
+  'resultat', 'motif_id', 'realisee_le', 'ouvrage', 'materiau', 'diametre_mm', 'representant_srm', 'representant_srm_id',
   'tuyau_repare', 'robinet_pec_change', 'collier_pec_change', 'bouche_a_cle_mise_a_niveau', 'element_remplace',
   'longueur_pe_m', 'fouille_longueur_m', 'fouille_largeur_m', 'fouille_profondeur_m', 'emplacement',
   'nature_revetement_id', 'observation',

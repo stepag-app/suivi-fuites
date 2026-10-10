@@ -91,7 +91,11 @@ faute de quoi les compilations d'APK et le déploiement automatique de la base s
   (HTTP 403) » et le bouton restait grisé. Cause : l'action `lire` de la fonction `reseau-tuiles` envoyait à R2 une URL déjà présignée
   (signature dans la requête) que `client.fetch` d'aws4fetch signait une seconde fois (en-tête `Authorization`, en HEAD) ; R2 refuse une
   requête signée deux fois. Corrigé par la PR `fix(tuiles)` du 2026-10-10 : la vérification de présence n'utilise plus que la signature
-  par en-tête, comme `version-apk` ; la fonction est redéployée par « Déploiement de la base » à la fusion. Ensuite, dans l'ordre :
+  par en-tête, comme `version-apk` ; la fonction est redéployée par « Déploiement de la base » à la fusion (PR #85, fusionnée et
+  déployée le 2026-10-10 : le bloc affiche bien « Aucune archive »). Le premier clic sur « Générer les tuiles » a ensuite échoué sur
+  « canceling statement due to statement timeout » : le réseau entier lu en une requête (15 Mo de JSON) dépasse le délai maximal
+  de l'API en production. `chargerReseauComplet` et `chargerNoeudsComplet` (tuiles et carte de zonage) lisent désormais par paquets
+  de 8 secteurs, puis les non zonés, 4 requêtes à la fois (PR `fix(reseau)` du 2026-10-10). Ensuite, dans l'ordre :
   1. Règle CORS du compartiment R2 `suivi-fuites-photos` : en-tête `Range`, méthode `HEAD`, origine `https://fuites.stepag.ma`
      (texte complet dans `web/README.md` § Tuiles ; il remplace la règle des photos, qui y est comprise).
   2. **Paramètres > Réseau > Générer les tuiles** : l'état doit passer à « À jour » (date, tronçons, nœuds, taille).

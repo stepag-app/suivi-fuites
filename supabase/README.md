@@ -9,7 +9,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 |---|---|
 | `migrations/20261004090000_fondations.sql` | PostGIS, schéma `private`, types (statuts, rôles, familles de prix…), privilèges par défaut retirés |
 | `migrations/20261004090100_noyau_droits.sql` | marchés, profils, affectations, droits CRUD, modèles de rôles, journal, fonctions de sécurité |
-| `migrations/20261004090200_parametres_marche.sql` | zones, secteurs, phases, équipes, ouvriers, prix, natures de réfection, motifs, catalogue de pièces, ordres de service |
+| `migrations/20261004090200_parametres_marche.sql` | zones, secteurs, phases, équipes (inutilisées depuis S12, supprimées en E4), ouvriers, prix, natures de réfection, motifs, catalogue de pièces, ordres de service |
 | `migrations/20261004090300_fuites_interventions.sql` | fuites, réparations, réfections, pièces posées, lignes de quantités, photos ; numérotation, statuts automatiques, verrou, lignes de prix automatiques |
 | `migrations/20261004090400_rls_privileges.sql` | règles RLS et privilèges, table par table |
 | `migrations/20261004090500_vues_fonctions.sql` | vues `v_fuites` (alertes), `v_pieces_posees`, `v_quantites`, `v_anomalies` ; fonction `rechercher_fuites_proches` |
@@ -22,7 +22,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004210000_exports.sql` | étape C : modèles d'export par marché (`modeles_export`, trois par défaut), vue `v_fuites_export` (fuite + dernière réparation, réfection, pièces, quantités) |
 | `migrations/20261004220000_anomalies_corrigees.sql` | `v_anomalies` : plus de « terrassement sans avis » sans fouille, ni de « référence en double » sur la fuite d'origine d'une re-détection |
 | `migrations/20261004230000_marche_demo.sql` | marché de démonstration `DEMO` (données fictives, voir ci-dessous) |
-| `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes, natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
+| `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes (plus depuis S12), natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
 | `migrations/20261005120000_logos_marche.sql` | lot F : logos du marché (compartiment privé `logos`, PNG ou JPEG, 2 Mo ; `<marche_id>/titulaire\|maitre_ouvrage.png\|jpg` dans `marches.logo_titulaire` / `logo_maitre_ouvrage` ; lecture « exports / lire » ou « paramètres / lire », écriture « paramètres / modifier ») ; non copiés par `copier_marche` |
 | `migrations/20261005120100_marche_inactif.sql` | lot J : marché désactivé en lecture seule (`peut` et `marches_autorises` exigent un marché actif pour toute action autre que « lire ») ; l'administrateur garde la main |
 | `migrations/20261006100000_droits_verrous.sql` | lot Q : verrous de sécurité de l'administrateur (`verrous_admin`, journalisés) pris en compte par `private.peut` et `private.marches_autorises` ; contrôle explicite des actions sensibles (supprimer une fuite, arrêter / rouvrir un lot, refacturation forcée, désactiver / copier un marché, révoquer un compte) ; fiche du marché et journal soumis aux verrous ; révocation par l'administrateur connecté seulement (service_role : blocage de connexion d'un profil déjà révoqué) ; `enregistrer_droits` (matrice d'un marché en une transaction) |
@@ -72,6 +72,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261010500000_nom_compte_issam.sql` | chantier v2, S6 (R3) : données seulement, le compte `issam` reçoit nom `BOUSALAM`, prénom `Issam` (nom affiché « BOUSALAM Issam ») si aucun nom ni prénom n'a été saisi |
 | `migrations/20261011100000_suivi_gps.sql` | chantier v2, S11 (X6) : `traces_gps` (**un tracé par agent, marché et jour**, jour d'Oujda ; géométrie `LineString M` en WGS84, M = secondes Unix ; environ 24 octets par point, soit 70 Ko pour 3 000 points ; `unique (marche_id, profil_id, jour)`), RLS : lecture par le **responsable du marché** et l'**administrateur** seulement (`private.marches_traces_gps`), jamais l'agent lui-même ni ses collègues, aucune écriture directe ; `ajouter_points_trace(marché, [[t, lon, lat], …])` (agent affecté et actif dans un marché actif, 1 000 points au plus par envoi, points invalides ignorés, **idempotente** : un point déjà reçu est ignoré, l'ordre des lots n'importe pas, lot à cheval sur minuit réparti sur deux jours) ; `v_traces_gps` (liste sans géométrie), `trace_gps(marché, agent, jour)` (points `[lon, lat, t]`) ; `purger_traces_marche` (administrateur, **marché désactivé seulement**, journalisée) ; `saisies_compte` ne compte pas les tracés (un compte qui n'a que des tracés reste supprimable) |
 | `tests/database/34_s11_suivi_gps.test.sql` | 57 tests S11 : privilèges, un tracé par agent et par jour, géométrie M, idempotence (même lot, lot qui recoupe, lot plus ancien reçu après), minuit d'Oujda, points invalides, refus (autre marché, révoqué, marché désactivé, 1 000 points), lecture responsable / administrateur seulement, isolation entre marchés, purge (droits, marché actif refusé, journal) |
+| `migrations/20261013200000_equipes_supprimees.sql` | chantier v3, S12 (E1) : plus d'équipe dans les vues ni les fonctions ; le **chef d'équipe** est le compte qui a saisi le travail (`auteur_terrain_id`) : `chef_equipe_id` / `chef_equipe` (`v_quantites`, `v_a_attacher`, `v_attachement_lignes`, `v_refections_dues`), `chef_id` / `chef` (`v_pieces_reelles`, `v_pieces_posees`, `v_inventaire_fournitures`), `chef_reparation_id` (`v_fuites_export`) ; `v_balayage_journalier` et `etat_balayage(_compact)` par agent ; regroupements `chef` au lieu de `equipe` (règles d'attachement, modèles d'export, colonnes et filtres des modèles repris) ; `copier_parametres_marche` sans équipes ; équipes et liste `type_equipe` désactivées (une APK déjà installée n'affiche plus le choix) ; plus aucune vue ne dépend d'`equipe_id` (« r.* » remplacés par des listes explicites). Table, type et colonnes gardés vides jusqu'à E4 (S21) |
+| `tests/database/40_s12_sans_equipes.test.sql` | 14 tests S12 : aucune vue ne dépend d'`equipe_id` ni de `equipes`, aucune colonne ni fonction d'équipe, équipes désactivées, regroupement « équipe » refusé et « chef » accepté, modèles repris, chef d'équipe = compte de la réparation (`v_fuites_export`, `v_quantites`, `v_a_attacher`, `v_refections_dues`) |
 | `tests/database/13_inventaire_fournitures.test.sql` | 17 tests du lot P3 (privilèges, aucun prix ni référence, inventaire réel avec corrections, remplacées / retirées / réparation supprimée exclues, résumé par période, droits : responsable et administrateur seulement, isolation) |
 | `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
 | `migrations/20261013100000_envoi_dolibarr.sql` | chantier v3, S13 (X8) : envoi automatique des mouvements Dolibarr ; `envois_dolibarr` (journal : envois reçus, signes de vie et erreurs regroupés, 400 jours ; lecture comme `imports_mouvements_dolibarr`), `recevoir_envoi_dolibarr(jsonb)` (**service_role seulement**, appelée par la fonction `dolibarr-mouvements` : actions `etat`, `envoyer`, `erreur` ; entrepôts suivis seulement, nouveaux ou changés seulement, puis `importer_mouvements_dolibarr`) |
@@ -171,30 +173,73 @@ et à la demande (Actions > Sauvegarde de la base > Run workflow), il exporte pu
 | `migrations_appliquees.txt` | versions de migrations déjà appliquées (pour `supabase migration repair`) |
 | `LISEZMOI.txt` | rappel de l'ordre de restauration |
 
-L'archive est conservée **à deux endroits** (le secret `SAUVEGARDE_PASSPHRASE` n'est jamais copié) :
+L'archive est conservée **à trois endroits** (le secret `SAUVEGARDE_PASSPHRASE` n'est jamais copié) :
 1. **GitHub** : artefact `sauvegarde-base`, 30 jours ;
 2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-photos/sauvegardes/base/<archive>`, copie vérifiée par empreinte
    SHA-256. Le workflow supprime lui-même les archives de plus de 30 jours (en gardant toujours au moins 7
-   archives récentes), parce que le jeton R2 (Object Read & Write) ne peut pas régler de règle de cycle de vie.
+   archives récentes), parce que le jeton R2 (Object Read & Write) ne peut pas régler de règle de cycle de vie ;
+3. **Google Drive du compte `stepag.app@gmail.com`**, hors de Supabase, Vercel, Cloudflare et GitHub (voir
+   « Copie hors plateformes » ci-dessous) : 30 archives quotidiennes et 12 mensuelles.
 
 **Fichiers de Supabase Storage (photos comprises)** : le même workflow copie dans R2, sous
 `sauvegardes/stockage-supabase/<compartiment>/<chemin>`, tout fichier encore stocké dans Supabase Storage
 (`photos`, `evenements`, `logos`), seulement s'il manque ou si sa taille diffère ; rien n'est jamais supprimé de R2,
 donc un fichier effacé de Supabase reste récupérable. Les photos prises depuis le lot N sont déjà dans R2
-(`photos.stockage = 'r2'`, préfixe racine du compartiment) : elles ne dépendent plus de Supabase. **Reste hors
-sauvegarde** : les photos R2 elles-mêmes (une panne ou une erreur de suppression sur R2 les perdrait) ; à traiter
-si un second emplacement est souhaité (compartiment R2 miroir, ou export vers le Drive du compte `stepag.app`).
+(`photos.stockage = 'r2'`, préfixe racine du compartiment) : elles ne dépendent plus de Supabase, et ont leur
+seconde copie sur le Drive (section suivante).
+
+### Copie hors plateformes (Google Drive du compte `stepag.app`)
+
+Second job du même workflow, **`drive`** (« Copie sur le Drive (hors plateformes) »), lancé après l'export, par
+`rclone` (version et empreinte épinglées dans `outils/sauvegarde/installer-rclone.sh`). Même si l'export de la
+base échoue, les photos sont copiées. Scripts : `outils/sauvegarde/copie-drive.sh` (copie),
+`rotation-archives.sh` (rotation), `restaurer-drive.sh` (reprise et contrôle).
+
+Disposition du dossier `Suivi-fuites-sauvegarde` du Drive (un `LISEZMOI.txt` la décrit sur place) :
+
+| Dossier du Drive | Contenu | Conservation |
+|---|---|---|
+| `base/` | `sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg`, l'archive chiffrée de la nuit (vérifiée par SHA-256 après relecture) | **30 quotidiennes** (la dernière de chacun des 30 jours les plus récents) et **12 mensuelles** (la première de chacun des 12 mois les plus récents) ; au plus 20 suppressions par exécution |
+| `r2/` | le compartiment R2 tel quel, hors `sauvegardes/` : photos (`<marché>/<fuite>/<photo>.jpg`), `apk/` (APK publiées et `derniere.json`), `reseau/` (tuiles) | jamais supprimé |
+| `stockage-supabase/` | fichiers de Supabase Storage, `<compartiment>/<chemin>` (copiés d'abord dans R2, puis ici) | jamais supprimé |
+
+- **Incrémentale** : un fichier déjà sur le Drive (même chemin, même taille) n'est pas recopié ; la première nuit est
+  longue (toutes les photos), les suivantes durent quelques minutes. Après la copie, `rclone check` vérifie que chaque
+  fichier de la source existe sur le Drive avec la même taille.
+- **Rien n'est effacé côté Drive**, sauf la rotation des archives de `base/` : `rclone copy` (jamais `sync`), une
+  photo supprimée de R2 reste sur le Drive. La corbeille du Drive garde 30 jours les archives tournées.
+- **Échec visible** : l'étape en cause est rouge, le **résumé de l'exécution** (onglet Summary) dit pour chaque
+  élément (connexion, base, photos et APK, Storage) s'il a réussi, avec l'espace libre du Drive ; GitHub envoie un
+  e-mail pour tout workflow planifié en échec (régler Settings > Notifications > Actions du compte qui a modifié le
+  planning en dernier). Sans le secret `SAUVEGARDE_DRIVE_CONFIG`, le job échoue aussi (sauf sur une PR : simple
+  avertissement). Une alerte apparaît quand il reste moins de 3 Go libres (Google One 100 Go si la place manque).
+- **Secret** : `SAUVEGARDE_DRIVE_CONFIG` contient la section `[drive]` de la configuration rclone (identifiant OAuth
+  et jeton du compte `stepag.app`). Il est créé par Issam lui-même : note pas à pas « Autoriser rclone sur le
+  Drive » (Claude Docs). Étendue `drive` (accès complet) et non `drive.file` : une nouvelle autorisation (rotation,
+  nouvel identifiant OAuth) voit ainsi encore les anciennes copies. Si le jeton est révoqué ou expire, le job échoue
+  à l'étape « Connexion au Drive » : refaire l'autorisation et recréer le secret.
+  L'application OAuth de Google Cloud doit être **publiée** (Audience > Publier l'application), sinon le jeton
+  expire après 7 jours ; Google l'exige avec trois liens publics (page d'accueil, politique de confidentialité,
+  conditions d'utilisation) et le domaine autorisé `stepag.ma` : le panneau les sert sans connexion sur
+  `/confidentialite` et `/conditions` (`web/src/app/`).
+- **Jamais dans le dépôt** : ni le jeton, ni l'identifiant OAuth, ni la phrase secrète ; seule l'archive chiffrée
+  est envoyée.
 
 ### Test de restauration
 
 Workflow `.github/workflows/test-restauration.yml` : chaque lundi à 04:07 UTC, à la demande (Actions > Test de
 restauration > Run workflow ; champ facultatif : numéro d'une exécution de « Sauvegarde de la base »), et sur toute
 PR qui modifie les workflows de sauvegarde ou `outils/sauvegarde/` (une sauvegarde complète est alors réalisée
-d'abord). Il déchiffre l'archive, vérifie que la copie R2 est identique à l'artefact GitHub, restaure avec
-`outils/sauvegarde/restaurer.sh` (le **même script** que la procédure manuelle) dans une base Supabase locale et
-vierge créée dans la CI (`supabase start`, même PostgreSQL que la production ; **jamais** la production), puis compare
-table par table les lignes de la sauvegarde à celles de la base restaurée et vérifie le retour du déclencheur et des
-règles de `storage.objects`. **Aucun contournement** : une table non restaurable, un écart de lignes ou un objet
+d'abord). Il trouve la dernière exécution dont l'**export** a réussi (une panne du Drive ne masque pas le test de la
+base), vérifie que la copie R2 est identique à l'artefact GitHub, **télécharge l'archive depuis le Drive** (comparée
+à l'artefact par SHA-256) et restaure **celle du Drive** avec `outils/sauvegarde/restaurer.sh` (le **même script**
+que la procédure manuelle) dans une base Supabase locale et vierge créée dans la CI (`supabase start`, même
+PostgreSQL que la production ; **jamais** la production), puis compare table par table les lignes de la sauvegarde à
+celles de la base restaurée et vérifie le retour du déclencheur et des règles de `storage.objects`. Ensuite, pour
+les **photos** : chaque photo `r2` non supprimée et chaque objet de `storage.objects` que la base restaurée référence
+doit exister sur le Drive (les objets Storage avec la même taille), et un échantillon de 12 fichiers est relu en
+entier depuis le Drive (taille, signature JPEG). Un job séparé joue les essais sans réseau des scripts de copie
+(`outils/sauvegarde/essais/drive.test.sh` : rotation, copie incrémentale, rien d'effacé, contrôles, échecs). **Aucun contournement** : une table non restaurable, un écart de lignes ou un objet
 manquant font échouer le test. Le résumé du run donne la date de la sauvegarde et le nombre de lignes par table ;
 aucune donnée n'est affichée.
 
@@ -203,6 +248,10 @@ Si le test échoue :
   Actions > Sauvegarde de la base, puis la relancer ;
 - « copie R2 introuvable » ou « diffère » : la copie hors de GitHub ne s'est pas faite ; lire l'étape
   « Copie hors de GitHub (R2) » de la sauvegarde (secrets R2, jeton, compartiment) ;
+- « archive … pas sur le Drive », « diffère de l'artefact » ou « Connexion au Drive impossible » : lire le job
+  « Copie sur le Drive » de la sauvegarde (jeton Drive expiré ou révoqué : refaire la note pas à pas ; Drive plein) ;
+- « fichiers référencés par la base restaurée manquent sur le Drive » : des photos ou fichiers de la base ne sont
+  pas dans la copie ; relancer la sauvegarde, puis comparer à la main (`rclone lsf -R drive:Suivi-fuites-sauvegarde/r2`) ;
 - échec du déchiffrement : `SAUVEGARDE_PASSPHRASE` ne correspond plus ;
 - échec de restauration ou écart de lignes : la sauvegarde n'est pas fiable ; relancer une sauvegarde puis
   le test, et corriger avant toute opération risquée sur la base.
@@ -214,7 +263,7 @@ base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `ps
 `aws` (AWS CLI) et `jq`.
 
 1. **Récupérer l'archive** : artefact GitHub (Actions > exécution de « Sauvegarde de la base » > `sauvegarde-base`),
-   ou R2 (copie hors de GitHub) :
+   ou le Drive (voir « Reprise après sinistre » ci-dessous), ou R2 (copie hors de GitHub) :
    ```bash
    export AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… AWS_DEFAULT_REGION=auto   # clés R2 du gestionnaire de mots de passe
    export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
@@ -260,10 +309,114 @@ Le workflow supprime déjà les archives de plus de 30 jours. Pour doubler cette
 préfixe `sauvegardes/base/`, action **Delete uploaded objects** après **30 jours**. Ne **pas** mettre de règle sur
 `sauvegardes/stockage-supabase/` (copie des fichiers, à garder) ni sur le reste du compartiment (photos).
 
-**Limites** : 30 jours de rétention des archives de base ; l'historique des migrations est seulement listé
-(`migrations_appliquees.txt`) ; la copie de Storage vers R2 est nocturne (un fichier déposé depuis la dernière
-nuit n'y est pas encore) ; les secrets de l'application (clés, fonctions Edge, variables Vercel) ne sont pas dans
-la sauvegarde : ils sont dans le gestionnaire de mots de passe d'Issam et dans les paramètres GitHub / Vercel.
+**Limites** : l'historique des migrations est seulement listé (`migrations_appliquees.txt`) ; la copie de Storage
+vers R2 puis vers le Drive est nocturne (un fichier déposé depuis la dernière nuit n'y est pas encore) ; les secrets
+de l'application (clés, fonctions Edge, variables Vercel) ne sont pas dans la sauvegarde : ils sont dans le
+gestionnaire de mots de passe d'Issam et dans les paramètres GitHub / Vercel ; la phrase secrète
+`SAUVEGARDE_PASSPHRASE` n'existe qu'à ces endroits : **sans elle, aucune archive ne se lit**.
+
+## Reprise après sinistre (pas à pas)
+
+À lire **avant** d'en avoir besoin. Le test de restauration hebdomadaire (CI) joue déjà les étapes « archive du Drive »,
+« chargement dans une base vierge » et « photos retrouvées sur le Drive » : il prouve que la procédure marche.
+
+### Ce qui est où
+
+| Donnée | Emplacement normal | Copies |
+|---|---|---|
+| Base (comptes, fuites, réparations…) | Supabase | GitHub (artefact, 30 j) ; R2 `sauvegardes/base/` (30 j) ; **Drive `base/`** (30 quotidiennes, 12 mensuelles) |
+| Photos | R2 (racine du compartiment) | **Drive `r2/`** |
+| Fichiers de Supabase Storage (anciennes photos, logos) | Supabase Storage | R2 `sauvegardes/stockage-supabase/` ; **Drive `stockage-supabase/`** |
+| APK publiées | R2 `apk/` (3 dernières) ; artefact GitHub (14 j) | **Drive `r2/apk/`** |
+| Code | GitHub `stepag-app/suivi-fuites` | clones locaux (Mac d'Issam) |
+| Secrets (phrase secrète, clés R2, `service_role`, jetons) | gestionnaire de mots de passe | paramètres GitHub / Vercel / Supabase |
+
+À avoir sous la main : le **gestionnaire de mots de passe** (phrase secrète `SAUVEGARDE_PASSPHRASE`, clés R2),
+l'accès au compte Google `stepag.app@gmail.com`, un Mac avec `rclone`, `gpg`, `psql` 17 et `jq`
+(`brew install rclone gnupg libpq jq`) et le dépôt cloné (`git clone` ; à défaut, n'importe quel clone récent).
+
+### Étape 0 : brancher rclone sur le Drive (commune à tous les scénarios)
+
+```bash
+rclone config                    # n (nouveau), nom : drive, type : drive, identifiant OAuth, étendue 1 (accès complet)
+rclone lsf drive:Suivi-fuites-sauvegarde --max-depth 1     # doit afficher base/ r2/ stockage-supabase/ LISEZMOI.txt
+```
+
+L'autorisation se refait comme dans la note « Autoriser rclone sur le Drive » (même compte, même étendue). Si le
+Mac d'Issam a encore sa configuration rclone, `rclone lsf drive:` suffit : rien à refaire.
+
+### Scénario A : Supabase est perdu (projet supprimé, base corrompue, région indisponible)
+
+R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Storage.
+
+1. **Archive la plus récente** (ou une plus ancienne : `rclone lsf drive:Suivi-fuites-sauvegarde/base`) :
+   ```bash
+   bash outils/sauvegarde/restaurer-drive.sh archive ./restauration           # affiche le chemin du fichier
+   # une date précise : bash outils/sauvegarde/restaurer-drive.sh archive ./restauration sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg
+   ```
+2. **Déchiffrer** : `read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE`, puis
+   `bash outils/sauvegarde/restaurer.sh dechiffrer ./restauration/sauvegarde-….tar.gz.gpg ./restauration/sql`.
+3. **Projet Supabase neuf** (même région, PostGIS disponible), chaîne « Session pooler » dans `URL_BASE_NEUVE`, puis
+   `bash outils/sauvegarde/restaurer.sh charger ./restauration/sql` (schéma, données, complément ; une transaction par
+   fichier).
+4. **Migrations** : `supabase link --project-ref <projet>` puis
+   `supabase migration repair --status applied $(cat ./restauration/sql/migrations_appliquees.txt)`.
+5. **Fichiers de Supabase Storage** :
+   ```bash
+   rclone copy drive:Suivi-fuites-sauvegarde/stockage-supabase ./restauration/fichiers --progress
+   SUPABASE_URL=https://<projet>.supabase.co SUPABASE_SERVICE_ROLE_KEY=… \
+     bash outils/sauvegarde/restaurer-photos.sh ./restauration/fichiers
+   ```
+6. **Reconnecter** : `SUPABASE_PROJECT_ID`, URL et clé anon dans les secrets GitHub (`SUPABASE_*`,
+   `EXPO_PUBLIC_SUPABASE_ANON_KEY`) et les variables Vercel ; adresse du projet dans `.github/workflows/apk.yml` et
+   `sauvegarde-base.yml` ; lancer « Déploiement de la base » (fonctions Edge, secrets R2).
+7. **APK** : l'adresse du projet est compilée dans l'APK : **recompiler** (`apk.yml` sur `main`) et réinstaller à la
+   main sur chaque tablette (la fenêtre « Mise à jour disponible » dépend de la fonction `version-apk`, qui est dans
+   le projet perdu ; la dernière APK de l'ancien projet est sur le Drive, dans `r2/apk/`, mais ne parle plus au
+   nouveau). Les comptes reviennent avec leurs mots de passe ; les sessions ouvertes sont invalidées.
+8. **Vérifier** : connexion du panneau, nombre de marchés et de fuites (comparer au résumé du dernier test de
+   restauration), ouverture d'une fuite avec ses photos, une saisie de test depuis une tablette.
+
+### Scénario B : R2 est perdu (compartiment supprimé, compte Cloudflare fermé)
+
+La base et Storage sont intacts ; il faut un compartiment et les photos.
+
+1. Créer le compartiment privé `suivi-fuites-photos` (ou un autre nom, puis variable GitHub `R2_BUCKET`), un jeton
+   **Object Read & Write** limité à ce compartiment, et la règle CORS (`web/README.md` § Tuiles).
+2. Renvoyer les photos et les APK depuis le Drive (remote R2 créé avec `rclone config`, type S3, fournisseur
+   Cloudflare ; le remote s'appelle ici `r2`) :
+   ```bash
+   rclone copy drive:Suivi-fuites-sauvegarde/r2 r2:suivi-fuites-photos --progress
+   rclone check drive:Suivi-fuites-sauvegarde/r2 r2:suivi-fuites-photos --size-only --one-way
+   ```
+3. Nouvelles clés R2 dans les secrets GitHub (`R2_*`) et dans les secrets des fonctions Supabase
+   (« Déploiement de la base ») ; régénérer les tuiles du réseau si `reseau/` manque (Paramètres › Réseau).
+4. Laisser tourner la sauvegarde de la nuit : `sauvegardes/base/` et `sauvegardes/stockage-supabase/` se
+   reconstruisent seuls.
+
+### Scénario C : GitHub est perdu (compte suspendu, dépôt supprimé)
+
+1. Récupérer le code d'un clone local (`git log` pour vérifier le dernier commit) et le pousser vers un dépôt neuf.
+2. Recréer **tous** les secrets (liste : en-têtes des workflows, `CLAUDE.md`, gestionnaire de mots de passe), dont
+   `SAUVEGARDE_PASSPHRASE` **à l'identique** (sinon les archives existantes restent illisibles) et
+   `SAUVEGARDE_DRIVE_CONFIG` (`rclone config show drive`, voir la note pas à pas).
+3. Relancer « Sauvegarde de la base » à la main : le Drive est repris tel quel (copie incrémentale), rien n'est
+   recopié ni supprimé hors rotation.
+
+### Scénario D : tout est perdu
+
+Dans l'ordre : **A** (projet et base neufs, depuis le Drive) → **B** (photos et APK depuis le Drive) → **C** (code et
+secrets). Le Drive de `stepag.app` est la seule source nécessaire, avec la phrase secrète du gestionnaire de mots de
+passe. Prévoir une demi-journée ; compter davantage pour réinstaller l'APK sur chaque tablette.
+
+### Entretien de la copie
+
+- Une fois par trimestre : ouvrir le dernier résumé du test de restauration (Actions > Test de restauration) et vérifier
+  « restaurée depuis le Google Drive » et les nombres de photos.
+- Espace : le résumé de la sauvegarde indique l'espace libre ; au-dessous de 3 Go, alerte. Google One (100 Go) règle
+  le problème ; les archives de la rotation vont à la corbeille (vidée par Google après 30 jours).
+- Jeton Drive : valable tant qu'il sert ; il est invalidé si Issam le révoque (compte Google > Sécurité > Accès
+  des tiers) ou si l'identifiant OAuth est supprimé. Symptôme : étape « Connexion au Drive » en échec.
 
 ## Application « standard » (étape A)
 
@@ -392,7 +545,7 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
 
 - **Tables** : `troncons` (LineString WGS84, référence stable du dessin, diamètre, matériau, secteur, zone,
   `longueur_m` calculée), `noeuds` (jonction, extrémité, vanne, bouche d'incendie, ventouse, vidange, compteur,
-  réservoir, autre), `balayages` (un passage d'une équipe / d'un agent sur un tronçon, jour à l'heure du Maroc ;
+  réservoir, autre), `balayages` (un passage d'un agent sur un tronçon, jour à l'heure du Maroc ;
   `premier_passage` posé par la base ; annulation avec motif, jamais de suppression).
 - **Un tronçon n'est payé qu'une fois** (CPS art. II-15) : les linéaires « balayés » ne comptent que les premiers
   passages ; les repassages sont à part (`lineaire_repasse_m`). Statut du secteur (`a_balayer`, `en_cours`,
@@ -401,7 +554,7 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
   référence), `reseau_geojson` / `noeuds_geojson` (par secteur : `null` = tous les zonés, `'{}'` + `p_sans_secteur`
   = non zonés seuls), `etat_balayage`, `affecter_troncons_secteur`, `affecter_troncons_polygone`,
   `recalculer_contour_secteur`, `definir_contour_secteur`.
-- **Vues** : `v_lineaire_secteurs`, `v_lineaire_zones`, `v_balayage_journalier` (jour, équipe, agent, zone, secteur :
+- **Vues** : `v_lineaire_secteurs`, `v_lineaire_zones`, `v_balayage_journalier` (jour, agent, zone, secteur :
   tronçons, linéaire, repassé, nœuds, fuites du secteur ce jour, répétées sur chaque ligne du secteur),
   `v_troncons_sans_secteur`.
 - **Volumes réels** (essai local du 2026-10-06, PostgreSQL 17 + PostGIS 3.6) : 44 044 tronçons et 30 820 nœuds
@@ -430,6 +583,16 @@ Contrat complet : `docs/lots/chantier-v2-base-s2.md`.
 - **Anticipation** : case du marché (`parametres_attachement.refection_anticipee`), panier (`prix.anticipable`, réfection
   par défaut), propositions (surface de fouille), une seule anticipation par unité et jamais d'un travail déjà exécuté ;
   à l'exécution, solde exécuté − attaché (pas de double paiement).
+
+## Équipes supprimées (chantier v3, S12)
+
+Décision d'Issam (2026-10-10) : l'équipe, c'est le compte du chef d'équipe (identifiant et mot de passe), sans numéro.
+Le chef d'équipe d'une réparation ou d'une réfection est son `auteur_terrain_id` (matricule dans les documents, R4,
+côté panneau) ; le détail du balayage et de la détection se lit par agent. Migration `20261013200000` : plus aucune
+vue ni fonction ne lit les équipes. **E4 (S21)**, seulement quand toutes les tablettes ont l'APK sans équipe : supprimer
+`equipe_id` de `fuites`, `reparations`, `refections` et `balayages`, la table `equipes`, le type `type_equipe`, la
+liste `type_equipe` de `libelles_listes` (et sa valeur dans le contrôle de la table). D'ici là, une APK plus ancienne
+peut encore envoyer `equipe_id` : la colonne l'accepte, rien ne la lit.
 
 ## Règles pour les migrations suivantes
 

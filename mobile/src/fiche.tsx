@@ -14,7 +14,7 @@ import {
   ajouterEnvoi, estFuite, fuiteDe, lireAttente, messageClair, surChangement, synchroniser,
   type Envoi, type EnvoiMaj, type EnvoiModification, type EnvoiRefection, type EnvoiReparation,
 } from './file-attente';
-import { enumerer, libelleEquipe, t, tx, useLangue } from './langue';
+import { enumerer, t, tx, useLangue } from './langue';
 import { libelleDb, libelleListe } from './listes';
 import { appliquer, type EtatReparation } from './modification';
 import { useParametres, type Parametres } from './parametres';
@@ -78,7 +78,7 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
   id: string; retour: () => void; saisir: (type: 'reparation' | 'refection', contexte: ContexteSaisie) => void;
   modifierFuite: (fuite: FicheFuite) => void;
 }) {
-  const { marche, peut, aRenouveler } = useSession();
+  const { marche, peut, aRenouveler, profil } = useSession();
   useLangue();
   const parametres = useParametres(marche?.id, aRenouveler);
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
@@ -91,6 +91,9 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
   const [photoEnCours, setPhotoEnCours] = useState(false);
   const [validation, setValidation] = useState('');
   const bureau = peut('interventions', 'valider');
+  // Chef d'équipe = compte qui a saisi l'étape (S12) ; saisie encore sur la tablette : le compte connecté.
+  const nomChef = (auteur: string | null | undefined, locale: boolean) =>
+    (auteur && donnees?.chefs?.[auteur]) || (locale ? profil?.nom_complet ?? null : null);
 
   // Version affichée (copie de la tablette ou serveur) : la copie n'est lue qu'à l'ouverture de la fiche.
   const affichee = useRef(false);
@@ -404,7 +407,7 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
           {blocs.length === 0 && <Vide texte={t('Aucune réparation saisie.')} />}
           {blocs.map((b) => (
             <BlocReparation
-              key={b.id} b={b} parametres={parametres} occupe={photoEnCours} photos={photosEtape({ reparation_id: b.id })}
+              key={b.id} b={b} parametres={parametres} chef={nomChef((b.etat.ligne as { auteur_terrain_id?: string | null }).auteur_terrain_id, !!b.creation)} occupe={photoEnCours} photos={photosEtape({ reparation_id: b.id })}
               photo={peutPhoto ? (tp) => void ajouterPhoto(tp, { reparation_id: b.id }) : undefined}
               modifier={modifiable('interventions', b)
                 ? () => saisir('reparation', { ...contexte, modification: { reparationId: b.id, etat: b.etat, saisiPar: b.saisiPar } })
@@ -429,7 +432,7 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
             {blocsRefection.length === 0 && <Vide texte={t('Aucune réfection saisie.')} />}
             {blocsRefection.map(({ r, local, majs: m }) => (
               <BlocRefection
-                key={r.id} r={r} parametres={parametres} local={local} majs={m} occupe={photoEnCours} photos={photosEtape({ refection_id: r.id })}
+                key={r.id} r={r} parametres={parametres} chef={nomChef(r.auteur_terrain_id, !!local)} local={local} majs={m} occupe={photoEnCours} photos={photosEtape({ refection_id: r.id })}
                 photo={peutPhoto ? () => void ajouterPhoto('refection', { refection_id: r.id }) : undefined}
                 modifier={!local && modifiable('refections', { validee_le: r.validee_le, cree_le: r.cree_le, auteurs: [r.auteur_terrain_id, r.saisi_par] })
                   ? () => saisir('refection', { ...contexte, modificationRefection: { refectionId: r.id, ligne: r as unknown as Record<string, unknown> } })
@@ -501,12 +504,11 @@ function Actions({ modifier, valider, enValidation, libelleModifier }: {
   );
 }
 
-function BlocReparation({ b, parametres, photo, photos, modifier, valider, enValidation, occupe }: {
-  b: BlocRep; parametres: Parametres; photo?: (t: TypePhoto) => void; photos: VignettePhoto[];
+function BlocReparation({ b, parametres, chef, photo, photos, modifier, valider, enValidation, occupe }: {
+  b: BlocRep; parametres: Parametres; chef: string | null; photo?: (t: TypePhoto) => void; photos: VignettePhoto[];
   modifier?: () => void; valider?: () => void; enValidation: boolean; occupe: boolean;
 }) {
   const r = b.etat.ligne as unknown as Reparation;
-  const equipe = libelleEquipe(parametres.equipes.find((e) => e.id === r.equipe_id)?.libelle);
   const motif = libelleDb(parametres.motifs.find((m) => m.id === r.motif_id));
   const nature = libelleDb(parametres.natures.find((n) => n.id === r.nature_revetement_id));
   const travaux = ([
@@ -520,7 +522,7 @@ function BlocReparation({ b, parametres, photo, photos, modifier, valider, enVal
     <Bloc
       icone="wrench"
       titre={libelleListe('resultat_reparation', r.resultat, RESULTATS_REPARATION[r.resultat])}
-      sousTitre={`${dateHeure(r.realisee_le)}${equipe ? ` · ${equipe}` : ''}`}
+      sousTitre={`${dateHeure(r.realisee_le)}${chef ? ` · ${chef}` : ''}`}
       action={<Actions modifier={modifier} valider={valider} enValidation={enValidation} libelleModifier={t('Modifier la réparation')} />}
     >
       {!b.creation && <EtatValidation validee={b.validee_le} />}
@@ -567,8 +569,8 @@ function BlocReparation({ b, parametres, photo, photos, modifier, valider, enVal
   );
 }
 
-function BlocRefection({ r, parametres, local, majs, photo, photos, modifier, valider, enValidation, occupe }: {
-  r: Refection; parametres: Parametres; local?: EnvoiRefection; majs: EnvoiMaj[]; photo?: () => void;
+function BlocRefection({ r, parametres, chef, local, majs, photo, photos, modifier, valider, enValidation, occupe }: {
+  r: Refection; parametres: Parametres; chef: string | null; local?: EnvoiRefection; majs: EnvoiMaj[]; photo?: () => void;
   photos: VignettePhoto[];
   modifier?: () => void; valider?: () => void; enValidation: boolean; occupe: boolean;
 }) {
@@ -579,7 +581,7 @@ function BlocRefection({ r, parametres, local, majs, photo, photos, modifier, va
     : local ? t('dimensions de la fouille') : null;
   return (
     <Bloc
-      icone="paint-roller" titre={r.resultat === 'faite' ? t('Réfection faite') : t('Clôturée sans réfection')} sousTitre={dateHeure(r.realisee_le)}
+      icone="paint-roller" titre={r.resultat === 'faite' ? t('Réfection faite') : t('Clôturée sans réfection')} sousTitre={`${dateHeure(r.realisee_le)}${chef ? ` · ${chef}` : ''}`}
       action={<Actions modifier={modifier} valider={valider} enValidation={enValidation} libelleModifier={t('Modifier la réfection')} />}
     >
       {!local && <EtatValidation validee={r.validee_le} />}

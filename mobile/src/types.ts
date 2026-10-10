@@ -74,7 +74,7 @@ export interface PhotoLigne {
   cree_le?: string; saisi_par?: string | null; auteur_terrain_id?: string | null;
 }
 export interface Reparation {
-  id: string; resultat: ResultatReparation; motif_id: string | null; realisee_le: string; equipe_id: string | null;
+  id: string; resultat: ResultatReparation; motif_id: string | null; realisee_le: string;
   ouvrage: string | null; materiau: string | null; diametre_mm: number | null; representant_srm: string | null;
   tuyau_repare: boolean; robinet_pec_change: boolean; collier_pec_change: boolean;
   bouche_a_cle_mise_a_niveau: boolean; element_remplace: boolean; longueur_pe_m: number | null;
@@ -86,7 +86,7 @@ export interface Reparation {
 }
 export interface Refection {
   id: string; resultat: ResultatRefection; motif_id: string | null; realisee_le: string; nature_id: string | null;
-  longueur_m: number | null; largeur_m: number | null; equipe_id: string | null; observation: string | null;
+  longueur_m: number | null; largeur_m: number | null; observation: string | null;
   validee_le?: string | null; cree_le?: string | null; auteur_terrain_id?: string | null; saisi_par?: string | null;
   reparation_id?: string | null;
 }
@@ -111,7 +111,6 @@ export interface Representant { id: string; nom: string }
 export interface LibelleListe { liste: string; code: string; libelle_fr: string; libelle_ar: string | null }
 /** Article Dolibarr activé (id : identifiant du produit dans Dolibarr), commun à tous les marchés. */
 export interface Piece { id: number; designation: string; unite: string | null }
-export interface Equipe { id: string; type: string; numero: number; libelle: string }
 export interface Ouvrier { id: string; nom_complet: string }
 export interface Proche {
   id: string; numero: number; reference_srm: string | null; statut: StatutFuite;

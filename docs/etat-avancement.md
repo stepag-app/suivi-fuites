@@ -95,7 +95,12 @@ faute de quoi les compilations d'APK et le déploiement automatique de la base s
   déployée le 2026-10-10 : le bloc affiche bien « Aucune archive »). Le premier clic sur « Générer les tuiles » a ensuite échoué sur
   « canceling statement due to statement timeout » : le réseau entier lu en une requête (15 Mo de JSON) dépasse le délai maximal
   de l'API en production. `chargerReseauComplet` et `chargerNoeudsComplet` (tuiles et carte de zonage) lisent désormais par paquets
-  de 8 secteurs, puis les non zonés, 4 requêtes à la fois (PR `fix(reseau)` du 2026-10-10). Ensuite, dans l'ordre :
+  de 8 secteurs, puis les non zonés, 4 requêtes à la fois (PR #88, fusionnée le 2026-10-10). Le délai restait dépassé en
+  production (02:11) : les 8 862 tronçons non zonés formaient encore un seul bloc. Migration `20261013400000_reseau_lecture_paginee`
+  (PR `fix(reseau)` lecture paginée) : `reseau_geojson_page` / `noeuds_geojson_page` lisent tout le réseau par pages bornées
+  (2 000 tronçons, 3 000 nœuds) ; en local sur Oujda, 23 pages de 50 ms au lieu d'un bloc de 1 060 ms. Le bloc affiche
+  l'avancement et, en cas d'échec, la lecture et la page fautives. Repli sur les paquets de secteurs si la base n'a pas encore les
+  fonctions. Ensuite, dans l'ordre :
   1. Règle CORS du compartiment R2 `suivi-fuites-photos` : en-tête `Range`, méthode `HEAD`, origine `https://fuites.stepag.ma`
      (texte complet dans `web/README.md` § Tuiles ; il remplace la règle des photos, qui y est comprise).
   2. **Paramètres > Réseau > Générer les tuiles** : l'état doit passer à « À jour » (date, tronçons, nœuds, taille).

@@ -7,11 +7,15 @@ name: Sauvegarde de la base
 #  2. en dépose une copie HORS de GitHub dans Cloudflare R2 (compartiment suivi-fuites-photos, préfixe
 #     sauvegardes/base/), vérifiée par empreinte SHA-256, 30 jours de conservation (les archives plus
 #     anciennes sont supprimées par le workflow, au moins 7 récentes toujours gardées) ;
-#  3. copie dans R2 (préfixe sauvegardes/stockage-supabase/) les fichiers encore dans Supabase Storage.
+#  3. copie dans R2 (préfixe sauvegardes/stockage-supabase/) les fichiers encore dans Supabase Storage ;
+#  4. second job « drive » : copie COMPLÈTE hors de Supabase, Vercel, R2 et GitHub, sur le Google Drive du
+#     compte stepag.app@gmail.com (rclone) : archive de la base (30 quotidiennes, 12 mensuelles), photos et
+#     APK du compartiment R2, fichiers de Supabase Storage. Incrémentale ; rien n'est jamais effacé du Drive,
+#     sauf la rotation des archives de base. Échec visible : étape en échec et résumé de l'exécution.
 # À la demande : Actions > Sauvegarde de la base > Run workflow. Appelé aussi par « Test de restauration »
 # sur une PR qui modifie ces fichiers.
-# Scripts : outils/sauvegarde/ (exporter.sh, copie-r2.sh, photos-vers-r2.sh). Procédure de restauration :
-# supabase/README.md, section « Sauvegarde et restauration ».
+# Scripts : outils/sauvegarde/ (exporter.sh, copie-r2.sh, photos-vers-r2.sh, copie-drive.sh). Procédure de
+# restauration : supabase/README.md, sections « Sauvegarde et restauration » et « Reprise après sinistre ».
 # Secrets (Settings > Secrets and variables > Actions) :
 #  * SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD : déjà créés pour le déploiement
 #  * SAUVEGARDE_PASSPHRASE : phrase secrète de chiffrement. À ranger dans le gestionnaire de mots de
@@ -19,6 +23,9 @@ name: Sauvegarde de la base
 #    Elle n'est jamais envoyée dans R2 : seule l'archive chiffrée y va.
 #  * R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY : jeton Object Read & Write limité au
 #    compartiment suivi-fuites-photos (déjà créé pour les photos). Variable facultative R2_BUCKET.
+#  * SAUVEGARDE_DRIVE_CONFIG : section [drive] de la configuration rclone (autorisation du Drive de
+#    stepag.app, créée par Issam : note pas à pas « Autoriser rclone sur le Drive »). Sans ce secret, le job
+#    drive échoue (planifié ou lancé à la main) ; sur une PR il signale seulement un avertissement.
 
 on:
   schedule:
@@ -83,3 +90,122 @@ jobs:
         run: bash outils/sauvegarde/copie-r2.sh sauvegarde-*.tar.gz.gpg
       - name: Fichiers de Supabase Storage vers R2
         run: bash outils/sauvegarde/photos-vers-r2.sh
+
+  drive:
+    name: Copie sur le Drive (hors plateformes)
+    needs: sauvegarde
+    # Même si l'export de la base a échoué : les photos et les APK sont copiées quand même.
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    concurrency:
+      group: sauvegarde-drive
+      cancel-in-progress: false
+    env:
+      SAUVEGARDE_DRIVE_CONFIG: ${{ secrets.SAUVEGARDE_DRIVE_CONFIG }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la configuration du Drive
+        id: config
+        run: |
+          if [ -z "$SAUVEGARDE_DRIVE_CONFIG" ]; then
+            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+              echo "::warning::Secret SAUVEGARDE_DRIVE_CONFIG absent : copie sur le Drive non réalisée (toléré sur une PR)."
+              echo "configure=non" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "::error::Secret SAUVEGARDE_DRIVE_CONFIG manquant dans GitHub : la copie hors plateformes sur le Drive n'est pas configurée (note pas à pas « Autoriser rclone sur le Drive »)."
+            exit 1
+          fi
+          for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
+          done
+          echo "configure=oui" >> "$GITHUB_OUTPUT"
+      - name: Installer rclone (version épinglée)
+        if: steps.config.outputs.configure == 'oui'
+        run: bash outils/sauvegarde/installer-rclone.sh
+      - name: Connexion au Drive
+        id: connexion
+        if: steps.config.outputs.configure == 'oui'
+        run: |
+          echo "RCLONE_CONFIG=$RUNNER_TEMP/rclone.conf" >> "$GITHUB_ENV"
+          RCLONE_CONFIG="$RUNNER_TEMP/rclone.conf" bash outils/sauvegarde/copie-drive.sh preparer
+      - name: Récupérer l'archive chiffrée de ce job
+        id: recuperer
+        if: ${{ !cancelled() && steps.connexion.outcome == 'success' && needs.sauvegarde.result == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: sauvegarde-base
+          path: archive
+      - name: Archive de la base vers le Drive (vérifiée, rotation)
+        id: base
+        if: ${{ !cancelled() && steps.recuperer.outcome == 'success' }}
+        run: |
+          shopt -s nullglob
+          archives=(archive/sauvegarde-*.tar.gz.gpg)
+          if [ "${#archives[@]}" -ne 1 ]; then
+            echo "::error::L'artefact sauvegarde-base doit contenir une seule archive (trouvé : ${#archives[@]})."
+            exit 1
+          fi
+          bash outils/sauvegarde/copie-drive.sh base "${archives[0]}"
+      - name: Photos et APK (R2) vers le Drive
+        id: r2
+        if: ${{ !cancelled() && steps.connexion.outcome == 'success' }}
+        run: bash outils/sauvegarde/copie-drive.sh r2
+      - name: Fichiers de Supabase Storage vers le Drive
+        id: stockage
+        if: ${{ !cancelled() && steps.connexion.outcome == 'success' }}
+        run: bash outils/sauvegarde/copie-drive.sh stockage
+      - name: Espace du Drive et LISEZMOI
+        id: espace
+        if: ${{ !cancelled() && steps.connexion.outcome == 'success' }}
+        run: |
+          bash outils/sauvegarde/copie-drive.sh lisezmoi
+          bash outils/sauvegarde/copie-drive.sh espace | tee "$RUNNER_TEMP/espace.txt"
+      - name: Résumé
+        if: always()
+        env:
+          CONFIG: ${{ steps.config.outcome }}
+          CONFIGURE: ${{ steps.config.outputs.configure }}
+          CONNEXION: ${{ steps.connexion.outcome }}
+          EXPORT: ${{ needs.sauvegarde.result }}
+          BASE: ${{ steps.base.outcome }}
+          R2: ${{ steps.r2.outcome }}
+          STOCKAGE: ${{ steps.stockage.outcome }}
+        run: |
+          etat() {
+            case "$1" in
+              success) echo "✅ réussi" ;;
+              failure) echo "❌ **ÉCHEC**" ;;
+              skipped) echo "⏭️ non exécuté" ;;
+              cancelled) echo "⚠️ annulé" ;;
+              *) echo "$1" ;;
+            esac
+          }
+          {
+            echo "## Copie hors plateformes (Google Drive stepag.app)"
+            echo
+            if [ "$CONFIGURE" = "non" ]; then
+              echo "⚠️ **Drive non configuré** : secret \`SAUVEGARDE_DRIVE_CONFIG\` absent. Aucune copie n'a été faite."
+            elif [ "$CONFIG" = "failure" ]; then
+              echo "❌ **Drive non configuré** : secret \`SAUVEGARDE_DRIVE_CONFIG\` ou secrets R2 manquants. Aucune copie n'a été faite."
+            else
+              echo "| Élément | État |"
+              echo "| --- | --- |"
+              echo "| Connexion au Drive | $(etat "$CONNEXION") |"
+              echo "| Export de la base (job précédent) | $(etat "$EXPORT") |"
+              echo "| Archive chiffrée de la base (SHA-256 relu, rotation) | $(etat "$BASE") |"
+              echo "| Photos et APK du compartiment R2 | $(etat "$R2") |"
+              echo "| Fichiers de Supabase Storage | $(etat "$STOCKAGE") |"
+              if [ -s "$RUNNER_TEMP/espace.txt" ]; then echo; grep -v '^::' "$RUNNER_TEMP/espace.txt" || true; fi
+              echo
+              echo "Rien n'est supprimé du Drive, sauf la rotation des archives de base (30 quotidiennes, 12 mensuelles)."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Effacer la configuration rclone
+        if: always()
+        run: rm -f "$RUNNER_TEMP/rclone.conf" "$RUNNER_TEMP/espace.txt"

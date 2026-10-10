@@ -197,3 +197,7 @@ planches/
 
 # macOS
 .DS_Store
+
+# Configuration rclone (jeton du Drive de sauvegarde) : jamais versionnée
+rclone.conf
+*.rclone.conf

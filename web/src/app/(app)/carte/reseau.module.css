@@ -80,7 +80,7 @@
 .ligne {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   min-height: var(--h-cmd-gros);
   margin: 0;
   font-weight: 600;
@@ -129,7 +129,7 @@
 }
 
 .trait {
-  width: 22px;
+  width: 14px;
   height: 0;
   border-top: 4px solid;
   border-radius: 2px;
@@ -150,13 +150,13 @@
 
 .compteur {
   color: var(--discret);
-  font-size: 0.82rem;
+  font-size: 0.76rem;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
 .jauge {
-  width: 46px;
+  width: 28px;
   height: 6px;
   flex: none;
   border-radius: 3px;
@@ -354,4 +354,13 @@
 .repasse {
   color: #b45309;
   font-weight: 600;
+}
+
+/* Panneau en arabe (APK) : lignes des zones et secteurs dans le sens des noms (lettres latines) : case, nom, puis km
+   à droite ; chaque nom garde son sens de lecture, coupé à la fin. */
+.panneau[dir='rtl'] .ligne {
+  direction: ltr;
+}
+.panneau[dir='rtl'] .texte {
+  unicode-bidi: plaintext;
 }

@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { messageErreur } from '@/lib/format';
+import { memoriserLangueApk } from '@/lib/langue-apk';
 import { configurationManquante, estContexteApk, getSupabase } from '@/lib/supabase';
 import { lireFragmentSession } from './fragment';
 
@@ -47,6 +48,7 @@ export default function PageSession() {
         if (annule) return;
         setEtape('Session ouverte, ouverture de la carte…');
         // replace : le retour arrière de la WebView ne repasse pas par /session sans jetons.
+        memoriserLangueApk(lu.suite);
         router.replace(lu.suite);
       } catch (e) {
         if (!annule) setErreur(messageErreur(e));

@@ -81,7 +81,8 @@ Deno.serve(async (req) => {
 
     switch (corps.action) {
       case 'lire': {
-        const tete = await r2.client.fetch(await signer(r2, 'GET', chemin, 60), { method: 'HEAD' });
+        // Signature par en-tête seulement : une URL déjà présignée, re-signée par client.fetch, est refusée (403).
+        const tete = await r2.client.fetch(`${r2.base}/${r2.compartiment}/${chemin}`, { method: 'HEAD' });
         if (tete.status === 404) return reponse(200, { existe: false });
         if (!tete.ok) return reponse(502, { erreur: `Stockage injoignable (HTTP ${tete.status})` });
         return reponse(200, {

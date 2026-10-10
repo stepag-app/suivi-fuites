@@ -98,8 +98,6 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   "Touchez les tronçons balayés (un second appui retire le tronçon), ou tracez un lasso au doigt ; « Prolonger » suit la rue jusqu'à la prochaine jonction. Les outils sont dans la barre en haut de la carte.": {
     ar: 'المس المقاطع التي مسحتها (لمسة ثانية تُلغي المقطع)، أو ارسم تحديدًا حرًّا بإصبعك؛ «تمديد» يتبع الشارع حتى التقاطع التالي. الأدوات في الشريط أعلى الخريطة.',
   },
-  'Équipe': { ar: 'الفريق' },
-  '— sans équipe —': { ar: '— بدون فريق —' },
   'Date du balayage': { ar: 'تاريخ المسح' },
   'Méthode (facultative)': { ar: 'الطريقة (اختيارية)' },
   'Écoute (sol, bouches à clé)': { ar: 'الإنصات (الأرض، فتحات المحابس)' },
@@ -135,15 +133,6 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   'Balayage annulé.': { ar: 'تم إلغاء المسح.' },
   'Aucun balayage à annuler sur ce tronçon.': { ar: 'لا يوجد مسح لإلغائه في هذا المقطع.' },
 };
-
-// Mots des noms d'équipe saisis en français dans la base (« Équipe détection 1 », « Réparation A (démo) »).
-const MOTS_EQUIPE: [RegExp, string, string?][] = [
-  [/\bÉquipe\b/gi, 'فريق'],
-  [/\bDétection\b/gi, 'الكشف'],
-  [/\bRéparation\b/gi, 'الإصلاح'],
-  [/\bRéfection\b/gi, 'إعادة الرصف', 'Réfection'],
-  [/\(démo\)/gi, '(تجريبي)'],
-];
 
 let courante: LangueApk | null = null;
 const valide = (v: string | null): v is LangueApk => v === 'fr' || v === 'hybride' || v === 'ar';
@@ -191,12 +180,6 @@ export function traduire(langue: LangueApk, cle: string, valeurs?: Record<string
   return RLM + remplir(langue === 'hybride' ? e.hyb ?? e.ar : e.ar, valeurs, true);
 }
 
-/** Nom d'équipe venu de la base, mots connus traduits. */
-export function traduireEquipe(langue: LangueApk, libelle: string): string {
-  if (langue === 'fr') return libelle;
-  return MOTS_EQUIPE.reduce((t, [motif, ar, hyb]) => t.replace(motif, langue === 'hybride' ? hyb ?? ar : ar), libelle);
-}
-
 /** Hors composant (bulles de la carte construites à la main) : langue lue dans l'adresse ou l'onglet. */
 export const langueApk = (): LangueApk => (typeof window === 'undefined' ? 'fr' : lire());
 
@@ -209,15 +192,14 @@ export function useLangueApk() {
     langue,
     rtl: langue !== 'fr',
     tb: (cle: string, valeurs?: Record<string, string | number>, fr?: string) => traduire(langue, cle, valeurs, fr),
-    te: (libelle: string) => traduireEquipe(langue, libelle),
   }), [langue]);
 }
 
-/** « Balayé le 05/10/2026 par Ahmed (Détection 1) · 2 passages » dans la langue de la tablette (bulle, messages). */
-export function texteEtatTronconApk(etat: { balaye: boolean; dernier: string | null; agent: string | null; equipe: string | null; passages: number } | undefined): string {
+/** « Balayé le 05/10/2026 par Ahmed · 2 passages » dans la langue de la tablette (bulle, messages). */
+export function texteEtatTronconApk(etat: { balaye: boolean; dernier: string | null; agent: string | null; passages: number } | undefined): string {
   const l = langueApk();
   if (!etat || !etat.balaye) return traduire(l, 'Non balayé');
-  const qui = [etat.agent, etat.equipe ? `(${traduireEquipe(l, etat.equipe)})` : null].filter(Boolean).join(' ');
+  const qui = etat.agent ?? '';
   const quand = etat.dernier ? new Date(etat.dernier).toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' }) : '—';
   const base = traduire(l, 'Balayé le {date}', { date: quand }) + (qui ? traduire(l, ' par {qui}', { qui }).replace(/^‏/, '') : '');
   return etat.passages > 1 ? base + traduire(l, ' · {n} passages', { n: etat.passages }).replace(/^‏/, '') : base;

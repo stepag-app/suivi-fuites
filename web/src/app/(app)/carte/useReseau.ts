@@ -7,8 +7,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { construireArbre, tousLesSecteurs, type NoeudZone } from '@/lib/reseau/arbre';
 import {
-  chargerContexteReseau, chargerEquipes, chargerEtatBalayage, chargerNoeudsSecteur, chargerNomsProfils, chargerTronconsSecteur,
-  messageReseau, type ContexteReseau, type EquipeReseau,
+  chargerContexteReseau, chargerEtatBalayage, chargerNoeudsSecteur, chargerNomsProfils, chargerTronconsSecteur,
+  messageReseau, type ContexteReseau,
 } from '@/lib/reseau/donnees';
 import { etatsFeatures } from '@/lib/reseau/etat';
 import { paletteSecteurs, type PaletteReseau } from '@/lib/reseau/palette';
@@ -55,7 +55,6 @@ export interface EtatReseau {
   secteursAffiches: SecteurAffiche[];
   index: Map<string, TronconIndexe>;
   etats: Map<string, EtatFeature>;
-  equipes: EquipeReseau[];
   chargement: boolean;
   nbEnChargement: number;
   erreur: string;
@@ -81,8 +80,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   const [choisisInitialises, setChoisisInitialises] = useState(false);
   const [contexte, setContexte] = useState<ContexteReseau | null>(null);
   const [lignesEtat, setLignesEtat] = useState<EtatBalayageTroncon[]>([]);
-  const [noms, setNoms] = useState<{ equipes: Map<string, string>; agents: Map<string, string> }>({ equipes: new Map(), agents: new Map() });
-  const [equipes, setEquipes] = useState<EquipeReseau[]>([]);
+  const [noms, setNoms] = useState<{ agents: Map<string, string> }>({ agents: new Map() });
   const [chargement, setChargement] = useState(false);
   const [erreur, setErreur] = useState('');
   const [version, setVersion] = useState(0);
@@ -137,12 +135,8 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     try {
       const lignes = await chargerEtatBalayage(marcheId);
       setLignesEtat(lignes);
-      const [eq, agents] = await Promise.all([
-        chargerEquipes(marcheId),
-        chargerNomsProfils(lignes.map((l) => l.agent_id).filter((x): x is string => !!x)),
-      ]);
-      setEquipes(eq);
-      setNoms({ equipes: new Map(eq.map((e) => [e.id, e.libelle])), agents });
+      const agents = await chargerNomsProfils(lignes.map((l) => l.agent_id).filter((x): x is string => !!x));
+      setNoms({ agents });
     } catch (e) {
       setErreur(messageReseau(e));
     }
@@ -354,7 +348,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
 
   return {
     actif, setActif, coloration, setColoration, choisis, setChoisis, contexte, arbre, palette, libelles,
-    secteursAffiches, index: index.current, etats, equipes, chargement, nbEnChargement, erreur,
+    secteursAffiches, index: index.current, etats, chargement, nbEnChargement, erreur,
     recharger, rechargerEtats, surZoom: setZoom, tuiles, etatTuiles, bornes, longueurs, inventaire,
   };
 }

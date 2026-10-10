@@ -339,7 +339,7 @@ function CarteDesFuites() {
     surZoom: reseau.surZoom, tuiles: reseau.tuiles,
   } : undefined;
 
-  // « Enregistrer… » : ouvre le panneau Réseau et amène le formulaire du balayage (équipe, date, méthode) à l'écran,
+  // « Enregistrer… » : ouvre le panneau Réseau et amène le formulaire du balayage (date, méthode) à l'écran,
   // même si le panneau était déjà ouvert (sur la tablette, il est en bas d'une longue liste de secteurs).
   const allerAuFormulaire = () => {
     setReseauOuvert(true);

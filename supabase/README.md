@@ -9,7 +9,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 |---|---|
 | `migrations/20261004090000_fondations.sql` | PostGIS, schéma `private`, types (statuts, rôles, familles de prix…), privilèges par défaut retirés |
 | `migrations/20261004090100_noyau_droits.sql` | marchés, profils, affectations, droits CRUD, modèles de rôles, journal, fonctions de sécurité |
-| `migrations/20261004090200_parametres_marche.sql` | zones, secteurs, phases, équipes, ouvriers, prix, natures de réfection, motifs, catalogue de pièces, ordres de service |
+| `migrations/20261004090200_parametres_marche.sql` | zones, secteurs, phases, équipes (inutilisées depuis S12, supprimées en E4), ouvriers, prix, natures de réfection, motifs, catalogue de pièces, ordres de service |
 | `migrations/20261004090300_fuites_interventions.sql` | fuites, réparations, réfections, pièces posées, lignes de quantités, photos ; numérotation, statuts automatiques, verrou, lignes de prix automatiques |
 | `migrations/20261004090400_rls_privileges.sql` | règles RLS et privilèges, table par table |
 | `migrations/20261004090500_vues_fonctions.sql` | vues `v_fuites` (alertes), `v_pieces_posees`, `v_quantites`, `v_anomalies` ; fonction `rechercher_fuites_proches` |
@@ -22,7 +22,7 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261004210000_exports.sql` | étape C : modèles d'export par marché (`modeles_export`, trois par défaut), vue `v_fuites_export` (fuite + dernière réparation, réfection, pièces, quantités) |
 | `migrations/20261004220000_anomalies_corrigees.sql` | `v_anomalies` : plus de « terrassement sans avis » sans fouille, ni de « référence en double » sur la fuite d'origine d'une re-détection |
 | `migrations/20261004230000_marche_demo.sql` | marché de démonstration `DEMO` (données fictives, voir ci-dessous) |
-| `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes, natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
+| `migrations/20261005100000_copie_marche.sql` | lot C : `copier_marche` (administrateur) crée un marché en copiant fiche, bordereau et règles de proposition, zones, secteurs, équipes (plus depuis S12), natures, motifs, catalogue, règles d'attachement, catégories d'événements, modèles d'export ; jamais fuites, lots, OS, avenants, ouvriers |
 | `migrations/20261005120000_logos_marche.sql` | lot F : logos du marché (compartiment privé `logos`, PNG ou JPEG, 2 Mo ; `<marche_id>/titulaire\|maitre_ouvrage.png\|jpg` dans `marches.logo_titulaire` / `logo_maitre_ouvrage` ; lecture « exports / lire » ou « paramètres / lire », écriture « paramètres / modifier ») ; non copiés par `copier_marche` |
 | `migrations/20261005120100_marche_inactif.sql` | lot J : marché désactivé en lecture seule (`peut` et `marches_autorises` exigent un marché actif pour toute action autre que « lire ») ; l'administrateur garde la main |
 | `migrations/20261006100000_droits_verrous.sql` | lot Q : verrous de sécurité de l'administrateur (`verrous_admin`, journalisés) pris en compte par `private.peut` et `private.marches_autorises` ; contrôle explicite des actions sensibles (supprimer une fuite, arrêter / rouvrir un lot, refacturation forcée, désactiver / copier un marché, révoquer un compte) ; fiche du marché et journal soumis aux verrous ; révocation par l'administrateur connecté seulement (service_role : blocage de connexion d'un profil déjà révoqué) ; `enregistrer_droits` (matrice d'un marché en une transaction) |
@@ -72,6 +72,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261010500000_nom_compte_issam.sql` | chantier v2, S6 (R3) : données seulement, le compte `issam` reçoit nom `BOUSALAM`, prénom `Issam` (nom affiché « BOUSALAM Issam ») si aucun nom ni prénom n'a été saisi |
 | `migrations/20261011100000_suivi_gps.sql` | chantier v2, S11 (X6) : `traces_gps` (**un tracé par agent, marché et jour**, jour d'Oujda ; géométrie `LineString M` en WGS84, M = secondes Unix ; environ 24 octets par point, soit 70 Ko pour 3 000 points ; `unique (marche_id, profil_id, jour)`), RLS : lecture par le **responsable du marché** et l'**administrateur** seulement (`private.marches_traces_gps`), jamais l'agent lui-même ni ses collègues, aucune écriture directe ; `ajouter_points_trace(marché, [[t, lon, lat], …])` (agent affecté et actif dans un marché actif, 1 000 points au plus par envoi, points invalides ignorés, **idempotente** : un point déjà reçu est ignoré, l'ordre des lots n'importe pas, lot à cheval sur minuit réparti sur deux jours) ; `v_traces_gps` (liste sans géométrie), `trace_gps(marché, agent, jour)` (points `[lon, lat, t]`) ; `purger_traces_marche` (administrateur, **marché désactivé seulement**, journalisée) ; `saisies_compte` ne compte pas les tracés (un compte qui n'a que des tracés reste supprimable) |
 | `tests/database/34_s11_suivi_gps.test.sql` | 57 tests S11 : privilèges, un tracé par agent et par jour, géométrie M, idempotence (même lot, lot qui recoupe, lot plus ancien reçu après), minuit d'Oujda, points invalides, refus (autre marché, révoqué, marché désactivé, 1 000 points), lecture responsable / administrateur seulement, isolation entre marchés, purge (droits, marché actif refusé, journal) |
+| `migrations/20261013200000_equipes_supprimees.sql` | chantier v3, S12 (E1) : plus d'équipe dans les vues ni les fonctions ; le **chef d'équipe** est le compte qui a saisi le travail (`auteur_terrain_id`) : `chef_equipe_id` / `chef_equipe` (`v_quantites`, `v_a_attacher`, `v_attachement_lignes`, `v_refections_dues`), `chef_id` / `chef` (`v_pieces_reelles`, `v_pieces_posees`, `v_inventaire_fournitures`), `chef_reparation_id` (`v_fuites_export`) ; `v_balayage_journalier` et `etat_balayage(_compact)` par agent ; regroupements `chef` au lieu de `equipe` (règles d'attachement, modèles d'export, colonnes et filtres des modèles repris) ; `copier_parametres_marche` sans équipes ; équipes et liste `type_equipe` désactivées (une APK déjà installée n'affiche plus le choix) ; plus aucune vue ne dépend d'`equipe_id` (« r.* » remplacés par des listes explicites). Table, type et colonnes gardés vides jusqu'à E4 (S21) |
+| `tests/database/40_s12_sans_equipes.test.sql` | 14 tests S12 : aucune vue ne dépend d'`equipe_id` ni de `equipes`, aucune colonne ni fonction d'équipe, équipes désactivées, regroupement « équipe » refusé et « chef » accepté, modèles repris, chef d'équipe = compte de la réparation (`v_fuites_export`, `v_quantites`, `v_a_attacher`, `v_refections_dues`) |
 | `tests/database/13_inventaire_fournitures.test.sql` | 17 tests du lot P3 (privilèges, aucun prix ni référence, inventaire réel avec corrections, remplacées / retirées / réparation supprimée exclues, résumé par période, droits : responsable et administrateur seulement, isolation) |
 | `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
 | `migrations/20261013100000_envoi_dolibarr.sql` | chantier v3, S13 (X8) : envoi automatique des mouvements Dolibarr ; `envois_dolibarr` (journal : envois reçus, signes de vie et erreurs regroupés, 400 jours ; lecture comme `imports_mouvements_dolibarr`), `recevoir_envoi_dolibarr(jsonb)` (**service_role seulement**, appelée par la fonction `dolibarr-mouvements` : actions `etat`, `envoyer`, `erreur` ; entrepôts suivis seulement, nouveaux ou changés seulement, puis `importer_mouvements_dolibarr`) |
@@ -541,7 +543,7 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
 
 - **Tables** : `troncons` (LineString WGS84, référence stable du dessin, diamètre, matériau, secteur, zone,
   `longueur_m` calculée), `noeuds` (jonction, extrémité, vanne, bouche d'incendie, ventouse, vidange, compteur,
-  réservoir, autre), `balayages` (un passage d'une équipe / d'un agent sur un tronçon, jour à l'heure du Maroc ;
+  réservoir, autre), `balayages` (un passage d'un agent sur un tronçon, jour à l'heure du Maroc ;
   `premier_passage` posé par la base ; annulation avec motif, jamais de suppression).
 - **Un tronçon n'est payé qu'une fois** (CPS art. II-15) : les linéaires « balayés » ne comptent que les premiers
   passages ; les repassages sont à part (`lineaire_repasse_m`). Statut du secteur (`a_balayer`, `en_cours`,
@@ -550,7 +552,7 @@ Contrat : `docs/lots/lot-s-reseau.md`. Conversion du DWG : `outils/reseau/README
   référence), `reseau_geojson` / `noeuds_geojson` (par secteur : `null` = tous les zonés, `'{}'` + `p_sans_secteur`
   = non zonés seuls), `etat_balayage`, `affecter_troncons_secteur`, `affecter_troncons_polygone`,
   `recalculer_contour_secteur`, `definir_contour_secteur`.
-- **Vues** : `v_lineaire_secteurs`, `v_lineaire_zones`, `v_balayage_journalier` (jour, équipe, agent, zone, secteur :
+- **Vues** : `v_lineaire_secteurs`, `v_lineaire_zones`, `v_balayage_journalier` (jour, agent, zone, secteur :
   tronçons, linéaire, repassé, nœuds, fuites du secteur ce jour, répétées sur chaque ligne du secteur),
   `v_troncons_sans_secteur`.
 - **Volumes réels** (essai local du 2026-10-06, PostgreSQL 17 + PostGIS 3.6) : 44 044 tronçons et 30 820 nœuds
@@ -579,6 +581,16 @@ Contrat complet : `docs/lots/chantier-v2-base-s2.md`.
 - **Anticipation** : case du marché (`parametres_attachement.refection_anticipee`), panier (`prix.anticipable`, réfection
   par défaut), propositions (surface de fouille), une seule anticipation par unité et jamais d'un travail déjà exécuté ;
   à l'exécution, solde exécuté − attaché (pas de double paiement).
+
+## Équipes supprimées (chantier v3, S12)
+
+Décision d'Issam (2026-10-10) : l'équipe, c'est le compte du chef d'équipe (identifiant et mot de passe), sans numéro.
+Le chef d'équipe d'une réparation ou d'une réfection est son `auteur_terrain_id` (matricule dans les documents, R4,
+côté panneau) ; le détail du balayage et de la détection se lit par agent. Migration `20261013200000` : plus aucune
+vue ni fonction ne lit les équipes. **E4 (S21)**, seulement quand toutes les tablettes ont l'APK sans équipe : supprimer
+`equipe_id` de `fuites`, `reparations`, `refections` et `balayages`, la table `equipes`, le type `type_equipe`, la
+liste `type_equipe` de `libelles_listes` (et sa valeur dans le contrôle de la table). D'ici là, une APK plus ancienne
+peut encore envoyer `equipe_id` : la colonne l'accepte, rien ne la lit.
 
 ## Règles pour les migrations suivantes
 

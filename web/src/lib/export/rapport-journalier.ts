@@ -4,7 +4,7 @@
 //
 // Contenu : en-tête du marché (logos, titulaire, maître d'ouvrage, n° et objet du marché), titre
 // « RAPPORT JOURNALIER DE RECHERCHE DE FUITES », identification (société, journée en toutes lettres à
-// l'heure du Maroc, équipes, agents, zones et secteurs d'intervention, linéaire inspecté en km : premiers
+// l'heure du Maroc, agents, zones et secteurs d'intervention, linéaire inspecté en km : premiers
 // passages, seul linéaire rémunéré (CPS art. II-15) ; linéaire repassé à part ; tronçons, nœuds), détail par
 // secteur s'il y en a plusieurs, tableau des fuites du gabarit (« R.A.S » sans fuite), ligne TOTAL (visibles,
 // invisibles), commentaire, visas du titulaire et du client (libellés lus dans la fiche du marché, jamais
@@ -24,17 +24,17 @@
 //   1. ctx = await chargerContexteRapport(marcheId, false)     // fiche du marché, OS, logos
 //   2. lignes : v_balayage_journalier, .eq('marche_id', marcheId).eq('date_balayage', jour)
 //      (jour = AAAA-MM-JJ à l'heure du Maroc ; toutes les colonnes de la vue)
-//   3. fuites : v_fuites_export, .select('numero, reference_srm, adresse, zone, secteur_id, secteur, equipe_id,
+//   3. fuites : v_fuites_export, .select('numero, reference_srm, adresse, zone, secteur_id, secteur, auteur_terrain_id,
 //      visibilite, diametre_mm, materiau, revetement, latitude, longitude')
 //      .eq('marche_id', marcheId).eq('jour_detection', jour).order('numero')
 //      (diamètre, matériau et revêtement de la dernière réparation ; avant réparation, la page peut reprendre
 //      diametre_mm et materiau du tronçon balayé le plus proche, colonnes de `troncons`)
 //   4. Décision Q-34, au choix :
 //      - un rapport du jour regroupé : journee = rj.syntheseJournee(lignes, { date: jour }) avec toutes les fuites ;
-//      - un rapport par équipe (ou par équipe et secteur) :
-//        const { rapports, fuitesNonAttribuees } = rj.regrouperParEquipe(lignes, fuites, { date: jour, parSecteur })
+//      - un rapport par agent (ou par agent et secteur ; l'équipe, c'est le compte, S12) :
+//        const { rapports, fuitesNonAttribuees } = rj.regrouperParAgent(lignes, fuites, { date: jour, parSecteur })
 //        puis un fichier par élément de `rapports` (r.journee, r.fuites) ; signaler `fuitesNonAttribuees`
-//        (fuite sans équipe dans un secteur balayé par plusieurs équipes) à l'utilisateur.
+//        (fuite saisie par un compte qui n'a pas balayé ce jour, dans un secteur balayé par plusieurs agents).
 //   5. journee.commentaire = texte saisi (facultatif).
 //   6. Extrait de plan (facultatif) : { capturer: (largeurMm, hauteurMm) => Promise<ImageCarte> } rendu hors écran
 //      comme carte/capture.ts (fond OpenFreeMap ; tronçons des secteurs du jour par reseau_geojson ; balayés ce jour
@@ -67,13 +67,11 @@ type Rgb = [number, number, number];
 // ---------------------------------------------------------------------------
 type NombreVue = number | string | null | undefined;   // numeric de PostgreSQL : nombre ou texte selon le client
 
-// Une ligne de la vue v_balayage_journalier (contrat du lot S, § 3) : une par date, équipe, agent, zone, secteur.
-// nb_fuites y compte les fuites du secteur détectées ce jour, toutes équipes confondues (répété sur chaque ligne).
+// Une ligne de la vue v_balayage_journalier (contrat du lot S, § 3) : une par date, agent, zone, secteur.
+// nb_fuites y compte les fuites du secteur détectées ce jour, tous agents confondus (répété sur chaque ligne).
 export interface LigneVueJournalier {
   marche_id?: string;
   date_balayage: string;          // AAAA-MM-JJ, heure du Maroc
-  equipe_id: string | null;
-  equipe: string | null;
   agent_id?: string | null;
   agent: string | null;
   zone_id: string | null;
@@ -87,9 +85,9 @@ export interface LigneVueJournalier {
   nb_fuites: NombreVue;
 }
 
-export interface EquipeJour { id: string | null; libelle: string }
+export interface AgentJour { id: string | null; libelle: string }
 
-// Linéaire d'une journée pour une zone et un secteur (agents et équipes additionnés).
+// Linéaire d'une journée pour une zone et un secteur (agents additionnés).
 export interface LigneSecteurJour {
   zone_id: string | null;
   zone: string | null;
@@ -105,7 +103,7 @@ export interface LigneSecteurJour {
 // Linéaire d'un jour de la période (rapport sur plusieurs jours).
 export interface LigneJourPeriode {
   date: string;
-  equipes: string[];
+  agents: string[];
   nb_troncons: number;
   lineaire_m: number;
   lineaire_repasse_m: number;
@@ -116,7 +114,6 @@ export interface JourneeBalayage {
   date: string;                   // AAAA-MM-JJ (premier jour d'une période)
   au?: string;                    // dernier jour d'une période ; absent ou égal à date : une journée
   parJour?: LigneJourPeriode[];   // période : un élément par jour balayé
-  equipes: EquipeJour[];
   agents: string[];
   lignes: LigneSecteurJour[];     // une par zone / secteur
   commentaire?: string | null;
@@ -127,12 +124,12 @@ export interface TotauxJournee {
   lineaire_m: number;
   lineaire_repasse_m: number;
   nb_noeuds: number;
-  nb_fuites: number;              // d'après la vue : fuites des secteurs balayés, toutes équipes
+  nb_fuites: number;              // d'après la vue : fuites des secteurs balayés, tous agents
   lineaire_km: number;            // arrondi au mètre (3 décimales)
   lineaire_repasse_km: number;
 }
 
-export interface LineaireEquipe extends EquipeJour {
+export interface LineaireAgent extends AgentJour {
   nb_troncons: number;
   lineaire_m: number;
   lineaire_repasse_m: number;
@@ -143,7 +140,7 @@ export interface SyntheseJournee extends JourneeBalayage {
   totaux: TotauxJournee;
   zones: string[];
   secteurs: string[];
-  parEquipe: LineaireEquipe[];
+  parAgent: LineaireAgent[];
 }
 
 // Une fuite détectée ce jour (colonnes de v_fuites_export).
@@ -154,7 +151,7 @@ export interface FuiteJour {
   zone?: string | null;
   secteur_id?: string | null;
   secteur: string | null;
-  equipe_id?: string | null;
+  auteur_terrain_id?: string | null;   // agent qui l'a détectée
   visibilite: 'visible' | 'invisible' | null;
   diametre_mm?: NombreVue;
   materiau?: string | null;       // code (MATERIAUX) ou texte du plan (PEHD, PVC…)
@@ -224,7 +221,7 @@ export const TITRE_RAPPORT_PERIODE = 'RAPPORT DE RECHERCHE DE FUITES SUR LA PÉR
 const avecRubrique = (o: Pick<OptionsRapportJournalier, 'rubriques'>, r: string) => !o.rubriques || o.rubriques.has(r);
 /** Période de plusieurs jours (sinon : une journée). */
 export const estPeriode = (j: Pick<JourneeBalayage, 'date' | 'au'>) => !!j.au && j.au !== j.date;
-export const SANS_EQUIPE = 'Sans équipe';
+export const SANS_AGENT = 'Agent non renseigné';
 export const HORS_SECTEUR = 'Hors secteur (non zoné)';
 const SANS_ZONE = 'Sans zone';
 
@@ -298,16 +295,16 @@ export function totauxJournee(lignes: LigneSecteurJour[]): TotauxJournee {
   };
 }
 
-// Regroupe les lignes de v_balayage_journalier d'une date (et d'une équipe, facultatif : `null` = sans équipe)
+// Regroupe les lignes de v_balayage_journalier d'une date (et d'un agent, facultatif : `null` = sans agent)
 // par zone et secteur. Linéaires, tronçons et nœuds s'additionnent ; nb_fuites, déjà compté par secteur dans la
 // vue, n'est pris qu'une fois par secteur. Un nœud au contact de tronçons balayés par deux agents peut être
 // compté deux fois (la vue compte par agent).
-export function syntheseJournee(lignes: LigneVueJournalier[], filtre: { date?: string; equipeId?: string | null } = {}): SyntheseJournee {
+export function syntheseJournee(lignes: LigneVueJournalier[], filtre: { date?: string; agentId?: string | null } = {}): SyntheseJournee {
   const jour = lignesDuJour(lignes, filtre.date);
-  const retenues = filtre.equipeId === undefined ? jour.lignes : jour.lignes.filter((l) => (l.equipe_id ?? null) === filtre.equipeId);
+  const retenues = filtre.agentId === undefined ? jour.lignes : jour.lignes.filter((l) => (l.agent_id ?? null) === filtre.agentId);
 
   const parSecteur = new Map<string, LigneSecteurJour>();
-  const equipes = new Map<string, LineaireEquipe>();
+  const agents = new Map<string, LineaireAgent>();
   for (const l of retenues) {
     const cle = `${l.zone_id ?? ''}|${l.secteur_id ?? ''}|${l.secteur_id ? '' : normaliser(l.secteur)}`;
     const s = parSecteur.get(cle) ?? {
@@ -321,44 +318,43 @@ export function syntheseJournee(lignes: LigneVueJournalier[], filtre: { date?: s
     s.nb_fuites = Math.max(s.nb_fuites, nombre(l.nb_fuites));
     parSecteur.set(cle, s);
 
-    const ce = l.equipe_id ?? '';
-    const e = equipes.get(ce) ?? { id: l.equipe_id ?? null, libelle: l.equipe?.trim() || SANS_EQUIPE, nb_troncons: 0, lineaire_m: 0, lineaire_repasse_m: 0, lineaire_km: 0 };
-    e.nb_troncons += nombre(l.nb_troncons);
-    e.lineaire_m += nombre(l.lineaire_m);
-    e.lineaire_repasse_m += nombre(l.lineaire_repasse_m);
-    e.lineaire_km = kmArrondis(e.lineaire_m);
-    equipes.set(ce, e);
+    const ca = l.agent_id ?? (l.agent?.trim() ? `nom:${l.agent.trim()}` : '');
+    const a = agents.get(ca) ?? { id: l.agent_id ?? null, libelle: l.agent?.trim() || SANS_AGENT, nb_troncons: 0, lineaire_m: 0, lineaire_repasse_m: 0, lineaire_km: 0 };
+    a.nb_troncons += nombre(l.nb_troncons);
+    a.lineaire_m += nombre(l.lineaire_m);
+    a.lineaire_repasse_m += nombre(l.lineaire_repasse_m);
+    a.lineaire_km = kmArrondis(a.lineaire_m);
+    agents.set(ca, a);
   }
 
   const lignesSecteurs = [...parSecteur.values()]
     .map((s) => ({ ...s, lineaire_m: Math.round(s.lineaire_m * 100) / 100, lineaire_repasse_m: Math.round(s.lineaire_repasse_m * 100) / 100 }))
     .sort((a, b) => comparer(a.zone ?? SANS_ZONE, b.zone ?? SANS_ZONE) || comparer(a.secteur ?? HORS_SECTEUR, b.secteur ?? HORS_SECTEUR));
-  const parEquipe = [...equipes.values()].sort((a, b) => comparer(a.libelle, b.libelle));
+  const parAgent = [...agents.values()].sort((a, b) => comparer(a.libelle, b.libelle));
   return {
     date: jour.date,
-    equipes: parEquipe.map(({ id, libelle }) => ({ id, libelle })),
     agents: distincts(retenues.map((l) => l.agent)).sort(comparer),
     lignes: lignesSecteurs,
     totaux: totauxJournee(lignesSecteurs),
     zones: distincts(lignesSecteurs.map((l) => l.zone ?? SANS_ZONE)),
     secteurs: distincts(lignesSecteurs.map((l) => l.secteur ?? HORS_SECTEUR)),
-    parEquipe,
+    parAgent,
   };
 }
 
 // Synthèse d'une période [du, au] (bornes comprises) : mêmes regroupements par zone et secteur que pour une
 // journée, sur tous les jours ; nb_fuites de la vue (par secteur et par jour) additionné jour après jour.
-// Du = au : identique à syntheseJournee. Avec equipeId, seulement cette équipe (`null` = sans équipe).
-export function synthesePeriode(lignes: LigneVueJournalier[], filtre: { du: string; au: string; equipeId?: string | null }): SyntheseJournee {
+// Du = au : identique à syntheseJournee. Avec agentId, seulement cet agent (`null` = sans agent).
+export function synthesePeriode(lignes: LigneVueJournalier[], filtre: { du: string; au: string; agentId?: string | null }): SyntheseJournee {
   const { du, au } = filtre.du <= filtre.au ? filtre : { ...filtre, du: filtre.au, au: filtre.du };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(du) || !/^\d{4}-\d{2}-\d{2}$/.test(au)) throw new Error(`Période invalide : du « ${du} » au « ${au} » (AAAA-MM-JJ attendu).`);
   const dansPeriode = lignes.filter((l) => l.date_balayage >= du && l.date_balayage <= au
-    && (filtre.equipeId === undefined || (l.equipe_id ?? null) === filtre.equipeId));
+    && (filtre.agentId === undefined || (l.agent_id ?? null) === filtre.agentId));
   if (!dansPeriode.length) throw new Error('Aucun balayage sur la période choisie.');
   if (du === au) return syntheseJournee(dansPeriode, { date: du });
   const dates = distincts(dansPeriode.map((l) => l.date_balayage)).sort();
   const parDate = dates.map((d) => syntheseJournee(dansPeriode, { date: d }));
-  // Toutes les lignes ramenées à une date commune pour réutiliser le regroupement par secteur et par équipe.
+  // Toutes les lignes ramenées à une date commune pour réutiliser le regroupement par secteur et par agent.
   const base = syntheseJournee(dansPeriode.map((l) => ({ ...l, date_balayage: du })), { date: du });
   const fuitesParSecteur = new Map<string, number>();
   const cle = (l: { zone_id: string | null; secteur_id: string | null; secteur: string | null }) =>
@@ -371,14 +367,14 @@ export function synthesePeriode(lignes: LigneVueJournalier[], filtre: { du: stri
     lignes: lignesSecteurs,
     totaux: totauxJournee(lignesSecteurs),
     parJour: parDate.map((j) => ({
-      date: j.date, equipes: j.equipes.map((e) => e.libelle), nb_troncons: j.totaux.nb_troncons,
+      date: j.date, agents: j.agents, nb_troncons: j.totaux.nb_troncons,
       lineaire_m: j.totaux.lineaire_m, lineaire_repasse_m: j.totaux.lineaire_repasse_m, nb_noeuds: j.totaux.nb_noeuds,
     })),
   };
 }
 
-export interface RapportEquipe {
-  equipe: EquipeJour;
+export interface RapportAgent {
+  agent: AgentJour;
   secteur: { id: string | null; libelle: string } | null;   // seulement avec parSecteur
   journee: SyntheseJournee;
   fuites: FuiteJour[];
@@ -392,37 +388,34 @@ export function trierFuites(fuites: FuiteJour[]): FuiteJour[] {
     (a.numero ?? Number.MAX_SAFE_INTEGER) - (b.numero ?? Number.MAX_SAFE_INTEGER) || comparer(a.reference_srm ?? '', b.reference_srm ?? ''));
 }
 
-// Un rapport par équipe (ou par équipe et secteur) pour une journée (décision Q-34). Une fuite va au rapport
-// de son équipe de détection ; sans équipe connue (ou si l'équipe a plusieurs secteurs avec parSecteur), au
-// rapport dont le secteur est le sien s'il est le seul ; sinon elle est rendue dans fuitesNonAttribuees.
-export function regrouperParEquipe(
+// Un rapport par agent (ou par agent et secteur) pour une journée (décision Q-34 ; l'équipe, c'est le compte du
+// chef d'équipe, S12). Une fuite va au rapport de l'agent qui l'a détectée ; si cet agent n'a pas balayé ce jour
+// (ou a plusieurs secteurs avec parSecteur), au rapport dont le secteur est le sien s'il est le seul ; sinon elle
+// est rendue dans fuitesNonAttribuees.
+export function regrouperParAgent(
   lignes: LigneVueJournalier[],
   fuites: FuiteJour[] = [],
   options: { date?: string; parSecteur?: boolean } = {},
-): { date: string; rapports: RapportEquipe[]; fuitesNonAttribuees: FuiteJour[] } {
+): { date: string; rapports: RapportAgent[]; fuitesNonAttribuees: FuiteJour[] } {
   const jour = lignesDuJour(lignes, options.date);
   const groupes = new Map<string, LigneVueJournalier[]>();
   for (const l of jour.lignes) {
-    const cle = `${l.equipe_id ?? ''}${options.parSecteur ? `|${l.zone_id ?? ''}|${l.secteur_id ?? normaliser(l.secteur)}` : ''}`;
+    const cle = `${l.agent_id ?? ''}${options.parSecteur ? `|${l.zone_id ?? ''}|${l.secteur_id ?? normaliser(l.secteur)}` : ''}`;
     groupes.set(cle, [...(groupes.get(cle) ?? []), l]);
   }
-  const rapports: RapportEquipe[] = [...groupes.values()].map((ls) => ({
-    equipe: { id: ls[0].equipe_id ?? null, libelle: ls[0].equipe?.trim() || SANS_EQUIPE },
+  const rapports: RapportAgent[] = [...groupes.values()].map((ls) => ({
+    agent: { id: ls[0].agent_id ?? null, libelle: ls[0].agent?.trim() || SANS_AGENT },
     secteur: options.parSecteur ? { id: ls[0].secteur_id, libelle: ls[0].secteur?.trim() || HORS_SECTEUR } : null,
     journee: syntheseJournee(ls, { date: jour.date }),
     fuites: [],
-  })).sort((a, b) => comparer(a.equipe.libelle, b.equipe.libelle) || comparer(a.secteur?.libelle ?? '', b.secteur?.libelle ?? ''));
+  })).sort((a, b) => comparer(a.agent.libelle, b.agent.libelle) || comparer(a.secteur?.libelle ?? '', b.secteur?.libelle ?? ''));
 
-  const dansSecteur = (f: FuiteJour) => (r: RapportEquipe) => r.journee.lignes.some((l) => memeSecteur(f, l));
+  const dansSecteur = (f: FuiteJour) => (r: RapportAgent) => r.journee.lignes.some((l) => memeSecteur(f, l));
   const nonAttribuees: FuiteJour[] = [];
   for (const f of fuites) {
-    let candidats = rapports;
-    if (f.equipe_id) {
-      candidats = rapports.filter((r) => r.equipe.id === f.equipe_id);
-      if (candidats.length > 1) candidats = candidats.filter(dansSecteur(f));
-    } else {
-      candidats = rapports.filter(dansSecteur(f));
-    }
+    let candidats = f.auteur_terrain_id ? rapports.filter((r) => r.agent.id === f.auteur_terrain_id) : [];
+    if (candidats.length > 1) candidats = candidats.filter(dansSecteur(f));
+    else if (!candidats.length) candidats = rapports.filter(dansSecteur(f));
     if (candidats.length === 1) candidats[0].fuites.push(f);
     else nonAttribuees.push(f);
   }
@@ -457,7 +450,7 @@ export interface ContenuRapportJournalier {
   periode: boolean;
   parJour: LigneJourPeriode[] | null;   // période de plusieurs jours
   avecDate: boolean;              // colonne « Détectée le » dans le tableau des fuites
-  equipes: string;
+  agents: string;
   totaux: TotauxJournee;
   zones: string[];
   secteurs: string[];
@@ -495,15 +488,14 @@ export function contenuRapportJournalier(
   // Zones et secteurs : ceux du balayage ; à défaut (journée sans balayage saisi), ceux des fuites.
   const zones = journee.lignes.length ? distincts(journee.lignes.map((l) => l.zone ?? SANS_ZONE)) : distincts(triees.map((f) => f.zone));
   const secteurs = journee.lignes.length ? distincts(journee.lignes.map((l) => l.secteur ?? HORS_SECTEUR)) : distincts(triees.map((f) => f.secteur));
-  const equipes = journee.equipes.map((e) => e.libelle).join(', ') || '—';
   const liste = (t: string[]) => t.join(', ') || '—';
+  const agents = liste(journee.agents);
 
   const identification: [string, string, boolean][] = [
     ['Société', societe || '—', false],
     periode ? ['Période', texteJour, true] : ['Journée du', texteJour, false],
     ...(periode ? [['Jours balayés', String(journee.parJour?.length ?? 0), false] as [string, string, boolean]] : []),
-    [journee.equipes.length > 1 ? 'Équipes' : 'Équipe N°', equipes, false],
-    [journee.agents.length > 1 ? 'Agents (matricules)' : 'Agent (matricule)', liste(journee.agents), false],
+    [journee.agents.length > 1 ? 'Agents (matricules)' : 'Agent (matricule)', agents, false],
     ['Zone d\'intervention', liste(zones), false],
     ['Secteur d\'intervention', liste(secteurs), false],
     ['Linéaire inspecté', `${texteKm(totaux.lineaire_m)} (premiers passages)`, false],
@@ -511,9 +503,9 @@ export function contenuRapportJournalier(
   ];
   if (totaux.lineaire_repasse_m > 0) identification.push(['Linéaire repassé', `${texteKm(totaux.lineaire_repasse_m)} (non rémunéré)`, false]);
   identification.push(['Nœuds', String(totaux.nb_noeuds), false]);
-  const parEquipe = (journee as Partial<SyntheseJournee>).parEquipe;
-  if (parEquipe && parEquipe.length > 1) {
-    identification.push(['Linéaire par équipe', parEquipe.map((e) => `${e.libelle} : ${texteKm(e.lineaire_m)}`).join(' ; '), true]);
+  const parAgent = (journee as Partial<SyntheseJournee>).parAgent;
+  if (parAgent && parAgent.length > 1) {
+    identification.push(['Linéaire par agent', parAgent.map((a) => `${a.libelle} : ${texteKm(a.lineaire_m)}`).join(' ; '), true]);
   }
   identification.forEach((l) => { if (l[1].length > 44) l[2] = true; });
 
@@ -557,7 +549,7 @@ export function contenuRapportJournalier(
     periode,
     parJour,
     avecDate: periode,
-    equipes,
+    agents,
     totaux,
     zones,
     secteurs,
@@ -577,9 +569,9 @@ export function contenuRapportJournalier(
 }
 
 export function nomFichierRapportJournalier(ctx: Contexte, journee: JourneeBalayage): string {
-  const equipe = journee.equipes.length === 1 ? `-${journee.equipes[0].libelle}` : '';
-  if (estPeriode(journee)) return nomFichierSur(`rapport-balayage-${String(ctx.marche.code ?? '')}-${journee.date}-au-${journee.au}${equipe}`);
-  return nomFichierSur(`rapport-journalier-${String(ctx.marche.code ?? '')}-${journee.date}${equipe}`);
+  const agent = journee.agents.length === 1 ? `-${journee.agents[0]}` : '';
+  if (estPeriode(journee)) return nomFichierSur(`rapport-balayage-${String(ctx.marche.code ?? '')}-${journee.date}-au-${journee.au}${agent}`);
+  return nomFichierSur(`rapport-journalier-${String(ctx.marche.code ?? '')}-${journee.date}${agent}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -833,7 +825,7 @@ export async function genererRapportJournalierPdf(
 
   let y = dessinerEntete(pdf, c.entete, imagesEntete, marge);
 
-  // Identification (gabarit : société, journée, équipe, zone, secteur, linéaire)
+  // Identification (gabarit : société, journée, agents, zone, secteur, linéaire)
   if (avec('identification')) autoTable(pdf, {
     ...style,
     startY: y,
@@ -857,7 +849,7 @@ export async function genererRapportJournalierPdf(
     y = titreSection('Linéaire inspecté par jour', y);
     const t = c.totaux;
     const corpsJours: RowInput[] = c.parJour.map((j) => [
-      jourEnLettres(j.date), j.equipes.join(', ') || SANS_EQUIPE, String(j.nb_troncons), texteNombre(kmArrondis(j.lineaire_m), 3),
+      jourEnLettres(j.date), j.agents.join(', ') || SANS_AGENT, String(j.nb_troncons), texteNombre(kmArrondis(j.lineaire_m), 3),
       texteNombre(kmArrondis(j.lineaire_repasse_m), 3), String(j.nb_noeuds), String(c.fuites.filter((f) => f.fuite.jour_detection === j.date).length),
     ]);
     corpsJours.push([{ content: `Total (${pluriel(c.parJour.length, 'jour')})`, colSpan: 2 }, String(t.nb_troncons), texteNombre(t.lineaire_km, 3),
@@ -865,7 +857,7 @@ export async function genererRapportJournalierPdf(
     autoTable(pdf, {
       ...style,
       startY: y,
-      head: [['Jour', 'Équipes', 'Tronçons', 'Linéaire (km)', 'Repasse (km)', 'Nœuds', 'Fuites']],
+      head: [['Jour', 'Agents', 'Tronçons', 'Linéaire (km)', 'Repasse (km)', 'Nœuds', 'Fuites']],
       body: corpsJours,
       columnStyles: { 2: { halign: 'right', cellWidth: 18 }, 3: { halign: 'right', cellWidth: 24 }, 4: { halign: 'right', cellWidth: 24 }, 5: { halign: 'right', cellWidth: 16 }, 6: { halign: 'right', cellWidth: 16 } },
       didParseCell: (data) => {
@@ -1019,7 +1011,7 @@ export async function genererRapportJournalierPdf(
     if (pageSuivante) {
       pdf.addPage();
       const entete = construireEntete(ctx, 'EXTRAIT DU PLAN DU RÉSEAU', [
-        `${c.periode ? `Rapport de recherche de fuites : période ${c.jour}` : `Rapport journalier de recherche de fuites : journée du ${c.jour}`} · ${c.equipes} · Secteur(s) : ${c.secteurs.join(', ') || '—'}`,
+        `${c.periode ? `Rapport de recherche de fuites : période ${c.jour}` : `Rapport journalier de recherche de fuites : journée du ${c.jour}`} · ${c.agents} · Secteur(s) : ${c.secteurs.join(', ') || '—'}`,
       ]);
       y = dessinerEntete(pdf, entete, imagesEntete, marge);
       dispo = bas - y - hTitre - G.ecartCartouche - bande;
@@ -1100,7 +1092,7 @@ export async function genererRapportJournalierPdf(
 
   // Pied de chaque page
   const total = pdf.getNumberOfPages();
-  const pied = `${c.periode ? `Rapport de recherche de fuites · période du ${c.jourCourt}` : `Rapport journalier de recherche de fuites · journée du ${c.jourCourt}`}${journee.equipes.length === 1 ? ` · ${c.equipes}` : ''} · édité le ${texteDate(genereLe, true)}`;
+  const pied = `${c.periode ? `Rapport de recherche de fuites · période du ${c.jourCourt}` : `Rapport journalier de recherche de fuites · journée du ${c.jourCourt}`}${journee.agents.length === 1 ? ` · ${c.agents}` : ''} · édité le ${texteDate(genereLe, true)}`;
   for (let p = 1; p <= total; p++) {
     pdf.setPage(p);
     police(pdf, false, 7.5, DISCRET);
@@ -1256,8 +1248,8 @@ export async function genererRapportJournalierXlsx(
   if (c.parJour && avec('detail_jours')) {
     vide();
     pleine('Linéaire inspecté par jour', { fontWeight: 'bold', fontSize: 11 });
-    lignes.push([titre('Jour', premier), ...vides(premier - 1), titre('Équipes'), titre('Tronçons'), titre('Linéaire (km)'), titre('Repasse (km)'), titre('Nœuds'), titre('Fuites')]);
-    c.parJour.forEach((j) => ligne(jourEnLettres(j.date), j.equipes.join(', ') || SANS_EQUIPE,
+    lignes.push([titre('Jour', premier), ...vides(premier - 1), titre('Agents'), titre('Tronçons'), titre('Linéaire (km)'), titre('Repasse (km)'), titre('Nœuds'), titre('Fuites')]);
+    c.parJour.forEach((j) => ligne(jourEnLettres(j.date), j.agents.join(', ') || SANS_AGENT,
       [j.nb_troncons, kmArrondis(j.lineaire_m), kmArrondis(j.lineaire_repasse_m), j.nb_noeuds, c.fuites.filter((f) => f.fuite.jour_detection === j.date).length], false));
     const t = c.totaux;
     ligne(`Total (${pluriel(c.parJour.length, 'jour')})`, '', [t.nb_troncons, t.lineaire_km, t.lineaire_repasse_km, c.parJour.reduce((x, j) => x + j.nb_noeuds, 0), c.fuites.length], true);

@@ -3,7 +3,7 @@
 // vers les fuites quand un filtre équivalent existe. Fonctions pures, sans navigateur ni réseau :
 // scripts/verifier-inventaire-fournitures.mjs charge ce fichier avec Node (alias « @/ » résolu par le script).
 //   /fournitures?lignes=article&colonnes=mois&du=AAAA-MM-JJ&au=AAAA-MM-JJ&zone=<uuid>&secteur=<uuid>
-//               &equipe=<uuid>&famille=<code>&provenance=terrain|correction&fuite=<N°>
+//               &chef=<uuid>&famille=<code>&provenance=terrain|correction&fuite=<N°>
 import {
   LIBELLES_PROVENANCE, SANS_FAMILLE, ajouterQuantite, cleArticle, formaterQuantites, libelleFamille, libelleMois, libelleProvenance,
   moisDe, moisEntre, uniteUnique,
@@ -11,16 +11,16 @@ import {
 } from '@/lib/ui/fournitures';
 import { lienFuites } from '../fuites/filtres';
 
-export type DimensionLigne = 'article' | 'famille' | 'secteur' | 'zone' | 'equipe' | 'fuite' | 'mois';
-export type DimensionColonne = 'aucune' | 'mois' | 'secteur' | 'equipe' | 'provenance';
+export type DimensionLigne = 'article' | 'famille' | 'secteur' | 'zone' | 'chef' | 'fuite' | 'mois';
+export type DimensionColonne = 'aucune' | 'mois' | 'secteur' | 'chef' | 'provenance';
 type Dimension = DimensionLigne | DimensionColonne;
 
 export const DIMENSIONS_LIGNES: [DimensionLigne, string][] = [
-  ['article', 'Article'], ['famille', 'Famille'], ['secteur', 'Secteur'], ['zone', 'Zone'], ['equipe', 'Équipe'],
+  ['article', 'Article'], ['famille', 'Famille'], ['secteur', 'Secteur'], ['zone', 'Zone'], ['chef', "Chef d'équipe"],
   ['fuite', 'Fuite'], ['mois', 'Mois'],
 ];
 export const DIMENSIONS_COLONNES: [DimensionColonne, string][] = [
-  ['aucune', 'Aucune'], ['mois', 'Mois'], ['secteur', 'Secteur'], ['equipe', 'Équipe'], ['provenance', 'Provenance'],
+  ['aucune', 'Aucune'], ['mois', 'Mois'], ['secteur', 'Secteur'], ['chef', "Chef d'équipe"], ['provenance', 'Provenance'],
 ];
 const LIBELLE_DIMENSION = Object.fromEntries([...DIMENSIONS_LIGNES, ...DIMENSIONS_COLONNES]) as Record<Dimension, string>;
 export const libelleDimension = (d: Dimension) => LIBELLE_DIMENSION[d];
@@ -37,7 +37,8 @@ export interface FiltresInventaire {
   /** Identifiants (uuid) ; '' = tous. */
   zone: string;
   secteur: string;
-  equipe: string;
+  /** Chef d'équipe : compte qui a saisi la réparation. */
+  chef: string;
   /** Code de famille (préfixe de la référence Dolibarr), `CLE_SANS_FAMILLE`, ou ''. */
   famille: string;
   provenance: Provenance | '';
@@ -46,7 +47,7 @@ export interface FiltresInventaire {
 }
 
 export const FILTRES_VIDES: FiltresInventaire = {
-  lignes: 'article', colonnes: 'aucune', du: '', au: '', zone: '', secteur: '', equipe: '', famille: '', provenance: '', fuite: '',
+  lignes: 'article', colonnes: 'aucune', du: '', au: '', zone: '', secteur: '', chef: '', famille: '', provenance: '', fuite: '',
 };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -87,7 +88,7 @@ export function normaliser(f: FiltresBruts): FiltresInventaire {
     au,
     zone: uuidOuVide(f.zone),
     secteur: uuidOuVide(f.secteur),
-    equipe: uuidOuVide(f.equipe),
+    chef: uuidOuVide(f.chef),
     famille: (f.famille ?? '').trim().slice(0, FAMILLE_MAX),
     provenance: provenance === 'terrain' || provenance === 'correction' ? provenance : '',
     fuite: /^\d{1,9}$/.test(fuite) && Number(fuite) > 0 ? String(Number(fuite)) : '',
@@ -102,7 +103,7 @@ export function lireFiltres(source: string | Parametres): FiltresInventaire {
   const v = (nom: string) => p.get(nom) ?? '';
   return normaliser({
     lignes: v('lignes'), colonnes: v('colonnes'), du: v('du'), au: v('au'), zone: v('zone'), secteur: v('secteur'),
-    equipe: v('equipe'), famille: v('famille'), provenance: v('provenance'), fuite: v('fuite'),
+    chef: v('chef'), famille: v('famille'), provenance: v('provenance'), fuite: v('fuite'),
   });
 }
 
@@ -116,7 +117,7 @@ export function ecrireFiltres(f: FiltresBruts): string {
   if (n.au) p.set('au', n.au);
   if (n.zone) p.set('zone', n.zone);
   if (n.secteur) p.set('secteur', n.secteur);
-  if (n.equipe) p.set('equipe', n.equipe);
+  if (n.chef) p.set('chef', n.chef);
   if (n.famille) p.set('famille', n.famille);
   if (n.provenance) p.set('provenance', n.provenance);
   if (n.fuite) p.set('fuite', n.fuite);
@@ -133,7 +134,7 @@ export const memesFiltres = (a: FiltresBruts, b: FiltresBruts) => ecrireFiltres(
 
 /** Un filtre rapide est posé (la période et les dimensions n'en sont pas). */
 export const filtresRapidesActifs = (f: FiltresInventaire) =>
-  !!(f.zone || f.secteur || f.equipe || f.famille || f.provenance || f.fuite);
+  !!(f.zone || f.secteur || f.chef || f.famille || f.provenance || f.fuite);
 
 // ---------------------------------------------------------------------------
 // Période effective : 12 mois au plus, mois en cours par défaut (jours à l'heure du Maroc)
@@ -189,8 +190,8 @@ export function libellePeriode(p: Periode): string {
 // ---------------------------------------------------------------------------
 // Filtres rapides : application et valeurs disponibles
 // ---------------------------------------------------------------------------
-type Rapide = 'zone' | 'secteur' | 'equipe' | 'famille' | 'provenance' | 'fuite';
-const RAPIDES: Rapide[] = ['zone', 'secteur', 'equipe', 'famille', 'provenance', 'fuite'];
+type Rapide = 'zone' | 'secteur' | 'chef' | 'famille' | 'provenance' | 'fuite';
+const RAPIDES: Rapide[] = ['zone', 'secteur', 'chef', 'famille', 'provenance', 'fuite'];
 
 const codeFamille = (l: Pick<LigneInventaire, 'famille'>) => l.famille ?? CLE_SANS_FAMILLE;
 
@@ -199,7 +200,7 @@ function correspond(l: LigneInventaire, f: FiltresInventaire, sauf?: Rapide): bo
     if (r === sauf || !f[r]) continue;
     if (r === 'zone' && l.zone_id !== f.zone) return false;
     if (r === 'secteur' && l.secteur_id !== f.secteur) return false;
-    if (r === 'equipe' && l.equipe_id !== f.equipe) return false;
+    if (r === 'chef' && l.chef_id !== f.chef) return false;
     if (r === 'famille' && codeFamille(l) !== f.famille) return false;
     if (r === 'provenance' && l.provenance !== f.provenance) return false;
     if (r === 'fuite' && String(l.fuite_numero) !== f.fuite) return false;
@@ -220,7 +221,7 @@ export interface ValeurFiltre {
 }
 
 const SANS: Record<Exclude<Rapide, 'fuite' | 'provenance'>, string> = {
-  zone: 'Sans zone', secteur: 'Sans secteur', equipe: 'Sans équipe', famille: SANS_FAMILLE,
+  zone: 'Sans zone', secteur: 'Sans secteur', chef: "Sans chef d'équipe", famille: SANS_FAMILLE,
 };
 
 export interface EnteteCroise { cle: string; libelle: string; detail: string | null }
@@ -231,7 +232,7 @@ function cleEtLibelle(l: LigneInventaire, dimension: Dimension | Rapide): Entete
     case 'famille': return { cle: codeFamille(l), libelle: libelleFamille(l.famille), detail: null };
     case 'secteur': return { cle: l.secteur_id ?? '', libelle: l.secteur ?? SANS.secteur, detail: l.zone };
     case 'zone': return { cle: l.zone_id ?? '', libelle: l.zone ?? SANS.zone, detail: null };
-    case 'equipe': return { cle: l.equipe_id ?? '', libelle: l.equipe ?? SANS.equipe, detail: null };
+    case 'chef': return { cle: l.chef_id ?? '', libelle: l.chef ?? SANS.chef, detail: null };
     case 'fuite': return { cle: l.fuite_id, libelle: `N° ${l.fuite_numero}`, detail: [l.reference_srm, l.secteur].filter(Boolean).join(' · ') || null };
     case 'mois': return { cle: l.mois, libelle: libelleMois(l.mois), detail: null };
     case 'provenance': return { cle: l.provenance, libelle: LIBELLES_PROVENANCE[l.provenance] ?? l.provenance, detail: null };
@@ -244,14 +245,14 @@ const parLibelle = (a: { libelle: string }, b: { libelle: string }) => a.libelle
 /**
  * Valeurs d'un filtre rapide : toutes celles présentes sur la période, avec le nombre de pièces qu'elles
  * donneraient compte tenu des autres filtres (la valeur choisie reste proposée même sans pièce).
- * Secteurs : seulement ceux de la zone choisie ; les pièces sans zone, secteur ou équipe n'ont pas de puce.
+ * Secteurs : seulement ceux de la zone choisie ; les pièces sans zone, secteur ou chef d'équipe n'ont pas de puce.
  */
 export function valeursFiltre(lignes: LigneInventaire[], f: FiltresInventaire, dimension: Exclude<Rapide, 'fuite'>): ValeurFiltre[] {
   const m = new Map<string, ValeurFiltre>();
   for (const l of lignes) {
     if (dimension === 'secteur' && f.zone && l.zone_id !== f.zone) continue;
     const { cle, libelle } = cleEtLibelle(l, dimension);
-    // Sans zone, secteur ou équipe : pas de filtre équivalent, pas de puce.
+    // Sans zone, secteur ou chef d'équipe : pas de filtre équivalent, pas de puce.
     if (cle === '') continue;
     const v = m.get(cle) ?? { cle, libelle, pieces: 0, quantites: {}, choisie: f[dimension] === cle };
     if (correspond(l, f, dimension)) {
@@ -394,13 +395,13 @@ export function lienCellule(
 // ---------------------------------------------------------------------------
 // Description des filtres (sous-titre de la page, en-tête de l'export)
 // ---------------------------------------------------------------------------
-export interface Libelles { zone?: string; secteur?: string; equipe?: string; famille?: string }
+export interface Libelles { zone?: string; secteur?: string; chef?: string; famille?: string }
 
 export function decrireFiltres(f: FiltresInventaire, periode: Periode, libelles: Libelles = {}): string[] {
   const lignes = [`Réparations ${libellePeriode(periode)}`];
   if (f.zone) lignes.push(`Zone : ${libelles.zone ?? f.zone}`);
   if (f.secteur) lignes.push(`Secteur : ${libelles.secteur ?? f.secteur}`);
-  if (f.equipe) lignes.push(`Équipe : ${libelles.equipe ?? f.equipe}`);
+  if (f.chef) lignes.push(`Chef d'équipe : ${libelles.chef ?? f.chef}`);
   if (f.famille) lignes.push(`Famille : ${libelles.famille ?? (f.famille === CLE_SANS_FAMILLE ? SANS_FAMILLE : f.famille)}`);
   if (f.provenance) lignes.push(`Provenance : ${LIBELLES_PROVENANCE[f.provenance]}`);
   if (f.fuite) lignes.push(`Fuite N° ${f.fuite}`);
@@ -416,7 +417,7 @@ export function libellesChoisis(lignes: LigneInventaire[], f: FiltresInventaire)
   return {
     zone: f.zone ? trouver((l) => l.zone_id === f.zone, (l) => l.zone) : undefined,
     secteur: f.secteur ? trouver((l) => l.secteur_id === f.secteur, (l) => l.secteur) : undefined,
-    equipe: f.equipe ? trouver((l) => l.equipe_id === f.equipe, (l) => l.equipe) : undefined,
+    chef: f.chef ? trouver((l) => l.chef_id === f.chef, (l) => l.chef) : undefined,
     famille: f.famille ? trouver((l) => codeFamille(l) === f.famille, (l) => libelleFamille(l.famille)) : undefined,
   };
 }

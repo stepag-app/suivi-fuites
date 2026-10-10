@@ -31,22 +31,6 @@ export function tx(texte: string): string {
   return texte in TRADUCTIONS ? t(texte as Cle) : texte;
 }
 
-// Mots des noms d'équipe saisis en français dans la base (« Équipe détection 1 », « Réparation A (démo) »).
-const MOTS_EQUIPE: [RegExp, string, string?][] = [
-  [/\bÉquipe\b/gi, 'فريق'],
-  [/\bDétection\b/gi, 'الكشف'],
-  [/\bRéparation\b/gi, 'الإصلاح'],
-  [/\bRéfection\b/gi, 'إعادة الرصف', 'Réfection'],
-  [/\(démo\)/gi, '(تجريبي)'],
-];
-
-/** Nom d'équipe venu de la base : mots connus traduits, le reste (lettres, numéros) gardé. */
-export function libelleEquipe(libelle: string | null | undefined): string | undefined {
-  if (libelle == null) return undefined;
-  if (courante === 'fr') return libelle;
-  return MOTS_EQUIPE.reduce((t, [motif, ar, hyb]) => t.replace(motif, courante === 'hybride' ? hyb ?? ar : ar), libelle);
-}
-
 /** Langue en cours, hors des composants (libellés des listes venues de la base : listes.ts). */
 export const langueCourante = (): Langue => courante;
 

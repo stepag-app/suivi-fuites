@@ -132,7 +132,7 @@ export const LIGNES: readonly LigneMatrice[] = [
   droit('Balayage', 'balayage', 'valider', 'Balayage : annuler le balayage d\'un autre'),
 
   droit('Paramètres du marché', 'parametres', 'lire', 'Paramètres : voir', { aide: 'logos des documents ; l\'écran Paramètres demande « ajouter » ou « modifier »' }),
-  droit('Paramètres du marché', 'parametres', 'creer', 'Paramètres : ajouter', { aide: 'secteurs, articles, natures, pièces, équipes, motifs, OS, avenants' }),
+  droit('Paramètres du marché', 'parametres', 'creer', 'Paramètres : ajouter', { aide: 'secteurs, articles, natures, pièces, motifs, OS, avenants' }),
   droit('Paramètres du marché', 'parametres', 'modifier', 'Paramètres : modifier', { aide: 'fiche du marché, logos, bordereau, règles d\'attachement' }),
 
   droit('Ouvriers', 'ouvriers', 'creer', 'Ouvriers : ajouter'),

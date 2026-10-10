@@ -12,7 +12,7 @@ import { controlerDate, DateHeure, useDateHeure } from './date-heure';
 import { ajouterEnvoi, effacerPhotos, synchroniser, type PhotoAttente, type PieceAttente } from './file-attente';
 import type { ContexteSaisie } from './fiche';
 import { Icone } from './icones';
-import { enumerer, libelleEquipe, t, useLangue } from './langue';
+import { enumerer, t, useLangue } from './langue';
 import { libelleDb, libelleListe, optionsListe } from './listes';
 import { aucunChangement, champsChanges, differences } from './modification';
 import { diametresDe, useParametres, type Parametres } from './parametres';
@@ -29,18 +29,6 @@ const sansAccents = (texte: string) => texte.normalize('NFD').replace(/[̀-ͯ]/g
 const enTexte = (v: unknown) => (v == null ? '' : String(v).replace('.', ','));
 const nombre = (n: number | null | undefined) => (n == null ? '' : n.toLocaleString('fr-FR', { maximumFractionDigits: 2 }));
 const libelleDate = (d: Date) => d.toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
-
-function ChoixEquipe({ parametres, valeur, onChange }: { parametres: Parametres; valeur: string; onChange: (v: string) => void }) {
-  const reparation = parametres.equipes.filter((e) => e.type !== 'detection');
-  const liste = reparation.length ? reparation : parametres.equipes;
-  if (!liste.length) return null;
-  return (
-    <View style={{ gap: 6 }}>
-      <Text style={s.etiquette}>{t('Équipe')}</Text>
-      <Puces facultatif options={liste.map((e) => ({ valeur: e.id, libelle: libelleEquipe(e.libelle) ?? e.libelle }))} valeur={valeur} onChange={onChange} />
-    </View>
-  );
-}
 
 /** Photos d'une saisie : un bouton par type, vignettes ; supprimées de la tablette si la saisie est abandonnée. */
 function usePhotos() {
@@ -232,7 +220,6 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
   const [resultat, setResultat] = useState<ResultatReparation | ''>((chaine('resultat') as ResultatReparation) || 'reparee');
   const [motifId, setMotifId] = useState(chaine('motif_id'));
   const quand = useDateHeure(m ? chaine('realisee_le') : undefined);
-  const [equipeId, setEquipeId] = useState(chaine('equipe_id'));
   const [ouvrage, setOuvrage] = useState(chaine('ouvrage'));
   const [materiau, setMateriau] = useState(chaine('materiau'));
   const [diametre, setDiametre] = useState(enTexte(init.diametre_mm));
@@ -344,7 +331,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     }
     const ligne: Record<string, unknown> = {
       resultat, motif_id: nonReparee ? motifId : null, realisee_le: realiseeLe,
-      equipe_id: equipeId || null, ouvrage: ouvrage || null, materiau: materiau || null, diametre_mm: nombres.diametre,
+      ouvrage: ouvrage || null, materiau: materiau || null, diametre_mm: nombres.diametre,
       // Non réparée (P8) : travaux, fouille et pièces restent saisissables et attachés.
       tuyau_repare: tuyau, robinet_pec_change: robinet, collier_pec_change: collier,
       bouche_a_cle_mise_a_niveau: boucheACle, element_remplace: elementRemplace,
@@ -397,7 +384,6 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
     { libelle: t('Résultat'), valeur: resultat ? libelleListe('resultat_reparation', resultat, RESULTATS_REPARATION[resultat]) : null },
     { libelle: t('Motif'), valeur: nonReparee ? libelleDb(parametres.motifs.find((x) => x.id === motifId)) : null },
     { libelle: t('Date et heure'), valeur: libelleDate(quand.valeur) },
-    { libelle: t('Équipe'), valeur: libelleEquipe(parametres.equipes.find((x) => x.id === equipeId)?.libelle) },
     { libelle: t('Ouvrage'), valeur: libelleListe('ouvrage', ouvrage, OUVRAGES[ouvrage]) },
     { libelle: t('Matériau'), valeur: libelleListe('materiau', materiau, MATERIAUX[materiau]) },
     { libelle: t('Diamètre'), valeur: nombres.diametre != null ? t('Ø {d} mm', { d: nombres.diametre }) : null },
@@ -548,7 +534,6 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
 
         <Carte>
           <DateHeure d={quand} />
-          <ChoixEquipe parametres={parametres} valeur={equipeId} onChange={setEquipeId} />
           <View style={{ gap: 6 }}>
             <Text style={s.etiquette}>{t('Représentant {sigle} présent (facultatif)', { sigle })}</Text>
             {parametres.representants.length > 0 ? (
@@ -619,7 +604,6 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
   const [longueurT, setLongueurT] = useState(enTexte(init.longueur_m));
   const [largeurT, setLargeurT] = useState(enTexte(init.largeur_m));
   const [motifId, setMotifId] = useState(chaine('motif_id'));
-  const [equipeId, setEquipeId] = useState(chaine('equipe_id'));
   const [observation, setObservation] = useState(chaine('observation'));
   const quand = useDateHeure(m ? chaine('realisee_le') : undefined);
   const [erreur, setErreur] = useState('');
@@ -654,7 +638,7 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
     }
     // Longueur, largeur et nature vides : reprises de la fouille par le serveur.
     const ligne: Record<string, unknown> = {
-      resultat, realisee_le: realiseeLe, equipe_id: equipeId || null,
+      resultat, realisee_le: realiseeLe,
       nature_id: faite ? natureId || null : null, motif_id: faite ? null : motifId,
       longueur_m: faite ? longueur : null, largeur_m: faite ? largeur : null, observation: observation.trim() || null,
     };
@@ -707,7 +691,6 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
     { libelle: t('Dimensions'), valeur: faite ? dimensions : null },
     { libelle: t('Motif'), valeur: faite ? null : libelleDb(parametres.motifs.find((x) => x.id === motifId)) },
     { libelle: t('Date et heure'), valeur: libelleDate(quand.valeur) },
-    { libelle: t('Équipe'), valeur: libelleEquipe(parametres.equipes.find((x) => x.id === equipeId)?.libelle) },
     { libelle: t('Photos'), valeur: ph.photos.length ? String(ph.photos.length) : t('Aucune photo') },
     { libelle: t('Observation'), valeur: observation.trim() },
   ];
@@ -746,7 +729,6 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
             </>
           )}
           <DateHeure d={quand} />
-          <ChoixEquipe parametres={parametres} valeur={equipeId} onChange={setEquipeId} />
         </Carte>
         <BlocPhotos ph={ph} types={['refection']} facultatives={t('Facultatives, mais attendues par le responsable.')} />
         <Carte>

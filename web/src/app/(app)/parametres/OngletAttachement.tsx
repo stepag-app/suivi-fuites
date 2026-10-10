@@ -23,7 +23,7 @@ const PERIODICITES: Record<string, string> = {
   mensuelle: 'Mensuelle', quinzaine: 'Par quinzaine', trimestrielle: 'Trimestrielle', libre: 'Libre (à la demande)',
 };
 const REGROUPEMENTS: Record<string, string> = {
-  poste: 'Par article du bordereau', zone: 'Par zone', secteur: 'Par secteur', equipe: 'Par équipe',
+  poste: 'Par article du bordereau', zone: 'Par zone', secteur: 'Par secteur', chef: "Par chef d'équipe",
 };
 const ADMISSIBLES: Record<string, string> = {
   toutes: 'Toutes les fuites saisies (le responsable coche)',

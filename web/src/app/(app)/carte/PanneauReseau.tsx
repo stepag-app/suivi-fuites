@@ -5,7 +5,7 @@
 // cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente).
 import { useEffect, useState } from 'react';
 import { basculerZone, etatCaseZone, totauxChoisis, tousLesSecteurs } from '@/lib/reseau/arbre';
-import { CLE_EQUIPE_MEMORISEE, METHODES, MOTIFS_REPASSE, aujourdhuiMaroc, type ChoixBalayage, type MotifRepasse } from '@/lib/reseau/balayage';
+import { METHODES, MOTIFS_REPASSE, aujourdhuiMaroc, type ChoixBalayage, type MotifRepasse } from '@/lib/reseau/balayage';
 import { compterEtats } from '@/lib/reseau/etat';
 import { COULEUR_NON_ZONE, TYPES_NOEUD, classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import { formaterLineaire } from '@/lib/reseau/selection';
@@ -208,7 +208,7 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
       {onglet === 'legende' && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>{tb('Affichez le réseau (onglet Secteurs) pour voir sa légende.')}</p>}
 
       {onglet === 'balayage' && balayage.peut && reseau.actif && contexte?.disponible && (
-        <BlocBalayage balayage={balayage} equipes={reseau.equipes} />
+        <BlocBalayage balayage={balayage} />
       )}
       {onglet === 'balayage' && balayage.peut && !(reseau.actif && contexte?.disponible) && <p className={styles.vide}>{tb('Affichez le réseau (onglet Secteurs) pour balayer.')}</p>}
     </aside>
@@ -217,37 +217,13 @@ export function PanneauReseau({ reseau, balayage, fermer, onglet, changerOnglet 
 
 const ONGLETS: [OngletReseau, string][] = [['secteurs', 'Secteurs'], ['legende', 'Légende'], ['balayage', 'Balayage']];
 
-function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipes: EtatReseau['equipes'] }) {
-  const [equipe, setEquipe] = useState('');
+function BlocBalayage({ balayage }: { balayage: BalayagePanneau }) {
   const [date, setDate] = useState(() => aujourdhuiMaroc());
   const [methode, setMethode] = useState<MethodeBalayage | ''>('');
   const [observation, setObservation] = useState('');
   const [motifRepasse, setMotifRepasse] = useState<MotifRepasse | ''>('');
-  const detection = equipes.filter((e) => e.actif && e.type !== 'reparation');
 
-  // Dernière équipe choisie, mémorisée sur l'appareil.
-  useEffect(() => {
-    try {
-      const m = window.localStorage.getItem(CLE_EQUIPE_MEMORISEE);
-      if (m && detection.some((e) => e.id === m)) setEquipe(m);
-      else if (detection.length === 1) setEquipe(detection[0].id);
-    } catch {
-      /* stockage indisponible */
-    }
-    // La liste des équipes ne change qu'au chargement.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equipes]);
-
-  const choisirEquipe = (id: string) => {
-    setEquipe(id);
-    try {
-      window.localStorage.setItem(CLE_EQUIPE_MEMORISEE, id);
-    } catch {
-      /* sans conséquence */
-    }
-  };
-
-  const { tb, te } = useLangueApk();
+  const { tb } = useLangueApk();
   const n = balayage.selection.size;
   const repasses = balayage.dejaBalayes.size;
   return (
@@ -264,13 +240,6 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
             <span className={styles.chiffre}>{tb('{n} tronçons · {l}', { n: nombre(n, 0), l: formaterLineaire(balayage.lineaire) }, `${nombre(n, 0)} tronçon${n > 1 ? 's' : ''} · ${formaterLineaire(balayage.lineaire)}`)}</span>
           </p>
           <label id="formulaire-balayage">
-            {tb('Équipe')}
-            <select value={equipe} onChange={(e) => choisirEquipe(e.target.value)}>
-              <option value="">{tb('— sans équipe —')}</option>
-              {detection.map((e) => <option key={e.id} value={e.id}>{te(e.libelle)}</option>)}
-            </select>
-          </label>
-          <label>
             {tb('Date du balayage')}
             <input type="date" value={date} max={aujourdhuiMaroc()} onChange={(e) => setDate(e.target.value)} />
           </label>
@@ -303,7 +272,7 @@ function BlocBalayage({ balayage, equipes }: { balayage: BalayagePanneau; equipe
           {balayage.message && <p className={/^\u200f?(Erreur|خطأ)/.test(balayage.message) ? 'erreur' : 'info'} role="status">{balayage.message}</p>}
           <div className="actions">
             <button className="primaire gros" disabled={n === 0 || balayage.occupe || !/^\d{4}-\d{2}-\d{2}$/.test(date) || (repasses > 0 && !motifRepasse)}
-              onClick={() => balayage.enregistrer({ equipeId: equipe || null, dateBalayage: date, methode: methode || null, observation: observation || null, motifRepasse: motifRepasse || null })}>
+              onClick={() => balayage.enregistrer({ dateBalayage: date, methode: methode || null, observation: observation || null, motifRepasse: motifRepasse || null })}>
               {balayage.occupe ? tb('Enregistrement…') : n > 0 ? tb('Enregistrer ({n})', { n }) : tb('Enregistrer')}
             </button>
             <button type="button" disabled={n === 0 || balayage.occupe} onClick={balayage.vider}>{tb('Vider la sélection')}</button>

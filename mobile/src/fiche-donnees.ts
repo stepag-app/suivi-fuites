@@ -8,15 +8,17 @@ import type { FicheFuite, OuvrierPresent, PhotoLigne, PiecePosee, Refection, Rep
 export interface Donnees {
   fuite: FicheFuite | null; photos: PhotoLigne[]; reparations: Reparation[]; refections: Refection[];
   pieces: PiecePosee[]; ouvriers: OuvrierPresent[];
+  /** Nom des chefs d'équipe (compte qui a saisi la réparation ou la réfection) ; absent d'une copie plus ancienne. */
+  chefs?: Record<string, string>;
 }
 export const cleFiche = (id: string) => `suivi-fuites:fiche:${id}`;
 const COLONNES_FUITE = 'id, numero, reference_srm, statut, secteur, zone, adresse, ouvrage, latitude, longitude, date_detection, '
   + 'detectee_par, motif_sans_reparation, fuite_liee_id, verrouillee_le, observation, nb_photos, alerte_non_reparee';
-const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, equipe_id, ouvrage, materiau, diametre_mm, representant_srm, '
+const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, ouvrage, materiau, diametre_mm, representant_srm, '
   + 'representant_srm_id, tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, element_remplace, '
   + 'longueur_pe_m, fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, nature_revetement_id, observation, '
   + 'auteur_terrain_id, saisi_par, validee_le, cree_le';
-const COLONNES_REFECTION = 'id, resultat, motif_id, realisee_le, nature_id, longueur_m, largeur_m, equipe_id, observation, '
+const COLONNES_REFECTION = 'id, resultat, motif_id, realisee_le, nature_id, longueur_m, largeur_m, observation, '
   + 'reparation_id, auteur_terrain_id, saisi_par, validee_le, cree_le';
 // Champs de la fuite absents de v_fuites : saisie du chantier v2, validation, auteur (V1, V2).
 const DETAILS_FUITE = 'visibilite, nature_degradation_id, diametre_mm, materiau, troncon_id, secteur_id, zone_id, validee_le, '
@@ -37,7 +39,13 @@ export async function chargerServeur(id: string, bureau = false): Promise<Donnee
   ]);
   if (f.error || d.error || ph.error || rp.error || rf.error) return null;
   const reparations = (rp.data ?? []) as unknown as Reparation[];
+  const refections = (rf.data ?? []) as unknown as Refection[];
   const ids = reparations.map((r) => r.id);
+  // L'équipe, c'est le compte du chef d'équipe (S12) : son nom, lu avec la RLS (vide si le compte n'est pas visible).
+  const auteurs = [...new Set([...reparations, ...refections].map((x) => x.auteur_terrain_id).filter((x): x is string => !!x))];
+  const noms = auteurs.length
+    ? await supabase.from('profils').select('id, nom_complet').in('id', auteurs).then((r) => r, () => ({ data: null }))
+    : { data: [] };
   const pieces = bureau
     ? supabase.from('reparation_pieces').select('id, reparation_id, produit_id, designation_libre, quantite, saisi_par, produit:produits_dolibarr(designation)')
       .in('reparation_id', ids).is('supprime_le', null)
@@ -49,12 +57,13 @@ export async function chargerServeur(id: string, bureau = false): Promise<Donnee
   const lues = (pc.data ?? []) as (PiecePosee & { designation?: string })[];
   const fuite = f.data ? ({ ...(f.data as object), ...((d.data as object | null) ?? {}) } as FicheFuite) : null;
   return {
-    fuite, photos: (ph.data ?? []) as PhotoLigne[], reparations, refections: (rf.data ?? []) as unknown as Refection[],
+    fuite, photos: (ph.data ?? []) as PhotoLigne[], reparations, refections,
     pieces: lues.map((p) => ({
       id: p.id, reparation_id: p.reparation_id, produit_id: p.produit_id, designation_libre: p.designation_libre ?? null,
       quantite: Number(p.quantite), saisi_par: p.saisi_par, produit: p.produit ?? (p.designation ? { designation: p.designation } : null),
     })),
     ouvriers: (ou.data ?? []) as OuvrierPresent[],
+    chefs: Object.fromEntries(((noms.data ?? []) as { id: string; nom_complet: string }[]).map((p) => [p.id, p.nom_complet])),
   };
 }
 

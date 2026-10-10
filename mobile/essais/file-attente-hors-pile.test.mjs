@@ -23,7 +23,7 @@ const VIDE = { ligne: {}, pieces_ajoutees: [], pieces_retirees: [], quantites: [
 
 console.log('1. Changements d\'une réparation (modification.ts)');
 const avant = {
-  ligne: { resultat: 'reparee', realisee_le: '2026-10-05T08:30:00+00:00', fouille_longueur_m: 1.2, observation: null, equipe_id: 'e1' },
+  ligne: { resultat: 'reparee', realisee_le: '2026-10-05T08:30:00+00:00', fouille_longueur_m: 1.2, observation: null },
   pieces: [{ id: 'p1', produit_id: 101, designation: 'Collier', quantite: 2 }],
   ouvriers: ['o1'],
 };

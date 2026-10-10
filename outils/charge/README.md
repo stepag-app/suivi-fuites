@@ -6,7 +6,7 @@ Outils de l'essai décrit dans [`docs/essai-charge-3000.md`](../../docs/essai-ch
 | Fichier | Rôle |
 |---|---|
 | `preparer-base.sh` | crée la base locale `charge_3000` : migrations du dépôt, réseau copié depuis une base locale qui l'a importé (`SOURCE`, défaut `essai_interface`) vers le marché DEMO, puis `generer-charge.sql` |
-| `generer-charge.sql` | `:nb` fuites fictives (défaut 3 000) sur DEMO, sur 12 mois et sur les secteurs, avec réparations, pièces, réfections, ~4 lignes photos par fuite (sans fichier) et un an de balayage (2 équipes × 4 km par jour ouvré, 10 % de seconds passages) ; 8 comptes d'essai `c0000000-…-00000000000N` (1-4 détection, 5-6 chefs, 7 responsable, 8 administrateur) |
+| `generer-charge.sql` | `:nb` fuites fictives (défaut 3 000) sur DEMO, sur 12 mois et sur les secteurs, avec réparations, pièces, réfections, ~4 lignes photos par fuite (sans fichier) et un an de balayage (2 agents × 4 km par jour ouvré, 10 % de seconds passages) ; 8 comptes d'essai `c0000000-…-00000000000N` (1-4 détection, 5-6 chefs, 7 responsable, 8 administrateur) |
 | `mesurer-sql.sql` | temps SQL (EXPLAIN ANALYZE, médiane de 3) et volume JSON des lectures principales, sous la RLS du compte `:uid` |
 | `mesurer-pages.mjs` | rejoue contre PostgREST les lectures de chaque page (`avant` : code d'origine, `apres` : code corrigé) ; durée, volume brut et gzip, lignes, appels |
 | `mesurer-navigateur.mjs` | ouvre les pages du panneau dans Chrome sans interface (profil `bureau` ou `tablette` : processeur ÷ 4, 4G 80 ms / 10 Mbit/s) ; données reçues, volume, tâches longues, tas JS, mémoire du rendu pour la carte avec tout le réseau |

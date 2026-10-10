@@ -18,7 +18,6 @@ export const MOTIFS_REPASSE: { valeur: MotifRepasse; libelle: string }[] = [
 
 export interface ChoixBalayage {
   marcheId: string;
-  equipeId: string | null;
   dateBalayage: string;                 // AAAA-MM-JJ
   methode: MethodeBalayage | null;
   observation: string | null;
@@ -32,15 +31,12 @@ export interface LigneBalayageEnvoi {
   marche_id: string;
   troncon_id: string;
   date_balayage: string;
-  equipe_id: string | null;
   methode: MethodeBalayage | null;
   observation: string | null;
   source_saisie: 'tablette' | 'web';
   /** Seulement pour un second passage : absent sinon (envois en attente d'avant la colonne inchangés). */
   motif_repasse?: MotifRepasse;
 }
-
-export const CLE_EQUIPE_MEMORISEE = 'suivi-fuites:balayage:equipe';
 
 /** Une ligne par tronçon sélectionné, identifiant uuid créé ici (renvoyer deux fois ne crée pas de doublon). */
 export function preparerBalayages(
@@ -58,7 +54,6 @@ export function preparerBalayages(
       marche_id: choix.marcheId,
       troncon_id: troncon,
       date_balayage: choix.dateBalayage,
-      equipe_id: choix.equipeId || null,
       methode: choix.methode || null,
       observation: choix.observation?.trim() || null,
       source_saisie: choix.sourceSaisie ?? 'web',

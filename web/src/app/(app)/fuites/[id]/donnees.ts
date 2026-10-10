@@ -54,11 +54,10 @@ export async function lireFicheEnLigne(id: string, marcheId: string, options: { 
     sb.from('natures_refection').select('id, code, libelle_fr, emplacement, necessite_refection').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     sb.from('motifs').select('id, categorie, code, libelle_fr').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     sb.from('profils').select('id, identifiant, nom_complet, telephone, langue, est_admin, actif').eq('actif', true).order('nom_complet'),
-    sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
     sb.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId),
     sb.from('fuites').select(COLONNES_FUITE_V2).eq('id', id).maybeSingle(),
   ]);
-  const [f, ph, rp, rf, q, n, m, pr, eq, ou, f2] = reponses;
+  const [f, ph, rp, rf, q, n, m, pr, ou, f2] = reponses;
   const reparations = lignes<Reparation>(rp);
 
   // Ouvriers et pièces posées de chaque réparation (vide si le compte n'y a pas accès)
@@ -123,7 +122,7 @@ export async function lireFicheEnLigne(id: string, marcheId: string, options: { 
       refections,
       quantites: lignes<Quantite>(q),
       liens,
-      noms: nomsUtiles(reparations, refections, { natures, motifs, profils, equipes: lignes<{ id: string; libelle: string }>(eq) },
+      noms: nomsUtiles(reparations, refections, { natures, motifs, profils },
         { profils: autresNoms, natures: [v2?.nature_degradation_id] }),
       v2,
     },

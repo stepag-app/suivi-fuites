@@ -2,7 +2,7 @@
 // (Du = Au : rapport journalier) : lit les balayages (v_balayage_journalier) et les fuites détectées sur la période
 // (v_fuites_export), puis fabrique un seul PDF (avec l'extrait de plan A4 : conduites inspectées sur la période en
 // vert, repassées en bleu, autres en gris, fuites numérotées) ou un seul Excel. Pour une journée, un rapport par
-// équipe reste possible. Rubriques à cocher (lib/export/rubriques.ts). Chargé au clic, comme les autres exports.
+// agent reste possible (l'équipe, c'est le compte du chef d'équipe : S12). Rubriques à cocher (lib/export/rubriques.ts). Chargé au clic, comme les autres exports.
 import type { Feature, LineString } from 'geojson';
 import type { StyleSpecification } from 'maplibre-gl';
 import type { ImageCarte } from '@/lib/export/carte-pdf';
@@ -13,14 +13,14 @@ import { SANS_SECTEUR, type EtatFeature } from '@/lib/reseau/types';
 import { getSupabase } from '@/lib/supabase';
 import { STYLE_FOND } from '../carte/commun';
 
-export type ModeRapport = 'jour' | 'equipe';
+export type ModeRapport = 'jour' | 'agent';
 
 const COLONNES_FUITES =
-  'numero, reference_srm, adresse, zone, secteur_id, secteur, equipe_id, visibilite, diametre_mm, materiau, revetement, latitude, longitude, jour_detection';
+  'numero, reference_srm, adresse, zone, secteur_id, secteur, auteur_terrain_id, visibilite, diametre_mm, materiau, revetement, latitude, longitude, jour_detection';
 
 export interface PeriodeRapport { du: string; au: string }
-/** Filtres du journal repris par le rapport (vides : toutes les équipes, tous les secteurs). */
-export interface FiltresRapport { equipe?: string; secteur?: string }
+/** Filtres du journal repris par le rapport (vides : tous les agents, tous les secteurs). */
+export interface FiltresRapport { agent?: string; secteur?: string }
 
 async function styleFond(): Promise<{ style: StyleSpecification; avecTextes: boolean; indisponible: boolean }> {
   const { STYLE_SECOURS } = await import('../carte/couches');
@@ -38,7 +38,7 @@ async function styleFond(): Promise<{ style: StyleSpecification; avecTextes: boo
 }
 
 /** Fonction de capture de l'extrait de plan : réseau des secteurs balayés sur la période, état de la période seulement. */
-function capturePlan(marcheId: string, periode: PeriodeRapport, lignes: LigneVueJournalier[], fuites: FuiteJour[], equipe?: string | null) {
+function capturePlan(marcheId: string, periode: PeriodeRapport, lignes: LigneVueJournalier[], fuites: FuiteJour[], agent?: string | null) {
   return async (largeurMm: number, hauteurMm: number): Promise<ImageCarte> => {
     const sb = getSupabase();
     const [{ capturerCarte }, contexte, b, fond] = await Promise.all([
@@ -47,8 +47,8 @@ function capturePlan(marcheId: string, periode: PeriodeRapport, lignes: LigneVue
       (() => {
         const q = sb.from('balayages').select('troncon_id, premier_passage').eq('marche_id', marcheId)
           .gte('date_balayage', periode.du).lte('date_balayage', periode.au).is('annule_le', null);
-        // Rapport d'une équipe : seulement ses passages (les autres conduites restent grises).
-        return equipe === undefined ? q : equipe === null ? q.is('equipe_id', null) : q.eq('equipe_id', equipe);
+        // Rapport d'un agent : seulement ses passages (les autres conduites restent grises).
+        return agent === undefined ? q : agent === null ? q.is('agent_id', null) : q.eq('agent_id', agent);
       })(),
       styleFond(),
     ]);
@@ -65,7 +65,7 @@ function capturePlan(marcheId: string, periode: PeriodeRapport, lignes: LigneVue
     })));
     const etats = new Map<string, EtatFeature>();
     for (const [id, p] of passages) {
-      etats.set(id, { balaye: p.premier, repasse: !p.premier, passages: 1, premier: periode.du, dernier: periode.au, equipe: null, agent: null });
+      etats.set(id, { balaye: p.premier, repasse: !p.premier, passages: 1, premier: periode.du, dernier: periode.au, agent: null });
     }
     // Cadrage : tronçons inspectés sur la période et fuites de la période, marge de 10 %.
     let ouest = Infinity, est = -Infinity, sud = Infinity, nord = -Infinity;
@@ -103,8 +103,8 @@ function capturePlan(marcheId: string, periode: PeriodeRapport, lignes: LigneVue
 
 /**
  * Télécharge le rapport de la période (un seul fichier ; Du = Au : rapport du jour), ou, pour une journée, un rapport
- * par équipe (un fichier par équipe). Renvoie le nombre de fichiers et les fuites qu'aucune équipe ne peut porter
- * (secteur balayé par plusieurs équipes).
+ * par agent (un fichier par agent). Renvoie le nombre de fichiers et les fuites qu'aucun agent ne peut porter
+ * (détectée par un compte qui n'a pas balayé ce jour, dans un secteur balayé par plusieurs agents).
  */
 export async function telechargerRapportBalayage(
   marcheId: string, periode: PeriodeRapport, format: 'pdf' | 'xlsx', mode: ModeRapport, rubriques: Set<string>, filtres: FiltresRapport = {},
@@ -125,34 +125,34 @@ export async function telechargerRapportBalayage(
   if (f.error) throw f.error;
   // R4 : agents désignés par leur matricule dans le rapport
   const lignes = ((l.data as LigneVueJournalier[] | null) ?? [])
-    .filter((x) => (!filtres.equipe || x.equipe_id === filtres.equipe) && (!filtres.secteur || x.secteur_id === filtres.secteur))
+    .filter((x) => (!filtres.agent || x.agent_id === filtres.agent) && (!filtres.secteur || x.secteur_id === filtres.secteur))
     .map((x) => ({ ...x, agent: matricules.agent(x.agent_id, x.agent) }));
   const fuites = ((f.data as FuiteJour[] | null) ?? [])
-    .filter((x) => (!filtres.equipe || x.equipe_id === filtres.equipe) && (!filtres.secteur || x.secteur_id === filtres.secteur));
+    .filter((x) => (!filtres.agent || x.auteur_terrain_id === filtres.agent) && (!filtres.secteur || x.secteur_id === filtres.secteur));
   if (lignes.length === 0) throw new Error(du === au ? 'Aucun balayage ce jour-là.' : 'Aucun balayage sur la période choisie.');
   const avecPlan = rubriques.has('plan');
-  const equipeFiltre = filtres.equipe || undefined;
+  const agentFiltre = filtres.agent || undefined;
 
   const produire = async (
-    journee: Parameters<typeof rj.genererRapportJournalierPdf>[1], liste: FuiteJour[], lignesPlan: LigneVueJournalier[], equipe?: string | null,
+    journee: Parameters<typeof rj.genererRapportJournalierPdf>[1], liste: FuiteJour[], lignesPlan: LigneVueJournalier[], agent?: string | null,
   ) => {
     const nom = rj.nomFichierRapportJournalier(ctx, journee);
     if (format === 'xlsx') {
       telecharger(await rj.genererRapportJournalierXlsx(ctx, journee, liste, { rubriques }), `${nom}.xlsx`);
       return;
     }
-    const extrait = avecPlan ? { capturer: capturePlan(marcheId, { du, au }, lignesPlan, liste, equipe) } : null;
+    const extrait = avecPlan ? { capturer: capturePlan(marcheId, { du, au }, lignesPlan, liste, agent) } : null;
     telecharger(await rj.genererRapportJournalierPdf(ctx, journee, liste, { extrait, rubriques }), `${nom}.pdf`);
   };
 
   if (du !== au || mode === 'jour') {
-    await produire(rj.synthesePeriode(lignes, { du, au }), fuites, lignes, equipeFiltre);
+    await produire(rj.synthesePeriode(lignes, { du, au }), fuites, lignes, agentFiltre);
     return { fichiers: 1, nonAttribuees: 0 };
   }
-  const { rapports, fuitesNonAttribuees } = rj.regrouperParEquipe(lignes, fuites, { date: du });
+  const { rapports, fuitesNonAttribuees } = rj.regrouperParAgent(lignes, fuites, { date: du });
   for (const r of rapports) {
-    const lignesEquipe = lignes.filter((x) => (x.equipe_id ?? null) === r.equipe.id);
-    await produire(r.journee, r.fuites, lignesEquipe.length ? lignesEquipe : lignes, r.equipe.id);
+    const lignesAgent = lignes.filter((x) => (x.agent_id ?? null) === r.agent.id);
+    await produire(r.journee, r.fuites, lignesAgent.length ? lignesAgent : lignes, r.agent.id);
   }
   return { fichiers: rapports.length, nonAttribuees: fuitesNonAttribuees.length };
 }

@@ -119,7 +119,6 @@ export interface Reparation {
   observation: string | null;
   source_saisie: string;
   auteur_terrain_id: string | null;
-  equipe_id?: string | null;
   motif_id?: string | null;
   representant_srm?: string | null;
   nature_revetement_id?: string | null;
@@ -234,7 +233,6 @@ export interface Balayage {
   troncon_id: string;
   date_balayage: string;
   balaye_le: string;
-  equipe_id: string | null;
   agent_id: string | null;
   saisi_par: string | null;
   source_saisie: string;
@@ -252,7 +250,6 @@ export interface EtatBalayageTroncon {
   premier_le: string;
   dernier_le: string;
   nb_passages: number;
-  equipe_id: string | null;
   agent_id: string | null;
 }
 
@@ -290,8 +287,6 @@ export interface LigneLineaireZone {
 export interface LigneBalayageJournalier {
   marche_id: string;
   date_balayage: string;
-  equipe_id: string | null;
-  equipe: string | null;
   agent_id: string | null;
   agent: string | null;
   zone_id: string | null;

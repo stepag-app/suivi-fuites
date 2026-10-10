@@ -1,4 +1,4 @@
-// Paramètres utiles à la saisie (natures de réfection, motifs, équipes, ouvriers, diamètres par matériau,
+// Paramètres utiles à la saisie (natures de réfection, motifs, ouvriers, diamètres par matériau,
 // représentants du marché ; articles Dolibarr activés, communs à tous les marchés ; libellés arabes des listes ;
 // articles les plus posés) : dernière copie gardée d'abord, puis serveur quand le réseau est là.
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -7,16 +7,16 @@ import { retenirLibelles } from './listes';
 import { compterUsage } from './regles';
 import { jetonARenouveler } from './session-donnees';
 import { supabase } from './supabase';
-import type { Diametre, Equipe, LibelleListe, Motif, Nature, Ouvrier, Piece, Representant } from './types';
+import type { Diametre, LibelleListe, Motif, Nature, Ouvrier, Piece, Representant } from './types';
 
 export interface Parametres {
-  natures: Nature[]; motifs: Motif[]; pieces: Piece[]; equipes: Equipe[]; ouvriers: Ouvrier[];
+  natures: Nature[]; motifs: Motif[]; pieces: Piece[]; ouvriers: Ouvrier[];
   diametres: Diametre[]; representants: Representant[]; libelles: LibelleListe[];
   /** Nombre de poses de chaque article sur le marché (pièces récentes) : capsules « les plus utilisées ». */
   usage: Record<number, number>;
 }
 const VIDE: Parametres = {
-  natures: [], motifs: [], pieces: [], equipes: [], ouvriers: [], diametres: [], representants: [], libelles: [], usage: {},
+  natures: [], motifs: [], pieces: [], ouvriers: [], diametres: [], representants: [], libelles: [], usage: {},
 };
 // v2 : les pièces sont des articles Dolibarr (identifiant entier) ; l'ancienne copie (catalogue) n'est plus lue.
 // Une copie v2 sans les listes du chantier v2 les reçoit vides, puis du serveur.
@@ -44,12 +44,11 @@ export async function parametresGardes(marcheId: string): Promise<Parametres> {
 }
 
 export async function chargerParametres(marcheId: string): Promise<Parametres> {
-  const [n, m, p, e, o, d, r, l, u] = await Promise.all([
+  const [n, m, p, o, d, r, l, u] = await Promise.all([
     supabase.from('natures_refection').select('id, code, libelle_fr, libelle_ar, emplacement, necessite_refection')
       .eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     supabase.from('motifs').select('id, categorie, libelle_fr, libelle_ar').eq('marche_id', marcheId).eq('actif', true).order('ordre'),
     lireArticles(),
-    supabase.from('equipes').select('id, type, numero, libelle').eq('marche_id', marcheId).eq('actif', true).order('type').order('numero'),
     supabase.from('ouvriers').select('id, nom_complet').eq('marche_id', marcheId).eq('actif', true).order('nom_complet'),
     supabase.from('diametres_materiau').select('materiau, diametre_mm').eq('marche_id', marcheId).eq('actif', true)
       .order('materiau').order('diametre_mm'),
@@ -60,11 +59,11 @@ export async function chargerParametres(marcheId: string): Promise<Parametres> {
       .not('produit_id', 'is', null).order('cree_le', { ascending: false }).limit(1000),
   ]);
   const garde = await parametresGardes(marcheId);
-  if (n.error || m.error || p.error || e.error || o.error) return garde;
+  if (n.error || m.error || p.error || o.error) return garde;
   // Listes du chantier v2 : une erreur (droit absent, base pas encore à jour) garde la copie de la tablette.
   const valeur: Parametres = {
     natures: n.data as Nature[], motifs: m.data as Motif[], pieces: p.data as Piece[],
-    equipes: e.data as Equipe[], ouvriers: o.data as Ouvrier[],
+    ouvriers: o.data as Ouvrier[],
     diametres: d.error ? garde.diametres : (d.data as Diametre[]),
     representants: r.error ? garde.representants : (r.data as Representant[]),
     libelles: l.error ? garde.libelles : (l.data as LibelleListe[]),

@@ -345,7 +345,6 @@ export default function DetailFuite() {
   const faites = etapes.filter(([, d]) => !!d).length;
   const avancement = Math.round((100 * faites) / etapes.length);
   const nomProfil = (pid: string | null | undefined) => (pid && noms.profils[pid]) || null;
-  const nomEquipe = (eid: string | null | undefined) => (eid && noms.equipes[eid]) || null;
 
   const historique: [string, string][] = ([
     [fuite.date_detection, `détectée${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ""} (saisie ${fuite.source_saisie})`],
@@ -659,7 +658,7 @@ export default function DetailFuite() {
                       {r.resultat === "reparee" ? "Réparée" : r.resultat === "en_cours" ? "En cours / reste à finir" : "Non réparée"}
                       <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} />
                     </CardTitle>
-                    <CardDescription>{dateHeure(r.realisee_le)}{nomEquipe(r.equipe_id) ? ` · ${nomEquipe(r.equipe_id)}` : ""}</CardDescription>
+                    <CardDescription>{dateHeure(r.realisee_le)}{nomProfil(r.auteur_terrain_id) ? ` · ${nomProfil(r.auteur_terrain_id)}` : ""}</CardDescription>
                     {d && !formulaire && (d.valider || d.modifier) && (
                       <CardAction className="flex flex-wrap gap-2">
                         {d.valider && (

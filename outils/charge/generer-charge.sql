@@ -13,7 +13,7 @@
 --     secteurs au prorata du nombre de tronçons, position sur un tronçon du secteur ;
 --   * réparations, pièces, réfections selon l'âge de la fuite (statuts déduits par la base) ;
 --   * ~4 lignes photos par fuite (aucun fichier : chemins fictifs) ;
---   * balayages : chaque jour ouvré, deux équipes de détection balaient ~4 km chacune, secteur
+--   * balayages : chaque jour ouvré, deux agents de détection balaient ~4 km chacun, secteur
 --     après secteur, plus 10 % de seconds passages (réseau couvert environ une fois en un an).
 --
 -- Les déclencheurs restent actifs (numérotation, statut, lignes de prix, journal) : la taille
@@ -65,11 +65,6 @@ select 900000 + n, 'CHG-' || n, 'Article de charge ' || n, (array['PE', 'PEC', '
   from generate_series(1, 40) n
 on conflict (dolibarr_id) do nothing;
 
--- Équipes de détection de DEMO (identifiants propres à chaque base)
-create temp table _eq on commit drop as
-select (row_number() over (order by numero) - 1)::int as rang, id
-  from public.equipes where marche_id = 'de000000-0000-4000-8000-000000000000' and type = 'detection';
-
 -- 3. Fuites --------------------------------------------------------------------------
 create temp table _tr on commit drop as
 select row_number() over (order by t.reference) as rang, t.id, t.secteur_id, s.zone_id, t.geom
@@ -111,7 +106,7 @@ update _f set cible = case
 end;
 
 insert into public.fuites (id, marche_id, reference_srm, origine, visibilite, ouvrage, methode_detection, zone_id, secteur_id,
-                           equipe_id, adresse, position, precision_gps_m, date_detection, auteur_terrain_id, source_saisie,
+                           adresse, position, precision_gps_m, date_detection, auteur_terrain_id, source_saisie,
                            date_communication_srm, validation_srm_le, validation_srm_par, avis_terrassement_srm_le, observation)
 select f.id, f.marche,
        lpad((100 + (random() * 899)::int)::text, 3, '0') || '-' || lpad((random() * 999)::int::text, 3, '0') || '-'
@@ -121,7 +116,6 @@ select f.id, f.marche,
        case when f.p_divers < 0.8 then 'branchement' else 'conduite' end,
        'corrélateur acoustique',
        f.zone_id, f.secteur_id,
-       (select id from _eq where rang = f.n % 4),
        'Rue d''essai n° ' || (1 + f.n % 180) || ', lot ' || (1 + f.n % 37),
        f.position, 3 + round((random() * 6)::numeric, 1), f.date_detection,
        ('c0000000-0000-4000-8000-0000000000' || lpad((1 + f.n % 4)::text, 2, '0'))::uuid, 'tablette',
@@ -145,7 +139,7 @@ select gen_random_uuid() as id, f.id as fuite_id, f.n, f.cible, f.date_detection
 update _r set emplacement = case when p_emplacement < 0.55 then 'trottoir' when p_emplacement < 0.9 then 'chaussee'
                                  else 'terrain_naturel' end::public.emplacement_fouille;
 
-insert into public.reparations (id, marche_id, fuite_id, resultat, motif_id, realisee_le, equipe_id, auteur_terrain_id,
+insert into public.reparations (id, marche_id, fuite_id, resultat, motif_id, realisee_le, auteur_terrain_id,
                                 source_saisie, ouvrage, materiau, diametre_mm, representant_srm, tuyau_repare,
                                 robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, longueur_pe_m,
                                 fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, observation)
@@ -155,7 +149,6 @@ select r.id, 'de000000-0000-4000-8000-000000000000', r.fuite_id,
             then (select m.id from public.motifs m where m.marche_id = 'de000000-0000-4000-8000-000000000000' and m.categorie = 'sans_reparation'
                      and m.code = (array['sondage_negatif', 'assainissement', 'refus_abonne', 'reparee_par_srm'])[1 + r.n % 4]) end,
        r.realisee_le,
-       case when r.n % 2 = 0 then 'de000000-0000-4000-8000-020000000091' else 'de000000-0000-4000-8000-020000000092' end::uuid,
        ('c0000000-0000-4000-8000-0000000000' || lpad((5 + r.n % 2)::text, 2, '0'))::uuid, 'tablette',
        'branchement', 'polyethylene', (array[20, 25, 32, 40, 63, 90, 110])[1 + r.n % 7], 'Représentant SRM (essai)',
        r.p < 0.7, r.p >= 0.7 and r.p < 0.85, r.p >= 0.85, r.p < 0.2,
@@ -172,14 +165,13 @@ select 'de000000-0000-4000-8000-000000000000', r.id, 1 + (random() * 2)::int, 90
 
 -- 5. Réfections -------------------------------------------------------------------------
 insert into public.refections (marche_id, fuite_id, reparation_id, resultat, realisee_le, nature_id, longueur_m, largeur_m,
-                               equipe_id, auteur_terrain_id, source_saisie)
+                               auteur_terrain_id, source_saisie)
 select 'de000000-0000-4000-8000-000000000000', r.fuite_id, r.id, 'faite',
        least(now() - interval '5 minutes', r.realisee_le + make_interval(days => 3 + (random() * 22)::int)),
        (select n.id from public.natures_refection n where n.marche_id = 'de000000-0000-4000-8000-000000000000'
          and n.code = case r.emplacement when 'chaussee' then 'enrobe_a_chaud'
                                           else (array['carreaux_ciment', 'beton'])[1 + r.n % 2] end),
        round((0.9 + random() * 1.2)::numeric, 2), round((0.6 + random() * 0.5)::numeric, 2),
-       case when r.n % 2 = 0 then 'de000000-0000-4000-8000-020000000091' else 'de000000-0000-4000-8000-020000000092' end::uuid,
        ('c0000000-0000-4000-8000-0000000000' || lpad((5 + r.n % 2)::text, 2, '0'))::uuid, 'tablette'
   from _r r
  where r.cible = 'achevee' and r.emplacement <> 'terrain_naturel';
@@ -212,27 +204,26 @@ select row_number() over (order by s.code, extensions.st_geohash(extensions.st_s
   from public.troncons t join public.secteurs s on s.id = t.secteur_id
  where t.marche_id = 'de000000-0000-4000-8000-000000000000' and t.actif;
 
--- 2 équipes × ~4 km par jour ; avancée en mètres cumulés
+-- 2 agents × ~4 km par jour ; avancée en mètres cumulés
 create temp table _bal on commit drop as
 with cumul as (
   select o.*, sum(o.longueur_m) over (order by o.rang) as m from _ordre o
 )
-select c.id as troncon_id, j.j::date as jour, (c.rang % 2) as equipe
+select c.id as troncon_id, j.j::date as jour, (c.rang % 2) as agent
   from cumul c
   join _jours j on j.rang = floor(c.m / 8000)::int;
 
-insert into public.balayages (marche_id, troncon_id, date_balayage, balaye_le, equipe_id, agent_id, saisi_par, source_saisie, methode)
+insert into public.balayages (marche_id, troncon_id, date_balayage, balaye_le, agent_id, saisi_par, source_saisie, methode)
 select 'de000000-0000-4000-8000-000000000000'::uuid, b.troncon_id, b.jour,
        (b.jour + make_interval(hours => 8 + (random() * 8)::int)) at time zone 'Africa/Casablanca',
-       (select id from _eq where rang = b.equipe),
-       ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.equipe)::text, 2, '0'))::uuid,
-       ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.equipe)::text, 2, '0'))::uuid,
+       ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.agent)::text, 2, '0'))::uuid,
+       ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.agent)::text, 2, '0'))::uuid,
        'tablette'::public.source_saisie, 'ecoute'
   from _bal b
 union all
 select 'de000000-0000-4000-8000-000000000000', b.troncon_id, least(b.jour + 30, (now() at time zone 'Africa/Casablanca')::date),
        (least(b.jour + 30, (now() at time zone 'Africa/Casablanca')::date) + interval '10 hours') at time zone 'Africa/Casablanca',
-       (select id from _eq where rang = 2), 'c0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000003',
+       'c0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000003',
        'tablette', 'correlation'
   from _bal b
  where random() < 0.10;

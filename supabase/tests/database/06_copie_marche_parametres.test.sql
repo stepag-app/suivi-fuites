@@ -95,12 +95,12 @@ select results_eq($$ select (select count(*)::int from zones z where z.marche_id
                        from t_ids t where t.cle = 'copie' $$,
   $$ select (select count(*)::int from zones z where z.marche_id = t.id),
             (select count(*)::int from secteurs s where s.marche_id = t.id),
-            (select count(*)::int from equipes e where e.marche_id = t.id),
+            0,   -- équipes : plus copiées (S12)
             (select count(*)::int from natures_refection n where n.marche_id = t.id),
             (select count(*)::int from motifs m where m.marche_id = t.id),
             (select count(*)::int from suggestions_articles c where c.marche_id = t.id)
        from t_ids t where t.cle = 'srm' $$,
-  'référentiels copiés (zones, secteurs, équipes, natures, motifs, articles suggérés)');
+  'référentiels copiés (zones, secteurs, natures, motifs, articles suggérés), aucune équipe');
 select results_eq($$ select s.produit_id, s.famille, p.numero from suggestions_articles s join prix p on p.id = s.prix_id
                       where s.marche_id = (select id from t_ids where cle = 'copie') and p.marche_id = s.marche_id
                       order by s.produit_id nulls last $$,

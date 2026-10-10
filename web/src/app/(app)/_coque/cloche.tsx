@@ -39,7 +39,8 @@ export function ilYA(iso: string, maintenant = Date.now()): string {
 }
 
 // N1 : cloche de la coque. Pastille rouge discrète (nombre, « 9+ ») ; à l'ouverture, la liste montre en bleu ce qui
-// n'était pas lu puis tout est marqué lu ; clic → fiche de la fuite ; nouvelles notifications en direct (temps réel).
+// n'était pas lu puis tout est marqué lu ; clic → fiche de la fuite ; nouvelles notifications en direct (temps réel) ;
+// « Tout voir » → page /notifications (au-delà des 30 dernières).
 export function Cloche({ moi, marches }: { moi: string; marches: Marche[] }) {
   const router = useRouter();
   const [nonLues, setNonLues] = useState(0);
@@ -165,6 +166,17 @@ export function Cloche({ moi, marches }: { moi: string; marches: Marche[] }) {
                 );
               })}
             </ul>
+          </div>
+        )}
+        {liste && liste.length > 0 && (
+          <div className="border-t p-1">
+            <Button variant="ghost" size="sm" className="w-full" onClick={() => {
+              setOuverte(false);
+              ouverteRef.current = false;
+              router.push("/notifications");
+            }}>
+              Tout voir{liste.length >= LIMITE ? ` (au-delà des ${LIMITE} dernières)` : ""}
+            </Button>
           </div>
         )}
       </PopoverContent>

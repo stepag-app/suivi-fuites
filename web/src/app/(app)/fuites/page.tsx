@@ -7,7 +7,9 @@ import {
   getCoreRowModel, getPaginationRowModel, getSortedRowModel, type PaginationState, type RowSelectionState, type SortingState,
   useReactTable, type VisibilityState,
 } from "@tanstack/react-table";
-import { CalendarDays, Clock3, Download, Droplets, FileText, MapPin, Plus, RefreshCw, Rows3, Search, Siren, SquareKanban, Wrench, X } from "lucide-react";
+import {
+  CalendarDays, CircleDot, Clock3, Download, Droplets, FileText, Map as IconeZone, MapPin, Plus, RefreshCw, Rows3, Search, Siren, SquareKanban, Wrench, X,
+} from "lucide-react";
 import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { CarteIndicateur, GrilleIndicateurs } from "@/components/carte-indicateur";
 import { EnTetePage } from "@/components/en-tete-page";
@@ -35,9 +37,10 @@ import { useSession } from "@/lib/session";
 import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import type { Secteur, StatutFuite } from "@/lib/types";
 import { delaiReparation, fuitesDuMois, nonReparees, refectionsAFaire } from "@/lib/ui/indicateurs";
-import { cn } from "@/lib/utils";
 import { LIBELLES_COLONNES, colonnesFuites } from "./colonnes";
-import { correspondance, decrirePeriode, filtresActifs, type FuiteFiltrable } from "./filtres";
+import {
+  CLES_ALERTES, LIBELLES_ALERTES, correspondance, decrirePeriode, ecrireFiltres, filtresActifs, type CleAlerte, type FuiteFiltrable,
+} from "./filtres";
 import { useFiltresAdresse } from "./useFiltresAdresse";
 import { VueCartes } from "./vue-cartes";
 import { VueKanban } from "./vue-kanban";
@@ -58,11 +61,12 @@ function ListeFuites() {
   const [fuites, setFuites] = useState<Lignes<FuiteListe>>([]);
   const [comptes, setComptes] = useState<Partial<Record<StatutFuite, number>> | null>(null);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
+  const [zones, setZones] = useState<{ id: string; libelle: string }[]>([]);
   const [secteursDe, setSecteursDe] = useState<string | null>(null);
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
   const { filtres, changer, effacer } = useFiltresAdresse();
-  const { statut, secteur, texte, alertes: alertesSeules } = filtres;
+  const { statuts, zone, secteur, texte, alertes: alertesSeules, alerte } = filtres;
   const [vue, setVue] = useState<"liste" | "kanban">("liste");
 
   const marcheId = marche?.id;
@@ -73,11 +77,12 @@ function ListeFuites() {
     setChargement(true);
     setErreur("");
     const sb = getSupabase();
-    const [f, s, c] = await Promise.all([
+    const [f, s, z, c] = await Promise.all([
       lireTout<FuiteListe>((de, a) => sb.from("v_fuites").select(COLONNES_LISTE).eq("marche_id", marcheId).order("numero", { ascending: false })
         .range(de, a) as unknown as PromiseLike<{ data: FuiteListe[] | null; error: { message: string } | null }>, 1000, 10000)
         .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error })),
       sb.from("secteurs").select("id, zone_id, code, libelle").eq("marche_id", marcheId).order("libelle"),
+      sb.from("zones").select("id, libelle").eq("marche_id", marcheId).order("numero"),
       compterFuites(marcheId).catch(() => null),
     ]);
     if (demande !== derniereDemande.current) return;
@@ -85,7 +90,8 @@ function ListeFuites() {
     setFuites(f.data ?? []);
     setComptes(c && Object.fromEntries(c.map((l) => [l.statut, l.nb])));
     setSecteurs((s.data as Secteur[] | null) ?? []);
-    setSecteursDe(s.error ? null : marcheId);
+    setZones((z.data as { id: string; libelle: string }[] | null) ?? []);
+    setSecteursDe(s.error || z.error ? null : marcheId);
     setChargement(false);
   }, [marcheId]);
 
@@ -94,8 +100,10 @@ function ListeFuites() {
   }, [charger]);
 
   useEffect(() => {
-    if (secteursDe === marcheId && secteur && !secteurs.some((s) => s.id === secteur)) changer({ secteur: "" });
-  }, [secteursDe, marcheId, secteur, secteurs, changer]);
+    if (secteursDe !== marcheId) return;
+    if (zone && !zones.some((z) => z.id === zone)) changer({ zone: "" });
+    else if (secteur && !secteurs.some((s) => s.id === secteur)) changer({ secteur: "" });
+  }, [secteursDe, marcheId, zone, zones, secteur, secteurs, changer]);
 
   const correspond = useMemo(() => correspondance(filtres), [filtres]);
   const filtrees = useMemo(() => fuites.filter(correspond), [fuites, correspond]);
@@ -154,7 +162,7 @@ function ListeFuites() {
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
   });
-  const cleFiltres = `${statut}|${secteur}|${filtres.du}|${filtres.au}|${alertesSeules}|${texte}`;
+  const cleFiltres = ecrireFiltres(filtres);
   useEffect(() => {
     setPagination((p) => ({ ...p, pageIndex: 0 }));
   }, [cleFiltres]);
@@ -163,11 +171,13 @@ function ListeFuites() {
   const ciblesRapports = selection.length ? selection : filtrees;
 
   const descriptionListe = [
-    statut && STATUT_STYLE[statut].libelle,
+    statuts.map((s) => STATUT_STYLE[s].libelle).join(" ou "),
+    zone && zones.find((z) => z.id === zone)?.libelle,
     secteur && secteurs.find((s) => s.id === secteur)?.libelle,
     decrirePeriode(filtres),
     texte.trim() && `recherche « ${texte.trim()} »`,
     alertesSeules && "alertes seulement",
+    alerte && `alerte « ${LIBELLES_ALERTES[alerte].toLowerCase()} »`,
   ].filter(Boolean).join(", ");
 
   // Comptes de la base (exacts même au-delà du plafond de lecture), sinon ceux des lignes chargées.
@@ -181,9 +191,18 @@ function ListeFuites() {
   const incomplet = !erreur && (!!fuites.tronque || total > fuites.length);
   const compteursSecteurs = useMemo(() => {
     const c: Record<string, number> = {};
-    fuites.forEach((f) => { if (f.secteur_id) c[f.secteur_id] = (c[f.secteur_id] ?? 0) + 1; });
+    fuites.forEach((f) => {
+      if (f.secteur_id) c[f.secteur_id] = (c[f.secteur_id] ?? 0) + 1;
+      if (f.zone_id) c[f.zone_id] = (c[f.zone_id] ?? 0) + 1;
+      if (CLES_ALERTES.some((k) => f[k])) c.toutes = (c.toutes ?? 0) + 1;
+      CLES_ALERTES.forEach((k) => { if (f[k]) c[k] = (c[k] ?? 0) + 1; });
+    });
     return c;
   }, [fuites]);
+  const secteursProposes = zone ? secteurs.filter((s) => s.zone_id === zone) : secteurs;
+  const choixAlerte = alerte ? [alerte] : alertesSeules ? ["toutes"] : [];
+  const choisirAlerte = (v: string | undefined) =>
+    changer(v === "toutes" ? { alertes: true, alerte: "" } : { alertes: false, alerte: (v ?? "") as CleAlerte | "" });
 
   const ind = useMemo(() => ({
     mois: fuitesDuMois(fuites),
@@ -290,7 +309,7 @@ function ListeFuites() {
         descriptionListe={descriptionListe ? `Filtres de la liste : ${descriptionListe}` : undefined}
       />
 
-      <Tabs value={statut || "toutes"} onValueChange={(v) => changer({ statut: v === "toutes" ? "" : (v as StatutFuite) })}>
+      <Tabs value={statuts.length > 1 ? "" : statuts[0] ?? "toutes"} onValueChange={(v) => changer({ statuts: v === "toutes" ? [] : [v as StatutFuite] })}>
         <div className="scrollbar-none touch-pan-x overflow-x-auto overscroll-x-contain border-b">
           <TabsList variant="line" className="w-max min-w-full justify-start gap-2 ps-0 *:data-[slot=tabs-trigger]:flex-none">
             <TabsTrigger value="toutes">
@@ -315,8 +334,18 @@ function ListeFuites() {
               <InputGroupInput className="h-8" placeholder="N°, référence ou adresse" value={texte} aria-label="Rechercher"
                 onChange={(e) => changer({ texte: e.target.value }, true)} />
             </InputGroup>
+            <FiltreFacettes titre="Statut" icone={CircleDot} valeurs={statuts} changer={(v) => changer({ statuts: v as StatutFuite[] })}
+              options={ORDRE_STATUTS.map((s) => ({ valeur: s, libelle: STATUT_STYLE[s].libelle, nombre: compteurs[s] ?? 0 }))} />
+            {zones.length > 1 && (
+              <FiltreFacettes titre="Zone" icone={IconeZone} simple valeurs={zone ? [zone] : []}
+                changer={(v) => {
+                  const z = v[0] ?? "";
+                  changer({ zone: z, ...(z && secteur && secteurs.find((s) => s.id === secteur)?.zone_id !== z ? { secteur: "" } : {}) });
+                }}
+                options={zones.map((z) => ({ valeur: z.id, libelle: z.libelle, nombre: compteursSecteurs[z.id] ?? 0 }))} />
+            )}
             <FiltreFacettes titre="Secteur" icone={MapPin} simple valeurs={secteur ? [secteur] : []} changer={(v) => changer({ secteur: v[0] ?? "" })}
-              options={secteurs.map((s) => ({ valeur: s.id, libelle: s.libelle, nombre: compteursSecteurs[s.id] ?? 0 }))} />
+              options={secteursProposes.map((s) => ({ valeur: s.id, libelle: s.libelle, nombre: compteursSecteurs[s.id] ?? 0 }))} />
             <div className="flex h-8 items-center gap-1 rounded-lg border border-dashed px-2 text-sm has-[input:not(:placeholder-shown)]:border-solid" role="group" aria-label="Période de détection">
               <CalendarDays className="size-3.5 text-muted-foreground" />
               <Input type="date" aria-label="Détectées du" value={filtres.du} max={filtres.au || undefined}
@@ -325,10 +354,14 @@ function ListeFuites() {
               <Input type="date" aria-label="au" value={filtres.au} min={filtres.du || undefined}
                 onChange={(e) => changer({ au: e.target.value }, true)} className="h-6 w-32 border-0 bg-transparent px-1 shadow-none dark:bg-transparent" />
             </div>
-            <Button variant="outline" className={cn("border-dashed", alertesSeules && "border-solid bg-muted text-foreground")} aria-pressed={alertesSeules}
-              onClick={() => changer({ alertes: !alertesSeules })}>
-              <Siren data-icon="inline-start" />Alertes seulement
-            </Button>
+            <FiltreFacettes titre="Alertes" icone={Siren} simple valeurs={choixAlerte} changer={(v) => choisirAlerte(v[0])}
+              options={[
+                { valeur: "toutes", libelle: "Toutes les alertes", nombre: compteursSecteurs.toutes ?? 0 },
+                ...CLES_ALERTES.map((k) => ({
+                  valeur: k, nombre: compteursSecteurs[k] ?? 0,
+                  libelle: k === "alerte_non_reparee" ? `Non réparée > ${libelles.delaiReparationH} h` : LIBELLES_ALERTES[k],
+                })),
+              ]} />
             {filtresActifs(filtres) && (
               <Button variant="destructive" onClick={effacer}><X data-icon="inline-start" />Effacer</Button>
             )}

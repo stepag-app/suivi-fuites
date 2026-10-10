@@ -5,11 +5,11 @@ import type { StatutFuite, VFuite } from '@/lib/types';
 
 export type FuiteTdb = Pick<
   VFuite,
-  | 'id' | 'numero' | 'statut' | 'zone' | 'secteur_id' | 'secteur' | 'date_detection'
+  | 'id' | 'numero' | 'statut' | 'zone_id' | 'zone' | 'secteur_id' | 'secteur' | 'date_detection'
   | 'derniere_reparation_le' | 'derniere_refection_le' | 'emplacement_fouille' | 'nb_photos'
   | 'alerte_non_reparee' | 'alerte_communication_srm' | 'alerte_refection_chaussee'
   | 'refection_chaussee_hors_delai' | 'alerte_refection_trottoir' | 'alerte_sans_photo'
-> & { zone_id: string | null };
+>;
 
 export const COLONNES_TDB =
   'id, numero, statut, zone_id, zone, secteur_id, secteur, date_detection, derniere_reparation_le, derniere_refection_le, ' +
@@ -18,7 +18,7 @@ export const COLONNES_TDB =
 
 export const ORDRE_STATUTS: StatutFuite[] = ['detectee', 'en_reparation', 'reparee', 'achevee', 'sans_reparation'];
 
-// Mêmes alertes que le filtre « Alertes seulement » de la liste des fuites.
+// Mêmes alertes que le filtre « Alertes › Toutes les alertes » de la liste des fuites.
 const ALERTES = [
   'alerte_non_reparee', 'alerte_communication_srm', 'refection_chaussee_hors_delai',
   'alerte_refection_chaussee', 'alerte_refection_trottoir',
@@ -52,6 +52,39 @@ export function semaineIso(jour: string): number {
 
 export type ChoixPeriode = 'mois' | 'semaine' | 'mois_precedent' | 'debut' | 'libre';
 export interface Periode { du: string; au: string }
+
+// Période du tableau de bord dans l'adresse (retour depuis la liste filtrée) :
+//   /tableau-de-bord?periode=semaine   ou   ?periode=libre&du=AAAA-MM-JJ&au=AAAA-MM-JJ
+// « Mois en cours » (le défaut) n'écrit rien ; valeur inconnue ou date invalide : ignorée.
+const CHOIX: ChoixPeriode[] = ['mois', 'semaine', 'mois_precedent', 'debut', 'libre'];
+const jourOk = (v: string | null | undefined) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v ?? '');
+  if (!m) return false;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return +m[1] >= 2000 && +m[1] <= 2999 && d.toISOString().slice(0, 10) === v;
+};
+
+export function lirePeriodeAdresse(source: string | { get(nom: string): string | null }): { choix: ChoixPeriode; libre: Partial<Periode> } {
+  const p = typeof source === 'string' ? new URLSearchParams(source) : source;
+  const brut = p.get('periode') as ChoixPeriode | null;
+  const choix = brut && CHOIX.includes(brut) ? brut : 'mois';
+  if (choix !== 'libre') return { choix, libre: {} };
+  const libre: Partial<Periode> = {};
+  const [du, au] = [p.get('du'), p.get('au')];
+  if (jourOk(du)) libre.du = du!;
+  if (jourOk(au)) libre.au = au!;
+  return { choix, libre };
+}
+
+export function ecrirePeriodeAdresse(choix: ChoixPeriode, libre: Partial<Periode> = {}): string {
+  if (choix === 'mois' || !CHOIX.includes(choix)) return '';
+  const p = new URLSearchParams({ periode: choix });
+  if (choix === 'libre') {
+    if (jourOk(libre.du)) p.set('du', libre.du!);
+    if (jourOk(libre.au)) p.set('au', libre.au!);
+  }
+  return p.toString();
+}
 
 /** `debut` : jour de commencement du marché (OS, sinon première fuite) pour le choix « Depuis le début du marché ». */
 export function periodePour(choix: ChoixPeriode, maintenant = new Date(), libre?: Partial<Periode>, debut?: string | null): Periode {

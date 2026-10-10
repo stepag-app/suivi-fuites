@@ -119,7 +119,7 @@ function fabriquerFuites(marcheId: string, plan: Plan[], secteursDu: (Secteur & 
         id: id("f", depart + numero), marche_id: marcheId, numero,
         reference_srm: r() < 0.75 ? (masque ? `302-${String(entre(600, 699))}-${String(entre(1, 999)).padStart(3, "0")}` : `REF-${1000 + numero}`) : null,
         origine: r() < 0.12 ? "srm" : "stepag", visibilite: r() < 0.6 ? "visible" : "invisible", ouvrage: choix(OUVRAGES), statut: p.statut,
-        zone: zone?.libelle as string ?? null, secteur_id: secteur.id, secteur: secteur.libelle,
+        zone_id: (zone?.id as string) ?? null, zone: zone?.libelle as string ?? null, secteur_id: secteur.id, secteur: secteur.libelle,
         adresse: `${entre(2, 180)} ${choix(RUES)}`, latitude: 34.6814 + (r() - 0.5) * 0.06, longitude: -1.9086 + (r() - 0.5) * 0.08,
         ...(() => { const agent = choix(AGENTS); return { detectee_par: agent, auteur_terrain_id: AGENTS_ID[agent] }; })(),
         date_detection: detection, source_saisie: r() < 0.8 ? "tablette" : "web",
@@ -447,6 +447,16 @@ export const notifications: Ligne[] = [
     corps: f.adresse, cree_le: il_y_a(h as number), lue_le: nonLue ? null : il_y_a((h as number) - 0.1), auteur_id: id("d", 2),
   };
 });
+// Plus anciennes, déjà lues : la cloche n'en montre que 30, la page « Tout voir » les pagine.
+for (let i = 0; i < 60; i++) {
+  const f = fuitesSrm[(i + 5) % fuitesSrm.length];
+  const h = 60 + i * 9;
+  notifications.push({
+    id: 100 + i, destinataire_id: ADMIN_ID, marche_id: MARCHE_SRM, evenement: i % 2 ? "fuite_detectee" : "reparation_saisie", fuite_id: f.id,
+    titre: i % 2 ? `Nouvelle fuite N° ${f.numero} détectée` : `Fuite N° ${f.numero} : réparation saisie, à valider`,
+    corps: f.adresse, cree_le: il_y_a(h), lue_le: il_y_a(h - 0.1), auteur_id: id("d", 2),
+  });
+}
 
 // Vues des exports (R4 : noms des agents et ouvriers que les documents remplacent par leur matricule)
 const CHEF_DEMO = { id: id("d", 3), nom: "BENALI Youssef" };

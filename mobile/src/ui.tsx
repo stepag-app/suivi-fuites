@@ -454,6 +454,8 @@ export function Vignettes({ photos, retirer }: {
   );
 }
 
+// Aucun espacement des lettres (letterSpacing) : Android le compte à la mesure d'un texte arabe mais pas au dessin
+// (écriture liée) ; un titre plus large que mesuré passait sur deux lignes (« بيانات / التعريف »).
 export const s = StyleSheet.create({
   ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: 20, gap: 14 },
@@ -468,14 +470,14 @@ export const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   texteLangue: { fontFamily: POLICE, fontSize: 15, fontWeight: '600', color: COULEURS.texte },
-  titreBarre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.2 },
+  titreBarre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte },
   sousTitreBarre: { fontFamily: POLICE, fontSize: 14, color: COULEURS.discret },
-  h1: { fontFamily: POLICE, fontSize: 28, lineHeight: 34, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.5 },
+  h1: { fontFamily: POLICE, fontSize: 28, lineHeight: 34, fontWeight: '600', color: COULEURS.texte },
   carte: { backgroundColor: COULEURS.fond, borderColor: COULEURS.bord, borderWidth: 1, borderRadius: 14, padding: 18, gap: 14 },
   teteCarte: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   ligneTitre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  titreCarte: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.2 },
-  sousTitre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.2 },
+  titreCarte: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte },
+  sousTitre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte },
   texte: { fontFamily: POLICE, fontSize: 16, color: COULEURS.texte },
   texteFort: { fontFamily: POLICE, fontSize: 16, fontWeight: '600', color: COULEURS.texte },
   discret: { fontFamily: POLICE, color: COULEURS.discret, fontSize: 15 },

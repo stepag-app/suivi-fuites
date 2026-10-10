@@ -1,7 +1,7 @@
 // Dictionnaire de l'APK : la clé est le texte français affiché dans le code (avec {repères} remplis à l'affichage).
 // `ar` : arabe classique ; `hyb` : mode hybride, absent = comme `ar`. Règle d'Issam (2026-10-07) : en hybride, une
 // phrase arabe ne garde un mot français que s'il s'agit de « Réfection » (et « Polyethylene », version d'Issam) ;
-// les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent, sauf ceux des fuites (en arabe). Tout relu et validé par Issam dans l'artefact
+// les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent, sauf ceux des fuites (en arabe). Tout relu et validé par Issam dans l'artefact (le 2026-10-10, il a validé toutes les propositions restantes)
 // « Dictionnaire arabe APK » (docs/traduction/).
 
 export interface Entree { ar: string; hyb?: string }
@@ -334,7 +334,7 @@ export const TRADUCTIONS = {
 
   'Visible': { ar: 'ظاهرة', hyb: 'Visible' },
   'Invisible': { ar: 'غير ظاهرة', hyb: 'Invisible' },
-  // Chantier v2 (S7, 2026-10-09) : validation, saisie, gardes-fous, notifications, mise à jour — à relire par Issam
+  // Chantier v2 (S7, 2026-10-09) : validation, saisie, gardes-fous, notifications, mise à jour — validés par Issam (2026-10-10)
   'Réparation': { ar: 'الإصلاح', hyb: 'Réparation' },
   'À valider': { ar: 'للمصادقة' },
   'Valider': { ar: 'صادِق' },
@@ -460,7 +460,7 @@ export const TRADUCTIONS = {
   "La carte ne peut pas s'ouvrir. Réessayez.": { ar: 'تعذّر فتح الخريطة. أعد المحاولة.' },
   'Retour au formulaire': { ar: 'العودة إلى الاستمارة' },
 
-  // Suivi GPS (S11, X6) : libellés à relire par Issam
+  // Suivi GPS (S11, X6) : libellés validés par Issam (2026-10-10)
   'Suivi GPS': { ar: 'تتبع الموقع (GPS)', hyb: 'Suivi GPS' },
   'Suivi de position actif': { ar: 'تتبع الموقع مفعّل' },
   'Le tracé de votre journée est transmis à votre responsable.': { ar: 'يُرسل مسار يومك إلى مسؤولك.' },
@@ -495,7 +495,7 @@ export const TRADUCTIONS = {
   'Dernière position enregistrée : {date}': { ar: 'آخر موقع مسجّل: {date}' },
   'Aucune position enregistrée pour le moment.': { ar: 'لا يوجد أي موقع مسجّل حتى الآن.' },
 
-  // Mesures de nuit (chantier v3, S19, D8) : libellés à relire par Issam (D01 à D53 de l'artefact)
+  // Mesures de nuit (chantier v3, S19, D8) : libellés validés par Issam (2026-10-10, D01 à D53 de l'artefact)
   'Mesures de nuit': { ar: 'قياسات التدفق الليلي', hyb: 'Mesures de nuit' },
   'Mesure de nuit · {mesure}': { ar: 'قياس ليلي · {mesure}' },
   'Correction de mesure de nuit · {mesure}': { ar: 'تصحيح قياس ليلي · {mesure}' },

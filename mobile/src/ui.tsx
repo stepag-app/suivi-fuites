@@ -204,6 +204,7 @@ const TONS = {
   rouge: { fond: COULEURS.dangerFond, bord: COULEURS.dangerBord, texte: COULEURS.danger },
   orange: { fond: 'rgba(254, 154, 0, 0.1)', bord: 'rgba(254, 154, 0, 0.2)', texte: '#bb4d00' },
   neutre: { fond: COULEURS.sourdine, bord: COULEURS.bord, texte: COULEURS.discret },
+  vert: { fond: '#f0fdf4', bord: '#b9f8cf', texte: '#016630' },
 };
 
 export function Badge({ texte, ton = 'neutre', icone, carre }: {

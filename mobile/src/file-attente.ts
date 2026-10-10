@@ -8,10 +8,13 @@
 // ajoutées depuis la fiche) jusqu'à ce qu'il passe ou soit abandonné. Une modification ou des photos
 // ajoutées à une saisie encore en attente partent donc toujours après elle. Les statuts et les
 // quantités sont recalculés par le serveur (déclencheurs).
+//
+// Mesures de nuit (D8) : même file, chaîne propre à chaque mesure (création, puis corrections) ; photo de l'afficheur
+// déposée dans le compartiment « debits » avant la ligne.
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { t } from './langue';
 import type { Changements } from './modification';
-import { dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
+import { deposerPieceJointe, dejaEnvoye, effacerPhotos, envoyerPhoto, type PhotoAttente } from './photos';
 import { jetonARenouveler, sessionStockee } from './session-donnees';
 import { supabase } from './supabase';
 
@@ -49,12 +52,22 @@ export interface EnvoiMaj extends Commun {
   type: 'maj'; fuite_id: string; fuite_libelle: string; table: 'fuites' | 'refections' | 'photos'; ligne_id: string;
   champs: Record<string, unknown>;
 }
-export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection | EnvoiPhotos | EnvoiModification | EnvoiMaj;
+/**
+ * Mesure de nuit (D8) : création (`correction` faux, `mesure_id` = identifiant de l'envoi, créé sur la tablette) ou
+ * correction avant validation (toutes les valeurs saisies, envoyées telles quelles). `photos` : photo de l'afficheur.
+ */
+export interface EnvoiMesure extends Commun {
+  type: 'mesure'; mesure_id: string; campagne_id: string; correction: boolean; libelle: string;
+  /** point_id, nuit (création), minimum_m3h ou releves, observation. */
+  ligne: Record<string, unknown>;
+}
+export type Envoi = EnvoiFuite | EnvoiReparation | EnvoiRefection | EnvoiPhotos | EnvoiModification | EnvoiMaj | EnvoiMesure;
 /** Ancien nom, gardé pour les écrans de détection. */
 export type FuiteAttente = EnvoiFuite;
 
 export const estFuite = (e: Envoi): e is EnvoiFuite => !e.type || e.type === 'fuite';
-export const fuiteDe = (e: Envoi) => (estFuite(e) ? e.id : e.fuite_id);
+/** Chaîne de l'envoi : la fuite, ou la mesure de nuit ; un refus bloque les envois suivants de la même chaîne. */
+export const fuiteDe = (e: Envoi) => (estFuite(e) ? e.id : e.type === 'mesure' ? e.mesure_id : e.fuite_id);
 
 const CLE = 'suivi-fuites:attente';
 type Ecouteur = () => void;
@@ -107,7 +120,7 @@ export async function dependants(id: string): Promise<Envoi[]> {
   if (!e) return [];
   const rattache = (x: Envoi) =>
     ((x.type === 'modification' || x.type === 'photos') && x.reparation_id === id) || (x.type === 'photos' && x.refection_id === id)
-    || (x.type === 'maj' && x.ligne_id === id);
+    || (x.type === 'maj' && x.ligne_id === id) || (e.type === 'mesure' && !e.correction && fuiteDe(x) === e.mesure_id);
   return liste.filter((x) => x.id !== id && (estFuite(e) ? fuiteDe(x) === id : rattache(x)));
 }
 
@@ -132,6 +145,8 @@ export function messageClair(e: unknown): string {
   if (/verrouill/i.test(brut)) {
     return t("Fuite verrouillée (lot d'attachement arrêté) : seul le responsable peut encore la compléter ou la modifier. Rien n'est perdu : prévenez le responsable, puis « Envoyer maintenant ».");
   }
+  const mesure = messageMesure(err.code, brut);
+  if (mesure) return mesure;
   if (err.code === '42501' || /row-level security|non autorisée|permission denied/i.test(brut)) {
     return t("Droit insuffisant sur ce marché pour cette saisie. Rien n'est perdu : voyez avec l'administrateur.");
   }
@@ -152,6 +167,28 @@ export function messageClair(e: unknown): string {
   }
   if (err.code === '23514') return t('Saisie incomplète refusée par le serveur ({detail}).', { detail: brut });
   return brut;
+}
+
+/** Refus propres aux mesures de nuit (déclencheur de mesures_nuit, contrat D8) ; null pour les autres. */
+function messageMesure(code: string | undefined, brut: string): string | null {
+  if (code === 'mesure_en_double' || /mesures_nuit_unique/.test(brut)) {
+    return t("Une mesure existe déjà pour ce point et cette nuit (saisie par un autre compte ?). Supprimez celle-ci de la tablette ou voyez avec le responsable.");
+  }
+  if (/Mesure validée/.test(brut)) return t('Mesure déjà validée par le responsable : elle ne se corrige plus depuis la tablette.');
+  if (/hors de la campagne|Campagne supprimée/.test(brut)) {
+    return t('Campagne supprimée ou dates changées par le responsable : cette nuit ne fait plus partie de la campagne.');
+  }
+  if (/Campagne introuvable/.test(brut)) return t('Campagne introuvable : droit de lecture des débits de nuit absent sur ce marché ?');
+  if (/pas dans la zone de la campagne|Point de mesure désactivé/.test(brut)) {
+    return t('Point de mesure désactivé ou hors de la zone de la campagne.');
+  }
+  if (/Relevé|Débit négatif|même heure/.test(brut)) {
+    return t('Relevés refusés : heures de 00:00 à 06:00, débits positifs, une seule valeur par heure.');
+  }
+  if (code === '23502' || /Débit minimum de la nuit ou relevés obligatoires/.test(brut)) {
+    return t('Saisissez le débit minimum de la nuit ou au moins un relevé.');
+  }
+  return null;
 }
 
 let enCours: Promise<number> | null = null;
@@ -247,7 +284,35 @@ async function envoyerMaj(e: EnvoiMaj) {
   if (!data?.length) throw Object.assign(new Error('Modification non autorisée'), { code: '42501' });
 }
 
+// Même identifiant déjà reçu (réponse perdue) : rien à refaire. Autre mesure au même point et à la même nuit : refus.
+async function mesureDejaRecue(error: ErreurApi, id: string) {
+  if (error.code !== '23505') return false;
+  const { data, error: lecture } = await supabase.from('mesures_nuit').select('id').eq('id', id).maybeSingle();
+  if (lecture) throw lecture;
+  if (data) return true;
+  throw Object.assign(new Error(error.message ?? 'Mesure en double'), { code: 'mesure_en_double' });
+}
+
+async function envoyerMesure(e: EnvoiMesure) {
+  const ligne = { ...e.ligne };
+  const photo = e.photos[0];
+  if (photo) ligne.piece_jointe = await deposerPieceJointe(photo, `${e.marche_id}/${e.campagne_id}/${photo.id}.jpg`);
+  if (!e.correction) {
+    const { error } = await supabase.from('mesures_nuit').insert({
+      ...ligne, id: e.mesure_id, marche_id: e.marche_id, campagne_id: e.campagne_id, source_saisie: 'tablette',
+    });
+    if (error && !(await mesureDejaRecue(error, e.mesure_id))) throw error;
+  } else {
+    const { data, error } = await supabase.from('mesures_nuit').update(ligne).eq('id', e.mesure_id).select('id');
+    if (error) throw error;
+    // Sans droit de modification sur le marché, la base ne touche aucune ligne et ne signale rien.
+    if (!data?.length) throw Object.assign(new Error('Modification non autorisée'), { code: '42501' });
+  }
+  await effacerPhotos(e.photos);
+}
+
 function envoyer(e: Envoi) {
+  if (e.type === 'mesure') return envoyerMesure(e);
   if (e.type === 'maj') return envoyerMaj(e);
   if (e.type === 'photos') return envoyerPhotos(e, { reparation_id: e.reparation_id, refection_id: e.refection_id });
   if (e.type === 'modification') return envoyerModification(e);
@@ -255,6 +320,46 @@ function envoyer(e: Envoi) {
 }
 
 const ATTENTE_PRECEDENT = "En attente : une saisie précédente de cette fuite n'est pas encore passée.";
+const ATTENTE_MESURE = "En attente : la saisie précédente de cette mesure n'est pas encore passée.";
+
+// Envoi en cours d'envoi (lu dans la chaîne des écritures) : une saisie encore sur la tablette ne se remplace plus.
+let envoiEnCours: string | null = null;
+function prendreEnvoi(id: string): Promise<Envoi | null> {
+  const suite = chaine.then(async () => {
+    const e = (await lireAttente()).find((x) => x.id === id) ?? null;
+    envoiEnCours = e?.id ?? null;
+    return e;
+  });
+  chaine = suite.catch(() => undefined);
+  return suite;
+}
+
+/**
+ * Mesure de nuit pas encore envoyée, corrigée sur la tablette : la saisie gardée est remplacée (une seule création,
+ * pas de correction à envoyer, aucun droit « modifier » nécessaire). Faux si elle part en ce moment ou est déjà partie :
+ * l'écran envoie alors une correction.
+ */
+export function remplacerMesure(id: string, ligne: Record<string, unknown>, photos: PhotoAttente[], libelle: string): Promise<boolean> {
+  let remplacees: PhotoAttente[] = [];
+  const suite = chaine.then(async () => {
+    const liste = await lireAttente();
+    const e = liste.find((x) => x.id === id);
+    if (!e || e.type !== 'mesure' || e.correction || envoiEnCours === id) return false;
+    remplacees = e.photos.filter((p) => !photos.some((q) => q.id === p.id));
+    const nouvelle: EnvoiMesure = { ...e, ligne: { ...e.ligne, ...ligne }, photos, libelle, erreur: null };
+    await AsyncStorage.setItem(CLE, JSON.stringify(liste.map((x) => (x.id === id ? nouvelle : x))));
+    version += 1;
+    return true;
+  });
+  chaine = suite.catch(() => undefined);
+  return suite.then(async (fait) => {
+    if (fait) {
+      await effacerPhotos(remplacees);
+      prevenir();
+    }
+    return fait;
+  });
+}
 
 // Jeton de la session, sans lequel rien ne part : supabase-js enverrait la clé anonyme, qui n'a aucun droit (la base
 // refuserait la saisie, affichée comme un droit insuffisant). Absent : pas de session, ou jeton expiré pas encore
@@ -272,14 +377,18 @@ async function executer(): Promise<number> {
   if (!(await lireAttente()).length) return 0;
 
   const bloquees = new Set<string>();
-  for (const e of await lireAttente()) {
-    const fuite = fuiteDe(e);
-    if (bloquees.has(fuite)) {
-      await majEnvoi(e.id, (x) => ({ ...x, erreur: ATTENTE_PRECEDENT }));
-      continue;
-    }
+  for (const { id } of await lireAttente()) {
     const avant = await jeton();
     if (!avant) break;
+    // Relu au moment de l'envoi : une mesure corrigée sur la tablette entre-temps part avec ses dernières valeurs.
+    const e = await prendreEnvoi(id);
+    if (!e) continue;
+    const fuite = fuiteDe(e);
+    if (bloquees.has(fuite)) {
+      envoiEnCours = null;
+      await majEnvoi(e.id, (x) => ({ ...x, erreur: x.type === 'mesure' ? ATTENTE_MESURE : ATTENTE_PRECEDENT }));
+      continue;
+    }
     try {
       await envoyer(e);
       await modifier((l) => l.filter((x) => x.id !== e.id));
@@ -290,6 +399,8 @@ async function executer(): Promise<number> {
       if ((await jeton()) !== avant) break;
       bloquees.add(fuite);
       await majEnvoi(e.id, (x) => ({ ...x, erreur: messageClair(err) }));
+    } finally {
+      envoiEnCours = null;
     }
   }
   return (await lireAttente()).length;

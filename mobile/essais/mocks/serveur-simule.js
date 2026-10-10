@@ -8,13 +8,19 @@
 //  * droit « interventions / modifier » = 'non' → la règle RLS ne laisse voir aucune ligne (0 ligne, sans erreur) ;
 //  * portée « siennes » sur une ligne saisie par un autre → « Modification non autorisée » (42501) ;
 //  * retrait (supprime_le) sans droit « supprimer » → « Suppression non autorisée » (42501) ;
-//  * fuite verrouillée → « Fuite verrouillée : modification réservée au responsable » (42501).
+//  * fuite verrouillée → « Fuite verrouillée : modification réservée au responsable » (42501) ;
+//  * mesures de nuit (déclencheur de mesures_nuit) : minimum calculé des relevés, ni l'un ni l'autre → 23502, nuit hors
+//    de la campagne → 23514, même campagne / point / nuit → 23505 (mesures_nuit_unique_idx), mesure validée → 42501,
+//    saisie du terrain « à valider » ; `refusMesure` : prochain refus imposé (relevés, point désactivé…).
 // Chargé avant le client (mocks/supabase-simule.js) : un essai peut régler le réseau et la session de la tablette
 // avant le démarrage du client.
 import fs from 'node:fs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const TABLES = ['fuites', 'reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers', 'photos', 'profils', 'marches', 'droits', 'v_fuites'];
+const TABLES = [
+  'fuites', 'reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers', 'photos', 'profils', 'marches', 'droits', 'v_fuites',
+  'campagnes_debit', 'points_mesure', 'zones', 'mesures_nuit',
+];
 const INTERVENTIONS = ['reparations', 'refections', 'reparation_pieces', 'reparation_ouvriers'];
 // Clé de la session dans le stockage de la tablette (CLE_SESSION de src/supabase.ts, pour l'adresse de l'essai).
 export const CLE_SESSION = `sb-${new URL(process.env.EXPO_PUBLIC_SUPABASE_URL).hostname.split('.')[0]}-auth-token`;
@@ -36,6 +42,7 @@ export const simulation = {
   utilisateur: 'chef',
   droits: { modifier: 'siennes', supprimer: 'non' },
   verrouillees: new Set(),
+  refusMesure: null, // { code, message } : la prochaine écriture dans mesures_nuit est refusée ainsi
   jetons: new Map(), // jeton d'accès → { uid, expires_at }
   renouvellements: new Map(), // jeton de renouvellement valide → uid (retiré à la rotation et à la déconnexion)
   remettre() {
@@ -50,6 +57,7 @@ export const simulation = {
     this.authEnPanne = false;
     this.lenteurAuth = 0;
     this.verrouillees.clear();
+    this.refusMesure = null;
   },
   /** Session ouverte par le serveur ; `duree` en secondes (négative : jeton d'accès déjà expiré). */
   session(uid = this.utilisateur, duree = 3600) {
@@ -90,7 +98,53 @@ const verrouillee = (table, ligne) => table !== 'fuites' && simulation.verrouill
 const MSG_VERROU = 'Fuite verrouillée : modification réservée au responsable';
 const permis = (portee, ligne) => portee === 'toutes' || (portee === 'siennes' && ligne.saisi_par === simulation.utilisateur);
 
+// Déclencheur de mesures_nuit (avant insertion ou modification), réduit à ce que la tablette rencontre.
+function avantMesure(ligne) {
+  if (simulation.refusMesure) {
+    const r = simulation.refusMesure;
+    simulation.refusMesure = null;
+    return refus(r.message, r.code);
+  }
+  if (ligne.releves?.length) ligne.minimum_m3h = Math.min(...ligne.releves.map((r) => r.q));
+  else if (ligne.minimum_m3h == null) return refus('Débit minimum de la nuit ou relevés obligatoires', '23502');
+  const c = simulation.tables.campagnes_debit.find((x) => x.id === ligne.campagne_id);
+  if (!c) return refus('Campagne introuvable ou non autorisée');
+  if (ligne.nuit < c.date_debut || ligne.nuit > c.date_fin) {
+    return refus(`La nuit du ${ligne.nuit} est hors de la campagne (du ${c.date_debut} au ${c.date_fin})`, '23514');
+  }
+  return null;
+}
+
+function insererMesure(v) {
+  const t = simulation.tables.mesures_nuit;
+  const ligne = { saisi_par: simulation.utilisateur, auteur_terrain_id: simulation.utilisateur, supprime_le: null, validee_le: null, ...v };
+  const refuse = avantMesure(ligne);
+  if (refuse) return refuse;
+  if (t.some((x) => x.id === ligne.id)) return refus('duplicate key value violates unique constraint "mesures_nuit_pkey"', '23505');
+  if (t.some((x) => !x.supprime_le && x.campagne_id === ligne.campagne_id && x.point_id === ligne.point_id && x.nuit === ligne.nuit)) {
+    return refus('duplicate key value violates unique constraint "mesures_nuit_unique_idx"', '23505');
+  }
+  t.push(ligne);
+  return { data: null, error: null };
+}
+
+function modifierMesures(cibles, valeur, retour) {
+  if (simulation.droits.modifier === 'non' && simulation.droits.supprimer === 'non') return { data: retour ? [] : null, error: null };
+  for (const ligne of cibles) {
+    if (ligne.validee_le) return refus('Mesure validée : seul le responsable la corrige');
+    if (!permis(simulation.droits.modifier, ligne)) return refus('Modification de cette mesure non autorisée');
+    const refuse = avantMesure({ ...ligne, ...valeur });
+    if (refuse) return refuse;
+  }
+  for (const ligne of cibles) {
+    Object.assign(ligne, valeur);
+    if (ligne.releves?.length) ligne.minimum_m3h = Math.min(...ligne.releves.map((r) => r.q));
+  }
+  return { data: retour ? cibles.map((l) => ({ id: l.id })) : null, error: null };
+}
+
 function inserer(table, valeur) {
+  if (table === 'mesures_nuit') return insererMesure(valeur);
   const lignes = Array.isArray(valeur) ? valeur : [valeur];
   const t = simulation.tables[table];
   for (const v of lignes) {
@@ -109,6 +163,7 @@ function inserer(table, valeur) {
 }
 
 function modifier(table, cibles, valeur, retour) {
+  if (table === 'mesures_nuit') return modifierMesures(cibles, valeur, retour);
   if (INTERVENTIONS.includes(table) && simulation.droits.modifier === 'non' && simulation.droits.supprimer === 'non') {
     return { data: retour ? [] : null, error: null }; // règle RLS : aucune ligne visible pour la mise à jour
   }
@@ -212,13 +267,16 @@ globalThis.fetch = async (entree, init = {}) => {
     simulation.journal.push('fonction:photos-r2');
     return json({ erreur: 'Stockage R2 non configuré', code: 'r2_non_configure' }, 503);
   }
-  if (pathname.startsWith('/storage/v1/object/photos/')) {
+  const stockage = /^\/storage\/v1\/object\/([^/]+)\/(.*)$/.exec(pathname);
+  if (stockage) {
     if (jeton !== 'valide') {
       simulation.sansJeton.push(`stockage:upload:${jeton}`);
       return json({ data: null, error: { statusCode: '403', message: jeton === 'expire' ? 'jwt expired' : 'new row violates row-level security policy' } });
     }
-    simulation.journal.push('stockage:upload');
-    const chemin = decodeURIComponent(pathname.slice('/storage/v1/object/photos/'.length));
+    // Compartiment « photos » : chemin seul (essais existants) ; les autres : « compartiment/chemin ».
+    const [, compartiment, brut] = stockage;
+    simulation.journal.push(compartiment === 'photos' ? 'stockage:upload' : `stockage:upload:${compartiment}`);
+    const chemin = (compartiment === 'photos' ? '' : `${compartiment}/`) + decodeURIComponent(brut);
     if (simulation.fichiers.has(chemin)) return json({ data: null, error: { statusCode: '409', message: 'The resource already exists' } });
     simulation.fichiers.add(chemin);
     return json({ data: { path: chemin }, error: null });

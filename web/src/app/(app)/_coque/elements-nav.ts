@@ -1,5 +1,5 @@
 import {
-  Boxes, Briefcase, CheckCheck, CloudOff, CloudUpload, Droplets, Footprints, Gauge, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route,
+  Boxes, Briefcase, CheckCheck, CloudOff, CloudUpload, Droplets, FileText, Footprints, Gauge, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route,
   Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
@@ -90,6 +90,8 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
       ...(peut("balayage", "lire") ? [{ id: "balayage", title: "Balayage", url: "/balayage", icon: Route }] : []),
       // Débits de nuit (chantier v3, S15) : droit « mesures_debit / lire »
       ...(peut("mesures_debit", "lire") ? [{ id: "debits", title: "Débits de nuit", url: "/debits", icon: Gauge }] : []),
+      // Rapports (chantier v3, J1) : états journaliers et hebdomadaires, responsable et administrateur
+      ...(peut("exports", "lire") && (admin || peut("fuites", "valider")) ? [{ id: "rapports", title: "Rapports", url: "/rapports", icon: FileText }] : []),
       // Suivi GPS (S11) : tracés des agents, responsable et administrateur (la base filtre aussi)
       ...(admin || peut("fuites", "valider") ? [{ id: "suivi-gps", title: "Suivi GPS", url: "/suivi-gps", icon: Footprints }] : []),
       { id: "alertes", title: "Alertes", url: "/alertes", icon: Siren },

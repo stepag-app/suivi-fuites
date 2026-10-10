@@ -59,5 +59,4 @@ export function geometrieValide(g: unknown): g is Polygon | MultiPolygon {
 }
 
 // Jour (AAAA-MM-JJ) de la détection à l'heure du Maroc, pour le filtre de période.
-export const jourMaroc = (iso: string) =>
-  new Date(iso).toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+export { jourMaroc } from '@/lib/heure-maroc';

@@ -75,8 +75,8 @@ create index on _tr (rang);
 create temp table _f on commit drop as
 with base as (
   select n,
-         -- jour ouvré dans les 365 derniers jours, heure de travail (Casablanca)
-         (((now() at time zone 'Africa/Casablanca')::date - (random() * 364)::int)
+         -- jour ouvré dans les 365 derniers jours, heure de travail (heure du Maroc)
+         ((private.jour_maroc(now()) - (random() * 364)::int)
            + make_interval(hours => 7 + (random() * 10)::int, mins => (random() * 59)::int)) as local_ts,
          1 + floor(random() * (select count(*) from _tr))::int as rang_troncon,
          random() as p_statut, random() as p_divers, random() as p_pos
@@ -84,8 +84,8 @@ with base as (
 )
 select b.n, gen_random_uuid() as id,
        -- dimanche → samedi
-       ((b.local_ts - case when extract(isodow from b.local_ts) = 7 then interval '1 day' else interval '0' end)
-          at time zone 'Africa/Casablanca') as date_detection,
+       private.instant_maroc(b.local_ts - case when extract(isodow from b.local_ts) = 7 then interval '1 day' else interval '0' end)
+         as date_detection,
        t.secteur_id, t.zone_id,
        extensions.st_lineinterpolatepoint(t.geom, b.p_pos)::extensions.geography as position,
        b.p_statut, b.p_divers
@@ -194,8 +194,8 @@ select 'de000000-0000-4000-8000-000000000000', f.id, t.type::public.type_photo, 
 -- 7. Balayages ------------------------------------------------------------------------------
 create temp table _jours on commit drop as
 select row_number() over (order by j) - 1 as rang, j
-  from generate_series((now() at time zone 'Africa/Casablanca')::date - 364,
-                       (now() at time zone 'Africa/Casablanca')::date, interval '1 day') j
+  from generate_series(private.jour_maroc(now()) - 364,
+                       private.jour_maroc(now()), interval '1 day') j
  where extract(isodow from j) < 7;
 
 create temp table _ordre on commit drop as
@@ -215,14 +215,14 @@ select c.id as troncon_id, j.j::date as jour, (c.rang % 2) as agent
 
 insert into public.balayages (marche_id, troncon_id, date_balayage, balaye_le, agent_id, saisi_par, source_saisie, methode)
 select 'de000000-0000-4000-8000-000000000000'::uuid, b.troncon_id, b.jour,
-       (b.jour + make_interval(hours => 8 + (random() * 8)::int)) at time zone 'Africa/Casablanca',
+       private.instant_maroc(b.jour + make_interval(hours => 8 + (random() * 8)::int)),
        ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.agent)::text, 2, '0'))::uuid,
        ('c0000000-0000-4000-8000-0000000000' || lpad((1 + b.agent)::text, 2, '0'))::uuid,
        'tablette'::public.source_saisie, 'ecoute'
   from _bal b
 union all
-select 'de000000-0000-4000-8000-000000000000', b.troncon_id, least(b.jour + 30, (now() at time zone 'Africa/Casablanca')::date),
-       (least(b.jour + 30, (now() at time zone 'Africa/Casablanca')::date) + interval '10 hours') at time zone 'Africa/Casablanca',
+select 'de000000-0000-4000-8000-000000000000', b.troncon_id, least(b.jour + 30, private.jour_maroc(now())),
+       private.instant_maroc(least(b.jour + 30, private.jour_maroc(now())) + interval '10 hours'),
        'c0000000-0000-4000-8000-000000000003', 'c0000000-0000-4000-8000-000000000003',
        'tablette', 'correlation'
   from _bal b

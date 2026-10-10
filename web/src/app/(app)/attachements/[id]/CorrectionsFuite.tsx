@@ -13,6 +13,7 @@ import { COLONNES_PIECES, GRAVITES, type Controle, type PieceLue } from '../cont
 import styles from '../controles.module.css';
 import type { ArticleChoix } from './FormsLignes';
 import { PiecesFuite, type PieceCatalogue } from './PiecesFuite';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 interface RepFuite {
   id: string;
@@ -48,7 +49,7 @@ const cleUnite = (fuiteId: string, prixId: string) => `${fuiteId}|${prixId}`;
 const enNombre = (t: string) => Number(t.replace(/\s/g, '').replace(',', '.'));
 const nombreValide = (t: string) => t.trim() !== '' && !Number.isNaN(enNombre(t)) && enNombre(t) >= 0;
 // Jour d'exécution (AAAA-MM-JJ) à l'heure du Maroc
-const jourCasa = (iso: string) => new Date(iso).toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+const jourCasa = (iso: string) => jourMaroc(iso);
 const RESULTATS: Record<RepFuite['resultat'], string> = { reparee: 'réparée', en_cours: 'en cours', non_reparee: 'non réparée' };
 
 function resumeReparation(r: RepFuite): string {

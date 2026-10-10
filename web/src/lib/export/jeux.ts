@@ -7,6 +7,7 @@ import { getSupabase, lireTout, NOM_ORGANISATION } from '@/lib/supabase';
 import type { Marche } from '@/lib/types';
 import { chargerMatricules } from './matricules';
 import { construireSection, type Colonne, type DocumentExport, type EnteteDoc, type Ligne, type LogoEntete, type SectionDoc } from './modele';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 export type JeuId = 'fuites' | 'quantites' | 'pieces' | 'attachement' | 'evenements';
 export type Periode = 'tout' | 'jour' | 'hier' | 'semaine' | 'semaine_derniere' | 'mois' | 'mois_dernier' | 'libre';
@@ -65,9 +66,9 @@ export const REGROUPEMENTS: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Période : bornes en dates de Casablanca (AAAA-MM-JJ)
+// Période : bornes en jours du Maroc (AAAA-MM-JJ)
 // ---------------------------------------------------------------------------
-const iso = (d: Date) => d.toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+const iso = (d: Date) => jourMaroc(d);
 const ajouterJours = (t: string, n: number) => {
   const d = new Date(`${t}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);

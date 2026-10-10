@@ -47,7 +47,7 @@ const lance = (f) => { try { f(); return null; } catch (e) { return e; } };
 // ---------------------------------------------------------------------------
 // Données fictives (aucune donnée réelle ; dates calculées à partir d'aujourd'hui)
 // ---------------------------------------------------------------------------
-const jourMaroc = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+const { jourMaroc } = await import('../src/lib/heure-maroc.ts');
 const JOUR = jourMaroc(new Date());
 const VEILLE = jourMaroc(new Date(Date.now() - 86400000));
 const ANNEE = new Date().getFullYear();

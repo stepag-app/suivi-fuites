@@ -1,7 +1,8 @@
 // Tableau de bord : calculs purs (période, indicateurs, répartitions, semaines, attachements).
-// Jours comptés en heure de Casablanca (AAAA-MM-JJ). Seuls des imports de types : le script
+// Jours comptés à l'heure du Maroc (AAAA-MM-JJ). Imports de types, et heure-maroc.ts en relatif : le script
 // scripts/verifier-tableau-de-bord.mjs charge ce fichier directement avec Node.
 import type { StatutFuite, VFuite } from '@/lib/types';
+import { jourMaroc } from '../heure-maroc.ts';
 
 export type FuiteTdb = Pick<
   VFuite,
@@ -29,8 +30,7 @@ export const aUneAlerte = (f: Pick<FuiteTdb, (typeof ALERTES)[number]>) => ALERT
 // Jours et périodes
 // ---------------------------------------------------------------------------
 const H = 3_600_000;
-const FORMAT_JOUR = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' });
-export const jourCasa = (d: Date | string | number) => FORMAT_JOUR.format(new Date(d));
+export const jourCasa = (d: Date | string | number) => jourMaroc(d);
 
 const dateUtc = (jour: string) => new Date(`${jour}T00:00:00Z`);
 export function ajouterJours(jour: string, n: number): string {

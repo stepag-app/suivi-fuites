@@ -1,4 +1,5 @@
 import type { Marche, StatutFuite } from './types';
+import { dateHeureMaroc, dateMaroc } from '@/lib/heure-maroc';
 
 export const STATUTS: Record<StatutFuite, { libelle: string; classe: string }> = {
   detectee: { libelle: 'Détectée, non réparée', classe: 'st-detectee' },
@@ -78,17 +79,11 @@ export function libellesMarche(m: Marche | null | undefined) {
   };
 }
 
-const FUSEAU = 'Africa/Casablanca';
-
 export const dateHeure = (iso: string | null | undefined) =>
-  iso
-    ? new Date(iso).toLocaleString('fr-FR', {
-        timeZone: FUSEAU, day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
-      })
-    : '—';
+  iso ? dateHeureMaroc(iso) : '—';
 
 export const dateSeule = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleDateString('fr-FR', { timeZone: FUSEAU }) : '—';
+  iso ? dateMaroc(iso) : '—';
 
 export const montant = (n: number | null | undefined) =>
   n == null ? '—' : n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

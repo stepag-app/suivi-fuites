@@ -185,7 +185,7 @@ select is((select importer_mouvements_dolibarr((select valeur from t_json where 
   '{"lignes_lues": 10, "nouveaux": 10, "modifies": 0, "inchanges": 0, "annulations": 1, "entrepots": [701, 702]}'::jsonb,
   'admin : premier import, 10 nouveaux mouvements, 1 annulation, 2 entrepôts');
 select results_eq($$ select date_min, date_max from imports_mouvements_dolibarr order by id desc limit 1 $$,
-  $$ values ('2026-09-30 13:05'::timestamp at time zone 'Africa/Casablanca', '2026-10-05 10:44'::timestamp at time zone 'Africa/Casablanca') $$,
+  $$ values (private.instant_maroc('2026-09-30 13:05'::timestamp), private.instant_maroc('2026-10-05 10:44'::timestamp)) $$,
   'journal des imports : période couverte, dates lues à l''heure du Maroc');
 select is((select importer_mouvements_dolibarr((select valeur from t_json where cle = 'import1')) - 'date_min' - 'date_max'),
   '{"lignes_lues": 10, "nouveaux": 0, "modifies": 0, "inchanges": 10, "annulations": 1, "entrepots": [701, 702]}'::jsonb,
@@ -201,8 +201,8 @@ reset role;
 
 select results_eq($$ select quantite, date_mouvement, annulation, entrepot_contrepartie is null, produit_designation
                        from mouvements_dolibarr where dolibarr_id in (80003, 80008) order by dolibarr_id $$,
-  $$ values (-4.0000::numeric, '2026-09-30 13:27:30'::timestamp at time zone 'Africa/Casablanca', true, true, 'TUBE ESSAI DN 40'::text),
-            (8.0000, '2026-10-05 10:44:00'::timestamp at time zone 'Africa/Casablanca', false, false, 'GILET ESSAI') $$,
+  $$ values (-4.0000::numeric, private.instant_maroc('2026-09-30 13:27:30'::timestamp), true, true, 'TUBE ESSAI DN 40'::text),
+            (8.0000, private.instant_maroc('2026-10-05 10:44:00'::timestamp), false, false, 'GILET ESSAI') $$,
   'lignes enregistrées : quantité mise à jour, annulation déduite du libellé « CANCEL », instantané du produit');
 select is((select date_mouvement from mouvements_dolibarr where dolibarr_id = 80010), '2026-10-03 09:00+01'::timestamptz,
   'date ISO avec décalage lue telle quelle');

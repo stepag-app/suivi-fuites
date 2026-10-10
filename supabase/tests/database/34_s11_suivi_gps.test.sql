@@ -65,7 +65,7 @@ select is((select extensions.st_ndims(trace)::int from traces_gps), 3, 'avec une
 select is((select extensions.st_m(extensions.st_endpoint(trace))::bigint - extensions.st_m(extensions.st_startpoint(trace))::bigint from traces_gps),
   60::bigint, 'horodatages de début et de fin conservés');
 select ok((select distance_m from traces_gps) between 60 and 80, 'distance calculée en mètres (environ 70 m)');
-select is((select jour from traces_gps), (to_timestamp((select j1 from h)) at time zone 'Africa/Casablanca')::date, 'jour d''Oujda');
+select is((select jour from traces_gps), private.jour_maroc(to_timestamp((select j1 from h))), 'jour d''Oujda');
 
 -- 3. Idempotence : même lot renvoyé, puis lot qui recoupe
 set local role authenticated;
@@ -102,7 +102,7 @@ select is((ajouter_points_trace('aaaaaaaa-0000-0000-0000-000000000001', jsonb_bu
     jsonb_build_array((select j1 from h) + 30, -1.9201, 34.6902)))) ->> 'ajoutes', '2', 'un second agent a son propre tracé');
 reset role;
 select is((select count(*)::int from traces_gps where marche_id = 'aaaaaaaa-0000-0000-0000-000000000001'), 3, 'trois tracés : agent b deux jours, agent c un jour');
-select is((select nb_points from traces_gps where jour = (to_timestamp((select j2 from h)) at time zone 'Africa/Casablanca')::date), 1, 'un tracé d''un point');
+select is((select nb_points from traces_gps where jour = private.jour_maroc(to_timestamp((select j2 from h)))), 1, 'un tracé d''un point');
 select is((select extensions.st_numpoints(trace) from traces_gps where nb_points = 1), 2, 'répété une fois : une ligne a deux sommets au moins');
 select throws_ok($$ insert into traces_gps (marche_id, profil_id, jour, trace, nb_points, debut, fin)
     select marche_id, profil_id, jour, trace, 1, debut, fin from traces_gps limit 1 $$,
@@ -112,8 +112,8 @@ select throws_ok($$ insert into traces_gps (marche_id, profil_id, jour, trace, n
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select is((ajouter_points_trace('aaaaaaaa-0000-0000-0000-000000000001', jsonb_build_array(
-    jsonb_build_array(extract(epoch from (date_trunc('day', now() at time zone 'Africa/Casablanca') - interval '3 days' - interval '1 minute') at time zone 'Africa/Casablanca')::bigint, -1.91, 34.68),
-    jsonb_build_array(extract(epoch from (date_trunc('day', now() at time zone 'Africa/Casablanca') - interval '3 days' + interval '1 minute') at time zone 'Africa/Casablanca')::bigint, -1.91, 34.68)))) ->> 'ajoutes',
+    jsonb_build_array(extract(epoch from private.instant_maroc(date_trunc('day', private.heure_maroc(now())) - interval '3 days' - interval '1 minute'))::bigint, -1.91, 34.68),
+    jsonb_build_array(extract(epoch from private.instant_maroc(date_trunc('day', private.heure_maroc(now())) - interval '3 days' + interval '1 minute'))::bigint, -1.91, 34.68)))) ->> 'ajoutes',
   '2', 'lot à cheval sur minuit accepté');
 reset role;
 select is((select count(*)::int from traces_gps where profil_id = '00000000-0000-0000-0000-00000000000c'), 3, 'répartis sur deux jours d''Oujda (un tracé de plus)');
@@ -150,19 +150,19 @@ select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000
 select is((select count(*)::int from traces_gps), 0, 'l''agent ne voit aucun tracé, pas même le sien');
 select is((select count(*)::int from v_traces_gps), 0, 'ni dans la vue');
 select is(trace_gps('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b',
-    (to_timestamp((select j1 from h)) at time zone 'Africa/Casablanca')::date), null, 'ni par trace_gps');
+    private.jour_maroc(to_timestamp((select j1 from h)))), null, 'ni par trace_gps');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select is((select count(*)::int from traces_gps), 0, 'un autre agent du même marché ne voit rien non plus');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 select is((select count(*)::int from traces_gps), 5, 'le responsable voit les cinq tracés de son marché');
 select is((select count(*)::int from v_traces_gps where nom_complet = 'Détection'), 2, 'la vue donne le nom de l''agent');
 select is(jsonb_array_length(trace_gps('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b',
-    (to_timestamp((select j1 from h)) at time zone 'Africa/Casablanca')::date) -> 'points'), 6, 'trace_gps : six points');
+    private.jour_maroc(to_timestamp((select j1 from h)))) -> 'points'), 6, 'trace_gps : six points');
 select is((trace_gps('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b',
-    (to_timestamp((select j1 from h)) at time zone 'Africa/Casablanca')::date) -> 'points' -> 0),
+    private.jour_maroc(to_timestamp((select j1 from h)))) -> 'points' -> 0),
   jsonb_build_array(-1.9096, 34.6794, (select j1 from h) - 120), 'premier point : [lon, lat, t], dans l''ordre du temps');
 select is(jsonb_array_length(trace_gps('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b',
-    (to_timestamp((select j2 from h)) at time zone 'Africa/Casablanca')::date) -> 'points'), 1, 'tracé d''un point : un seul point rendu');
+    private.jour_maroc(to_timestamp((select j2 from h)))) -> 'points'), 1, 'tracé d''un point : un seul point rendu');
 select is(trace_gps('aaaaaaaa-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000b', date '2000-01-01'), null, 'jour sans tracé : null');
 
 -- 8. Isolation entre marchés
@@ -174,7 +174,7 @@ select throws_ok($$ select ajouter_points_trace('aaaaaaaa-0000-0000-0000-0000000
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 select is((select count(*)::int from traces_gps), 5, 'le responsable du premier marché ne voit pas le tracé de l''autre');
 select is(trace_gps('bbbbbbbb-0000-0000-0000-000000000001', '00000000-0000-0000-0000-00000000000f',
-    (to_timestamp((select j1 from h)) at time zone 'Africa/Casablanca')::date), null, 'ni par trace_gps');
+    private.jour_maroc(to_timestamp((select j1 from h)))), null, 'ni par trace_gps');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000e", "role": "authenticated"}', true);
 select is((select count(*)::int from traces_gps), 1, 'le responsable de l''autre marché ne voit que le sien');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000a", "role": "authenticated"}', true);

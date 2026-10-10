@@ -105,8 +105,9 @@ ok('période : bornes remises dans l\'ordre, description', () => {
 });
 
 ok('jour de détection à l\'heure du Maroc', () => {
-  assert.equal(jourMaroc('2026-09-30T23:30:00Z'), '2026-10-01');
-  assert.equal(jourMaroc('2026-09-30T22:30:00Z'), '2026-09-30');
+  assert.equal(jourMaroc('2026-09-30T23:30:00Z'), '2026-09-30', 'UTC+0 depuis le 20/09/2026');
+  assert.equal(jourMaroc('2026-10-01T00:30:00Z'), '2026-10-01');
+  assert.equal(jourMaroc('2026-08-31T23:30:00Z'), '2026-09-01', 'UTC+1 avant le 20/09/2026');
   assert.equal(jourMaroc(null), null);
   assert.equal(jourMaroc('pas une date'), null);
 });
@@ -123,15 +124,15 @@ const fuite = (o) => ({
   nb_photos: 1, ...SANS_ALERTE, ...o,
 });
 const FUITES = [
-  fuite({ date_detection: '2026-09-30T23:30:00Z', derniere_reparation_le: '2026-10-01T23:30:00Z', statut: 'achevee', reference_srm: 'T-2026-00451', adresse: 'Rue Ibn Sina' }),
+  fuite({ date_detection: '2026-10-01T00:30:00Z', derniere_reparation_le: '2026-10-02T00:30:00Z', statut: 'achevee', reference_srm: 'T-2026-00451', adresse: 'Rue Ibn Sina' }),
   fuite({ date_detection: '2026-10-02T08:00:00Z', derniere_reparation_le: '2026-10-04T08:00:00Z', statut: 'reparee', secteur_id: SB, secteur: 'Secteur B', adresse: 'Bd Mohammed V' }),
   fuite({ date_detection: '2026-10-03T08:00:00Z', alerte_non_reparee: true, alerte_sans_photo: true, nb_photos: 0, secteur_id: SB, secteur: 'Secteur B' }),
   fuite({ date_detection: '2026-10-04T08:00:00Z', derniere_reparation_le: '2026-10-04T12:00:00Z', statut: 'en_reparation', alerte_communication_srm: true }),
   fuite({ date_detection: '2026-09-27T09:00:00Z', derniere_reparation_le: '2026-10-01T09:00:00Z', statut: 'reparee', zone_id: Z2, zone: 'Zone 2', secteur_id: SC, secteur: 'Secteur C' }),
   fuite({ date_detection: '2026-09-01T09:00:00Z', derniere_reparation_le: '2026-09-02T09:00:00Z', statut: 'reparee', refection_chaussee_hors_delai: true, alerte_refection_chaussee: true, zone_id: Z2, zone: 'Zone 2', secteur_id: SC, secteur: 'Secteur C' }),
   fuite({ date_detection: '2026-10-02T09:00:00Z', derniere_reparation_le: '2026-10-02T15:00:00Z', statut: 'sans_reparation', secteur_id: null, secteur: null, zone_id: null, zone: null }),
-  fuite({ date_detection: '2026-10-31T22:59:00Z', secteur_id: SA, alerte_refection_trottoir: true }),
-  fuite({ date_detection: '2026-10-31T23:00:00Z' }),
+  fuite({ date_detection: '2026-10-31T23:59:00Z', secteur_id: SA, alerte_refection_trottoir: true }),
+  fuite({ date_detection: '2026-11-01T00:00:00Z' }),
 ];
 const numeros = (filtres) => FUITES.filter(correspondance(filtres)).map((f) => f.numero);
 // Fuites que la liste affiche pour un lien : le lien est relu comme le ferait la page.
@@ -143,7 +144,7 @@ ok('filtrage : statut, secteur, alertes, période (bornes comprises, heure du Ma
   assert.deepEqual(numeros({ statuts: ['reparee'] }), [2, 5, 6]);
   assert.deepEqual(numeros({ secteur: SB }), [2, 3]);
   assert.deepEqual(numeros({ alertes: true }), [3, 4, 6, 8]);
-  // Maroc = UTC+1 : 30/09 à 23 h 30 UTC = 01/10 ; 31/10 à 22 h 59 UTC = 31/10 à 23 h 59 ; 31/10 à 23 h UTC = 01/11.
+  // Maroc = UTC+0 depuis le 20/09/2026 : 01/10 à 0 h 30, 31/10 à 23 h 59 (dans octobre) ; 01/11 à 0 h (hors d'octobre).
   assert.deepEqual(numeros(OCTOBRE), [1, 2, 3, 4, 7, 8]);
   assert.deepEqual(numeros({ du: '2026-10-01' }), [1, 2, 3, 4, 7, 8, 9]);
   assert.deepEqual(numeros({ au: '2026-09-30' }), [5, 6]);

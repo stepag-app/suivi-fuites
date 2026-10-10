@@ -46,7 +46,7 @@ async function parIds(table: string, colonnes: string, ids: unknown[]): Promise<
   return new Map(lus.flat().map((l) => [l.id, l]));
 }
 
-// Interventions de la période : horodatages lus avec un jour de marge, puis gardés selon le jour de Casablanca.
+// Interventions de la période : horodatages lus avec un jour de marge, puis gardés selon le jour du Maroc.
 function interventions(table: 'reparations' | 'refections', marcheId: string, du: string, au: string) {
   return tout(() => getSupabase().from(table).select('*').eq('marche_id', marcheId).is('supprime_le', null)
     .gte('realisee_le', ajouterJours(du, -1)).lt('realisee_le', ajouterJours(au, 2)).order('realisee_le').order('id'))

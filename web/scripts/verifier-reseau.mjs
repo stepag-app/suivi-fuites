@@ -466,7 +466,8 @@ ok('mise en file d\'un envoi « balayage » : identifiant et marché à part, co
   // Renvoyé tel quel à l'insertion : { ...ligne, id, marche_id } reconstitue la ligne complète.
   assert.deepEqual({ ...file[0].ligne, id: file[0].id, marche_id: file[0].marche_id }, lignes[0]);
   assert.equal(balayage.METHODES.map((m) => m.valeur).join(','), 'ecoute,correlation,prelocalisation,enregistreurs');
-  assert.match(balayage.aujourdhuiMaroc(new Date('2026-10-06T23:30:00Z')), /^2026-10-07$/);
+  assert.equal(balayage.aujourdhuiMaroc(new Date('2026-10-06T23:30:00Z')), '2026-10-06', 'UTC+0 depuis le 20/09/2026');
+  assert.equal(balayage.aujourdhuiMaroc(new Date('2026-09-06T23:30:00Z')), '2026-09-07', 'UTC+1 avant');
 });
 
 // ---------------------------------------------------------------------------

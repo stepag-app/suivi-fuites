@@ -1,5 +1,6 @@
 // Journal des balayages (page /balayage) : filtres, regroupement par jour, totaux. Fonctions pures.
 import type { LigneBalayageJournalier } from '@/lib/types';
+import { jourMaroc as jourDuMaroc } from '@/lib/heure-maroc';
 
 export interface FiltresJournal {
   du: string;       // AAAA-MM-JJ, '' = sans borne
@@ -20,7 +21,7 @@ export interface TotauxJournal {
 export const jourValide = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(new Date(`${v}T12:00:00`).getTime());
 
 /** Jour (AAAA-MM-JJ) à l'heure du Maroc. */
-export const jourMaroc = (d: Date) => d.toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+export const jourMaroc = (d: Date) => jourDuMaroc(d);
 
 /** Sept derniers jours (bornes comprises), à l'heure du Maroc. */
 export function periodeParDefaut(maintenant = new Date()): { du: string; au: string } {

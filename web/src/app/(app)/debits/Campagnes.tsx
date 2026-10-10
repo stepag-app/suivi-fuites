@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { FileDown, FileSpreadsheet, Paperclip, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { BoutonEnvoyerEmail } from "@/components/envoyer-email";
 import { Vide } from "@/components/en-tete-page";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,13 +107,24 @@ function NouvelleCampagne({ d, ouvert, fermer, creee }: { d: DonneesDebits; ouve
   );
 }
 
-export async function exporterProcesVerbal(d: DonneesDebits, c: Campagne, format: "pdf" | "xlsx") {
-  const [{ documentProcesVerbal }, { exporter }, { chargerContexteRapport }] = await Promise.all([
-    import("./documents"), import("@/lib/export/generer"), import("@/lib/export/rapport-fuite"),
+async function documentPv(d: DonneesDebits, c: Campagne) {
+  const [{ documentProcesVerbal }, { chargerContexteRapport }] = await Promise.all([
+    import("./documents"), import("@/lib/export/rapport-fuite"),
   ]);
   const [ctx, mesures] = await Promise.all([chargerContexteRapport(d.marcheId, false), chargerMesures(c.id)]);
   const detail = mesures.some((m) => m.mode === "releves");
-  await exporter(documentProcesVerbal(ctx, c, d.zones, d.points, mesures, { detail, orientation: "portrait" }), format);
+  return documentProcesVerbal(ctx, c, d.zones, d.points, mesures, { detail, orientation: "portrait" });
+}
+
+export async function exporterProcesVerbal(d: DonneesDebits, c: Campagne, format: "pdf" | "xlsx") {
+  const [doc, { exporter }] = await Promise.all([documentPv(d, c), import("@/lib/export/generer")]);
+  await exporter(doc, format);
+}
+
+/** Procès-verbal en PDF, sans téléchargement (envoi par e-mail). */
+export async function fabriquerProcesVerbal(d: DonneesDebits, c: Campagne) {
+  const [doc, { fabriquer }] = await Promise.all([documentPv(d, c), import("@/lib/export/generer")]);
+  return fabriquer(doc, "pdf");
 }
 
 export function Campagnes({ d, peutGerer, peutExporter, ouvrir, actualiser }: {
@@ -196,6 +208,9 @@ export function Campagnes({ d, peutGerer, peutExporter, ouvrir, actualiser }: {
                           <Button variant="ghost" size="icon-sm" disabled={!!occupe} onClick={() => document(c, "xlsx")} title="Procès-verbal (Excel)" aria-label="Procès-verbal Excel">
                             <FileSpreadsheet />
                           </Button>
+                          <BoutonEnvoyerEmail variant="ghost" size="icon-sm" libelle="" document="pv_debits" disabled={!!occupe}
+                            reference={`${c.libelle || TYPES_CAMPAGNE[c.type].libelle} du ${jourFr(c.date_debut)}`}
+                            fabriquer={() => fabriquerProcesVerbal(d, c)} />
                         </>}
                         {peutGerer && (
                           <Button variant="ghost" size="icon-sm" onClick={() => supprimer(c)} title="Supprimer la campagne" aria-label="Supprimer la campagne"><Trash2 /></Button>

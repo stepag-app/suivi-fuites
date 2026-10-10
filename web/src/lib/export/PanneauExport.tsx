@@ -6,7 +6,8 @@ import { messageErreur } from '@/lib/format';
 import { chargerLogosEntete } from '@/lib/logos';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
-import { FORMATS, exporter, type FormatExport } from './generer';
+import { BoutonEnvoyerEmail } from '@/components/envoyer-email';
+import { FORMATS, exporter, fabriquer, type FormatExport } from './generer';
 import {
   PERIODES, REGROUPEMENTS, colonnesAttachement, documentAttachement, documentJeu,
   type Contexte, type Filtres, type Jeu, type JeuId, type Periode,
@@ -209,15 +210,11 @@ export function PanneauExport({
     return construireSection(lignesRetenues.slice(0, APERCU), cols, { decimales: ctx.regles?.decimales, total: false });
   }, [lignesRetenues, ctx, toutesColonnes, colonnes]);
 
-  async function telecharger() {
-    if (!ctx || !lignesRetenues) return;
-    setErreur('');
-    setInfo('');
-    setOccupe(true);
-    try {
-      // R4 : chef d'équipe désigné par son matricule dans l'attachement
-      const matricules = jeuId === 'attachement' && attachement && marcheId ? await chargerMatricules(marcheId) : null;
-      const d = jeuId === 'attachement' && attachement
+  async function construireDocument() {
+    if (!ctx || !lignesRetenues) throw new Error('Données pas encore chargées.');
+    // R4 : chef d'équipe désigné par son matricule dans l'attachement
+    const matricules = jeuId === 'attachement' && attachement && marcheId ? await chargerMatricules(marcheId) : null;
+    return jeuId === 'attachement' && attachement
         ? documentAttachement(attachement.lot, attachement.lignes.map((l) => ({
             ...l, chef_equipe: matricules && l.chef_equipe_id ? matricules.agent(l.chef_equipe_id, l.chef_equipe) : l.chef_equipe,
           })), attachement.recap, ctx, {
@@ -227,7 +224,15 @@ export function PanneauExport({
             colonnes: ordreColonnes, regroupement, filtres, orientation,
             infos: filtreListe && jeuId === 'fuites' && limiterListe && descriptionListe ? [descriptionListe] : [],
           });
-      await exporter(d, format);
+  }
+
+  async function telecharger() {
+    if (!ctx || !lignesRetenues) return;
+    setErreur('');
+    setInfo('');
+    setOccupe(true);
+    try {
+      await exporter(await construireDocument(), format);
       setInfo('Fichier téléchargé.');
     } catch (e) {
       setErreur(messageErreur(e));
@@ -434,6 +439,13 @@ export function PanneauExport({
           <button className="primaire gros" disabled={occupe || !lignesRetenues || (jeuId !== 'attachement' && ordreColonnes.length === 0)} onClick={telecharger}>
             {occupe ? 'Préparation du fichier…' : `Télécharger (${FORMATS[format]})`}
           </button>
+          <BoutonEnvoyerEmail
+            document={jeuId === 'attachement' && attachement ? 'attachement' : 'export'}
+            reference={jeuId === 'attachement' && attachement
+              ? `Attachement n° ${attachement.lot.numero ?? 'provisoire'}${attachement.lot.intitule ? ` (${attachement.lot.intitule})` : ''}`
+              : jeu?.libelle ?? null}
+            disabled={occupe || !lignesRetenues || (jeuId !== 'attachement' && ordreColonnes.length === 0)}
+            fabriquer={async () => fabriquer(await construireDocument(), format)} />
 
           {peut('exports', 'creer') && (
             <div className="actions">

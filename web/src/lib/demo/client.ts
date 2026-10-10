@@ -30,6 +30,13 @@ const debitsDe = (marche?: unknown) => {
   return { zones, points, campagnes, mesures, nuits, camps: resultatsCampagnes(zones, campagnes, nuits) };
 };
 
+// Envoi par e-mail (S18) : carnet de destinataires fictifs, journal en mémoire.
+TABLES.destinataires_email = [
+  { id: "eeeeeeee-0000-4000-8000-000000000001", marche_id: MARCHE_SRM, nom: "Suivi des fuites SRM", email: "suivi.fuites@srm.exemple.ma", organisme: "SRM Oriental", par_defaut: true, actif: true, ordre: 1 },
+  { id: "eeeeeeee-0000-4000-8000-000000000002", marche_id: MARCHE_SRM, nom: "Bureau STEPAG", email: "contact@stepag.ma", organisme: "STEPAG", par_defaut: false, actif: true, ordre: 2 },
+];
+TABLES.envois_email = [];
+
 // Vues calculées à la lecture (chantier v2) : étapes à valider, pièces déclarées par le terrain.
 function vueCalculee(table: string): Ligne[] | null {
   if (table === "v_debits_nuits") return debitsDe().nuits as unknown as Ligne[];
@@ -351,6 +358,7 @@ export function creerClientDemo(): SupabaseClient {
         return { data: proches, error: null };
       }
       if (nom === "copier_marche") return { data: crypto.randomUUID(), error: null };
+      if (nom === "peut_envoyer_email") return { data: true, error: null };
       // Réseau fictif (zonage) : grille de rues autour du centre d'Oujda, un tiers non zoné.
       if (nom === "reseau_geojson") {
         const lignes = reseauDemo().filter((t) => {

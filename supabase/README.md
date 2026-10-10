@@ -81,6 +81,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `functions/dolibarr-mouvements/` | fonction serveur sans JWT : jeton dédié `x-jeton-dolibarr` comparé au secret `DOLIBARR_JETON` (posé par le workflow depuis le secret GitHub du même nom), puis `recevoir_envoi_dolibarr` ; 503 si le secret manque |
 | `migrations/20261013300000_debits_nuit.sql` | chantier v3, S15 (D1 à D6) : débits de nuit et pénalités de performance (CPS art. II-17, II-22, II-23, tableau n° 1) ; `zones.q_plus_bas_historique_m3h`, `q_actuel_m3h` (SRM : tableau n° 1), `balayage_acheve_le` ; réglages `marches.debits_*` (saisie proposée, assiette zone ou marché, points proportionnels ou entiers, plafond et seuils de 25 %) ; `points_mesure` (« paramètres »), `campagnes_debit` (avant, après, maintien, libre ; « mesures_debit / valider »), `mesures_nuit` (une par campagne, point et nuit : relevés de 0 h à 6 h ou minimum ; saisie du terrain à valider, `valider_etapes` étape « debit ») ; compartiment privé `debits` ; vues `v_debits_nuits` (somme des points au même instant, sinon somme des minimums « approchée »), `v_debits_campagnes`, `v_debits_a_valider` ; `debits_resultats` (Qi, Qf, ΔQ, τ1, τ2, pénalités, alertes d'arrêt de zone et de dégradation), `penalite_points`, `enregistrer_mesures_nuit`. Contrat : `docs/lots/chantier-v3-debits.md` |
 | `tests/database/40_s15_debits_nuit.test.sql` | 91 tests S15 : privilèges, tableau n° 1, points de pénalité, points et campagnes (droits, défauts), saisie (normalisation, refus), débit au même instant ou approché, nuits incomplètes, validation du terrain, Qi, Qf, τ1, τ2, plafond, points entiers, assiette marché, seuils, montants cachés, suppression logique, isolation, pièces jointes, marché désactivé, journal |
+| `migrations/20261014100000_envoi_email.sql` | chantier v3, S18 (M1, M2) : envoi des documents par e-mail ; `destinataires_email` (carnet par marché), `envois_email` (journal, aucune écriture directe), `marches.emails_par_jour` (défaut 20) ; `peut_envoyer_email`, `reserver_envoi_email` (droit du responsable du marché ou de l'administrateur, marché actif, limites du marché et commune de 90 par jour), `terminer_envoi_email`. Contrat : `docs/lots/chantier-v3-email.md` |
+| `tests/database/44_s18_envoi_email.test.sql` | 47 tests S18 : privilèges et RLS, carnet par marché, journal, réservation et clôture, limites du jour (échecs non comptés), marché désactivé |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -593,6 +595,20 @@ vue ni fonction ne lit les équipes. **E4 (S21)**, seulement quand toutes les ta
 `equipe_id` de `fuites`, `reparations`, `refections` et `balayages`, la table `equipes`, le type `type_equipe`, la
 liste `type_equipe` de `libelles_listes` (et sa valeur dans le contrôle de la table). D'ici là, une APK plus ancienne
 peut encore envoyer `equipe_id` : la colonne l'accepte, rien ne la lit.
+
+## Envoi des documents par e-mail (chantier v3, S18)
+
+Migration `20261014100000_envoi_email.sql`, tests `44_s18_envoi_email.test.sql`, contrat `docs/lots/chantier-v3-email.md`.
+Droits : **responsable du marché** (rôle actif dans `affectations.roles`) et administrateur (`private.marches_emails`) ;
+pour un non-administrateur, un marché désactivé reste lisible mais n'envoie plus.
+
+- `destinataires_email` : carnet par marché (adresse unique sans casse) ; lecture, ajout, modification, suppression
+  par le responsable et l'administrateur ; journalisé.
+- `envois_email` : journal (auteur, document, référence, objet, destinataires, pièce, statut `en_cours` / `envoye` /
+  `echec`, identifiant du fournisseur, erreur) ; lecture seule, écrit par `reserver_envoi_email` (contrôles, limite du
+  marché `marches.emails_par_jour`, limite commune de 90 envois par jour d'Oujda, verrou consultatif contre deux clics
+  simultanés) et `terminer_envoi_email` (auteur seulement, depuis `en_cours`). Les échecs ne comptent pas.
+- `peut_envoyer_email(marché)` : affichage du bouton dans le panneau.
 
 ## Règles pour les migrations suivantes
 

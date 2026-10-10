@@ -623,12 +623,11 @@ export async function genererRapports(
   return pdf.output('blob');
 }
 
-// Charge, fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).
-// Sans rubriques : dernier choix de l'appareil pour ce marché, sinon les rubriques par défaut (sans les prix).
-export async function telechargerRapports(
+// Charge et fabrique (téléchargement ou envoi par e-mail). Sans rubriques : dernier choix de l'appareil pour ce
+// marché, sinon les rubriques par défaut (sans les prix).
+export async function fabriquerRapports(
   ids: string[], marcheId: string, peutMontants: boolean, progres?: Progression, rubriques?: Set<string>,
-): Promise<{ octets: number; secondes: number; fuites: number }> {
-  const debut = performance.now();
+): Promise<{ blob: Blob; nom: string; fuites: number; numeros: (string | number)[] }> {
   progres?.(0, 1, 'Chargement des données');
   const choix = choixEffectif('rapport_fuite', rubriques ?? dernierChoix('rapport_fuite', marcheId), { quantites: peutMontants });
   const avecPrix = choix.has('quantites');
@@ -643,6 +642,15 @@ export async function telechargerRapports(
   const nom = fiches.length === 1
     ? `rapport-fuite-${fiches[0].fuite.numero}-${code}`
     : `rapports-fuites-${code}-${fiches.length}`;
-  telecharger(blob, `${nomFichierSur(nom)}-${date}.pdf`);
-  return { octets: blob.size, secondes: (performance.now() - debut) / 1000, fuites: fiches.length };
+  return { blob, nom: `${nomFichierSur(nom)}-${date}.pdf`, fuites: fiches.length, numeros: fiches.map((f) => f.fuite.numero) };
+}
+
+// Fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).
+export async function telechargerRapports(
+  ids: string[], marcheId: string, peutMontants: boolean, progres?: Progression, rubriques?: Set<string>,
+): Promise<{ octets: number; secondes: number; fuites: number }> {
+  const debut = performance.now();
+  const r = await fabriquerRapports(ids, marcheId, peutMontants, progres, rubriques);
+  telecharger(r.blob, r.nom);
+  return { octets: r.blob.size, secondes: (performance.now() - debut) / 1000, fuites: r.fuites };
 }

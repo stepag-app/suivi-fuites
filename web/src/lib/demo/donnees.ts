@@ -44,14 +44,14 @@ export const marches: (Marche & Ligne)[] = [
     titulaire: "STEPAG SARL", maitre_ouvrage: "Société Régionale Multiservices de l'Oriental", date_commencement: jour(il_y_a(24 * 120)),
     duree_mois: 12, montant_ht: 1_850_000, os_commencement_id: id("e", 91), telephone_titulaire: "05 36 00 00 00", email_titulaire: "contact@stepag.ma",
     // Contrôle de la base suspendu pendant la transition (PR #65) : le panneau exige quand même le jeu F1.
-    champs_obligatoires_fuite: [],
+    champs_obligatoires_fuite: [], emails_par_jour: 20,
   },
   {
     id: MARCHE_DEMO, code: "DEMO", numero: "DEMO-2026", intitule: "Marché de démonstration (données fictives)", client: "Client fictif", ville: "Oujda",
     actif: true, taux_majoration: 0, taux_tva: 20, rayon_redetection_m: 25, client_sigle: "DEMO", libelle_reference: "Référence client",
     masque_reference: null, jalons_client: false, delai_alerte_reparation_h: 48, devise: "DH", logo_titulaire: null, logo_maitre_ouvrage: null,
     titulaire: "STEPAG SARL", maitre_ouvrage: "Client fictif", date_commencement: jour(il_y_a(24 * 400)), duree_mois: 6, montant_ht: 250_000,
-    champs_obligatoires_fuite: ["reference_srm", "secteur_id", "ouvrage", "visibilite", "nature_degradation_id"],
+    champs_obligatoires_fuite: ["reference_srm", "secteur_id", "ouvrage", "visibilite", "nature_degradation_id"], emails_par_jour: 20,
   },
 ];
 

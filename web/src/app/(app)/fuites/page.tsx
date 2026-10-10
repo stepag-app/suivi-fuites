@@ -18,6 +18,7 @@ import { BasculeColonnes, FiltreFacettes } from "@/components/tableau/outils-tab
 import { PaginationTableau } from "@/components/tableau/pagination-tableau";
 import { TableauDonnees } from "@/components/tableau/tableau-donnees";
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { BoutonEnvoyerEmail } from "@/components/envoyer-email";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -296,6 +297,12 @@ function ListeFuites() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setAImprimer(null)}>Annuler</Button>
+            {aImprimer && marcheId && (
+              <BoutonEnvoyerEmail document="rapport_fuite" disabled={!rubriques.size}
+                reference={aImprimer.length === 1 ? `Fuite N° ${aImprimer[0].numero}` : `${aImprimer.length} fuites`}
+                fabriquer={async () => (await import("@/lib/export/rapport-fuite"))
+                  .fabriquerRapports(aImprimer.map((f) => f.id), marcheId, peut("quantites", "lire"), undefined, rubriques)} />
+            )}
             <Button disabled={!rubriques.size} onClick={() => aImprimer && rapportsPdf(aImprimer)}><FileText data-icon="inline-start" />Fabriquer le PDF</Button>
           </DialogFooter>
         </DialogContent>

@@ -37,6 +37,7 @@ technique : `MAQUETTE-SHADCN.md`.
 | `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), agent, secteur ; par jour, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport de recherche de fuites de la période Du–Au** (droit « exports / lire ») : **un seul** PDF A4 au gabarit STEPAG 2026 (toutes les zones balayées, linéaire par jour, fuites avec leur date, **extrait de plan A4** de la période : conduites inspectées en vert, repassées en bleu, autres en gris, fuites numérotées) ou un seul Excel ; Du = Au : rapport journalier, un pour la journée ou un par agent (décision Q-34 ; l'équipe, c'est le compte, S12) ; agent et secteur du filtre repris ; rapport d'un jour depuis sa ligne ; rubriques à cocher ; voir § Réseau et balayage |
 | `/suivi-gps` | responsable du marché et administrateur (RLS de `traces_gps`) ; entrée de menu si « fuites / valider » ou administrateur | **suivi GPS (X6)** : tracé d'un jour (calendrier, jour précédent / suivant, jamais dans le futur) des agents du marché, un par agent, sur le fond OpenFreeMap minimal avec le réseau en tuiles privées (S10) et le satellite activable ; liste des agents avec heures de début et de fin, distance, nombre de points, temps réellement suivi et interruptions (trou de plus de 10 min : le trait est coupé), cases pour afficher ou masquer un agent, une couleur par agent ; début en vert, fin en rouge, points visibles de près (toucher : agent et heure). Lecture par `v_traces_gps` et `trace_gps` ; **Marchés > menu d'un marché désactivé > « Effacer les tracés GPS »** (administrateur, `purger_traces_marche`, confirmation) pour la fin du marché. Code : `src/app/(app)/suivi-gps/`, calculs dans `src/lib/trace-gps.ts` (`node scripts/verifier-trace-gps.mjs`) |
 | `/debits` | droit « mesures_debit / lire » (responsable ; Détection et Réparation si la matrice l'ouvre) | **débits de nuit (S15, D7)** : onglet **Synthèse** (τ1 du marché, pénalités estimées au prix du bordereau si « quantités / lire », zones en alerte, dernier contrôle ; tableau par zone et marché : Q exigé, Qi, Qf, ΔQ, τ1, pénalité de balayage, contrôles, moyenne, τ2, pénalité de maintien, dégradation, alertes ; courbe des nuits complètes face au Q exigé et au Q à maintenir) ; **Campagnes et saisie** (`?onglet=campagnes&campagne=<id>` : nouvelle campagne et suppression avec « valider » ; grille point × nuit au minimum, relevés de 0 h à 6 h dans un dialogue avec collage d'une colonne, import CSV ou Excel (`point, date, heure, débit`), aperçu du débit des zones, PV signé joint au compartiment `debits`, **procès-verbal** A4 PDF ou Excel avec visas) ; **À valider** (saisies du terrain, `valider_etapes` étape « debit ») ; export Excel de la synthèse. Paramètres › **Débits de nuit** : points de mesure, tableau n° 1, réglages, phases. Widget au tableau de bord, rappel sur `/a-valider`. Calculs : `src/lib/debits.ts` (`node scripts/verifier-debits.mjs`) ; contrat : `docs/lots/chantier-v3-debits.md` |
+| `/rapports` | responsable et administrateur (« exports / lire » et « fuites / valider », ou administrateur) | **états journaliers et hebdomadaires (chantier v3, J1, J2)** : période (jour, semaine du lundi au dimanche, dates libres), rubriques et colonnes à cocher, filtres, A4 portrait ou paysage, PDF ou Excel, aperçu à l'écran et **aperçu avant tirage** (le PDF lui-même) ; second modèle : le rapport de recherche de fuites (gabarit STEPAG 2026) de la page Balayage, inchangé. Voir § Rapports |
 | `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS ou **épingle sur une mini-carte** (zoom rapproché, tronçon suggéré en surbrillance), champs obligatoires **F1** (référence, secteur, ouvrage, visibilité, **nature de dégradation**, plus ceux que le marché coche), adresse facultative, matériau et diamètre de la conduite, **suggestions à valider d'un clic** (rue, secteur, conduite du tronçon le plus proche ; jamais pré-remplies), photos facultatives avec avertissement, détection des doublons ; responsable : **« Détectée par »**, date et heure réelles, source, « valider en même temps » ; voir § Validation et saisie |
 | `/fuites/[id]` | selon droits | détail, photos par étape, suivi SRM, **validation par étape** (détection, chaque réparation, chaque réfection : badge, bouton « Valider », avertissement « aucune photo »), **modifier** la détection, une réparation ou une réfection selon la validation et les droits, **corrections du responsable** (position à l'épingle, date au calendrier, référence, adresse… motif obligatoire pour date, référence et position), badge **« saisie différée »**, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée », **visibles du bureau seulement**), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
@@ -220,14 +221,48 @@ Impression de `/carte`), on coche les rubriques à imprimer (`src/lib/export/rub
 « fuites », `filtres.document` = `rapport_fuite`, `rapport_balayage` ou `carte`, `colonnes` = rubriques cochées ;
 enregistrer, mettre à jour, retirer avec le droit « exports / créer ») ; le panneau « Exporter » ignore ces lignes. Le
 dernier choix est aussi gardé sur l'appareil, par document et par marché (repli sans droit d'enregistrer ; le bouton
-« Rapport PDF » de la fiche l'utilise). L'**état journalier** reste le panneau « Exporter » (colonnes cochées et
-modèles). Vérification : `node scripts/verifier-rubriques.mjs`.
+« Rapport PDF » de la fiche l'utilise). Les **états journaliers et hebdomadaires** ont leur écran, `/rapports` (§ Rapports) ; le panneau « Exporter » garde
+ses modèles de colonnes. Vérification : `node scripts/verifier-rubriques.mjs`.
 
 | Document | Rubriques (cochées par défaut, sauf mention) |
 |---|---|
 | Rapport par fuite | identification, jalons du client, coordonnées GPS et itinéraire, réparations, chef d'équipe et ouvriers, pièces posées, réfections, observations, photos, visas ; **articles et prix du bordereau : décochée**, proposée seulement avec le droit « quantités / lire » |
 | Rapport de balayage | identification, linéaire par jour (période), linéaire par zone et secteur, fuites détectées, commentaire, visas, extrait de plan (PDF) |
 | Carte imprimée | légende, échelle et nord, coordonnées GPS des coins, informations, graduations, filtres appliqués ; liste des fuites affichées : décochée |
+
+### Rapports (écran `/rapports`, chantier v3, J1 et J2)
+
+États journaliers et hebdomadaires communiqués au maître d'ouvrage, **sans gabarit figé** (réponse 15 d'Issam). Logique
+pure dans `src/lib/export/rapports.ts`, lecture dans `src/lib/export/rapports-donnees.ts`, écran
+`src/app/(app)/rapports/page.tsx`. Vérification : `node scripts/verifier-rapports.mjs [dossier]` (89 contrôles : période,
+rubriques et droits, modèles, filtres, synthèse, sections, chargement sur le client de démonstration, vrais PDF A4 portrait
+et paysage et classeurs Excel relus, conseil « tableaux chargés » confronté aux mots réellement coupés dans le PDF).
+
+- **Période** : jour (flèches jour par jour), semaine (du lundi au dimanche du jour choisi), dates libres. Titre par
+  défaut « État journalier du … », « État hebdomadaire du … au … » ou « État de la période du … au … », modifiable.
+- **Rubriques** (une section du PDF, une feuille Excel par tableau) : synthèse (chiffres des rubriques cochées), fuites
+  détectées (jour de détection), réparations et réfections (faites sur la période, jour de Casablanca), balayage
+  (`v_balayage_journalier`, droit « balayage / lire »), débits de nuit (droit « mesures_debit / lire » : nuits de la
+  période `v_debits_nuits` et situation des performances `debits_resultats`, montants des pénalités seulement avec
+  « quantités / lire »), pièces posées (`v_pieces_posees`), fuites en attente et alertes (non achevées ou en alerte, à la
+  date d'édition). **Colonnes à cocher** par rubrique (cochées par défaut : `defaut: true` dans le code) ; un tableau sans
+  colonne est omis, une rubrique vide imprime « Aucun élément ».
+- **Filtres** : zone (débits compris ; la situation des débits se réduit alors à la zone), secteur, statut de la fuite,
+  chef d'équipe ou agent (réparations, réfections et pièces : le chef d'équipe ; détection et balayage : l'agent ; S12),
+  saisies validées seulement (détection, réparation, réfection, pièces par leur réparation). Les filtres sans objet
+  pour une rubrique l'ignorent (statut sur le balayage, secteur sur les débits). Filtres repris en clair sous le titre.
+- **R4** : agents et chefs d'équipe par leur matricule dans le document (et dans l'aperçu), y compris le filtre en clair.
+- **Mise en page** : A4 portrait ou paysage (paysage par défaut), PDF ou Excel, cadres de visa (ceux des règles
+  d'attachement du marché, sinon titulaire et maître d'ouvrage). Conseil à l'écran quand un tableau ne tient pas sans
+  couper de mots dans l'orientation choisie (`tableauxTropLarges`, mot le plus long de chaque colonne).
+- **Modèles** dans `modeles_export`, sans migration : jeu « fuites », `filtres.document = 'rapports'`, `colonnes` = les
+  rubriques cochées, le reste dans `filtres` (période, colonnes par rubrique, filtres, visas, titre). Modèles nommés
+  (droit « exports / créer ») et **dernier choix du marché** (ligne réservée « Rapports : dernier choix »,
+  `filtres.dernier = true`, mise à jour à chaque aperçu ou tirage), repris à l'ouverture ; repli sur l'appareil sans le
+  droit. Le panneau « Exporter » et les rubriques des autres documents ignorent ces lignes.
+- **J2** : « Recherche de fuites » propose le rapport de recherche de fuites de la page Balayage (même code,
+  `balayage/rapport.ts`) pour la période de l'écran, avec ses filtres agent et secteur et ses rubriques.
+- **Envoi par e-mail** : bouton « Envoyer par e-mail » de la carte Aperçu (`BoutonEnvoyerEmail`, document `rapport`), qui joint le fichier de `fabriquer()` (PDF ou Excel). Le rapport de recherche de fuites (J2) n'en a pas encore : il peut produire un fichier par agent.
 
 ### Rapport PDF par fuite
 
@@ -250,6 +285,30 @@ Google Maps en mode itinéraire, application sur la tablette Android, site sur o
 intégrée). Lecture des photos (fiche et rapports) par une seule fonction, `urlsPhotos` dans `src/lib/photo.ts`,
 qui choisit selon `photos.stockage` (aujourd'hui `supabase` seulement) : le lot R2 ne changera qu'elle. Ces PDF gardent les images : ils serviront d'archive
 avant toute purge des anciennes photos (CLAUDE.md § 7).
+
+## Envoi par e-mail (chantier v3, S18)
+
+Bouton **Envoyer par e-mail** (responsable du marché et administrateur ; masqué pour les autres) : fiche d'une fuite
+(rapport PDF), dialogue « Rapports PDF (n) » de la liste, Carte › Impression, panneau « Exporter » (lot d'attachement,
+liste, journal), Débits de nuit › procès-verbal d'une campagne, Rapports › Aperçu (S17).
+Le dialogue fabrique le document (même code que « Télécharger »), coche les destinataires « par défaut » du marché,
+accepte d'autres adresses (10 au plus), propose objet et message modifiables, affiche le poids de la pièce. Contrat
+complet : `docs/lots/chantier-v3-email.md`.
+
+- **Route serveur** `POST /api/email` (`src/app/api/email/route.ts`) : jeton de la session en en-tête, base appelée
+  avec ce jeton (RLS, aucune clé `service_role`) ; `reserver_envoi_email` décide (droit, marché actif, limites du jour),
+  puis envoi par **Resend** depuis `contact@stepag.ma`, réponses et copie cachée vers `contact@stepag.ma`, puis
+  `terminer_envoi_email` (envoyé ou échec). Un échec du fournisseur ne compte pas dans la limite.
+- **Limites** : pièce jointe 4 Mo (plafond Vercel de 4,5 Mo par requête ; au-delà, le dialogue propose de télécharger) ;
+  envois par marché et par jour réglables (défaut 20) ; 90 par jour pour l'ensemble des marchés (offre gratuite Resend).
+- **Paramètres › Marché › Destinataires** (`parametres/BlocDestinataires.tsx`) : carnet du marché (nom, adresse,
+  organisme, « par défaut », masquer, retirer), limite du jour, 30 derniers envois avec leur statut.
+- Règles pures et traitement complet (dépendances injectées) : `src/lib/email.ts`, vérifiées par
+  `node scripts/verifier-email.mjs` (base et fournisseur factices). Mode démonstration : rien ne part, l'envoi est
+  inscrit au journal en mémoire.
+- Mise en service (Issam) : compte Resend, domaine `stepag.ma` vérifié par trois enregistrements DNS dans Cloudflare
+  (sans toucher aux MX ni au SPF de la boîte), clé posée dans Vercel ; note pas à pas « Envoi des e-mails : mise en
+  service de Resend » (Claude Docs).
 
 ## Carte (`/carte`)
 
@@ -466,6 +525,10 @@ Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
 | `NEXT_PUBLIC_DOMAINE_AGENTS` | facultative : domaine technique des identifiants (défaut `agents.stepag.ma`, même valeur que `DOMAINE_AGENTS` de la fonction serveur) |
 | `NEXT_PUBLIC_ESRI_CLE` | facultative : clé d'API ArcGIS Location Platform (satellite, § Satellite), **restreinte au domaine** `fuites.stepag.ma` ; absente : pas de bouton Satellite |
 | `NEXT_PUBLIC_MESURE_CARTE` | essais locaux seulement (`1` : carte exposée à `scripts/mesurer-carte.mjs`) ; **jamais sur Vercel** |
+
+| `RESEND_API_KEY` | **serveur seulement** (jamais `NEXT_PUBLIC_`) : clé Resend de l'envoi des documents par e-mail (§ Envoi par e-mail), posée par Issam dans Vercel ; absente : envoi refusé « non configuré » |
+| `EMAIL_EXPEDITEUR`, `EMAIL_COPIE` | facultatives, serveur : expéditeur (défaut `STEPAG <contact@stepag.ma>`), copie cachée et réponses (défaut `contact@stepag.ma`) |
+| `EMAIL_FOURNISSEUR`, `RESEND_API_URL` | essais locaux seulement (`essai` : rien ne part ; URL d'un faux serveur) ; **jamais sur Vercel** |
 
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.

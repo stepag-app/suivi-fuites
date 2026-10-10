@@ -42,12 +42,18 @@ function genererCsv(d: DocumentExport): Blob {
   return new Blob([contenu], { type: 'text/csv;charset=utf-8' });
 }
 
-export async function exporter(d: DocumentExport, format: FormatExport): Promise<void> {
+/** Fabrique le fichier sans le télécharger (envoi par e-mail) ; nom avec la date et l'extension. */
+export async function fabriquer(d: DocumentExport, format: FormatExport): Promise<{ blob: Blob; nom: string }> {
   let blob: Blob;
   if (format === 'xlsx') blob = await (await import('./xlsx')).genererXlsx(d);
   else if (format === 'pdf') blob = await (await import('./pdf')).genererPdf(d);
   else if (format === 'docx') blob = await (await import('./docx')).genererDocx(d);
   else blob = genererCsv(d);
   const date = d.genereLe.toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
-  telecharger(blob, `${nomFichierSur(d.nomFichier)}-${date}.${format}`);
+  return { blob, nom: `${nomFichierSur(d.nomFichier)}-${date}.${format}` };
+}
+
+export async function exporter(d: DocumentExport, format: FormatExport): Promise<void> {
+  const { blob, nom } = await fabriquer(d, format);
+  telecharger(blob, nom);
 }

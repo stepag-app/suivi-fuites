@@ -1,7 +1,7 @@
 // Dictionnaire de l'APK : la clé est le texte français affiché dans le code (avec {repères} remplis à l'affichage).
 // `ar` : arabe classique ; `hyb` : mode hybride, absent = comme `ar`. Règle d'Issam (2026-10-07) : en hybride, une
 // phrase arabe ne garde un mot français que s'il s'agit de « Réfection » (et « Polyethylene », version d'Issam) ;
-// les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent, sauf ceux des fuites (en arabe). Tout relu et validé par Issam dans l'artefact
+// les libellés entièrement en français (Balayage, Secteur, listes de choix…) restent, sauf ceux des fuites (en arabe). Tout relu et validé par Issam dans l'artefact (le 2026-10-10, il a validé toutes les propositions restantes)
 // « Dictionnaire arabe APK » (docs/traduction/).
 
 export interface Entree { ar: string; hyb?: string }
@@ -137,7 +137,7 @@ export const TRADUCTIONS = {
   },
   'Garder': { ar: 'احتفِظ' },
   'Supprimer': { ar: 'احذف' },
-  'Réparation · {fuite}': { ar: 'إصلاح · {fuite}' },
+  'Réparation · {fuite}': { ar: 'إصلاح · {fuite}', hyb: 'Réparation · {fuite}' },
   'Réfection · {fuite}': { ar: 'إعادة الرصف · {fuite}', hyb: 'Réfection · {fuite}' },
   'Modification de réparation · {fuite}': { ar: 'تعديل الإصلاح · {fuite}' },
   'Photo(s) ajoutée(s) · {fuite}': { ar: 'صور مضافة · {fuite}' },
@@ -169,7 +169,7 @@ export const TRADUCTIONS = {
   '{type} (à envoyer)': { ar: '{type} (للإرسال)' },
   'Visible avec le réseau': { ar: 'تظهر عند توفّر الاتصال' },
   'Retirer': { ar: 'إزالة' },
-  'Réparations': { ar: 'الإصلاحات' },
+  'Réparations': { ar: 'الإصلاحات', hyb: 'Réparations' },
   'Aucune réparation saisie.': { ar: 'لم يُدخَل أي إصلاح.' },
   'Saisir une réparation': { ar: 'إدخال إصلاح' },
   'Réfections': { ar: 'أشغال إعادة الرصف', hyb: 'Réfections' },
@@ -219,8 +219,8 @@ export const TRADUCTIONS = {
   'Non réparée': { ar: 'لم يتم الإصلاح' },
   'Motif (obligatoire)': { ar: 'السبب (إجباري)' },
   'Date et heure des travaux': { ar: 'تاريخ وساعة الأشغال' },
-  'JJ/MM/AAAA': { ar: 'يوم/شهر/سنة', hyb: 'JJ/MM/AAAA' },
-  'HH:MM': { ar: 'ساعة:دقيقة', hyb: 'HH:MM' },
+  'JJ/MM/AAAA': { ar: 'يوم/شهر/سنة' },
+  'HH:MM': { ar: 'ساعة:دقيقة' },
   'Maintenant': { ar: 'الآن' },
   'Date ou heure invalide (JJ/MM/AAAA et HH:MM).': { ar: 'تاريخ أو ساعة غير صالحة (يوم/شهر/سنة و ساعة:دقيقة).' },
   'La date est dans le futur : vérifiez-la.': { ar: 'التاريخ في المستقبل: تحقّق منه.' },
@@ -334,7 +334,7 @@ export const TRADUCTIONS = {
 
   'Visible': { ar: 'ظاهرة', hyb: 'Visible' },
   'Invisible': { ar: 'غير ظاهرة', hyb: 'Invisible' },
-  // Chantier v2 (S7, 2026-10-09) : validation, saisie, gardes-fous, notifications, mise à jour — à relire par Issam
+  // Chantier v2 (S7, 2026-10-09) : validation, saisie, gardes-fous, notifications, mise à jour — validés par Issam (2026-10-10)
   'Réparation': { ar: 'الإصلاح', hyb: 'Réparation' },
   'À valider': { ar: 'للمصادقة' },
   'Valider': { ar: 'صادِق' },
@@ -460,7 +460,7 @@ export const TRADUCTIONS = {
   "La carte ne peut pas s'ouvrir. Réessayez.": { ar: 'تعذّر فتح الخريطة. أعد المحاولة.' },
   'Retour au formulaire': { ar: 'العودة إلى الاستمارة' },
 
-  // Suivi GPS (S11, X6) : libellés à relire par Issam
+  // Suivi GPS (S11, X6) : libellés validés par Issam (2026-10-10)
   'Suivi GPS': { ar: 'تتبع الموقع (GPS)', hyb: 'Suivi GPS' },
   'Suivi de position actif': { ar: 'تتبع الموقع مفعّل' },
   'Le tracé de votre journée est transmis à votre responsable.': { ar: 'يُرسل مسار يومك إلى مسؤولك.' },
@@ -494,6 +494,63 @@ export const TRADUCTIONS = {
   'Aucun envoi pour le moment.': { ar: 'لا يوجد أي إرسال حتى الآن.' },
   'Dernière position enregistrée : {date}': { ar: 'آخر موقع مسجّل: {date}' },
   'Aucune position enregistrée pour le moment.': { ar: 'لا يوجد أي موقع مسجّل حتى الآن.' },
+
+  // Mesures de nuit (chantier v3, S19, D8) : libellés validés par Issam (2026-10-10, D01 à D53 de l'artefact)
+  'Mesures de nuit': { ar: 'قياسات التدفق الليلي', hyb: 'Mesures de nuit' },
+  'Mesure de nuit · {mesure}': { ar: 'قياس ليلي · {mesure}' },
+  'Correction de mesure de nuit · {mesure}': { ar: 'تصحيح قياس ليلي · {mesure}' },
+  'Campagne': { ar: 'حملة القياس' },
+  'Campagnes en cours, créées par le responsable sur le site.': { ar: 'حملات القياس الجارية، يُنشئها المسؤول على الموقع.' },
+  'Aucune campagne de mesure en cours sur ce marché.': { ar: 'لا توجد أي حملة قياس جارية في هذه الصفقة.' },
+  'Avant intervention (Qi)': { ar: 'قبل التدخل (Qi)', hyb: 'Avant intervention (Qi)' },
+  'Après balayage (Qf)': { ar: 'بعد مسح الشبكة (Qf)', hyb: 'Après balayage (Qf)' },
+  'Contrôle de maintien': { ar: 'مراقبة الحفاظ على النتائج', hyb: 'Contrôle de maintien' },
+  'Mesure libre': { ar: 'قياس حر', hyb: 'Mesure libre' },
+  'Toutes les zones': { ar: 'جميع المناطق' },
+  'Zone {numero} · {libelle}': { ar: 'المنطقة {numero} · {libelle}' },
+  'Nuit': { ar: 'الليلة' },
+  'Jour des relevés de 0 h à 6 h.': { ar: 'يوم القراءات من الساعة 0 إلى الساعة 6.' },
+  "La première nuit de la campagne n'est pas encore passée.": { ar: 'لم تمرّ الليلة الأولى من الحملة بعد.' },
+  'Points de mesure': { ar: 'نقاط القياس' },
+  'Aucun point de mesure actif dans cette zone.': { ar: 'لا توجد أي نقطة قياس مفعّلة في هذه المنطقة.' },
+  'Point {code} · nuit du {date}': { ar: 'النقطة {code} · ليلة {date}' },
+  'Non mesuré': { ar: 'بدون قياس' },
+  'Validée': { ar: 'مُصادَق عليها' },
+  'Mesure saisie par un autre compte.': { ar: 'قياس أدخله حساب آخر.' },
+  'Mesure déjà validée par le responsable : elle ne se corrige plus depuis la tablette.': { ar: 'صادق المسؤول على هذا القياس: لم يعد تصحيحه ممكنًا من الجهاز اللوحي.' },
+  'Votre compte ne peut pas corriger cette mesure.': { ar: 'لا يمكن لحسابك تصحيح هذا القياس.' },
+  'Débit minimum de la nuit : {debit}': { ar: 'أدنى تدفق خلال الليل: {debit}' },
+  'Débit minimum de la nuit (m³/h)': { ar: 'أدنى تدفق خلال الليل (م³/ساعة)' },
+  "Relevés de 0 h à 6 h (m³/h), au quart d'heure": { ar: 'القراءات من الساعة 0 إلى الساعة 6 (م³/ساعة)، كل ربع ساعة' },
+  'Relevé de {heure}': { ar: 'قراءة الساعة {heure}' },
+  'Minimum des relevés : {debit}. Les heures laissées vides ne sont pas envoyées.': { ar: 'أدنى القراءات: {debit}. الساعات المتروكة فارغة لا تُرسَل.' },
+  'Observation (facultative)': { ar: 'ملاحظة (اختيارية)' },
+  "Photo de l'afficheur (facultative)": { ar: 'صورة شاشة العداد (اختيارية)' },
+  'Afficheur': { ar: 'شاشة العداد' },
+  'Une photo est déjà jointe ; une nouvelle photo la remplace.': { ar: 'صورة مرفقة مسبقًا؛ الصورة الجديدة تحلّ محلّها.' },
+  'Reprendre la photo': { ar: 'إعادة التقاط الصورة' },
+  "Photographier l'afficheur": { ar: 'تصوير شاشة العداد' },
+  'Enregistrer la correction': { ar: 'حفظ التصحيح' },
+  'Enregistrer la mesure': { ar: 'حفظ القياس' },
+  "Votre compte n'a pas le droit de lire les débits de nuit sur ce marché : voyez avec l'administrateur.": { ar: 'ليس لحسابك حق الاطلاع على التدفقات الليلية في هذه الصفقة: راجع مسؤول النظام.' },
+  'Hors ligne : dernières données connues.': { ar: 'دون اتصال: آخر بيانات محفوظة.' },
+  'Saisissez le débit minimum de la nuit (m³/h).': { ar: 'أدخل أدنى تدفق خلال الليل (م³/ساعة).' },
+  'Saisissez au moins un relevé.': { ar: 'أدخل قراءة واحدة على الأقل.' },
+  'Relevé de {heure} illisible : un nombre est attendu (ex. 12,5).': { ar: 'قراءة الساعة {heure} غير مقروءة: يُنتظر رقم (مثال: 12,5).' },
+  'Débit négatif refusé ({heure}).': { ar: 'تدفق سالب مرفوض ({heure}).' },
+  'Débit négatif refusé.': { ar: 'تدفق سالب مرفوض.' },
+  'Cette mesure part au serveur en ce moment : réessayez dans un instant.': { ar: 'هذا القياس قيد الإرسال إلى الخادم الآن: أعد المحاولة بعد لحظة.' },
+  "Mesure enregistrée sur la tablette ; envoyée dès que le réseau le permet (validée d'emblée).": { ar: 'تم حفظ القياس على الجهاز اللوحي؛ يُرسَل فور توفر الاتصال (مُصادَق عليه مباشرة).' },
+  'Mesure enregistrée sur la tablette ; envoyée dès que le réseau le permet, puis « à valider » par le responsable.': { ar: 'تم حفظ القياس على الجهاز اللوحي؛ يُرسَل فور توفر الاتصال، ثم يبقى «للمصادقة» لدى المسؤول.' },
+  'Une mesure existe déjà pour ce point et cette nuit (saisie par un autre compte ?). Supprimez celle-ci de la tablette ou voyez avec le responsable.': {
+    ar: 'يوجد قياس مسبق لهذه النقطة وهذه الليلة (أدخله حساب آخر؟). احذف هذا القياس من الجهاز اللوحي أو راجع المسؤول.',
+  },
+  'Campagne supprimée ou dates changées par le responsable : cette nuit ne fait plus partie de la campagne.': { ar: 'حذف المسؤول الحملة أو غيّر تواريخها: هذه الليلة لم تعد ضمن الحملة.' },
+  'Campagne introuvable : droit de lecture des débits de nuit absent sur ce marché ?': { ar: 'الحملة غير موجودة: هل ينقص حسابك حق الاطلاع على التدفقات الليلية في هذه الصفقة؟' },
+  'Point de mesure désactivé ou hors de la zone de la campagne.': { ar: 'نقطة القياس معطّلة أو خارج منطقة الحملة.' },
+  'Relevés refusés : heures de 00:00 à 06:00, débits positifs, une seule valeur par heure.': { ar: 'القراءات مرفوضة: الساعات من 00:00 إلى 06:00، تدفقات موجبة، وقيمة واحدة لكل ساعة.' },
+  'Saisissez le débit minimum de la nuit ou au moins un relevé.': { ar: 'أدخل أدنى تدفق خلال الليل أو قراءة واحدة على الأقل.' },
+  "En attente : la saisie précédente de cette mesure n'est pas encore passée.": { ar: 'في الانتظار: الإدخال السابق لهذا القياس لم يُرسَل بعد.' },
 
   // Accessibilité (lus par le lecteur d'écran)
   '{legende} : retirer la photo': { ar: '{legende}: إزالة الصورة' },

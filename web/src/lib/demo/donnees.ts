@@ -44,14 +44,14 @@ export const marches: (Marche & Ligne)[] = [
     titulaire: "STEPAG SARL", maitre_ouvrage: "Société Régionale Multiservices de l'Oriental", date_commencement: jour(il_y_a(24 * 120)),
     duree_mois: 12, montant_ht: 1_850_000, os_commencement_id: id("e", 91), telephone_titulaire: "05 36 00 00 00", email_titulaire: "contact@stepag.ma",
     // Contrôle de la base suspendu pendant la transition (PR #65) : le panneau exige quand même le jeu F1.
-    champs_obligatoires_fuite: [],
+    champs_obligatoires_fuite: [], emails_par_jour: 20,
   },
   {
     id: MARCHE_DEMO, code: "DEMO", numero: "DEMO-2026", intitule: "Marché de démonstration (données fictives)", client: "Client fictif", ville: "Oujda",
     actif: true, taux_majoration: 0, taux_tva: 20, rayon_redetection_m: 25, client_sigle: "DEMO", libelle_reference: "Référence client",
     masque_reference: null, jalons_client: false, delai_alerte_reparation_h: 48, devise: "DH", logo_titulaire: null, logo_maitre_ouvrage: null,
     titulaire: "STEPAG SARL", maitre_ouvrage: "Client fictif", date_commencement: jour(il_y_a(24 * 400)), duree_mois: 6, montant_ht: 250_000,
-    champs_obligatoires_fuite: ["reference_srm", "secteur_id", "ouvrage", "visibilite", "nature_degradation_id"],
+    champs_obligatoires_fuite: ["reference_srm", "secteur_id", "ouvrage", "visibilite", "nature_degradation_id"], emails_par_jour: 20,
   },
 ];
 
@@ -470,6 +470,30 @@ export const vPiecesPosees: Ligne[] = reparationPieces.map((p) => {
     unite: produit?.unite ?? "U", quantite: p.quantite, provenance: "terrain" };
 });
 
+// Journal des balayages (v_balayage_journalier) : trois semaines, du lundi au samedi, deux agents, deux secteurs chacun.
+// Graine à part : les tirages des fuites restent les mêmes.
+export const vBalayageJournalier: Ligne[] = (() => {
+  const rb = alea(20261014);
+  const lignes: Ligne[] = [];
+  for (let j = 0; j < 21; j++) {
+    const date = jour(il_y_a(24 * j));
+    if (new Date(`${date}T12:00:00Z`).getUTCDay() === 0) continue;
+    [id("d", 2), id("d", 3)].forEach((agentId, a) => {
+      for (let k = 0; k < 2; k++) {
+        const s = secteurs[(j * 2 + a * 5 + k) % secteurs.length];
+        const lineaire = Math.round((800 + rb() * 2200) * 100) / 100;
+        lignes.push({
+          marche_id: MARCHE_SRM, date_balayage: date, agent_id: agentId, agent: profils.find((p) => p.id === agentId)?.nom_complet ?? null,
+          zone_id: s.zone_id, zone: zones.find((z) => z.id === s.zone_id)?.libelle ?? null, secteur_id: s.id, secteur: s.libelle,
+          nb_troncons: Math.round(lineaire / 60), lineaire_m: lineaire, lineaire_repasse_m: rb() < 0.4 ? Math.round(rb() * 300 * 100) / 100 : 0,
+          nb_noeuds: Math.round(lineaire / 70), nb_fuites: vFuites.filter((f) => f.secteur_id === s.id && f.date_detection.slice(0, 10) === date).length,
+        });
+      }
+    });
+  }
+  return lignes;
+})();
+
 /** Tables et vues servies par le client de démonstration. */
 export const TABLES: Record<string, Ligne[]> = {
   profils: profils as unknown as Ligne[], marches, affectations, droits: droits as unknown as Ligne[], zones, secteurs: [...secteurs, ...secteursDemo] as unknown as Ligne[],
@@ -480,5 +504,5 @@ export const TABLES: Record<string, Ligne[]> = {
   ouvriers, v_anomalies: vAnomalies, v_controles_attachement: [], v_pieces_reelles: [], verrous_admin: [],
   modeles_export: [], evenements: [], categories_evenements: [], avenants: [], arrets: [], evenements_pieces: [],
   diametres_materiau: diametresMateriau, representants_srm: representantsSrm,
-  notifications, v_propositions_anticipation: propositionsAnticipation, v_fuites_export: vFuitesExport, v_pieces_posees: vPiecesPosees,
+  notifications, v_propositions_anticipation: propositionsAnticipation, v_fuites_export: vFuitesExport, v_pieces_posees: vPiecesPosees, v_balayage_journalier: vBalayageJournalier,
 };

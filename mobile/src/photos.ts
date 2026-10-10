@@ -89,6 +89,17 @@ export async function envoyerPhoto(p: PhotoAttente, lien: {
   await effacerPhotos([p]);
 }
 
+/**
+ * Pièce jointe d'une mesure de nuit (photo de l'afficheur) : compartiment privé « debits », `<marché>/<campagne>/<fichier>`.
+ * Renvoi sans doublon (fichier déjà reçu accepté) ; le fichier local est effacé par l'appelant, après la ligne.
+ */
+export async function deposerPieceJointe(p: PhotoAttente, chemin: string): Promise<string> {
+  const octets = await (await fetch(p.fichier)).arrayBuffer();
+  const r = await supabase.storage.from('debits').upload(chemin, octets, { contentType: 'image/jpeg' });
+  if (r.error && !dejaEnvoye(r.error as ErreurApi)) throw r.error;
+  return chemin;
+}
+
 type ReponseFonction<T> = { ok: true; data: T } | { ok: false; code?: string; message: string };
 
 // Appel de la fonction serveur photos-r2 : le corps JSON est lu même en erreur (« r2_non_configure », refus…).

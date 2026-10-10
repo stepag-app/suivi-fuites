@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Printer } from "lucide-react";
+import { BoutonEnvoyerEmail } from "@/components/envoyer-email";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
@@ -22,10 +23,12 @@ interface Props {
   nombreListe: number;
   filtres: string;
   imprimer: (choix: ChoixImpression, etape: (texte: string) => void) => Promise<string>;
+  /** Fabrique le PDF sans le télécharger (envoi par e-mail). */
+  fabriquer: (choix: ChoixImpression) => Promise<{ blob: Blob; nom: string }>;
 }
 
 /** Réglages du PDF de la carte (format, orientation, titre, liste) : panneau sous la carte. */
-export function PanneauImpression({ marcheId, peutEnregistrer, titreDefaut, nombreSurCarte, nombreListe, filtres, imprimer }: Props) {
+export function PanneauImpression({ marcheId, peutEnregistrer, titreDefaut, nombreSurCarte, nombreListe, filtres, imprimer, fabriquer }: Props) {
   const [format, setFormat] = useState<FormatPapier>("a4");
   const [orientation, setOrientation] = useState<OrientationPapier>("paysage");
   const [titre, setTitre] = useState(titreDefaut);
@@ -42,12 +45,17 @@ export function PanneauImpression({ marcheId, peutEnregistrer, titreDefaut, nomb
   }, [titreDefaut, titreRetouche]);
   const occupe = !!etape;
 
+  const choix = (): ChoixImpression => ({
+    format, orientation, titre: titre.trim() || titreDefaut, avecListe, cadrage,
+    rubriques: avecListe ? rubriques : new Set([...rubriques].filter((r) => r !== "liste")),
+  });
+
   async function lancer() {
     setErreur("");
     setInfo("");
     setEtape("Préparation…");
     try {
-      setInfo(await imprimer({ format, orientation, titre: titre.trim() || titreDefaut, avecListe, cadrage, rubriques: avecListe ? rubriques : new Set([...rubriques].filter((r) => r !== "liste")) }, setEtape));
+      setInfo(await imprimer(choix(), setEtape));
     } catch (e) {
       setErreur(messageErreur(e));
     }
@@ -84,9 +92,13 @@ export function PanneauImpression({ marcheId, peutEnregistrer, titreDefaut, nomb
             <ToggleGroupItem value="ecran" disabled={occupe}>Vue de l&apos;écran</ToggleGroupItem>
           </ToggleGroup>
         </Field>
-        <Button size="sm" disabled={occupe} onClick={lancer}>
-          {occupe ? <Spinner /> : <Printer data-icon="inline-start" />}{occupe ? etape : "Télécharger le PDF"}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <BoutonEnvoyerEmail size="sm" document="carte" reference={titre.trim() || titreDefaut} disabled={occupe}
+            fabriquer={() => fabriquer(choix())} />
+          <Button size="sm" disabled={occupe} onClick={lancer}>
+            {occupe ? <Spinner /> : <Printer data-icon="inline-start" />}{occupe ? etape : "Télécharger le PDF"}
+          </Button>
+        </div>
       </div>
       <ChoixRubriques document="carte" marcheId={marcheId} valeur={rubriques} changer={setRubriques} peutEnregistrer={peutEnregistrer} desactive={occupe} />
       <p className="text-muted-foreground text-xs">

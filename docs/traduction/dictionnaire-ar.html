@@ -99,6 +99,8 @@ td.note textarea { margin-top: 0; font-size: .88rem }
       <li>Les listes de saisie (ouvrages, matériaux, emplacements, visibilité, résultats, travaux, types de photo, natures de revêtement) affichent désormais leur arabe enregistré dans la base ; il se relit dans le panneau, pas ici.</li>
       <li>Hors de ce dictionnaire : les désignations des articles Dolibarr (en français dans toutes les langues).</li>
       <li><b>10 octobre (chantier v3, S12) :</b> « Équipe » retiré (G35, R14). L'équipe, c'est désormais le compte du chef d'équipe : l'application ne demande plus de choisir une équipe.</li>
+      <li><b>10 octobre : toutes les propositions validées par Issam</b> (« je vous demande de tout valider ») : les 495 lignes sont cochées OK ; les corrections déjà faites restent. Les libellés du suivi GPS et de l'accessibilité, absents de ce tableau, sont validés de la même façon.</li>
+      <li><b>Nouveau (10 octobre, chantier v3, S19) : 53 libellés de l'écran « Mesures de nuit »</b> (D01 à D53) : campagne de mesure, nuit, points de mesure, débit minimum ou relevés de 0 h à 6 h, photo de l'afficheur, messages d'envoi. En hybride, le titre de l'écran et les types de campagne (Qi, Qf, maintien, libre) restent en français, comme « Balayage » et « Suivi GPS » ; tout le reste est en arabe. Filtrez « v3 · Mesures de nuit » dans la liste des écrans. Termes proposés : débit de nuit « التدفق الليلي », campagne « حملة القياس », point de mesure « نقطة القياس », relevé « قراءة », afficheur « شاشة العداد ».</li>
     </ul>
   </div>
 
@@ -595,6 +597,61 @@ const LIBELLES = [
   ["V119", "v2 · Nouvelle fuite", "La carte a besoin de la connexion : la position GPS suffit pour enregistrer la fuite.", null, "الخريطة تحتاج إلى الاتصال بالإنترنت: موقع GPS يكفي لتسجيل التسرب."],
   ["V120", "v2 · Nouvelle fuite", "La carte ne peut pas s'ouvrir. Réessayez.", null, "تعذّر فتح الخريطة. أعد المحاولة."],
   ["V121", "v2 · Nouvelle fuite", "Retour au formulaire", null, "العودة إلى الاستمارة"],
+
+  // Chantier v3, APK (S19, 10 octobre) : écran « Mesures de nuit » (débits de nuit), à relire
+  ["D01", "v3 · Mesures de nuit", "Mesures de nuit", "Mesures de nuit", "قياسات التدفق الليلي"],
+  ["D02", "v3 · Mesures de nuit (envoi)", "Mesure de nuit · {mesure}", null, "قياس ليلي · {mesure}"],
+  ["D03", "v3 · Mesures de nuit (envoi)", "Correction de mesure de nuit · {mesure}", null, "تصحيح قياس ليلي · {mesure}"],
+  ["D04", "v3 · Mesures de nuit", "Campagne", null, "حملة القياس"],
+  ["D05", "v3 · Mesures de nuit", "Campagnes en cours, créées par le responsable sur le site.", null, "حملات القياس الجارية، يُنشئها المسؤول على الموقع."],
+  ["D06", "v3 · Mesures de nuit", "Aucune campagne de mesure en cours sur ce marché.", null, "لا توجد أي حملة قياس جارية في هذه الصفقة."],
+  ["D07", "v3 · Mesures de nuit", "Avant intervention (Qi)", "Avant intervention (Qi)", "قبل التدخل (Qi)"],
+  ["D08", "v3 · Mesures de nuit", "Après balayage (Qf)", "Après balayage (Qf)", "بعد مسح الشبكة (Qf)"],
+  ["D09", "v3 · Mesures de nuit", "Contrôle de maintien", "Contrôle de maintien", "مراقبة الحفاظ على النتائج"],
+  ["D10", "v3 · Mesures de nuit", "Mesure libre", "Mesure libre", "قياس حر"],
+  ["D11", "v3 · Mesures de nuit", "Toutes les zones", null, "جميع المناطق"],
+  ["D12", "v3 · Mesures de nuit", "Zone {numero} · {libelle}", null, "المنطقة {numero} · {libelle}"],
+  ["D13", "v3 · Mesures de nuit", "Nuit", null, "الليلة"],
+  ["D14", "v3 · Mesures de nuit", "Jour des relevés de 0 h à 6 h.", null, "يوم القراءات من الساعة 0 إلى الساعة 6."],
+  ["D15", "v3 · Mesures de nuit", "La première nuit de la campagne n'est pas encore passée.", null, "لم تمرّ الليلة الأولى من الحملة بعد."],
+  ["D16", "v3 · Mesures de nuit", "Points de mesure", null, "نقاط القياس"],
+  ["D17", "v3 · Mesures de nuit", "Aucun point de mesure actif dans cette zone.", null, "لا توجد أي نقطة قياس مفعّلة في هذه المنطقة."],
+  ["D18", "v3 · Mesures de nuit", "Point {code} · nuit du {date}", null, "النقطة {code} · ليلة {date}"],
+  ["D19", "v3 · Mesures de nuit", "Non mesuré", null, "بدون قياس"],
+  ["D20", "v3 · Mesures de nuit", "Validée", null, "مُصادَق عليها"],
+  ["D21", "v3 · Mesures de nuit", "Mesure saisie par un autre compte.", null, "قياس أدخله حساب آخر."],
+  ["D22", "v3 · Mesures de nuit", "Mesure déjà validée par le responsable : elle ne se corrige plus depuis la tablette.", null, "صادق المسؤول على هذا القياس: لم يعد تصحيحه ممكنًا من الجهاز اللوحي."],
+  ["D23", "v3 · Mesures de nuit", "Votre compte ne peut pas corriger cette mesure.", null, "لا يمكن لحسابك تصحيح هذا القياس."],
+  ["D24", "v3 · Mesures de nuit", "Débit minimum de la nuit : {debit}", null, "أدنى تدفق خلال الليل: {debit}"],
+  ["D25", "v3 · Mesures de nuit", "Débit minimum de la nuit (m³/h)", null, "أدنى تدفق خلال الليل (م³/ساعة)"],
+  ["D26", "v3 · Mesures de nuit", "Relevés de 0 h à 6 h (m³/h), au quart d'heure", null, "القراءات من الساعة 0 إلى الساعة 6 (م³/ساعة)، كل ربع ساعة"],
+  ["D27", "v3 · Mesures de nuit", "Relevé de {heure}", null, "قراءة الساعة {heure}"],
+  ["D28", "v3 · Mesures de nuit", "Minimum des relevés : {debit}. Les heures laissées vides ne sont pas envoyées.", null, "أدنى القراءات: {debit}. الساعات المتروكة فارغة لا تُرسَل."],
+  ["D29", "v3 · Mesures de nuit", "Observation (facultative)", null, "ملاحظة (اختيارية)"],
+  ["D30", "v3 · Mesures de nuit", "Photo de l'afficheur (facultative)", null, "صورة شاشة العداد (اختيارية)"],
+  ["D31", "v3 · Mesures de nuit", "Afficheur", null, "شاشة العداد"],
+  ["D32", "v3 · Mesures de nuit", "Une photo est déjà jointe ; une nouvelle photo la remplace.", null, "صورة مرفقة مسبقًا؛ الصورة الجديدة تحلّ محلّها."],
+  ["D33", "v3 · Mesures de nuit", "Reprendre la photo", null, "إعادة التقاط الصورة"],
+  ["D34", "v3 · Mesures de nuit", "Photographier l'afficheur", null, "تصوير شاشة العداد"],
+  ["D35", "v3 · Mesures de nuit", "Enregistrer la correction", null, "حفظ التصحيح"],
+  ["D36", "v3 · Mesures de nuit", "Enregistrer la mesure", null, "حفظ القياس"],
+  ["D37", "v3 · Mesures de nuit", "Votre compte n'a pas le droit de lire les débits de nuit sur ce marché : voyez avec l'administrateur.", null, "ليس لحسابك حق الاطلاع على التدفقات الليلية في هذه الصفقة: راجع مسؤول النظام."],
+  ["D38", "v3 · Mesures de nuit", "Hors ligne : dernières données connues.", null, "دون اتصال: آخر بيانات محفوظة."],
+  ["D39", "v3 · Mesures de nuit", "Saisissez le débit minimum de la nuit (m³/h).", null, "أدخل أدنى تدفق خلال الليل (م³/ساعة)."],
+  ["D40", "v3 · Mesures de nuit", "Saisissez au moins un relevé.", null, "أدخل قراءة واحدة على الأقل."],
+  ["D41", "v3 · Mesures de nuit", "Relevé de {heure} illisible : un nombre est attendu (ex. 12,5).", null, "قراءة الساعة {heure} غير مقروءة: يُنتظر رقم (مثال: 12,5)."],
+  ["D42", "v3 · Mesures de nuit", "Débit négatif refusé ({heure}).", null, "تدفق سالب مرفوض ({heure})."],
+  ["D43", "v3 · Mesures de nuit", "Débit négatif refusé.", null, "تدفق سالب مرفوض."],
+  ["D44", "v3 · Mesures de nuit", "Cette mesure part au serveur en ce moment : réessayez dans un instant.", null, "هذا القياس قيد الإرسال إلى الخادم الآن: أعد المحاولة بعد لحظة."],
+  ["D45", "v3 · Mesures de nuit", "Mesure enregistrée sur la tablette ; envoyée dès que le réseau le permet (validée d'emblée).", null, "تم حفظ القياس على الجهاز اللوحي؛ يُرسَل فور توفر الاتصال (مُصادَق عليه مباشرة)."],
+  ["D46", "v3 · Mesures de nuit", "Mesure enregistrée sur la tablette ; envoyée dès que le réseau le permet, puis « à valider » par le responsable.", null, "تم حفظ القياس على الجهاز اللوحي؛ يُرسَل فور توفر الاتصال، ثم يبقى «للمصادقة» لدى المسؤول."],
+  ["D47", "v3 · Mesures de nuit (envoi)", "Une mesure existe déjà pour ce point et cette nuit (saisie par un autre compte ?). Supprimez celle-ci de la tablette ou voyez avec le responsable.", null, "يوجد قياس مسبق لهذه النقطة وهذه الليلة (أدخله حساب آخر؟). احذف هذا القياس من الجهاز اللوحي أو راجع المسؤول."],
+  ["D48", "v3 · Mesures de nuit (envoi)", "Campagne supprimée ou dates changées par le responsable : cette nuit ne fait plus partie de la campagne.", null, "حذف المسؤول الحملة أو غيّر تواريخها: هذه الليلة لم تعد ضمن الحملة."],
+  ["D49", "v3 · Mesures de nuit (envoi)", "Campagne introuvable : droit de lecture des débits de nuit absent sur ce marché ?", null, "الحملة غير موجودة: هل ينقص حسابك حق الاطلاع على التدفقات الليلية في هذه الصفقة؟"],
+  ["D50", "v3 · Mesures de nuit (envoi)", "Point de mesure désactivé ou hors de la zone de la campagne.", null, "نقطة القياس معطّلة أو خارج منطقة الحملة."],
+  ["D51", "v3 · Mesures de nuit (envoi)", "Relevés refusés : heures de 00:00 à 06:00, débits positifs, une seule valeur par heure.", null, "القراءات مرفوضة: الساعات من 00:00 إلى 06:00، تدفقات موجبة، وقيمة واحدة لكل ساعة."],
+  ["D52", "v3 · Mesures de nuit (envoi)", "Saisissez le débit minimum de la nuit ou au moins un relevé.", null, "أدخل أدنى تدفق خلال الليل أو قراءة واحدة على الأقل."],
+  ["D53", "v3 · Mesures de nuit (envoi)", "En attente : la saisie précédente de cette mesure n'est pas encore passée.", null, "في الانتظار: الإدخال السابق لهذا القياس لم يُرسَل بعد."],
 ];
 
 const etat = {};          // id -> { hyb, ar, ok, note, garder }

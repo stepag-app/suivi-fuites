@@ -608,7 +608,7 @@ const f = StyleSheet.create({
   page: { padding: 20, gap: 14, paddingBottom: 40 },
   profil: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   identite: { flexDirection: 'row', alignItems: 'center', gap: 18, flexGrow: 1, flexShrink: 1, flexBasis: 360 },
-  titre: { fontFamily: POLICE, fontSize: 26, lineHeight: 32, fontWeight: '600', color: COULEURS.texte, letterSpacing: -0.4 },
+  titre: { fontFamily: POLICE, fontSize: 26, lineHeight: 32, fontWeight: '600', color: COULEURS.texte },
   colonnes: { flexDirection: 'row', alignItems: 'flex-start', gap: 14 },
   bloc: { borderWidth: 1, borderColor: COULEURS.bord, borderRadius: 12, padding: 14, gap: 12 },
   teteBloc: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 },

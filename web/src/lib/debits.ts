@@ -28,7 +28,7 @@ export const ASSIETTES: Record<Assiette, string> = {
 
 export const MODES_POINTS: Record<ModePoints, string> = {
   proportionnels: 'Proportionnels (τ sans arrondi)',
-  entiers: 'Entiers (points complets)',
+  entiers: 'Entiers (arrondis au plus proche)',
 };
 
 /** 25 instants de 0 h à 6 h, toutes les 15 minutes (art. II-17 : Q1 à Q25). */
@@ -187,7 +187,7 @@ export interface ReglagesDebits {
 }
 
 export const REGLAGES_DEFAUT: ReglagesDebits = {
-  debits_mode_saisie: 'minimum', debits_assiette: 'zone', debits_points: 'proportionnels',
+  debits_mode_saisie: 'minimum', debits_assiette: 'zone', debits_points: 'entiers',
   debits_plafond_pct: 25, debits_seuil_arret_pct: 25, debits_seuil_degradation_pct: 25,
 };
 
@@ -231,7 +231,7 @@ export const minimumReleves = (r: Releve[]) => Math.min(...r.map((x) => x.q));
 export function penalitePoints(tau: number | null | undefined, plafond = 25, mode: ModePoints = 'proportionnels'): number | null {
   if (tau == null || Number.isNaN(tau)) return null;
   if (tau >= 0) return 0;
-  return Math.min(plafond, mode === 'entiers' ? Math.floor(-tau) : -tau);
+  return Math.min(plafond, mode === 'entiers' ? Math.round(-tau) : -tau);
 }
 
 /** Arrondi à 2 décimales comme numeric round() (au plus loin de zéro). */

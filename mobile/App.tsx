@@ -8,6 +8,7 @@ import { Connexion, EnAttente, Liste } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
 import { LangueProvider, useLangue } from './src/langue';
+import { MesuresNuit } from './src/mesures-nuit';
 import { BandeauMiseAJour, FenetreMiseAJour, useMiseAJour } from './src/mise-a-jour';
 import { EcranNotifications, useNonLues, useToucherNotification } from './src/notifications';
 import { NouvelleFuite } from './src/nouvelle-fuite';
@@ -21,7 +22,7 @@ import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
-  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'fiche'; id: string }
+  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'fiche'; id: string }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -123,6 +124,8 @@ function Racine() {
       return <Balayage retour={retourListe} />;
     case 'avalider':
       return <AValiderEcran retour={retourListe} ouvrir={ouvrir} />;
+    case 'mesures':
+      return <MesuresNuit retour={retourListe} />;
     case 'suivigps':
       return <SuiviGpsEcran retour={retourListe} etat={suivi} relire={relireSuivi} uid={session.user.id} marcheId={marche.id} />;
     case 'notifications':
@@ -147,6 +150,7 @@ function Racine() {
           aValider={() => setVue({ nom: 'avalider' })}
           notifications={() => setVue({ nom: 'notifications' })}
           suiviGps={() => setVue({ nom: 'suivigps' })}
+          mesures={() => setVue({ nom: 'mesures' })}
           suivi={suivi}
           nonLues={nonLues}
           miseAJour={miseAJour ? (

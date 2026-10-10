@@ -61,10 +61,10 @@ export const supabase = {
     },
   },
   storage: {
-    from: () => ({
+    from: (compartiment) => ({
       upload: async (chemin, octets) => {
         try {
-          const r = await client.fetch(`${API}/storage/v1/object/photos/${chemin}`, { method: 'POST', body: octets });
+          const r = await client.fetch(`${API}/storage/v1/object/${compartiment}/${chemin}`, { method: 'POST', body: octets });
           return await r.json();
         } catch (e) {
           return { data: null, error: { name: 'StorageUnknownError', message: e.message } }; // comme storage-js

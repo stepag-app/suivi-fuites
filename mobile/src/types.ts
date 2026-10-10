@@ -16,6 +16,8 @@ export interface Marche {
   client?: string | null; client_sigle?: string | null;
   /** Champs exigés à la création d'une fuite (F1) ; vide : règle F1 par défaut (regles.ts). */
   champs_obligatoires_fuite?: string[] | null;
+  /** Saisie des débits de nuit proposée (D3), sauf réglage de la campagne. */
+  debits_mode_saisie?: 'minimum' | 'releves' | 'import';
 }
 export interface Droit {
   marche_id: string; type_donnee: string; lire: boolean; creer: boolean;

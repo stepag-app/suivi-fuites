@@ -100,10 +100,10 @@ const MISE_A_JOUR_MS = 5 * 60 * 1000;
 const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
-export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi }: {
+export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi, mesures }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
   aValider: () => void; notifications: () => void; nonLues: number; miseAJour: ReactNode;
-  suiviGps: () => void; suivi: EtatSuivi | null;
+  suiviGps: () => void; suivi: EtatSuivi | null; mesures: () => void;
 }) {
   const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
@@ -242,6 +242,7 @@ export function Liste({ nouvelle, attente, balayage, ouvrir, aValider, notificat
             {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
             {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
             {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
+            {peut('mesures_debit', 'creer') && <Bouton titre={t('Mesures de nuit')} icone="gauge" onPress={mesures} />}
             <Bouton titre={t('Suivi GPS')} icone="locate-fixed" onPress={suiviGps} />
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
@@ -437,6 +438,8 @@ const titreEnvoi = (e: Envoi) => {
     case 'refection': return t('Réfection · {fuite}', { fuite: e.fuite_libelle });
     case 'modification': return t('Modification de réparation · {fuite}', { fuite: e.fuite_libelle });
     case 'photos': return t('Photo(s) ajoutée(s) · {fuite}', { fuite: e.fuite_libelle });
+    case 'mesure':
+      return e.correction ? t('Correction de mesure de nuit · {mesure}', { mesure: e.libelle }) : t('Mesure de nuit · {mesure}', { mesure: e.libelle });
     case 'maj':
       return e.table === 'fuites' ? t('Modification de la fuite · {fuite}', { fuite: e.fuite_libelle })
         : e.table === 'refections' ? t('Modification de réfection · {fuite}', { fuite: e.fuite_libelle })

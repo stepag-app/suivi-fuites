@@ -327,7 +327,7 @@ complet : `docs/lots/chantier-v3-email.md`.
   sans R2 configuré, ou si la lecture par plages échoue (règle CORS ci-dessous absente).
 - **Régénérer après un import du réseau ou un zonage** : Paramètres › Réseau › bloc « Tuiles du réseau » ›
   **Régénérer les tuiles** (administrateur ou « paramètres / modifier »). Le navigateur lit tout le réseau
-  (`reseau_geojson`, `noeuds_geojson`), fabrique l'archive et la dépose dans R2 par une URL signée (15 min) ; l'état
+  (`reseau_geojson_page`, `noeuds_geojson_page` : pages de 2 000 tronçons et 3 000 nœuds, l'avancement s'affiche ; une requête unique dépassait le délai maximal de l'API en production), fabrique l'archive et la dépose dans R2 par une URL signée (15 min) ; l'état
   passe à « À jour ». Les tablettes la prennent à la prochaine ouverture de la carte.
 - **Mode balayage en tuiles** : « Toucher » marche tout de suite ; le lasso et « Prolonger » ont besoin de la
   géométrie : elle est lue en arrière-plan 4 s après l'ouverture (ou au premier lasso / Prolonger), depuis le cache de

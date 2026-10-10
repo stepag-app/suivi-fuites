@@ -214,6 +214,10 @@ Disposition du dossier `Suivi-fuites-sauvegarde` du Drive (un `LISEZMOI.txt` la 
   Drive » (Claude Docs). Étendue `drive` (accès complet) et non `drive.file` : une nouvelle autorisation (rotation,
   nouvel identifiant OAuth) voit ainsi encore les anciennes copies. Si le jeton est révoqué ou expire, le job échoue
   à l'étape « Connexion au Drive » : refaire l'autorisation et recréer le secret.
+  L'application OAuth de Google Cloud doit être **publiée** (Audience > Publier l'application), sinon le jeton
+  expire après 7 jours ; Google l'exige avec trois liens publics (page d'accueil, politique de confidentialité,
+  conditions d'utilisation) et le domaine autorisé `stepag.ma` : le panneau les sert sans connexion sur
+  `/confidentialite` et `/conditions` (`web/src/app/`).
 - **Jamais dans le dépôt** : ni le jeton, ni l'identifiant OAuth, ni la phrase secrète ; seule l'archive chiffrée
   est envoyée.
 

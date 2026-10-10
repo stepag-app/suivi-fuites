@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CalendarRange, Ellipsis, FileDown, RefreshCw } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
@@ -17,7 +19,7 @@ import { libellesMarche, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { fonctionAbsente, getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import {
-  COLONNES_TDB, debutMarche, jourLong, libellePeriode, periodePour, resumerUnites,
+  COLONNES_TDB, debutMarche, ecrirePeriodeAdresse, jourLong, libellePeriode, lirePeriodeAdresse, periodePour, resumerUnites,
   type ArticleTdb, type ChoixPeriode, type FuiteTdb, type LigneAttacheeTdb, type LotTdb, type Periode, type ResteAAttacher, type UniteResteTdb,
 } from "@/lib/ui/tableau-de-bord";
 import { useFuitesAnticipees } from "@/lib/anticipation";
@@ -75,14 +77,59 @@ async function lire<T>(requete: unknown): Promise<T[]> {
   return data ?? [];
 }
 
-export default function TableauDeBord() {
+// Période choisie gardée dans l'adresse (?periode=…) : le retour depuis la liste filtrée la retrouve. Même mécanique
+// que les filtres de la liste (fuites/useFiltresAdresse.ts) : une adresse changée d'ailleurs (menu) est relue, celles
+// que la page vient de demander ne le sont pas.
+function usePeriodeAdresse() {
+  const router = useRouter();
+  const chemin = usePathname();
+  const adresse = useSearchParams().toString();
+  const [etat, setEtat] = useState(() => lirePeriodeAdresse(adresse));
+  const demandees = useRef<string[]>([]);
+  const recue = useRef(adresse);
+
+  useEffect(() => {
+    recue.current = adresse;
+    const lu = lirePeriodeAdresse(adresse);
+    const q = ecrirePeriodeAdresse(lu.choix, lu.libre);
+    const i = demandees.current.indexOf(q);
+    if (i >= 0) {
+      demandees.current = demandees.current.slice(i + 1);
+      return;
+    }
+    demandees.current = [];
+    setEtat((e) => (ecrirePeriodeAdresse(e.choix, e.libre) === q ? e : lu));
+  }, [adresse]);
+
+  useEffect(() => {
+    const q = ecrirePeriodeAdresse(etat.choix, etat.libre);
+    const lu = lirePeriodeAdresse(recue.current);
+    if (q === (demandees.current.at(-1) ?? ecrirePeriodeAdresse(lu.choix, lu.libre))) return;
+    demandees.current = [...demandees.current, q];
+    router.replace(q ? `${chemin}?${q}` : chemin, { scroll: false });
+  }, [etat, router, chemin]);
+
+  const setChoix = useCallback((choix: ChoixPeriode) => setEtat((e) => ({ ...e, choix })), []);
+  const setLibre = useCallback((maj: (l: Partial<Periode>) => Partial<Periode>) => setEtat((e) => ({ ...e, libre: maj(e.libre) })), []);
+  return { choix: etat.choix, libre: etat.libre, setChoix, setLibre };
+}
+
+// useSearchParams demande une frontière Suspense (page rendue côté navigateur).
+export default function PageTableauDeBord() {
+  return (
+    <Suspense fallback={<p className="flex items-center gap-2 text-muted-foreground text-sm"><Spinner />Chargement…</p>}>
+      <TableauDeBord />
+    </Suspense>
+  );
+}
+
+function TableauDeBord() {
   const { marche, peut, profil } = useSession();
   const libelles = libellesMarche(marche);
   const [donnees, setDonnees] = useState<Donnees | null>(null);
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(true);
-  const [choix, setChoix] = useState<ChoixPeriode>("mois");
-  const [libre, setLibre] = useState<Partial<Periode>>({});
+  const { choix, libre, setChoix, setLibre } = usePeriodeAdresse();
 
   const marcheId = marche?.id;
   const lireFuites = peut("fuites", "lire");
@@ -154,7 +201,7 @@ export default function TableauDeBord() {
   const periode = useMemo(() => periodePour(choix, maintenant, libre, debut), [choix, maintenant, libre, debut]);
 
   function choisirPeriode(c: ChoixPeriode) {
-    if (c === "libre" && !libre.du && !libre.au) setLibre(periode);
+    if (c === "libre" && !libre.du && !libre.au) setLibre(() => periode);
     setChoix(c);
   }
 

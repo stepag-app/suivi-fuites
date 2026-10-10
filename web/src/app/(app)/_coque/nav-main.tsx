@@ -41,7 +41,7 @@ export function NavMain({ items, peutCreer }: NavMainProps) {
 
   const isItemActive = (item: NavMainItem) => {
     if (hasSubItems(item)) return item.subItems.some((sub) => courant === sub.url || path === sub.url.split("?")[0]);
-    if (item.url === "/fuites") return path === "/fuites" || (path.startsWith("/fuites/") && path !== "/fuites/nouvelle");
+    if (item.url === "/fuites") return path === "/fuites" || (path.startsWith("/fuites/") && path !== "/fuites/nouvelle" && path !== "/fuites/hors-ligne");
     return path === item.url || path.startsWith(`${item.url}/`);
   };
   const isSubItemActive = (url: string) => courant === url;

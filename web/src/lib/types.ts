@@ -68,6 +68,7 @@ export interface VFuite {
   visibilite: 'visible' | 'invisible' | null;
   ouvrage: string | null;
   statut: StatutFuite;
+  zone_id: string | null;
   zone: string | null;
   secteur_id: string | null;
   secteur: string | null;

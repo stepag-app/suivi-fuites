@@ -150,7 +150,7 @@ await ok('filtre des alertes pour l\'API : six drapeaux, puis les lignes des cou
   assert.match(f, /^alerte_non_reparee\.is\.true,/);
   assert.match(f, /derniere_reparation_le\.gte\."2026-09-20T00:00:00\.000Z"/);
   assert.match(f, /statut\.eq\.reparee/);
-  assert.ok(!COLONNES_LISTE.includes('*') && COLONNES_LISTE.split(', ').length === 24);
+  assert.ok(!COLONNES_LISTE.includes('*') && COLONNES_LISTE.split(', ').length === 25); // zone_id : filtre par zone (U2)
 });
 
 await ok('reste à attacher : même récapitulatif depuis la base (resume_a_attacher) ou depuis les unités', () => {

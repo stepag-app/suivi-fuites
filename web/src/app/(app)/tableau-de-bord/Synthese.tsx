@@ -19,7 +19,7 @@ import {
   trierGroupes, type ColonneGroupe, type FuiteTdb, type LigneGroupe, type Periode, type Regroupement,
 } from "@/lib/ui/tableau-de-bord";
 import { cn, pluriel, pourcent } from "@/lib/utils";
-import { lienFuites, type FiltresListe } from "../fuites/filtres";
+import { STATUTS_EN_ATTENTE, lienFuites, type FiltresListe } from "../fuites/filtres";
 import { ChiffreLien, lienOuNul, nombreFuites, surPeriode } from "./LienListe";
 
 export type Anomalie = { fuite_id: string; anomalie: string };
@@ -106,13 +106,13 @@ export function Synthese({ fuites, anomalies, maintenant, periode, titrePeriode,
             titre: `Non réparées > ${seuilH} h`, valeur: c.retard.valeur ?? "—",
             badge: c.retard.valeur ? <Badge className="bg-destructive/10 text-destructive"><ArrowUpRight />alerte</Badge> : <Badge className="bg-green-500/10 text-green-700 dark:bg-green-500/15 dark:text-green-300">à jour</Badge>,
             note: <span>{c.retard.commentaire}</span>,
-            href: lienOuNul({ alertes: true }, c.retard.valeur ?? 0),
+            href: lienOuNul({ alerte: "alerte_non_reparee" }, c.retard.valeur ?? 0),
           },
           {
             titre: "Réfections à faire", valeur: c.refections.valeur ?? "—",
             badge: <Badge variant="outline" className="text-muted-foreground"><Wrench />réparées</Badge>,
             note: <span>{c.refections.commentaire}</span>,
-            href: lienOuNul({ statut: "reparee" }, c.refections.valeur ?? 0),
+            href: lienOuNul({ statuts: ["reparee"] }, c.refections.valeur ?? 0),
           },
           {
             titre: "Réfections chaussée hors délai", valeur: sit.refectionsHorsDelai,
@@ -277,11 +277,11 @@ function RepartitionStatuts({ periode, tout, libellePeriode, bornes }: {
                   </span>
                 </TableCell>
                 <TableCell className="py-2 text-right tabular-nums">
-                  <ChiffreLien n={periode[k]} filtres={{ statut: k, du: bornes.du, au: bornes.au }} description={`${nombreFuites(periode[k], "détectée")} ${surLaPeriode}, ${statut(k)}`} />
+                  <ChiffreLien n={periode[k]} filtres={{ statuts: [k], du: bornes.du, au: bornes.au }} description={`${nombreFuites(periode[k], "détectée")} ${surLaPeriode}, ${statut(k)}`} />
                   <span className="ml-1 text-muted-foreground text-xs">({pourcent(periode[k], totalPeriode)} %)</span>
                 </TableCell>
                 <TableCell className="py-2 text-right tabular-nums">
-                  <ChiffreLien n={tout[k]} filtres={{ statut: k }} description={`${nombreFuites(tout[k])} du marché ${statut(k)}`} />
+                  <ChiffreLien n={tout[k]} filtres={{ statuts: [k] }} description={`${nombreFuites(tout[k])} du marché ${statut(k)}`} />
                   <span className="ml-1 text-muted-foreground text-xs">({pourcent(tout[k], totalTout)} %)</span>
                 </TableCell>
               </TableRow>
@@ -315,7 +315,10 @@ const COLONNES: { cle: ColonneChiffre; titre: string; aide: string; couleur: str
     lien: (p, t) => ({ filtres: { du: p.du, au: p.au }, description: (n) => `${nombreFuites(n, "détectée")} ${surPeriode(t)}` }),
   },
   { cle: "reparees", titre: "Réparées", aide: "réparées sur la période", couleur: "bg-green-500" },
-  { cle: "enAttente", titre: "En attente", aide: "non réparées à ce jour (détectées ou réparation en cours)", couleur: "bg-amber-500" },
+  {
+    cle: "enAttente", titre: "En attente", aide: "non réparées à ce jour (détectées ou réparation en cours)", couleur: "bg-amber-500",
+    lien: () => ({ filtres: { statuts: STATUTS_EN_ATTENTE }, description: (n) => `${nombreFuites(n)} en attente de réparation à ce jour` }),
+  },
   {
     cle: "alertes", titre: "Alertes", aide: "fuites en alerte à ce jour (mêmes alertes que la liste)", couleur: "bg-destructive",
     lien: () => ({ filtres: { alertes: true }, description: (n) => `${nombreFuites(n)} en alerte à ce jour` }),
@@ -336,10 +339,10 @@ export function TableauGroupes({ fuites, periode, titrePeriode, compact = false 
   const chiffre = (c: (typeof COLONNES)[number], n: number, portee: LigneGroupe | "total" | null) => {
     const lien = portee && c.lien?.(periode, titrePeriode);
     if (!lien) return n.toLocaleString("fr-FR");
-    const secteur = portee === "total" ? null : portee;
+    const groupe = portee === "total" ? null : portee;
     return (
-      <ChiffreLien n={n} filtres={secteur ? { ...lien.filtres, secteur: secteur.cle } : lien.filtres}
-        description={(secteur ? `${secteur.libelle} : ` : "") + lien.description(n)} />
+      <ChiffreLien n={n} filtres={groupe ? { ...lien.filtres, [regroupement]: groupe.cle } : lien.filtres}
+        description={(groupe ? `${groupe.libelle} : ` : "") + lien.description(n)} />
     );
   };
   const affichees = compact ? lignes.slice(0, 8) : lignes;
@@ -385,7 +388,7 @@ export function TableauGroupes({ fuites, periode, titrePeriode, compact = false 
                   {COLONNES.map((c) => (
                     <TableCell key={c.cle} className="py-3 text-right tabular-nums">
                       <div className="flex flex-col items-end gap-1">
-                        <span>{chiffre(c, l[c.cle], regroupement === "secteur" && l.cle ? l : null)}</span>
+                        <span>{chiffre(c, l[c.cle], l.cle ? l : null)}</span>
                         <span className="block h-1 w-16 overflow-hidden rounded-full bg-muted">
                           {l[c.cle] > 0 && <span className={cn("block h-full rounded-full", c.couleur)} style={{ width: `${(100 * l[c.cle]) / maxima[c.cle]}%` }} />}
                         </span>

@@ -8,7 +8,8 @@ chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#7
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
 **Suite (2026-10-10) : plan du chantier v3, `docs/lots/chantier-v3.md`** (équipes supprimées, débits de nuit, rapports,
-e-mail, Dolibarr, sauvegarde hors plateformes, audit, purge de DEMO, fermeture).
+e-mail, Dolibarr, sauvegarde hors plateformes, audit, purge de DEMO, fermeture). **Correctif du 2026-10-10** : 403 des tuiles
+du réseau (fonction `reseau-tuiles`), cause et gestes restants au § 2.
 
 ## 1. Fait
 
@@ -86,7 +87,14 @@ faute de quoi les compilations d'APK et le déploiement automatique de la base s
 - `GOOGLE_SERVICES_JSON` (fichier Firebase de l'APK) et `FIREBASE_SERVICE_ACCOUNT` (fonction `envoyer-push`) : **absents**, donc APK sans
   notifications push et fonction « non configurée ». Le reste marche (cloche du panneau, notifications en base). Pas-à-pas Firebase : PR #67.
 - `NEXT_PUBLIC_ESRI_CLE` sur Vercel (compte Esri, clé restreinte à `fuites.stepag.ma`) : sans elle, pas de bouton Satellite (C5).
-- Règle CORS du compartiment R2 avec l'en-tête `Range` (texte dans `web/README.md` § Tuiles), puis **Paramètres > Réseau > Générer les tuiles** (X5).
+- **Tuiles du réseau (X5)**. Jusqu'au 2026-10-10, le bloc Paramètres > Réseau > « Tuiles du réseau » affichait « Stockage injoignable
+  (HTTP 403) » et le bouton restait grisé. Cause : l'action `lire` de la fonction `reseau-tuiles` envoyait à R2 une URL déjà présignée
+  (signature dans la requête) que `client.fetch` d'aws4fetch signait une seconde fois (en-tête `Authorization`, en HEAD) ; R2 refuse une
+  requête signée deux fois. Corrigé par la PR `fix(tuiles)` du 2026-10-10 : la vérification de présence n'utilise plus que la signature
+  par en-tête, comme `version-apk` ; la fonction est redéployée par « Déploiement de la base » à la fusion. Ensuite, dans l'ordre :
+  1. Règle CORS du compartiment R2 `suivi-fuites-photos` : en-tête `Range`, méthode `HEAD`, origine `https://fuites.stepag.ma`
+     (texte complet dans `web/README.md` § Tuiles ; il remplace la règle des photos, qui y est comprise).
+  2. **Paramètres > Réseau > Générer les tuiles** : l'état doit passer à « À jour » (date, tronçons, nœuds, taille).
 - Facultatif : règle de cycle de vie Cloudflare (préfixe `sauvegardes/base/`, 30 jours) et miroir des photos déjà dans R2 (voir `supabase/README.md`).
 - Vérifier dans le SQL Editor que la tâche `pg_cron` `alertes-reparation` existe (`select jobname, schedule from cron.job;`) ; sinon activer
   l'extension (Database > Extensions) puis `select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');`

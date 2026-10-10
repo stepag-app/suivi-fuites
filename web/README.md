@@ -31,7 +31,7 @@ technique : `MAQUETTE-SHADCN.md`.
 | Écran | Qui | Contenu |
 |---|---|---|
 | `/connexion` | tous | identifiant + mot de passe |
-| `/fuites` | tous les affectés | liste, filtres (statut, secteur, période de détection du / au, texte, alertes) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée (rubriques à cocher d'abord, voir § Rubriques à cocher). **Tableau** : toutes les colonnes cochées dans « Affichage » tiennent dans la largeur (adresse élastique, secteur et alertes à la ligne, marges réduites ; moins de colonnes = plus de place). **Colonnes par statut** (Kanban) : les 5 colonnes se partagent la largeur (10,5 rem au moins, cartes compactes), défilement horizontal seulement sous ≈ 1 200 px menu ouvert ; vérifié à 1366, 1440 et 1920 px, menu ouvert et replié |
+| `/fuites` | tous les affectés | liste, filtres (statuts, zone, secteur, période de détection du / au, texte, alertes : toutes ou un type) **dans l'adresse** (voir § Filtres de la liste dans l'adresse), « Effacer les filtres », export Excel (CSV), « Rapports PDF (n) » de la liste affichée (rubriques à cocher d'abord, voir § Rubriques à cocher). **Tableau** : toutes les colonnes cochées dans « Affichage » tiennent dans la largeur (adresse élastique, secteur et alertes à la ligne, marges réduites ; moins de colonnes = plus de place). **Colonnes par statut** (Kanban) : les 5 colonnes se partagent la largeur (10,5 rem au moins, cartes compactes), défilement horizontal seulement sous ≈ 1 200 px menu ouvert ; vérifié à 1366, 1440 et 1920 px, menu ouvert et replié |
 | `/tableau-de-bord` | tous ceux qui lisent les fuites | période (mois en cours par défaut, semaine en cours, mois précédent, **depuis le début du marché** : date d'effet de l'OS de commencement, sinon date de commencement de la fiche, sinon jour de la première fuite, jusqu'à aujourd'hui, flèches de comparaison masquées ; dates libres) ; activité de la période (détectées, réparées, délais moyen et médian détection → réparation) ; situation à ce jour (non réparées au-delà du seuil, réfections à faire et hors délai, sans photo, anomalies si droits « quantités » et « interventions ») ; répartition par statut, évolution sur 12 semaines, tableau par secteur ou par zone ; bloc attachements (droits « attachements » et « quantités » : lots arrêtés, cumul attaché, reste à attacher, % par article). Chiffres cliquables vers la liste `/fuites` filtrée à l'identique, seulement quand la liste a le filtre exact (détectées sur la période, réfections à faire = statut « réparée », répartition par statut, détectées par semaine, détectées et alertes par secteur, totaux) ; les autres chiffres restent du texte. Calculs dans `src/lib/ui/tableau-de-bord.ts`, vérifiés par `node scripts/verifier-tableau-de-bord.mjs` |
 | `/carte` | tous ceux qui lisent les fuites | carte des fuites du marché (fond OpenStreetMap minimal, sans satellite) : couleur par statut (mêmes couleurs que les badges, les pastilles servent de légende et de filtre), halo rouge si alerte, regroupement des points serrés (toucher un groupe zoome dessus), bulle (N°, référence, statut, zone et secteur, adresse, date, alertes, « Ouvrir la fiche », « Y aller » : itinéraire Google Maps vers la fuite) ; filtres statut, secteur, période de détection, alertes seulement ; « Recentrer » (fuites affichées, sinon contour du secteur, sinon Oujda) ; contours des zones et secteurs dessinés seulement si `geom` est rempli ; bouton **Imprimer la carte** (droit « exports / lire ») : PDF A4 / A3, rubriques à cocher, voir § Carte |
 | `/balayage` | droit « balayage / lire » | journal des balayages (`v_balayage_journalier`) : période (7 derniers jours par défaut), équipe, secteur ; par jour, équipe, agent, zone, secteur : tronçons, linéaire balayé, repassé, nœuds, fuites ; totaux ; export Excel / CSV ; **rapport de recherche de fuites de la période Du–Au** (droit « exports / lire ») : **un seul** PDF A4 au gabarit STEPAG 2026 (toutes les zones balayées, linéaire par jour, fuites avec leur date, **extrait de plan A4** de la période : conduites inspectées en vert, repassées en bleu, autres en gris, fuites numérotées) ou un seul Excel ; Du = Au : rapport journalier, un pour la journée ou un par équipe (décision Q-34) ; équipe et secteur du filtre repris ; rapport d'un jour depuis sa ligne ; rubriques à cocher ; voir § Réseau et balayage |
@@ -87,13 +87,24 @@ Contrats de base : `docs/lots/chantier-v2-base-s1.md` (validation, motifs, R7) e
 
 ### Filtres de la liste dans l'adresse
 
-- Paramètres : `statut` (detectee, en_reparation, reparee, achevee, sans_reparation), `secteur` (uuid du secteur),
-  `du` et `au` (jour de détection AAAA-MM-JJ à l'heure du Maroc, bornes comprises), `alertes=1` (mêmes 5 alertes
-  que la colonne « Alertes »), `texte` (N°, référence ou adresse, 100 caractères au plus). Ordre fixe, filtres vides omis.
+- Paramètres : `statut` (un ou plusieurs, séparés par des virgules : `statut=detectee,en_reparation` ; detectee,
+  en_reparation, reparee, achevee, sans_reparation ; tous cochés = aucun filtre), `zone` (uuid de la zone ; le menu
+  Secteur ne propose alors que ses secteurs), `secteur` (uuid du secteur), `du` et `au` (jour de détection AAAA-MM-JJ
+  à l'heure du Maroc, bornes comprises), `alertes=1` (mêmes 5 alertes que la colonne « Alertes »), `alerte` (un type :
+  `alerte_non_reparee`, `alerte_communication_srm`, `refection_chaussee_hors_delai`, `alerte_refection_chaussee`,
+  `alerte_refection_trottoir`), `texte` (N°, référence ou adresse, 100 caractères au plus). Ordre fixe, filtres vides omis.
+- À l'écran : onglets par statut (un seul), menu **Statut** (plusieurs), **Zone** (si le marché en a plusieurs),
+  **Secteur**, période, **Alertes** (« Toutes les alertes » ou un type).
 - Écrits par `router.replace` (l'historique ne s'allonge pas), recherche et dates après une pause de 400 ms. Une valeur
   inconnue ou invalide est ignorée ; un secteur d'un autre marché est retiré.
 - Le tableau de bord fabrique ses liens avec `lienFuites` (`src/app/(app)/fuites/filtres.ts`) : la liste ouverte
-  compte exactement le chiffre cliqué. Vérification : `node scripts/verifier-filtres-fuites.mjs`.
+  compte exactement le chiffre cliqué (« Non réparées > seuil » → `alerte=alerte_non_reparee` ; « En attente » →
+  `statut=detectee,en_reparation` ; tableau par secteur **ou par zone**). Vérification :
+  `node scripts/verifier-filtres-fuites.mjs`.
+- La **période du tableau de bord** est elle aussi dans l'adresse (`/tableau-de-bord?periode=semaine|mois_precedent|debut`,
+  `?periode=libre&du=…&au=…` ; « Mois en cours » n'écrit rien) : le retour depuis la liste la retrouve. Fonctions
+  `lirePeriodeAdresse` / `ecrirePeriodeAdresse` (`src/lib/ui/tableau-de-bord.ts`), vérifiées par
+  `node scripts/verifier-tableau-de-bord.mjs`.
 
 ## Comptes, cloche et anticipation (chantier v2, S6)
 
@@ -119,7 +130,8 @@ Contrats de base : `docs/lots/chantier-v2-base-s1.md` (comptes, notifications) e
   `compter_notifications_non_lues`), liste des 30 dernières (non lue = point bleu, lue = grisée) ; à l'ouverture tout
   est marqué lu (`marquer_notifications_lues`) ; clic → fiche de la fuite ; nouvelles notifications **en direct**
   (temps réel Supabase, `INSERT` filtré sur `destinataire_id`) et recompte au retour sur l'onglet. Base sans la table :
-  pas de cloche.
+  pas de cloche. **« Tout voir »** → `/notifications` : toutes les notifications du compte par pages de 50
+  (« Voir les plus anciennes »), groupées par jour, non lues en bleu puis marquées lues.
 - **Attachement par anticipation (A1)** : case du marché « Le maître d'ouvrage accepte l'attachement par anticipation »
   (Paramètres > Attachement) ; **panier** = articles cochés « Anticipable » (Paramètres > Bordereau, `prix.anticipable`).
   Dans un brouillon, bloc violet **Propositions anticipées** (`v_propositions_anticipation` : réfection due, quantité =
@@ -416,9 +428,12 @@ la copie hors ligne et le rapport PDF. Mise en service : `docs/feuille-de-route.
   ligne, avec ses scripts ; les données de navigation des fiches ne sont pas gardées une par une.
   Vérification : `node scripts/verifier-fiche-hors-ligne.mjs`. **Non vérifié dans un navigateur ni sur la
   tablette** (service worker hors ligne, photos en cache) : à essayer en mode avion.
-- **Hors périmètre** : modifier une fuite existante sans réseau ; la liste des fuites hors ligne (une fiche
-  gardée s'ouvre par l'historique, un lien ou la réouverture de l'application) ; la détection des doublons
-  (re-détection) est muette sans réseau.
+- **Fiches disponibles hors ligne** (`/fuites/hors-ligne`, menu « Tablette › Fiches hors ligne » et lien du bandeau
+  « Hors ligne ») : copies de ce compte, les plus récemment ouvertes d'abord (N°, statut, adresse, secteur, version,
+  photos), recherche, « Retirer » une copie. Le service worker garde cette page avec la coquille des fiches : elle
+  s'ouvre sans réseau même si elle n'a jamais été visitée. Règles : `src/app/(app)/fuites/hors-ligne/fiches-gardees.ts`.
+- **Hors périmètre** : modifier une fuite existante sans réseau ; la détection des doublons (re-détection) est muette
+  sans réseau.
 - Limite : la session reste valable tant que le jeton se rafraîchit ; après une très longue coupure,
   il faut se reconnecter en ligne (les envois en attente sont conservés).
 

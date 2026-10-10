@@ -1,5 +1,5 @@
 import {
-  Boxes, Briefcase, CheckCheck, CloudUpload, Droplets, Footprints, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
+  Boxes, Briefcase, CheckCheck, CloudOff, CloudUpload, Droplets, Footprints, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
 
@@ -117,7 +117,10 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
     { id: "marches", title: "Marchés", url: "/marches", icon: Briefcase },
   ] : [];
 
-  const tablette: NavMainItem[] = [{ id: "en-attente", title: "Envois en attente", url: "/en-attente", icon: CloudUpload }];
+  const tablette: NavMainItem[] = [
+    { id: "en-attente", title: "Envois en attente", url: "/en-attente", icon: CloudUpload },
+    { id: "hors-ligne", title: "Fiches hors ligne", url: "/fuites/hors-ligne", icon: CloudOff },
+  ];
 
   return [
     { id: 1, label: "Suivi", items: suivi },

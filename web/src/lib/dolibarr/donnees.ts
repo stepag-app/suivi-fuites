@@ -4,6 +4,7 @@
 import { messageErreur } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase';
 import { chargeImport, type MouvementLu } from './csv';
+import type { EnvoiDolibarr } from './envoi-auto';
 import { SEUIL_PAR_DEFAUT_PCT, normaliserLigne, type LigneRapprochement } from './rapprochement';
 
 export interface ReglagesFournitures {
@@ -52,12 +53,26 @@ export async function enregistrerReglagesFournitures(marcheId: string, maj: Part
   if (!data?.length) throw new Error('Modification refusée : droit « paramètres / modifier » nécessaire.');
 }
 
+// Dernier import CSV fait dans le panneau (un import de l'envoi automatique n'a pas d'auteur).
 export async function chargerDernierImportMouvements(): Promise<DernierImportMouvements | null> {
   const { data, error } = await getSupabase().from('imports_mouvements_dolibarr')
     .select('importe_le, lignes_lues, nouveaux, modifies, inchanges, annulations, date_min, date_max, entrepots')
+    .not('importe_par', 'is', null)
     .order('id', { ascending: false }).limit(1).maybeSingle();
   if (error) throw error;
   return (data as DernierImportMouvements | null) ?? null;
+}
+
+// Journal de l'envoi automatique (X8) : derniers envois, signes de vie et erreurs. Base pas encore à jour : liste vide.
+export async function chargerEnvoisDolibarr(limite = 30): Promise<EnvoiDolibarr[] | null> {
+  const { data, error } = await getSupabase().from('envois_dolibarr')
+    .select('id, recu_le, dernier_le, appels, statut, origine, mouvements, nouveaux, modifies, ignores, dernier_dolibarr_id, date_max, message, poste, version_script')
+    .order('dernier_le', { ascending: false }).order('id', { ascending: false }).limit(limite);
+  if (error) {
+    if (error.code === '42P01' || error.code === 'PGRST205') return null;
+    throw error;
+  }
+  return (data as EnvoiDolibarr[] | null) ?? [];
 }
 
 // Seules les colonnes utiles partent vers la base (jamais un prix ni une valeur, même si le fichier en contenait).

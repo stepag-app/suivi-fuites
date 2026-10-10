@@ -74,6 +74,9 @@ export function StatutReseau() {
       ) : (
         "Les fuites saisies seront gardées sur la tablette puis envoyées au retour du réseau."
       )}
+      {!enLigne && (
+        <Link href="/fuites/hors-ligne" className="font-semibold underline-offset-4 hover:underline">Fiches disponibles</Link>
+      )}
     </div>
   );
 }

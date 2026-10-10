@@ -3,7 +3,7 @@
 // (Node 22.18 ou plus récent ; Node 22.6 à 22.17 : node --experimental-strip-types …)
 import assert from 'node:assert/strict';
 import {
-  activite, ajouterJours, debutMarche, graduations, jourCasa, libellePeriode, lundiDe, mediane, parGroupe, parSemaine, periodePour,
+  activite, ajouterJours, debutMarche, ecrirePeriodeAdresse, graduations, lirePeriodeAdresse, jourCasa, libellePeriode, lundiDe, mediane, parGroupe, parSemaine, periodePour,
   recapAttachements, repartitionStatuts, resumeAnomalies, resumeLots, resumerUnites, semaineIso, situation, trierGroupes,
 } from '../src/lib/ui/tableau-de-bord.ts';
 
@@ -234,6 +234,25 @@ ok('attachements : cumul attaché au prix figé, reste au prix actuel, % du marc
 ok('attachements : rien d\'attaché', () => {
   const r = recapAttachements([], [], resumerUnites([]));
   assert.deepEqual([r.montantAttache, r.montantReste, r.avancement, r.articles.length], [0, 0, null, 0]);
+});
+
+ok('période du tableau de bord dans l\'adresse (U1)', () => {
+  assert.deepEqual(lirePeriodeAdresse(''), { choix: 'mois', libre: {} });
+  assert.equal(ecrirePeriodeAdresse('mois'), '');
+  for (const c of ['semaine', 'mois_precedent', 'debut']) {
+    assert.equal(ecrirePeriodeAdresse(c), `periode=${c}`);
+    assert.deepEqual(lirePeriodeAdresse(`periode=${c}`), { choix: c, libre: {} });
+  }
+  const q = ecrirePeriodeAdresse('libre', { du: '2026-09-01', au: '2026-09-30' });
+  assert.equal(q, 'periode=libre&du=2026-09-01&au=2026-09-30');
+  assert.deepEqual(lirePeriodeAdresse(`?${q}`), { choix: 'libre', libre: { du: '2026-09-01', au: '2026-09-30' } });
+  assert.deepEqual(lirePeriodeAdresse(new URLSearchParams(q)), lirePeriodeAdresse(q));
+  // Valeurs inconnues ou dates invalides : ignorées ; dates sans « libre » : sans effet.
+  assert.deepEqual(lirePeriodeAdresse('periode=annee'), { choix: 'mois', libre: {} });
+  assert.deepEqual(lirePeriodeAdresse('periode=libre&du=2026-02-30&au=demain'), { choix: 'libre', libre: {} });
+  assert.deepEqual(lirePeriodeAdresse('periode=semaine&du=2026-09-01'), { choix: 'semaine', libre: {} });
+  assert.equal(ecrirePeriodeAdresse('libre', { du: '2026-09-01' }), 'periode=libre&du=2026-09-01');
+  assert.equal(ecrirePeriodeAdresse('semaine', { du: '2026-09-01' }), 'periode=semaine');
 });
 
 console.log(`\n${n} vérifications réussies.`);

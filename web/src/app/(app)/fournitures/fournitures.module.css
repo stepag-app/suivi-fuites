@@ -137,3 +137,21 @@
   font-weight: 600;
 }
 
+
+/* Envoi automatique Dolibarr (X8) */
+.etatEnvoi { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600; border: 1px solid currentColor; }
+.etat_en_service { color: var(--st-positif); background: var(--succes-fond); }
+.etat_en_retard { color: var(--attention); background: var(--carte); border-color: var(--attention-bord); }
+.etat_en_erreur { color: var(--danger); background: var(--danger-fond); }
+.etat_jamais { color: var(--discret); background: var(--carte); }
+.envoi { display: grid; grid-template-columns: max-content 1fr; gap: 0.3rem 1rem; margin: 0; }
+.envoi dt { color: var(--discret); }
+.envoi dd { margin: 0; }
+.alerteEnvoi { color: var(--attention); }
+.erreursEnvoi { margin-top: 0.7rem; padding: 0.5rem 0.7rem; border-left: 3px solid var(--danger); border-radius: var(--rayon-petit); }
+.erreursEnvoi ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+.journalEnvoi { margin-top: 0.7rem; }
+.journalEnvoi summary { cursor: pointer; color: var(--discret); }
+.journalEnvoi .defilement { max-height: 18rem; margin-top: 0.4rem; }
+.journalEnvoi td.num, .journalEnvoi th.num { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 640px) { .envoi { grid-template-columns: 1fr; } .envoi dd { margin-bottom: 0.3rem; } }

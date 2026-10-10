@@ -24,8 +24,9 @@ export interface LigneInventaire {
   zone: string | null;
   secteur_id: string | null;
   secteur: string | null;
-  equipe_id: string | null;
-  equipe: string | null;
+  /** Chef d'équipe : compte qui a saisi la réparation (S12). */
+  chef_id: string | null;
+  chef: string | null;
   /** Article Dolibarr (rowid). */
   produit_id: number | null;
   designation: string;
@@ -39,7 +40,7 @@ export interface LigneInventaire {
 
 // Une seule chaîne littérale : supabase-js en déduit le type des lignes lues.
 export const COLONNES_INVENTAIRE =
-  'id, marche_id, reparation_id, fuite_id, fuite_numero, reference_srm, realisee_le, jour, mois, zone_id, zone, secteur_id, secteur, equipe_id, equipe, produit_id, designation, famille, unite, quantite, provenance, nature_correction';
+  'id, marche_id, reparation_id, fuite_id, fuite_numero, reference_srm, realisee_le, jour, mois, zone_id, zone, secteur_id, secteur, chef_id, chef, produit_id, designation, famille, unite, quantite, provenance, nature_correction';
 
 export const LIBELLES_PROVENANCE: Record<Provenance, string> = { terrain: 'Terrain', correction: 'Correction du bureau' };
 export const LIBELLES_NATURE: Record<NatureCorrection, string> = { oubli: 'oubli', remplacement: 'remplacement' };

@@ -4,7 +4,7 @@ import type { LigneBalayageJournalier } from '@/lib/types';
 export interface FiltresJournal {
   du: string;       // AAAA-MM-JJ, '' = sans borne
   au: string;
-  equipe: string;   // equipe_id, '' = toutes
+  agent: string;    // agent_id, '' = tous
   secteur: string;  // secteur_id, '' = tous
 }
 
@@ -36,14 +36,14 @@ export function filtrerJournal(lignes: LigneBalayageJournalier[], f: Partial<Fil
   return lignes.filter((l) => {
     if (debut && l.date_balayage < debut) return false;
     if (fin && l.date_balayage > fin) return false;
-    if (f.equipe && l.equipe_id !== f.equipe) return false;
+    if (f.agent && l.agent_id !== f.agent) return false;
     if (f.secteur && l.secteur_id !== f.secteur) return false;
     return true;
   });
 }
 
-// `nb_fuites` de la vue est le nombre de fuites du secteur détectées ce jour, répété sur chaque ligne équipe /
-// agent du même secteur : il ne compte qu'une fois par jour et par secteur.
+// `nb_fuites` de la vue est le nombre de fuites du secteur détectées ce jour, répété sur chaque ligne d'agent
+// du même secteur : il ne compte qu'une fois par jour et par secteur.
 export function totauxJournal(lignes: LigneBalayageJournalier[]): TotauxJournal {
   const t: TotauxJournal = { nb_troncons: 0, lineaire_m: 0, lineaire_repasse_m: 0, nb_noeuds: 0, nb_fuites: 0, jours: 0 };
   const jours = new Set<string>();
@@ -64,7 +64,7 @@ export function totauxJournal(lignes: LigneBalayageJournalier[]): TotauxJournal 
   return t;
 }
 
-/** Lignes groupées par jour, du plus récent au plus ancien ; dans un jour : équipe, agent, zone, secteur. */
+/** Lignes groupées par jour, du plus récent au plus ancien ; dans un jour : agent, zone, secteur. */
 export function grouperParJour(lignes: LigneBalayageJournalier[]): { jour: string; lignes: LigneBalayageJournalier[]; totaux: TotauxJournal }[] {
   const parJour = new Map<string, LigneBalayageJournalier[]>();
   for (const l of lignes) parJour.set(l.date_balayage, [...(parJour.get(l.date_balayage) ?? []), l]);
@@ -73,7 +73,7 @@ export function grouperParJour(lignes: LigneBalayageJournalier[]): { jour: strin
     .sort(([a], [b]) => b.localeCompare(a))
     .map(([jour, liste]) => ({
       jour,
-      lignes: [...liste].sort((a, b) => cmp(a.equipe, b.equipe) || cmp(a.agent, b.agent) || cmp(a.zone, b.zone) || cmp(a.secteur, b.secteur)),
+      lignes: [...liste].sort((a, b) => cmp(a.agent, b.agent) || cmp(a.zone, b.zone) || cmp(a.secteur, b.secteur)),
       totaux: totauxJournal(liste),
     }));
 }

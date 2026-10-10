@@ -53,7 +53,7 @@ export function useFiltresFournitures() {
   }, []);
   /** Retire les filtres rapides ; la période et les dimensions du tableau restent. */
   const effacerRapides = useCallback(
-    () => changer({ zone: '', secteur: '', equipe: '', famille: '', provenance: '', fuite: '' }),
+    () => changer({ zone: '', secteur: '', chef: '', famille: '', provenance: '', fuite: '' }),
     [changer],
   );
   const effacerTout = useCallback(() => changer(FILTRES_VIDES), [changer]);

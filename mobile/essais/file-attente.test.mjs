@@ -53,7 +53,7 @@ const verrouillee = await admin.from('fuites').select('id, numero').eq('marche_i
 console.log('1. Chef : paramètres et fiche lisibles, jamais de prix');
 await connexion(chef);
 const par = await chargerParametres(marche);
-verifier(par.natures.length > 0 && par.motifs.length > 0 && par.pieces.length > 0, `paramètres (${par.natures.length} natures, ${par.motifs.length} motifs, ${par.pieces.length} pièces, ${par.equipes.length} équipes, ${par.ouvriers.length} ouvriers)`);
+verifier(par.natures.length > 0 && par.motifs.length > 0 && par.pieces.length > 0, `paramètres (${par.natures.length} natures, ${par.motifs.length} motifs, ${par.pieces.length} pièces, ${par.ouvriers.length} ouvriers)`);
 const fiche = await chargerServeur(verrouillee.data.id);
 verifier(fiche && fiche.fuite && fiche.fuite.numero === verrouillee.data.numero, 'fiche d\'une fuite (v_fuites, photos, réparations, pièces, ouvriers)', fiche);
 verifier(fiche.reparations.length > 0, `réparations lues (${fiche.reparations.length}, pièces ${fiche.pieces.length})`);

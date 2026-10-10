@@ -17,7 +17,8 @@ export interface Filtres {
   au?: string;
   zone?: string;
   secteur?: string;
-  equipe?: string;
+  /** Chef d'équipe (compte) ; l'équipe, c'est le compte du chef d'équipe (S12). */
+  chef?: string;
   synthese?: boolean;
 }
 
@@ -36,7 +37,7 @@ export interface Jeu {
   colonnes: (ctx: Contexte) => Colonne[];
   colonnesDefaut: string[];
   regroupements: [string, string][];
-  filtres: ('periode' | 'zone' | 'secteur' | 'equipe' | 'synthese')[];
+  filtres: ('periode' | 'zone' | 'secteur' | 'chef' | 'synthese')[];
   libellePeriode?: string;
   charger: (marcheId: string, f: Filtres) => Promise<Ligne[]>;
 }
@@ -56,7 +57,7 @@ export const REGROUPEMENTS: Record<string, string> = {
   aucun: 'Aucun',
   zone: 'Par zone',
   secteur: 'Par secteur',
-  equipe: 'Par équipe',
+  chef: "Par chef d'équipe",
   article: 'Par article',
   jour: 'Par jour',
   categorie: 'Par catégorie',
@@ -103,14 +104,14 @@ export function libellePeriode(f: Filtres): string {
   return du ? `À partir du ${dateFr(du)}` : `Jusqu'au ${dateFr(au!)}`;
 }
 
-function filtrer<Q>(q: Q, f: Filtres, champDate: string, champs: { zone?: string; secteur?: string; equipe?: string } = {}): Q {
+function filtrer<Q>(q: Q, f: Filtres, champDate: string, champs: { zone?: string; secteur?: string; chef?: string } = {}): Q {
   const [du, au] = bornes(f);
   let r = q as unknown as { gte: (c: string, v: string) => unknown; lte: (c: string, v: string) => unknown; eq: (c: string, v: string) => unknown };
   if (du) r = r.gte(champDate, du) as typeof r;
   if (au) r = r.lte(champDate, au) as typeof r;
   if (f.zone && champs.zone) r = r.eq(champs.zone, f.zone) as typeof r;
   if (f.secteur && champs.secteur) r = r.eq(champs.secteur, f.secteur) as typeof r;
-  if (f.equipe && champs.equipe) r = r.eq(champs.equipe, f.equipe) as typeof r;
+  if (f.chef && champs.chef) r = r.eq(champs.chef, f.chef) as typeof r;
   return r as unknown as Q;
 }
 
@@ -156,7 +157,7 @@ export const JEU_FUITES: Jeu = {
   id: 'fuites',
   libelle: 'Fuites',
   colonnesDefaut: ['numero', 'reference_srm', 'adresse', 'secteur', 'statut', 'date_detection', 'detectee_par', 'reparation_le', 'refection_le'],
-  regroupements: [['aucun', 'Aucun'], ['zone', 'Par zone'], ['secteur', 'Par secteur'], ['jour', 'Par jour'], ['equipe', 'Par équipe']],
+  regroupements: [['aucun', 'Aucun'], ['zone', 'Par zone'], ['secteur', 'Par secteur'], ['jour', 'Par jour'], ['chef', "Par chef d'équipe"]],
   filtres: ['periode', 'zone', 'secteur'],
   libellePeriode: 'date de détection',
   colonnes: (ctx) => {
@@ -191,7 +192,6 @@ export const JEU_FUITES: Jeu = {
       { cle: 'emplacement_fouille', titre: 'Emplacement', groupe: 'Réparation', largeur: 12, valeur: de(EMPLACEMENTS, 'emplacement_fouille') },
       { cle: 'revetement', titre: 'Revêtement', groupe: 'Réparation', largeur: 14 },
       { cle: 'revetement_ar', titre: 'Revêtement (arabe)', groupe: 'Réparation', largeur: 14 },
-      { cle: 'equipe_reparation', titre: 'Équipe', groupe: 'Réparation', largeur: 13 },
       { cle: 'chef_reparation', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
       { cle: 'pieces_posees', titre: 'Pièces posées', groupe: 'Réparation', largeur: 30 },
       { cle: 'motif_sans_reparation', titre: 'Motif sans réparation', groupe: 'Réparation', largeur: 18 },
@@ -224,8 +224,8 @@ export const JEU_FUITES: Jeu = {
         { zone: 'zone_id', secteur: 'secteur_id' }).order('numero')),
       chargerMatricules(marcheId),
     ]);
-    // R4 : matricules à la place des noms (v_fuites_export ne donne que le nom du chef d'équipe)
-    return lignes.map((l) => ({ ...l, detectee_par: m.agent(l.auteur_terrain_id, l.detectee_par), chef_reparation: m.agentParNom(l.chef_reparation) }));
+    // R4 : matricules à la place des noms
+    return lignes.map((l) => ({ ...l, detectee_par: m.agent(l.auteur_terrain_id, l.detectee_par), chef_reparation: l.chef_reparation_id ? m.agent(l.chef_reparation_id, l.chef_reparation) : m.agentParNom(l.chef_reparation) }));
   },
 };
 
@@ -234,7 +234,7 @@ export const JEU_QUANTITES: Jeu = {
   libelle: 'Quantités (articles du bordereau)',
   colonnesDefaut: ['date_execution', 'fuite_numero', 'reference_srm', 'secteur', 'prix_numero', 'unite', 'quantite'],
   regroupements: [['aucun', 'Aucun'], ['article', 'Par article'], ['secteur', 'Par secteur'], ['zone', 'Par zone'], ['jour', 'Par jour']],
-  filtres: ['periode', 'zone', 'secteur', 'equipe'],
+  filtres: ['periode', 'zone', 'secteur', 'chef'],
   libellePeriode: "date d'exécution",
   colonnes: (ctx) => {
     const lm = libellesMarche(ctx.marche as unknown as Marche);
@@ -256,15 +256,15 @@ export const JEU_QUANTITES: Jeu = {
   },
   charger: (marcheId, f) =>
     toutLire(() => filtrer(getSupabase().from('v_quantites').select('*').eq('marche_id', marcheId), f, 'date_execution',
-      { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('date_execution').order('fuite_numero').order('prix_ordre').order('id')),
+      { zone: 'zone_id', secteur: 'secteur_id', chef: 'chef_equipe_id' }).order('date_execution').order('fuite_numero').order('prix_ordre').order('id')),
 };
 
 export const JEU_PIECES: Jeu = {
   id: 'pieces',
   libelle: 'Pièces posées',
-  colonnesDefaut: ['jour', 'fuite_numero', 'secteur', 'equipe', 'designation', 'unite', 'quantite'],
-  regroupements: [['aucun', 'Aucun'], ['secteur', 'Par secteur'], ['zone', 'Par zone'], ['equipe', 'Par équipe'], ['piece', 'Par pièce'], ['jour', 'Par jour']],
-  filtres: ['periode', 'zone', 'secteur', 'equipe', 'synthese'],
+  colonnesDefaut: ['jour', 'fuite_numero', 'secteur', 'chef', 'designation', 'unite', 'quantite'],
+  regroupements: [['aucun', 'Aucun'], ['secteur', 'Par secteur'], ['zone', 'Par zone'], ['chef', "Par chef d'équipe"], ['piece', 'Par pièce'], ['jour', 'Par jour']],
+  filtres: ['periode', 'zone', 'secteur', 'chef', 'synthese'],
   libellePeriode: 'date de pose',
   colonnes: (ctx) => {
     const lm = libellesMarche(ctx.marche as unknown as Marche);
@@ -274,7 +274,6 @@ export const JEU_PIECES: Jeu = {
       { cle: 'reference_srm', titre: lm.reference, groupe: 'Identification', largeur: 13 },
       { cle: 'zone', titre: 'Zone', groupe: 'Localisation', largeur: 16 },
       { cle: 'secteur', titre: 'Secteur', groupe: 'Localisation', largeur: 16 },
-      { cle: 'equipe', titre: 'Équipe', groupe: 'Réparation', largeur: 13 },
       { cle: 'chef', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
       { cle: 'designation', titre: 'Pièce', groupe: 'Pièce', largeur: 28 },
       { cle: 'famille', titre: 'Famille', groupe: 'Pièce', largeur: 18 },
@@ -286,7 +285,7 @@ export const JEU_PIECES: Jeu = {
   charger: async (marcheId, f) => {
     const [lignes, m] = await Promise.all([
       toutLire(() => filtrer(getSupabase().from('v_pieces_posees').select('*').eq('marche_id', marcheId), f, 'jour',
-        { zone: 'zone_id', secteur: 'secteur_id', equipe: 'equipe_id' }).order('jour').order('fuite_numero').order('id')),
+        { zone: 'zone_id', secteur: 'secteur_id', chef: 'chef_id' }).order('jour').order('fuite_numero').order('id')),
       chargerMatricules(marcheId),
     ]);
     // Famille Dolibarr (préfixe de la référence) : son libellé, jamais le code ; chef d'équipe : son matricule (R4)
@@ -346,7 +345,7 @@ export function colonnesAttachement(ctx: Contexte): Colonne[] {
     { cle: 'adresse', titre: 'Adresse', groupe: 'Fuite', largeur: 20 },
     { cle: 'zone', titre: 'Zone', groupe: 'Fuite', largeur: 16 },
     { cle: 'secteur', titre: 'Secteur', groupe: 'Fuite', largeur: 16 },
-    { cle: 'equipe', titre: 'Équipe', groupe: 'Fuite', largeur: 12 },
+    { cle: 'chef_equipe', titre: "Chef d'équipe (matricule)", groupe: 'Fuite', largeur: 15 },
     { cle: 'reparee_le', titre: 'Réparée le', groupe: 'Travaux', type: 'date', largeur: 10 },
     { cle: 'fouille_longueur_m', titre: 'L (m)', groupe: 'Travaux', type: 'nombre', decimales: 2, largeur: 6 },
     { cle: 'fouille_largeur_m', titre: 'l (m)', groupe: 'Travaux', type: 'nombre', decimales: 2, largeur: 6 },
@@ -413,7 +412,7 @@ function cleGroupe(regroupement: string): ((l: Ligne) => string) | undefined {
   switch (regroupement) {
     case 'zone': return (l) => String(l.zone ?? 'Sans zone');
     case 'secteur': return (l) => String(l.secteur ?? 'Sans secteur');
-    case 'equipe': return (l) => String(l.equipe_reparation ?? l.equipe ?? 'Sans équipe');
+    case 'chef': return (l) => String(l.chef_reparation ?? l.chef ?? l.chef_equipe ?? "Sans chef d'équipe");
     case 'article': return (l) => `Prix ${l.prix_numero} · ${String(l.prix_designation ?? '').slice(0, 60)}`;
     case 'categorie': return (l) => String(l.categorie ?? 'Sans catégorie');
     case 'piece': return (l) => String(l.designation ?? '');
@@ -459,7 +458,7 @@ export function documentJeu(
   let donnees = lignes;
   if (jeu.id === 'pieces' && o.filtres.synthese) {
     donnees = syntheseParPiece(lignes, o.regroupement);
-    const garder = new Set(['zone', 'secteur', 'equipe', 'designation', 'famille', 'unite', 'quantite', 'nb_fuites']);
+    const garder = new Set(['zone', 'secteur', 'chef', 'designation', 'famille', 'unite', 'quantite', 'nb_fuites']);
     choisies = toutes.filter((c) => garder.has(c.cle) && (o.colonnes.includes(c.cle) || c.cle === 'nb_fuites' || c.cle === 'quantite'));
   } else {
     choisies = choisies.filter((c) => c.cle !== 'nb_fuites');

@@ -41,7 +41,7 @@ export interface NavGroup {
   items: NavMainItem[];
 }
 
-export type Onglet = "marche" | "bordereau" | "attachement" | "evenements" | "ouvriers" | "equipes" | "motifs" | "secteurs" | "reseau"
+export type Onglet = "marche" | "bordereau" | "attachement" | "evenements" | "ouvriers" | "motifs" | "secteurs" | "reseau"
   | "natures" | "articles";
 
 export const ONGLETS_PARAMETRES: [Onglet, string][] = [
@@ -50,7 +50,6 @@ export const ONGLETS_PARAMETRES: [Onglet, string][] = [
   ["attachement", "Attachement"],
   ["evenements", "Événements"],
   ["ouvriers", "Ouvriers"],
-  ["equipes", "Équipes"],
   ["motifs", "Motifs"],
   ["secteurs", "Secteurs"],
   ["reseau", "Réseau"],

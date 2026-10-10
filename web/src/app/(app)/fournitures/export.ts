@@ -50,7 +50,7 @@ export const COLONNES_DETAIL: Colonne<LigneDetailExport>[] = [
   { cle: 'jour', titre: 'Réparée le', groupe: 'Réparation', type: 'date', largeur: 11 },
   { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réparation', type: 'nombre', largeur: 7 },
   { cle: 'reference_srm', titre: 'Référence', groupe: 'Réparation', largeur: 13 },
-  { cle: 'equipe', titre: 'Équipe', groupe: 'Réparation', largeur: 13 },
+  { cle: 'chef', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
   { cle: 'zone', titre: 'Zone', groupe: 'Lieu', largeur: 16 },
   { cle: 'secteur', titre: 'Secteur', groupe: 'Lieu', largeur: 16 },
   { cle: 'designation', titre: 'Désignation', groupe: 'Fourniture', largeur: 30 },

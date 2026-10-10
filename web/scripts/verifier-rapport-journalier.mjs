@@ -1,5 +1,5 @@
 // Vérification du rapport journalier de recherche de fuites (src/lib/export/rapport-journalier.ts), sans
-// navigateur ni base : fonctions pures (synthèse de v_balayage_journalier, regroupement par équipe, arrondis,
+// navigateur ni base : fonctions pures (synthèse de v_balayage_journalier, regroupement par agent, arrondis,
 // contenu du rapport), puis fabrication réelle de PDF et de classeurs Excel avec des données fictives
 // (fond de plan factice dessiné ici, en Web Mercator comme MapLibre), contrôle du nombre de pages, des
 // textes et des réglages d'impression.
@@ -53,7 +53,7 @@ const VEILLE = jourMaroc(new Date(Date.now() - 86400000));
 const ANNEE = new Date().getFullYear();
 
 const L = (o) => ({
-  marche_id: 'm-essai', date_balayage: JOUR, equipe_id: 'e1', equipe: 'Équipe 1', agent_id: 'a1', agent: 'Agent Alpha',
+  marche_id: 'm-essai', date_balayage: JOUR, agent_id: 'a1', agent: 'Agent Alpha',
   zone_id: 'z4', zone: 'Zone 4 Essai', secteur_id: 's-lh', secteur: 'Secteur Haut', nb_troncons: 0, lineaire_m: 0,
   lineaire_repasse_m: 0, nb_noeuds: 0, nb_fuites: 0, ...o,
 });
@@ -61,16 +61,16 @@ const lignes = [
   // Numeric de PostgreSQL parfois reçu en texte : accepté.
   L({ nb_troncons: 12, lineaire_m: '1234.40', nb_noeuds: 10, nb_fuites: 3 }),
   L({ agent_id: 'a2', agent: 'Agent Bravo', nb_troncons: 8, lineaire_m: 1000.4, lineaire_repasse_m: '120.50', nb_noeuds: 6, nb_fuites: 3 }),
-  L({ equipe_id: 'e2', equipe: 'Équipe 2', agent_id: 'a3', agent: 'Agent Charlie', secteur_id: 's-ag', secteur: 'Secteur Gare',
+  L({ agent_id: 'a3', agent: 'Agent Charlie', secteur_id: 's-ag', secteur: 'Secteur Gare',
     nb_troncons: 15, lineaire_m: 2100.25, nb_noeuds: 14, nb_fuites: 1 }),
-  L({ equipe_id: 'e2', equipe: 'Équipe 2', agent_id: 'a3', agent: 'Agent Charlie', zone_id: 'z2', zone: 'Zone 2 Essai',
+  L({ agent_id: 'a3', agent: 'Agent Charlie', zone_id: 'z2', zone: 'Zone 2 Essai',
     secteur_id: null, secteur: null, nb_troncons: 2, lineaire_m: 150.1, nb_noeuds: 1, nb_fuites: 0 }),
 ];
 const veille = L({ date_balayage: VEILLE, nb_troncons: 5, lineaire_m: 800, nb_fuites: 1 });
 
 const CENTRE = { lat: 34.6814, lon: -1.9086 };
 const F = (o) => ({
-  numero: null, reference_srm: null, adresse: null, zone: 'Zone 4 Essai', secteur_id: 's-lh', secteur: 'Secteur Haut', equipe_id: 'e1',
+  numero: null, reference_srm: null, adresse: null, zone: 'Zone 4 Essai', secteur_id: 's-lh', secteur: 'Secteur Haut', auteur_terrain_id: 'a1',
   visibilite: 'invisible', diametre_mm: null, materiau: null, revetement: null, latitude: null, longitude: null, ...o,
 });
 const fuites = [
@@ -78,12 +78,12 @@ const fuites = [
     latitude: CENTRE.lat + 0.0012, longitude: CENTRE.lon - 0.0021 }),
   F({ numero: 102, reference_srm: '900-000-102', adresse: 'Avenue fictive, angle rue B', visibilite: 'visible', diametre_mm: '110', materiau: 'PVC',
     revetement: 'Béton', latitude: CENTRE.lat - 0.0008, longitude: CENTRE.lon + 0.0015 }),
-  F({ numero: 103, reference_srm: '900-000-103', equipe_id: null, secteur_id: 's-ag', secteur: 'Secteur Gare', zone: 'Zone 4 Essai',
+  F({ numero: 103, reference_srm: '900-000-103', auteur_terrain_id: null, secteur_id: 's-ag', secteur: 'Secteur Gare', zone: 'Zone 4 Essai',
     latitude: CENTRE.lat + 0.0025, longitude: CENTRE.lon + 0.0030 }),
-  F({ numero: 104, reference_srm: '900-000-104', equipe_id: 'e2', adresse: 'Impasse d\'essai', visibilite: null,
+  F({ numero: 104, reference_srm: '900-000-104', auteur_terrain_id: 'a3', adresse: 'Impasse d\'essai', visibilite: null,
     latitude: CENTRE.lat - 0.0022, longitude: CENTRE.lon - 0.0034 }),
-  F({ numero: 105, reference_srm: '900-000-105', equipe_id: null, revetement: 'Asphalte', latitude: CENTRE.lat + 0.03, longitude: CENTRE.lon }),
-  F({ numero: 106, reference_srm: '900-000-106', equipe_id: null, secteur_id: null, secteur: null, zone: null }),
+  F({ numero: 105, reference_srm: '900-000-105', auteur_terrain_id: 'a2', revetement: 'Asphalte', latitude: CENTRE.lat + 0.03, longitude: CENTRE.lon }),
+  F({ numero: 106, reference_srm: '900-000-106', auteur_terrain_id: null, secteur_id: null, secteur: null, zone: null }),
 ];
 
 // ---------------------------------------------------------------------------
@@ -103,26 +103,29 @@ verifier('km arrondis au mètre, 3 décimales', s.totaux.lineaire_km === 4.485 &
 verifier('arrondi après la somme des mètres (pas de cumul d\'arrondis)', rj.kmArrondis(lh.lineaire_m) === 2.235 && rj.kmArrondis(1234.4) + rj.kmArrondis(1000.4) === 2.234);
 verifier('plusieurs secteurs : zones et secteurs distincts, ordonnés', s.zones.join('|') === 'Zone 2 Essai|Zone 4 Essai'
   && s.secteurs.join('|') === `${rj.HORS_SECTEUR}|Secteur Gare|Secteur Haut`, `${s.zones.join(', ')} · ${s.secteurs.join(', ')}`);
-verifier('équipes et agents distincts', s.equipes.map((e) => e.libelle).join('|') === 'Équipe 1|Équipe 2' && s.agents.length === 3);
-verifier('linéaire par équipe', s.parEquipe.map((e) => `${e.libelle}=${e.lineaire_km}`).join(' ') === 'Équipe 1=2.235 Équipe 2=2.25',
-  s.parEquipe.map((e) => `${e.libelle} ${e.lineaire_km} km`).join(', '));
-const s1 = rj.syntheseJournee([...lignes, veille], { date: JOUR, equipeId: 'e1' });
-verifier('filtre par date et par équipe', s1.lignes.length === 1 && s1.equipes.length === 1 && Math.abs(s1.totaux.lineaire_m - 2234.8) < 1e-9);
+verifier('agents distincts, plus d\'équipe (S12)', s.agents.join('|') === 'Agent Alpha|Agent Bravo|Agent Charlie' && !('equipes' in s));
+verifier('linéaire par agent', s.parAgent.map((a) => `${a.libelle}=${a.lineaire_km}`).join(' ') === 'Agent Alpha=1.234 Agent Bravo=1 Agent Charlie=2.25',
+  s.parAgent.map((a) => `${a.libelle} ${a.lineaire_km} km`).join(', '));
+const s1 = rj.syntheseJournee([...lignes, veille], { date: JOUR, agentId: 'a1' });
+verifier('filtre par date et par agent', s1.lignes.length === 1 && s1.agents.length === 1 && Math.abs(s1.totaux.lineaire_m - 1234.4) < 1e-9);
 const erreur = lance(() => rj.syntheseJournee([...lignes, veille]));
 verifier('lignes de plusieurs journées sans date : refus explicite', erreur instanceof Error && /2 journées/.test(erreur.message), erreur?.message);
 const sv = rj.syntheseJournee([], { date: JOUR });
-verifier('journée sans balayage : synthèse vide datée', sv.date === JOUR && sv.lignes.length === 0 && sv.totaux.lineaire_km === 0 && sv.equipes.length === 0);
+verifier('journée sans balayage : synthèse vide datée', sv.date === JOUR && sv.lignes.length === 0 && sv.totaux.lineaire_km === 0 && sv.agents.length === 0);
 
-const g = rj.regrouperParEquipe(lignes, fuites, { date: JOUR });
+const g = rj.regrouperParAgent(lignes, fuites, { date: JOUR });
 const num = (t) => t.map((f) => f.numero).join(',');
-verifier('un rapport par équipe', g.rapports.length === 2 && g.rapports.map((r) => r.equipe.libelle).join('|') === 'Équipe 1|Équipe 2');
-verifier('fuites attribuées : équipe de détection, sinon seul secteur balayé',
-  num(g.rapports[0].fuites) === '101,102,105' && num(g.rapports[1].fuites) === '103,104' && num(g.fuitesNonAttribuees) === '106',
-  `É1 ${num(g.rapports[0].fuites)} · É2 ${num(g.rapports[1].fuites)} · non attribuées ${num(g.fuitesNonAttribuees)}`);
-verifier('rapport d\'équipe : linéaire de l\'équipe seulement', g.rapports[1].journee.totaux.lineaire_km === 2.25 && g.rapports[1].journee.lignes.length === 2);
-const gs = rj.regrouperParEquipe(lignes, fuites, { date: JOUR, parSecteur: true });
-verifier('par équipe et secteur', gs.rapports.length === 3 && num(gs.fuitesNonAttribuees) === '104,106'
-  && num(gs.rapports.find((r) => r.secteur?.id === 's-ag').fuites) === '103', gs.rapports.map((r) => `${r.equipe.libelle}/${r.secteur.libelle}`).join(' ; '));
+verifier('un rapport par agent', g.rapports.length === 3 && g.rapports.map((r) => r.agent.libelle).join('|') === 'Agent Alpha|Agent Bravo|Agent Charlie');
+verifier('fuites attribuées : agent qui l\'a détectée, sinon seul secteur balayé',
+  num(g.rapports[0].fuites) === '101,102' && num(g.rapports[1].fuites) === '105' && num(g.rapports[2].fuites) === '103,104'
+  && num(g.fuitesNonAttribuees) === '106',
+  `A ${num(g.rapports[0].fuites)} · B ${num(g.rapports[1].fuites)} · C ${num(g.rapports[2].fuites)} · non attribuées ${num(g.fuitesNonAttribuees)}`);
+verifier('rapport d\'agent : linéaire de l\'agent seulement', g.rapports[2].journee.totaux.lineaire_km === 2.25 && g.rapports[2].journee.lignes.length === 2);
+const gs = rj.regrouperParAgent(lignes, fuites, { date: JOUR, parSecteur: true });
+verifier('par agent et secteur', gs.rapports.length === 4 && num(gs.fuitesNonAttribuees) === '104,106'
+  && num(gs.rapports.find((r) => r.secteur?.id === 's-ag').fuites) === '103', gs.rapports.map((r) => `${r.agent.libelle}/${r.secteur.libelle}`).join(' ; '));
+const sansAuteur = rj.regrouperParAgent(lignes, [F({ numero: 107, auteur_terrain_id: null })], { date: JOUR });
+verifier('fuite sans auteur dans un secteur balayé par deux agents : non attribuée', num(sansAuteur.fuitesNonAttribuees) === '107');
 verifier('journée en toutes lettres (1er du mois)', rj.jourEnLettres(`${ANNEE}-03-01`).endsWith(`1er mars ${ANNEE}`) && /^[a-z]+ \d/.test(rj.jourEnLettres(JOUR)),
   `${rj.jourEnLettres(`${ANNEE}-03-01`)} ; ${rj.jourEnLettres(JOUR)}`);
 
@@ -162,12 +165,12 @@ verifier('plusieurs secteurs : colonne Secteur et détail par secteur', c.avecSe
 verifier('totaux visibles / invisibles', c.visibles === 1 && c.invisibles === 4 && c.nonPrecisees === 1, c.totalFuites);
 verifier('linéaire repassé affiché à part', c.identification.some(([l, v]) => l === 'Linéaire repassé' && v.startsWith('0,121 km'))
   && c.identification.some(([l, v]) => l === 'Linéaire inspecté' && v.startsWith('4,485 km')));
-const c2 = rj.contenuRapportJournalier(ctx, g.rapports[1].journee, []);
+const c2 = rj.contenuRapportJournalier(ctx, g.rapports[2].journee, []);
 verifier('journée sans fuite : R.A.S, pas de repasse affichée', c2.fuites.length === 0 && /R\.A\.S/.test(c2.totalFuites)
   && !c2.identification.some(([l]) => l === 'Linéaire repassé'), c2.totalFuites);
-const c3 = rj.contenuRapportJournalier(ctx, rj.syntheseJournee(lignes, { date: JOUR, equipeId: 'e1' }), g.rapports[0].fuites.slice(0, 2), { visas: ['Visa A', 'Visa B', 'Visa C'] });
+const c3 = rj.contenuRapportJournalier(ctx, rj.syntheseJournee(lignes, { date: JOUR, agentId: 'a1' }), g.rapports[0].fuites.slice(0, 2), { visas: ['Visa A', 'Visa B', 'Visa C'] });
 verifier('un seul secteur : ni colonne Secteur ni détail ; visas remplaçables', !c3.avecSecteur && c3.detailSecteurs === null && c3.visas.length === 3);
-verifier('nom de fichier sûr', rj.nomFichierRapportJournalier(ctx, g.rapports[0].journee) === `rapport-journalier-ESSAI-${JOUR}-Equipe-1`,
+verifier('nom de fichier sûr', rj.nomFichierRapportJournalier(ctx, g.rapports[0].journee) === `rapport-journalier-ESSAI-${JOUR}-Agent-Alpha`,
   rj.nomFichierRapportJournalier(ctx, g.rapports[0].journee));
 
 // ---------------------------------------------------------------------------
@@ -240,7 +243,7 @@ async function fabriquer(nom, journee, liste, options = {}) {
   return { ...lu, octets: octets.byteLength, blob };
 }
 
-console.log('\nPDF : journée regroupée (2 équipes, 3 secteurs, 6 fuites, extrait capturé)');
+console.log('\nPDF : journée regroupée (3 agents, 3 secteurs, 6 fuites, extrait capturé)');
 let cadreDemande = null;
 const r1 = await fabriquer('rapport-regroupe', { ...s, commentaire: 'Balayage interrompu une heure (pluie). Repasse sur le secteur Haut à la demande du client.' }, fuites, {
   extrait: { capturer: async (l, h) => { cadreDemande = { l, h }; return planFactice(Math.round((l * 96) / 25.4), Math.round((h * 96) / 25.4), 15); } },
@@ -267,15 +270,15 @@ verifier('PDF : fuites numérotées sur l\'extrait, hors cadre signalée', occur
 verifier('PDF : logos et plan en images', r1.images >= 3, `${r1.images} image(s)`);
 verifier('PDF : pied « Page n / N »', r1.texte.includes('Page 1 / 2') && r1.texte.includes('Page 2 / 2'));
 
-console.log('\nPDF : rapport de l\'équipe 1 (un secteur, image fournie avec bornes)');
+console.log('\nPDF : rapport de l\'agent Alpha (un secteur, image fournie avec bornes)');
 const zoom = 15.6;
 const plan = planFactice(800, 560, zoom, 1);
-const r2 = await fabriquer('rapport-equipe-1', g.rapports[0].journee, g.rapports[0].fuites, {
+const r2 = await fabriquer('rapport-agent-alpha', g.rapports[0].journee, g.rapports[0].fuites, {
   extrait: { image: { dataUrl: `data:image/png;base64,${Buffer.from(plan.donnees).toString('base64')}`, largeurPx: 800, hauteurPx: 560, bornes: plan }, attribution: null },
 });
-verifier('PDF équipe : 2 pages, pas de colonne Secteur', r2.pages === 2 && !r2.texte.includes('(Secteur) Tj'), `${r2.pages}`);
-verifier('PDF équipe : linéaire de l\'équipe', r2.texte.includes('2,235 km (premiers passages)') && r2.texte.includes('Équipe 1'));
-verifier('PDF équipe : extrait en page 2 sous l\'en-tête du marché, sans attribution imposée', r2.texte.includes('EXTRAIT DU PLAN DU RÉSEAU')
+verifier('PDF agent : 2 pages, pas de colonne Secteur', r2.pages === 2 && !r2.texte.includes('(Secteur) Tj'), `${r2.pages}`);
+verifier('PDF agent : linéaire de l\'agent, plus d\'équipe', r2.texte.includes('1,234 km (premiers passages)') && r2.texte.includes('Agent Alpha') && !r2.texte.includes('quipe N'));
+verifier('PDF agent : extrait en page 2 sous l\'en-tête du marché, sans attribution imposée', r2.texte.includes('EXTRAIT DU PLAN DU RÉSEAU')
   && r2.texte.includes('Conduites inspectées et fuites détectées') && !r2.texte.includes('© contributeurs OpenStreetMap'));
 
 console.log('\nPDF : journée sans fuite, extrait en bas de page');

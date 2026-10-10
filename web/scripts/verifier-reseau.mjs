@@ -286,33 +286,33 @@ ok('prolonger : suit la rue dans l\'alignement, s\'arrête à la jonction, au bo
 // ---------------------------------------------------------------------------
 // État de balayage
 // ---------------------------------------------------------------------------
-ok('fusion état / géométrie : balayé, repassé, absent = non balayé ; noms des équipes et agents', () => {
+ok('fusion état / géométrie : balayé, repassé, absent = non balayé ; noms des agents', () => {
   const lignes = [
-    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, equipe_id: 'e1', agent_id: 'a1' },
-    { troncon_id: 't2', premier_le: '2026-09-20', dernier_le: '2026-10-03', nb_passages: 2, equipe_id: 'e1', agent_id: null },
-    { troncon_id: 't9', premier_le: '2026-09-20', dernier_le: '2026-09-20', nb_passages: 0, equipe_id: null, agent_id: null },
+    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, agent_id: 'a1' },
+    { troncon_id: 't2', premier_le: '2026-09-20', dernier_le: '2026-10-03', nb_passages: 2, agent_id: null },
+    { troncon_id: 't9', premier_le: '2026-09-20', dernier_le: '2026-09-20', nb_passages: 0, agent_id: null },
   ];
-  const etats = etat.etatsFeatures(lignes, { equipes: new Map([['e1', 'Détection 1']]), agents: new Map([['a1', 'Ahmed']]) });
+  const etats = etat.etatsFeatures(lignes, { agents: new Map([['a1', 'Ahmed']]) });
   assert.equal(etats.size, 2, 'zéro passage = pas d\'état');
-  assert.deepEqual(etats.get('t1'), { balaye: true, repasse: false, passages: 1, premier: '2026-10-01', dernier: '2026-10-01', equipe: 'Détection 1', agent: 'Ahmed' });
+  assert.deepEqual(etats.get('t1'), { balaye: true, repasse: false, passages: 1, premier: '2026-10-01', dernier: '2026-10-01', agent: 'Ahmed' });
   assert.equal(etats.get('t2').repasse, true);
   assert.equal(etats.get('t2').agent, null);
   assert.equal(etats.get('t3'), undefined);
-  assert.equal(etat.texteEtatTroncon(etats.get('t1')), 'Balayé le 01/10/2026 par Ahmed (Détection 1)');
-  assert.equal(etat.texteEtatTroncon(etats.get('t2')), 'Balayé le 03/10/2026 par (Détection 1) · 2 passages');
+  assert.equal(etat.texteEtatTroncon(etats.get('t1')), 'Balayé le 01/10/2026 par Ahmed');
+  assert.equal(etat.texteEtatTroncon(etats.get('t2')), 'Balayé le 03/10/2026 · 2 passages');
   assert.equal(etat.texteEtatTroncon(undefined), 'Non balayé');
   assert.deepEqual([...etat.compterEtats(['t1', 't2', 't3', 't4'], etats).entries()], [['balaye', 1], ['repasse', 1], ['non_balaye', 2]]);
 });
 
 ok('différences d\'états : poser les nouveaux et modifiés, retirer les disparus', () => {
   const avant = etat.etatsFeatures([
-    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, equipe_id: null, agent_id: null },
-    { troncon_id: 't2', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, equipe_id: null, agent_id: null },
+    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, agent_id: null },
+    { troncon_id: 't2', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, agent_id: null },
   ]);
   const apres = etat.etatsFeatures([
-    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, equipe_id: null, agent_id: null },
-    { troncon_id: 't2', premier_le: '2026-10-01', dernier_le: '2026-10-05', nb_passages: 2, equipe_id: null, agent_id: null },
-    { troncon_id: 't3', premier_le: '2026-10-05', dernier_le: '2026-10-05', nb_passages: 1, equipe_id: null, agent_id: null },
+    { troncon_id: 't1', premier_le: '2026-10-01', dernier_le: '2026-10-01', nb_passages: 1, agent_id: null },
+    { troncon_id: 't2', premier_le: '2026-10-01', dernier_le: '2026-10-05', nb_passages: 2, agent_id: null },
+    { troncon_id: 't3', premier_le: '2026-10-05', dernier_le: '2026-10-05', nb_passages: 1, agent_id: null },
   ]);
   assert.deepEqual(etat.differencesEtats(avant, apres), { poser: ['t2', 't3'], retirer: [] });
   assert.deepEqual(etat.differencesEtats(apres, avant), { poser: ['t2'], retirer: ['t3'] });
@@ -436,31 +436,31 @@ ok('découpage en paquets de 1 000 et cumul des résultats de la base', () => {
 ok('préparation des balayages : une ligne par tronçon, uuid créé sur l\'appareil, doublons de sélection ignorés', () => {
   let i = 0;
   const lignes = balayage.preparerBalayages(new Set(['t1', 't2', 't1']), {
-    marcheId: 'm1', equipeId: 'e1', dateBalayage: '2026-10-06', methode: 'ecoute', observation: '  RAS  ',
+    marcheId: 'm1', dateBalayage: '2026-10-06', methode: 'ecoute', observation: '  RAS  ',
   }, () => uuid(++i));
   assert.equal(lignes.length, 2);
   assert.deepEqual(lignes[0], {
-    id: uuid(1), marche_id: 'm1', troncon_id: 't1', date_balayage: '2026-10-06', equipe_id: 'e1', methode: 'ecoute', observation: 'RAS', source_saisie: 'web',
+    id: uuid(1), marche_id: 'm1', troncon_id: 't1', date_balayage: '2026-10-06', methode: 'ecoute', observation: 'RAS', source_saisie: 'web',
   });
   assert.equal(lignes[1].troncon_id, 't2');
   assert.notEqual(lignes[0].id, lignes[1].id);
-  const sans = balayage.preparerBalayages(['t3'], { marcheId: 'm1', equipeId: '', dateBalayage: '2026-10-06', methode: null, observation: '', sourceSaisie: 'tablette' }, () => uuid(9));
-  assert.deepEqual([sans[0].equipe_id, sans[0].methode, sans[0].observation, sans[0].source_saisie], [null, null, null, 'tablette']);
-  assert.throws(() => balayage.preparerBalayages(['t1'], { marcheId: 'm1', equipeId: null, dateBalayage: '06/10/2026', methode: null, observation: null }), /Date/);
-  assert.equal(balayage.preparerBalayages([], { marcheId: 'm1', equipeId: null, dateBalayage: '2026-10-06', methode: null, observation: null }).length, 0);
+  const sans = balayage.preparerBalayages(['t3'], { marcheId: 'm1', dateBalayage: '2026-10-06', methode: null, observation: '', sourceSaisie: 'tablette' }, () => uuid(9));
+  assert.deepEqual([sans[0].methode, sans[0].observation, sans[0].source_saisie, 'equipe_id' in sans[0]], [null, null, 'tablette', false]);
+  assert.throws(() => balayage.preparerBalayages(['t1'], { marcheId: 'm1', dateBalayage: '06/10/2026', methode: null, observation: null }), /Date/);
+  assert.equal(balayage.preparerBalayages([], { marcheId: 'm1', dateBalayage: '2026-10-06', methode: null, observation: null }).length, 0);
   // Second passage : motif sur les seuls tronçons déjà balayés.
-  const rep = balayage.preparerBalayages(['t1', 't2'], { marcheId: 'm1', equipeId: null, dateBalayage: '2026-10-06', methode: null, observation: null, motifRepasse: 'fuite_suspectee' },
+  const rep = balayage.preparerBalayages(['t1', 't2'], { marcheId: 'm1', dateBalayage: '2026-10-06', methode: null, observation: null, motifRepasse: 'fuite_suspectee' },
     () => uuid(++i), new Set(['t2']));
   assert.deepEqual([rep[0].motif_repasse, rep[1].motif_repasse], [undefined, 'fuite_suspectee']);
   assert.equal(balayage.MOTIFS_REPASSE.map((m) => m.valeur).join(','), 'fuite_suspectee,controle,autre');
 });
 
 ok('mise en file d\'un envoi « balayage » : identifiant et marché à part, colonnes dans `ligne`', () => {
-  const lignes = balayage.preparerBalayages(['t1'], { marcheId: 'm1', equipeId: 'e1', dateBalayage: '2026-10-06', methode: null, observation: null }, () => uuid(7));
+  const lignes = balayage.preparerBalayages(['t1'], { marcheId: 'm1', dateBalayage: '2026-10-06', methode: null, observation: null }, () => uuid(7));
   const file = balayage.enFileAttente(lignes);
   assert.deepEqual(file, [{
     id: uuid(7), marche_id: 'm1',
-    ligne: { troncon_id: 't1', date_balayage: '2026-10-06', equipe_id: 'e1', methode: null, observation: null, source_saisie: 'web' },
+    ligne: { troncon_id: 't1', date_balayage: '2026-10-06', methode: null, observation: null, source_saisie: 'web' },
   }]);
   assert.equal('id' in file[0].ligne, false, 'l\'identifiant est remis à l\'insertion (comme les fuites)');
   // Renvoyé tel quel à l'insertion : { ...ligne, id, marche_id } reconstitue la ligne complète.
@@ -512,25 +512,25 @@ ok('cases : état d\'une zone, bascule d\'une zone, Tout, totaux des cochés', (
 // Journal des balayages
 // ---------------------------------------------------------------------------
 const ligneJ = (o) => ({
-  marche_id: 'm1', date_balayage: '2026-10-05', equipe_id: 'e1', equipe: 'Détection 1', agent_id: 'a1', agent: 'Ahmed', zone_id: 'z1', zone: 'Centre',
+  marche_id: 'm1', date_balayage: '2026-10-05', agent_id: 'a1', agent: 'Ahmed', zone_id: 'z1', zone: 'Centre',
   secteur_id: 's10', secteur: 'Centre A', nb_troncons: 10, lineaire_m: 1000, lineaire_repasse_m: 0, nb_noeuds: 2, nb_fuites: 1, ...o,
 });
 const JOURNAL = [
   ligneJ({}),
   ligneJ({ secteur_id: 's11', secteur: 'Centre B', nb_troncons: 5, lineaire_m: 500, lineaire_repasse_m: 120, nb_fuites: 0 }),
-  ligneJ({ date_balayage: '2026-10-06', equipe_id: 'e2', equipe: 'Détection 2', agent_id: 'a2', agent: 'Brahim', nb_troncons: 8, lineaire_m: 800, nb_noeuds: 0, nb_fuites: 2 }),
+  ligneJ({ date_balayage: '2026-10-06', agent_id: 'a2', agent: 'Brahim', nb_troncons: 8, lineaire_m: 800, nb_noeuds: 0, nb_fuites: 2 }),
   ligneJ({ date_balayage: '2026-09-30', nb_troncons: 3, lineaire_m: 300, nb_fuites: 0 }),
 ];
 
-ok('journal : filtres période (bornes comprises, remises dans l\'ordre), équipe, secteur', () => {
+ok('journal : filtres période (bornes comprises, remises dans l\'ordre), agent, secteur', () => {
   assert.equal(journal.filtrerJournal(JOURNAL, {}).length, 4);
   assert.equal(journal.filtrerJournal(JOURNAL, { du: '2026-10-05', au: '2026-10-06' }).length, 3);
   assert.equal(journal.filtrerJournal(JOURNAL, { du: '2026-10-06', au: '2026-10-05' }).length, 3, 'période inversée');
   assert.equal(journal.filtrerJournal(JOURNAL, { au: '2026-09-30' }).length, 1);
   assert.equal(journal.filtrerJournal(JOURNAL, { du: 'n\'importe quoi' }).length, 4, 'date invalide ignorée');
-  assert.equal(journal.filtrerJournal(JOURNAL, { equipe: 'e2' }).length, 1);
+  assert.equal(journal.filtrerJournal(JOURNAL, { agent: 'a2' }).length, 1);
   assert.equal(journal.filtrerJournal(JOURNAL, { secteur: 's11' }).length, 1);
-  assert.equal(journal.filtrerJournal(JOURNAL, { equipe: 'e1', secteur: 's10', du: '2026-10-01' }).length, 1);
+  assert.equal(journal.filtrerJournal(JOURNAL, { agent: 'a1', secteur: 's10', du: '2026-10-01' }).length, 1);
 });
 
 ok('journal : totaux et regroupement par jour (du plus récent au plus ancien)', () => {

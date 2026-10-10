@@ -32,14 +32,14 @@ const ok = (nom, fn) => {
 const piece = (p) => ({
   id: `id${n}-${Math.random()}`, marche_id: 'm', reparation_id: 'r', fuite_id: 'f1', fuite_numero: 1, reference_srm: null,
   realisee_le: '2026-10-05T10:00:00Z', jour: '2026-10-05', mois: '2026-10', zone_id: 'z', zone: 'Zone A', secteur_id: 's1',
-  secteur: 'Secteur 1', equipe_id: 'e1', equipe: 'Équipe 1', produit_id: 1, designation: 'MANCHON DN 25', famille: 'RAC',
+  secteur: 'Secteur 1', chef_id: 'c1', chef: 'Chef Un', produit_id: 1, designation: 'MANCHON DN 25', famille: 'RAC',
   unite: 'U', quantite: 1, provenance: 'terrain', nature_correction: null, ...p,
 });
 const LIGNES = [
   piece({ quantite: 2 }),
   piece({ fuite_id: 'f2', fuite_numero: 2, quantite: 3, provenance: 'correction', nature_correction: 'oubli' }),
   piece({ fuite_id: 'f2', fuite_numero: 2, produit_id: 2, designation: 'TUBE PE DN 25', famille: 'CND', unite: 'm', quantite: 1.5, jour: '2026-09-20', mois: '2026-09', secteur_id: 's2', secteur: 'Secteur 2' }),
-  piece({ produit_id: 3, designation: 'ROBINET 20', famille: 'ROB', quantite: 1, equipe_id: 'e2', equipe: 'Équipe 2' }),
+  piece({ produit_id: 3, designation: 'ROBINET 20', famille: 'ROB', quantite: 1, chef_id: 'c2', chef: 'Chef Deux' }),
 ];
 
 ok('adresse : forme canonique, valeurs inconnues retirées, période remise dans l\'ordre', () => {

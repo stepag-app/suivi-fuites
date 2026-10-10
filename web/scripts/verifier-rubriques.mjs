@@ -22,6 +22,9 @@ ok('prix du bordereau proposés seulement avec le droit « quantités »', () =>
 ok('modèle ancien : rubriques inconnues ignorées', () => {
   assert.deepEqual([...r.normaliser('carte', ['legende', 'inconnue', 'liste'])], ['legende', 'liste']);
 });
+ok('rubrique renommée (S12) : « equipes » d\'un ancien choix devient « chef_equipe »', () => {
+  assert.deepEqual([...r.normaliser('rapport_fuite', ['identification', 'equipes'])], ['identification', 'chef_equipe']);
+});
 ok('carte : liste des fuites décochée par défaut, le reste coché', () => {
   const d = r.choixParDefaut('carte');
   assert.equal(d.has('liste'), false);

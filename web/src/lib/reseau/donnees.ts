@@ -17,7 +17,6 @@ import {
   SANS_SECTEUR, type CollectionNoeuds, type CollectionTroncons, type ResultatImportReseau, type SecteurReseau, type ZoneReseau,
 } from './types';
 
-export interface EquipeReseau { id: string; type: 'detection' | 'reparation' | 'mixte'; numero: number; libelle: string; actif: boolean }
 
 const CODES_BASE_ABSENTE = new Set(['42883', '42P01', 'PGRST202', 'PGRST205']);
 const codeDe = (e: unknown) => (e && typeof e === 'object' && 'code' in e ? String((e as { code: unknown }).code ?? '') : '');
@@ -197,7 +196,7 @@ export async function chargerNoeudsComplet(marcheId: string): Promise<Collection
   return normaliser<CollectionNoeuds>(data);
 }
 
-// ---- État de balayage, équipes, noms --------------------------------------------------------------------
+// ---- État de balayage, noms --------------------------------------------------------------------
 
 /** Relu à chaque ouverture ; sans droit `balayage / lire` la base renvoie zéro ligne. */
 export async function chargerEtatBalayage(marcheId: string): Promise<EtatBalayageTroncon[]> {
@@ -211,16 +210,16 @@ export async function chargerEtatBalayage(marcheId: string): Promise<EtatBalayag
   return data ? deplierEtatBalayage(data as EtatBalayageCompact) : [];
 }
 
-/** Forme en colonnes de `etat_balayage_compact` (e / a : rang dans equipes / agents). */
+/** Forme en colonnes de `etat_balayage_compact` (a : rang dans agents). */
 export interface EtatBalayageCompact {
-  t: string[]; p: string[]; d: string[]; n: number[]; e: (number | null)[]; a: (number | null)[];
-  equipes: string[]; agents: string[];
+  t: string[]; p: string[]; d: string[]; n: number[]; a: (number | null)[];
+  agents: string[];
 }
 
 export function deplierEtatBalayage(c: EtatBalayageCompact): EtatBalayageTroncon[] {
   return c.t.map((troncon_id, i) => ({
     troncon_id, premier_le: c.p[i], dernier_le: c.d[i], nb_passages: c.n[i],
-    equipe_id: c.e[i] == null ? null : c.equipes[c.e[i]!], agent_id: c.a[i] == null ? null : c.agents[c.a[i]!],
+    agent_id: c.a[i] == null ? null : c.agents[c.a[i]!],
   }));
 }
 
@@ -228,13 +227,6 @@ export function deplierEtatBalayage(c: EtatBalayageCompact): EtatBalayageTroncon
 const chargerEtatBalayageEnLignes = (marcheId: string) =>
   lireTout<EtatBalayageTroncon>((de, a) => getSupabase().rpc('etat_balayage', { p_marche: marcheId })
     .order('troncon_id').range(de, a) as unknown as PromiseLike<{ data: EtatBalayageTroncon[] | null; error: { message: string } | null }>);
-
-export async function chargerEquipes(marcheId: string): Promise<EquipeReseau[]> {
-  const { data, error } = await getSupabase().from('equipes').select('id, type, numero, libelle, actif')
-    .eq('marche_id', marcheId).order('type').order('numero');
-  if (error) throw error;
-  return (data as EquipeReseau[] | null) ?? [];
-}
 
 /** Noms des agents (la RLS ne montre que les profils du même marché ; les autres restent anonymes). */
 export async function chargerNomsProfils(ids: Iterable<string>): Promise<Map<string, string>> {
@@ -360,9 +352,9 @@ export function chargerJournal(marcheId: string, f: Partial<FiltresJournal> = {}
     let q = sb.from('v_balayage_journalier').select('*').eq('marche_id', marcheId);
     if (f.du) q = q.gte('date_balayage', f.du);
     if (f.au) q = q.lte('date_balayage', f.au);
-    if (f.equipe) q = q.eq('equipe_id', f.equipe);
+    if (f.agent) q = q.eq('agent_id', f.agent);
     if (f.secteur) q = q.eq('secteur_id', f.secteur);
-    return q.order('date_balayage', { ascending: false }).order('equipe_id').order('agent_id').order('secteur_id')
+    return q.order('date_balayage', { ascending: false }).order('agent_id').order('secteur_id')
       .range(de, a) as unknown as PromiseLike<{ data: LigneBalayageJournalier[] | null; error: { message: string } | null }>;
   });
 }

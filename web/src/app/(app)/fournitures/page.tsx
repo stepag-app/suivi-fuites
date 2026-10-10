@@ -2,7 +2,7 @@
 
 // Inventaire des fournitures posées (lot P3, chantier v2 X3) : inventaire réel (v_pieces_reelles : corrections du bureau
 // comprises, pièces remplacées ou retirées exclues), regroupé par article Dolibarr ; lignes et colonnes au choix, filtres
-// (période, fuite, zone, secteur, équipe, famille, terrain / bureau) dans l'adresse, totaux, export Excel. Responsable
+// (période, fuite, zone, secteur, chef d'équipe, famille, terrain / bureau) dans l'adresse, totaux, export Excel. Responsable
 // et administrateur (droit « quantités / lire »). Aucun montant : les fournitures sont comprises dans les prix.
 import Link from 'next/link';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -119,7 +119,7 @@ function Inventaire() {
     famille: valeursFiltre(lignes, filtres, 'famille'),
     zone: valeursFiltre(lignes, filtres, 'zone'),
     secteur: valeursFiltre(lignes, filtres, 'secteur'),
-    equipe: valeursFiltre(lignes, filtres, 'equipe'),
+    chef: valeursFiltre(lignes, filtres, 'chef'),
   }), [lignes, filtres]);
   const description = useMemo(() => decrireFiltres(filtres, periode, libellesChoisis(lignes, filtres)), [filtres, periode, lignes]);
   const titrePeriode = libellePeriode(periode);
@@ -130,21 +130,25 @@ function Inventaire() {
     setExportEnCours(true);
     setErreur('');
     try {
-      const [{ exporter }, { construireSection }, { construireEntete }, { chargerContexteRapport }] = await Promise.all([
+      const [{ exporter }, { construireSection }, { construireEntete }, { chargerContexteRapport }, { chargerMatricules }] = await Promise.all([
         import('@/lib/export/generer'), import('@/lib/export/modele'), import('@/lib/export/jeux'), import('@/lib/export/rapport-fuite'),
+        import('@/lib/export/matricules'),
       ]);
-      const ctx = await chargerContexteRapport(marcheId, false);
+      const [ctx, matricules] = await Promise.all([chargerContexteRapport(marcheId, false), chargerMatricules(marcheId)]);
+      // R4 : le chef d'équipe désigné par son matricule dans le document
+      const enDocument = filtrees.map((l) => ({ ...l, chef: l.chef_id ? matricules.agent(l.chef_id, l.chef) : l.chef }));
+      const croisementDoc = croiser(enDocument, filtres);
       const libelleLignes = libelleDimension(filtres.lignes);
       await exporter({
         nomFichier: `fournitures-posees-${String(ctx.marche.code ?? '')}`,
         entete: construireEntete(ctx, 'Inventaire des fournitures posées', [
-          ...description,
+          ...decrireFiltres(filtres, periode, libellesChoisis(enDocument, filtres)),
           `Lignes : ${libelleLignes} · Colonnes : ${libelleDimension(filtres.colonnes)}`,
           'Inventaire réel : corrections du bureau comprises, pièces remplacées ou retirées exclues ; aucun montant',
         ]),
         sections: [
-          construireSection(lignesInventaireCroise(croisement), colonnesInventaireCroise(croisement, libelleLignes), { titre: 'Inventaire' }),
-          construireSection(lignesDetailExport(filtrees) as unknown as Record<string, unknown>[], COLONNES_DETAIL as never, { titre: 'Détail', total: false }),
+          construireSection(lignesInventaireCroise(croisementDoc), colonnesInventaireCroise(croisementDoc, libelleLignes), { titre: 'Inventaire' }),
+          construireSection(lignesDetailExport(enDocument) as unknown as Record<string, unknown>[], COLONNES_DETAIL as never, { titre: 'Détail', total: false }),
         ],
         orientation: 'paysage',
         genereLe: new Date(),
@@ -212,7 +216,7 @@ function Inventaire() {
         <Puces titre="Famille" valeurs={valeurs.famille} onChoisir={(v) => changer({ famille: v })} />
         <Puces titre="Zone" valeurs={valeurs.zone} onChoisir={(v) => changer({ zone: v, secteur: v && filtres.secteur ? '' : filtres.secteur })} />
         <Puces titre="Secteur" valeurs={valeurs.secteur} onChoisir={(v) => changer({ secteur: v })} />
-        <Puces titre="Équipe" valeurs={valeurs.equipe} onChoisir={(v) => changer({ equipe: v })} />
+        <Puces titre="Chef d'équipe" valeurs={valeurs.chef} onChoisir={(v) => changer({ chef: v })} />
       </section>
 
       <GrilleIndicateurs className="mb-4">

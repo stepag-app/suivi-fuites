@@ -85,7 +85,7 @@ verifier('pièces posées : chef d\'équipe = matricule', pieces.length > 0 && p
 // Fichiers réels : le texte des documents ne contient plus aucun nom d'agent
 const ctx = { marche: { code: 'SRM-4500004453', numero: '4500004453', intitule: 'Essai' }, osCommencement: null, os: [], regles: null, peutMontants: false };
 const doc = jeux.documentJeu(jeux.JEU_FUITES, fuites, ctx, {
-  colonnes: ['numero', 'detectee_par', 'chef_reparation', 'equipe_reparation'], regroupement: 'aucun', filtres: { periode: 'tout' }, orientation: 'paysage',
+  colonnes: ['numero', 'detectee_par', 'chef_reparation'], regroupement: 'aucun', filtres: { periode: 'tout' }, orientation: 'paysage',
 });
 const texteZip = async (blob) => Object.entries(unzipSync(new Uint8Array(await blob.arrayBuffer())))
   .filter(([n]) => n.endsWith('.xml')).map(([, v]) => strFromU8(v)).join('\n');

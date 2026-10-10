@@ -30,6 +30,8 @@ export const profils: Profil[] = [
   { id: id("d", 4), identifiant: "nadia", nom_complet: "RAHMOUNI Nadia", nom: "Rahmouni", prenom: "Nadia", matricule: null, entreprise: "STEPAG", telephone: null, langue: "fr", est_admin: false, actif: true },
   { id: id("d", 5), identifiant: "hamid", nom_complet: "ZEROUALI Hamid", nom: "Zerouali", prenom: "Hamid", matricule: "ST-07", entreprise: "Travaux Oriental (sous-traitant)", telephone: "0661 00 00 05", langue: "fr_ar", est_admin: false, actif: false },
 ];
+// Chef d'équipe de démonstration : l'équipe, c'est son compte (S12)
+const CHEF_DEMO = { id: id("d", 3), nom: "BENALI Youssef" };
 
 export const MARCHE_SRM = id("c", 1);
 export const MARCHE_DEMO = id("c", 2);
@@ -225,7 +227,7 @@ repareesSrm.forEach((f, i) => {
     const base = {
       marche_id: MARCHE_SRM, fuite_id: f.id, fuite_numero: f.numero, reference_srm: f.reference_srm, adresse: f.adresse, statut: f.statut, verrouillee: !!f.verrouillee_le,
       zone_id: f.secteur_id ? secteurs.find((s) => s.id === f.secteur_id)?.zone_id ?? null : null, zone: f.zone, secteur_id: f.secteur_id, secteur: f.secteur,
-      equipe_id: id("a", 201 + (f.numero % 3)), equipe: `Réparation ${(f.numero % 3) + 1}`, reparee_le: f.derniere_reparation_le, refectionnee_le: f.derniere_refection_le,
+      chef_equipe_id: CHEF_DEMO.id, chef_equipe: CHEF_DEMO.nom, reparee_le: f.derniere_reparation_le, refectionnee_le: f.derniere_refection_le,
       prix_id: p.id, prix_numero: p.numero, prix_ordre: p.ordre, prix_designation: p.designation, unite: p.unite, famille: p.famille,
     };
     if (dansLot) {
@@ -283,8 +285,8 @@ vFuites.forEach((f, i) => {
       ouvrage: f.ouvrage, materiau: choix(["polyethylene", "pvc", "fonte_ductile", "acier_galvanise"]), diametre_mm: choix([32, 40, 63, 110, 160]),
       tuyau_repare: true, robinet_pec_change: r() < 0.4, collier_pec_change: r() < 0.5, bouche_a_cle_mise_a_niveau: r() < 0.3, element_remplace: r() < 0.2,
       longueur_pe_m: r() < 0.4 ? Number((entre(10, 40) / 10).toFixed(1)) : null, fouille_longueur_m: L, fouille_largeur_m: l, fouille_profondeur_m: P,
-      volume_m3: Number((L * l * P).toFixed(3)), emplacement: f.emplacement_fouille, observation: null, source_saisie: "tablette", auteur_terrain_id: id("d", 3),
-      equipe_id: id("a", 201 + (f.numero % 3)), motif_id: null, representant_srm: r() < 0.5 ? "M. Tahiri" : null, nature_revetement_id: f.emplacement_fouille === "chaussee" ? id("3", 1) : id("3", 2), supprime_le: null,
+      volume_m3: Number((L * l * P).toFixed(3)), emplacement: f.emplacement_fouille, observation: null, source_saisie: "tablette", auteur_terrain_id: CHEF_DEMO.id,
+      motif_id: null, representant_srm: r() < 0.5 ? "M. Tahiri" : null, nature_revetement_id: f.emplacement_fouille === "chaussee" ? id("3", 1) : id("3", 2), supprime_le: null,
     });
     reparationPieces.push({
       id: id("6", reparationPieces.length + 1), marche_id: MARCHE_SRM, reparation_id: rid, produit_id: 9100 + entre(1, 8), designation_libre: null,
@@ -336,12 +338,6 @@ export const importsDolibarr: Ligne[] = [{
   id: id("5", 1), importe_le: "2026-10-05T08:00:00Z", importe_par: null, familles: ["RAC", "CND", "ROB", "AEP", "VRI"], produits_lus: 15,
   nouveaux: 15, modifies: 0, designations_modifiees: 0, desactives: 1,
 }];
-export const equipes: Ligne[] = [
-  { id: id("a", 201), marche_id: MARCHE_SRM, type: "reparation", numero: 1, libelle: "Réparation 1", actif: true },
-  { id: id("a", 202), marche_id: MARCHE_SRM, type: "reparation", numero: 2, libelle: "Réparation 2", actif: true },
-  { id: id("a", 203), marche_id: MARCHE_SRM, type: "reparation", numero: 3, libelle: "Réparation 3", actif: false },
-  { id: id("a", 204), marche_id: MARCHE_SRM, type: "detection", numero: 1, libelle: "Détection 1", actif: true },
-];
 export const ouvriers: Ligne[] = ["Rachid Bouzid", "Mustapha Lahlou", "Abdelkader Ziani", "Said Mimouni", "Omar Belkacem", "Brahim Taleb"].map((nom, i) => ({
   id: id("8", i + 1), marche_id: MARCHE_SRM, nom_complet: nom, matricule: i < 4 ? `OUV-${String(i + 1).padStart(2, "0")}` : null, telephone: i % 2 ? `0662 00 00 ${String(i).padStart(2, "0")}` : null, actif: i !== 5,
 }));
@@ -415,7 +411,7 @@ anticipeesDemo.forEach((f) => {
   lignesAttachement.push({
     id: id("7", ++numLigne), attachement_id: id("e", 3), attachement_statut: "arrete", nature: "anticipation", marche_id: MARCHE_SRM, fuite_id: f.id,
     fuite_numero: f.numero, reference_srm: f.reference_srm, adresse: f.adresse, statut: f.statut, verrouillee: true, zone: f.zone, secteur_id: f.secteur_id,
-    secteur: f.secteur, equipe: null, reparee_le: f.derniere_reparation_le, refectionnee_le: null, prix_id: p.id, prix_numero: p.numero, prix_ordre: p.ordre,
+    secteur: f.secteur, chef_equipe_id: null, chef_equipe: null, reparee_le: f.derniere_reparation_le, refectionnee_le: null, prix_id: p.id, prix_numero: p.numero, prix_ordre: p.ordre,
     prix_designation: p.designation, unite: p.unite, famille: p.famille, pu_ht: p.pu_ht, quantite: surface(f), fouille_longueur_m: null, fouille_largeur_m: null,
     fouille_profondeur_m: null, volume_m3: null, surface_refection_m2: null, regularisation: false, regularisation_negative: false, lot_precedent: null,
     designation: null, motif: "Attaché par anticipation (accord du maître d'ouvrage, règles du marché)", prix_refection_prevu: null,
@@ -449,18 +445,17 @@ export const notifications: Ligne[] = [
 });
 
 // Vues des exports (R4 : noms des agents et ouvriers que les documents remplacent par leur matricule)
-const CHEF_DEMO = { id: id("d", 3), nom: "BENALI Youssef" };
 export const vFuitesExport: Ligne[] = vFuites.map((f) => {
   const rep = reparations.find((x) => x.fuite_id === f.id);
   return { ...f, jour_detection: f.date_detection.slice(0, 10), reparation_le: rep?.realisee_le ?? null, resultat_reparation: rep?.resultat ?? null,
-    equipe_reparation: rep ? `Réparation ${(f.numero % 3) + 1}` : null, chef_reparation: rep ? CHEF_DEMO.nom : null };
+    chef_reparation_id: rep ? CHEF_DEMO.id : null, chef_reparation: rep ? CHEF_DEMO.nom : null };
 });
 export const vPiecesPosees: Ligne[] = reparationPieces.map((p) => {
   const rep = reparations.find((x) => x.id === p.reparation_id)!;
   const f = vFuites.find((x) => x.id === rep.fuite_id)!;
   const produit = produitsDolibarr.find((x) => x.dolibarr_id === p.produit_id);
   return { id: p.id, marche_id: f.marche_id, reparation_id: rep.id, fuite_id: f.id, fuite_numero: f.numero, reference_srm: f.reference_srm, zone: f.zone,
-    secteur_id: f.secteur_id, secteur: f.secteur, equipe_id: rep.equipe_id, equipe: `Réparation ${(f.numero % 3) + 1}`, chef_id: CHEF_DEMO.id, chef: CHEF_DEMO.nom,
+    secteur_id: f.secteur_id, secteur: f.secteur, chef_id: CHEF_DEMO.id, chef: CHEF_DEMO.nom,
     realisee_le: rep.realisee_le, jour: String(rep.realisee_le).slice(0, 10), designation: produit?.designation ?? "?", famille: produit?.famille ?? null,
     unite: produit?.unite ?? "U", quantite: p.quantite, provenance: "terrain" };
 });
@@ -472,7 +467,7 @@ export const TABLES: Record<string, Ligne[]> = {
   attachements, v_attachement_lignes: lignesAttachement, attachement_lignes: lignesAttachement, v_a_attacher: unitesAAttacher, v_attachement_recap: recapAttachement,
   reparations, refections, v_quantites: vQuantites, lignes_quantites: vQuantites, photos, reparation_pieces: reparationPieces, reparation_ouvriers: reparationOuvriers,
   natures_refection: naturesRefection, motifs, produits_dolibarr: produitsDolibarr, imports_dolibarr: importsDolibarr, suggestions_articles: [],
-  equipes, ouvriers, v_anomalies: vAnomalies, v_controles_attachement: [], v_pieces_reelles: [], verrous_admin: [],
+  ouvriers, v_anomalies: vAnomalies, v_controles_attachement: [], v_pieces_reelles: [], verrous_admin: [],
   modeles_export: [], evenements: [], categories_evenements: [], avenants: [], arrets: [], evenements_pieces: [],
   diametres_materiau: diametresMateriau, representants_srm: representantsSrm,
   notifications, v_propositions_anticipation: propositionsAnticipation, v_fuites_export: vFuitesExport, v_pieces_posees: vPiecesPosees,

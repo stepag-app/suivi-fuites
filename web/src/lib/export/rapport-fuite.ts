@@ -43,7 +43,6 @@ export interface PhotoRapport {
 }
 
 export interface ReparationRapport extends Reparation {
-  equipe: string | null;
   chef: string | null;
   representant_srm: string | null;
   motif: string | null;
@@ -58,7 +57,7 @@ export interface RefectionRapport extends Refection {
   natureAr: string | null;
   motif: string | null;
   motifAr: string | null;
-  equipe: string | null;
+  chef: string | null;
 }
 
 export interface FicheRapport {
@@ -117,14 +116,12 @@ const paquets = <T,>(t: T[], n: number) => Array.from({ length: Math.ceil(t.leng
 export async function chargerFiches(ids: string[], marcheId: string, peutMontants: boolean): Promise<FicheRapport[]> {
   const sb = getSupabase();
   // R4 : agents (détection, chef d'équipe) et ouvriers désignés par leur matricule dans le rapport
-  const [eq, mo, na, matricules] = await Promise.all([
-    sb.from('equipes').select('id, libelle').eq('marche_id', marcheId),
+  const [mo, na, matricules] = await Promise.all([
     sb.from('motifs').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
     sb.from('natures_refection').select('id, libelle_fr, libelle_ar').eq('marche_id', marcheId),
     chargerMatricules(marcheId),
   ]);
   const index = <T extends { id: string }>(r: { data: unknown }) => new Map(((r.data as T[] | null) ?? []).map((x) => [x.id, x]));
-  const equipes = index<{ id: string; libelle: string }>(eq);
   const motifs = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(mo);
   const natures = index<{ id: string; libelle_fr: string; libelle_ar: string | null }>(na);
 
@@ -164,7 +161,6 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
         fuite: { ...fuite, detectee_par: matricules.agent(fuite.auteur_terrain_id, fuite.detectee_par), precision_gps_m: extra.get(id)?.precision_gps_m ?? null, methode_detection: extra.get(id)?.methode_detection ?? null },
         reparations: reparations.filter((r) => r.fuite_id === id).map((r) => ({
           ...r,
-          equipe: equipes.get(String(r.equipe_id))?.libelle ?? null,
           chef: r.auteur_terrain_id ? matricules.agent(r.auteur_terrain_id) : null,
           representant_srm: (r.representant_srm as string | null) ?? null,
           motif: motifs.get(String(r.motif_id))?.libelle_fr ?? null,
@@ -183,7 +179,7 @@ export async function chargerFiches(ids: string[], marcheId: string, peutMontant
           natureAr: natures.get(String(r.nature_id))?.libelle_ar ?? null,
           motif: motifs.get(String(r.motif_id))?.libelle_fr ?? null,
           motifAr: motifs.get(String(r.motif_id))?.libelle_ar ?? null,
-          equipe: equipes.get(String(r.equipe_id))?.libelle ?? null,
+          chef: r.auteur_terrain_id ? matricules.agent(r.auteur_terrain_id) : null,
         })),
         photos: ((ph.data as (Omit<PhotoRapport, 'latitude' | 'longitude'> & { fuite_id: string; position: unknown })[] | null) ?? [])
           .filter((p) => p.fuite_id === id)
@@ -478,8 +474,7 @@ export async function genererRapports(
         ? `${nb(r.fouille_longueur_m)} × ${nb(r.fouille_largeur_m)} × ${nb(r.fouille_profondeur_m)} m = ${nb(r.volume_m3, 3)} m³`
         : null;
       y = tableauPaires(paires([
-        ['Équipe', avec('equipes') ? r.equipe ?? '—' : null],
-        ['Chef d\'équipe', avec('equipes') ? r.chef ?? '—' : null],
+        ['Chef d\'équipe', avec('chef_equipe') ? r.chef ?? '—' : null],
         ['Ouvrage', r.ouvrage ? OUVRAGES[r.ouvrage] ?? r.ouvrage : '—'],
         ['Matériau', r.materiau ? MATERIAUX[r.materiau] ?? r.materiau : '—'],
         ['Diamètre', r.diametre_mm ? `Ø ${r.diametre_mm} mm` : '—'],
@@ -491,7 +486,7 @@ export async function genererRapports(
         [`Représentant ${libelles.sigle}`, r.representant_srm],
         ['Motif', r.motif ? r.motif : null, !r.motifAr],
         ['Motif (arabe)', r.motifAr],
-        ['Ouvriers', avec('equipes') && r.ouvriers.length ? r.ouvriers.join(', ') : null, true],
+        ['Ouvriers', avec('chef_equipe') && r.ouvriers.length ? r.ouvriers.join(', ') : null, true],
         ['Pièces posées', avec('pieces') && r.pieces.length ? r.pieces.map((p) => `${p.designation} : ${texteNombre(p.quantite, p.unite === 'u' ? 0 : 2)} ${p.unite}`).join(' ; ') : null, true],
         ['Observation', avec('observations') ? r.observation : null, true],
       ]), y);
@@ -500,19 +495,19 @@ export async function genererRapports(
     // Réfections
     if (avec('refections') && fiche.refections.length) {
       y = titreSection('Réfections', y);
-      const colEquipe = avec('equipes');
+      const colChef = avec('chef_equipe');
       const colObservation = avec('observations');
       autoTable(pdf, {
         ...styleTableau,
         startY: y,
-        head: [['Date', 'Résultat', 'Nature / motif', 'Nature / motif (arabe)', 'Dimensions', ...(colEquipe ? ['Équipe'] : []), ...(colObservation ? ['Observation'] : [])]],
+        head: [['Date', 'Résultat', 'Nature / motif', 'Nature / motif (arabe)', 'Dimensions', ...(colChef ? ['Chef d\'équipe'] : []), ...(colObservation ? ['Observation'] : [])]],
         body: fiche.refections.map((r) => [
           texteDateIso(r.realisee_le),
           r.resultat === 'faite' ? 'Faite' : 'Non faite',
           r.resultat === 'faite' ? r.nature ?? '—' : r.motif ?? '—',
           (r.resultat === 'faite' ? r.natureAr : r.motifAr) ?? '',
           r.resultat === 'faite' ? `${nb(r.longueur_m)} × ${nb(r.largeur_m)} m = ${nb(r.surface_m2, 3)} m²` : '—',
-          ...(colEquipe ? [r.equipe ?? '—'] : []),
+          ...(colChef ? [r.chef ?? '—'] : []),
           ...(colObservation ? [r.observation ?? ''] : []),
         ]),
         columnStyles: { 0: { cellWidth: 'wrap' }, 1: { cellWidth: 'wrap' }, 4: { cellWidth: 'wrap' } },

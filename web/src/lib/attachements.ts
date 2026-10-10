@@ -35,8 +35,9 @@ export interface Unite {
   zone: string | null;
   secteur_id: string | null;
   secteur: string | null;
-  equipe_id: string | null;
-  equipe: string | null;
+  /** Chef d'équipe : compte de la dernière réparation (S12). */
+  chef_equipe_id: string | null;
+  chef_equipe: string | null;
   reparee_le: string | null;
   refectionnee_le: string | null;
   prix_id: string;
@@ -64,7 +65,8 @@ export interface LigneLot {
   adresse: string | null;
   zone: string | null;
   secteur: string | null;
-  equipe: string | null;
+  chef_equipe_id: string | null;
+  chef_equipe: string | null;
   reparee_le: string | null;
   fouille_longueur_m: number | null;
   fouille_largeur_m: number | null;
@@ -106,7 +108,7 @@ export interface Recap {
 export interface ReglesAttachement {
   periodicite: string;
   titre: string;
-  regroupement: 'poste' | 'zone' | 'secteur' | 'equipe';
+  regroupement: 'poste' | 'zone' | 'secteur' | 'chef';
   fuites_admissibles: 'toutes' | 'verrouillees' | 'achevees';
   refection_anticipee: boolean;
   verrouiller_a_l_arret: boolean;

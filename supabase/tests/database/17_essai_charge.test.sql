@@ -25,23 +25,19 @@ select appliquer_modele_role('00000000-0000-0000-0000-00000000000d', (select id 
 update fuites set supprime_le = now()
  where id = (select id from fuites where marche_id = 'de000000-0000-4000-8000-000000000000' and statut = 'achevee' order by numero limit 1);
 
--- 1 200 tronçons balayés sur DEMO (au-delà du plafond de 1 000 lignes de l'API), deux équipes,
--- un second passage sur les 100 premiers, un balayage annulé (ignoré)
-create temporary table t_equipes as
-select (row_number() over (order by numero) - 1)::int as rang, id
-  from equipes where marche_id = 'de000000-0000-4000-8000-000000000000' and type = 'detection';
+-- 1 200 tronçons balayés sur DEMO (au-delà du plafond de 1 000 lignes de l'API) par l'agent b,
+-- un second passage sur les 100 premiers par le chef c, un balayage annulé (ignoré)
 insert into troncons (marche_id, reference, categorie, secteur_id, geom)
 select 'de000000-0000-4000-8000-000000000000', 'CHG-' || n, 'conduite',
        case when n <= 600 then (select id from secteurs where marche_id = 'de000000-0000-4000-8000-000000000000' order by code limit 1) end,
        st_setsrid(st_makeline(st_makepoint(-1.90 + n * 0.00002, 34.68), st_makepoint(-1.90 + n * 0.00002, 34.6801)), 4326)
   from generate_series(1, 1200) n;
-insert into balayages (marche_id, troncon_id, date_balayage, balaye_le, equipe_id, agent_id, saisi_par, methode)
+insert into balayages (marche_id, troncon_id, date_balayage, balaye_le, agent_id, saisi_par, methode)
 select t.marche_id, t.id, date '2026-09-01', timestamptz '2026-09-01 10:00+01',
-       (select q.id from t_equipes q where q.rang = right(t.reference, 1)::int % 2),
        '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000b', 'ecoute'
   from troncons t where t.reference like 'CHG-%';
-insert into balayages (marche_id, troncon_id, date_balayage, balaye_le, equipe_id, agent_id, saisi_par, methode)
-select t.marche_id, t.id, date '2026-09-20', timestamptz '2026-09-20 10:00+01', null, '00000000-0000-0000-0000-00000000000c',
+insert into balayages (marche_id, troncon_id, date_balayage, balaye_le, agent_id, saisi_par, methode)
+select t.marche_id, t.id, date '2026-09-20', timestamptz '2026-09-20 10:00+01', '00000000-0000-0000-0000-00000000000c',
        '00000000-0000-0000-0000-00000000000c', 'correlation'
   from troncons t where t.reference in (select 'CHG-' || n from generate_series(1, 100) n);
 update balayages set annule_le = now(), annule_par = '00000000-0000-0000-0000-00000000000a', motif_annulation = 'essai'
@@ -49,11 +45,10 @@ update balayages set annule_le = now(), annule_par = '00000000-0000-0000-0000-00
 
 -- État décodé depuis la forme compacte (mêmes colonnes que etat_balayage)
 create function pg_temp.etat_decode(p jsonb)
-returns table (troncon_id uuid, premier_le date, dernier_le date, nb_passages integer, equipe_id uuid, agent_id uuid)
+returns table (troncon_id uuid, premier_le date, dernier_le date, nb_passages integer, agent_id uuid)
 language sql as $$
   select (t.v #>> '{}')::uuid, (p -> 'p' ->> (t.i - 1)::int)::date, (p -> 'd' ->> (t.i - 1)::int)::date,
          (p -> 'n' ->> (t.i - 1)::int)::integer,
-         (p -> 'equipes' ->> (p -> 'e' ->> (t.i - 1)::int)::int)::uuid,
          (p -> 'agents' ->> (p -> 'a' ->> (t.i - 1)::int)::int)::uuid
     from jsonb_array_elements(p -> 't') with ordinality t (v, i)
 $$;
@@ -136,13 +131,16 @@ select is(jsonb_array_length(etat_balayage_compact('de000000-0000-4000-8000-0000
 select results_eq(
   $$ select * from pg_temp.etat_decode(etat_balayage_compact('de000000-0000-4000-8000-000000000000')) order by troncon_id $$,
   $$ select * from etat_balayage('de000000-0000-4000-8000-000000000000') order by troncon_id $$,
-  'admin : forme compacte identique à etat_balayage (dates, passages, équipe et agent du dernier passage)');
+  'admin : forme compacte identique à etat_balayage (dates, passages, agent du dernier passage)');
 select is((select count(*)::integer from pg_temp.etat_decode(etat_balayage_compact('de000000-0000-4000-8000-000000000000'))
-            where nb_passages = 2 and dernier_le = '2026-09-20' and equipe_id is null
+            where nb_passages = 2 and dernier_le = '2026-09-20'
               and agent_id = '00000000-0000-0000-0000-00000000000c'), 100,
-  'admin : second passage sans équipe repris (équipe nulle, agent du dernier passage)');
-select is(jsonb_array_length(etat_balayage_compact('de000000-0000-4000-8000-000000000000') -> 'equipes'), 2,
-  'admin : dictionnaire des deux équipes');
+  'admin : second passage repris (agent du dernier passage)');
+select results_eq(
+  $$ select jsonb_array_length(c -> 'agents'), c ? 'equipes', c ? 'e'
+       from etat_balayage_compact('de000000-0000-4000-8000-000000000000') c $$,
+  $$ values (2, false, false) $$,
+  'admin : dictionnaire des deux agents, plus d''équipe (S12)');
 select results_eq(
   $$ select * from pg_temp.etat_decode(etat_balayage_compact('de000000-0000-4000-8000-000000000000',
        array[(select secteur_id from troncons where reference = 'CHG-1' )]::uuid[])) order by troncon_id $$,
@@ -155,7 +153,7 @@ select is(jsonb_array_length(etat_balayage_compact('de000000-0000-4000-8000-0000
   'détection DEMO : état complet visible (balayage / lire)');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 select is(etat_balayage_compact('de000000-0000-4000-8000-000000000000'),
-  '{"t": [], "p": [], "d": [], "n": [], "e": [], "a": [], "equipes": [], "agents": []}'::jsonb,
+  '{"t": [], "p": [], "d": [], "n": [], "a": [], "agents": []}'::jsonb,
   'responsable SRM : rien sur DEMO (document vide, pas d''erreur)');
 select is(jsonb_array_length(etat_balayage_compact((select id from marches where code = 'SRM-4500004453')) -> 't'), 0,
   'responsable SRM : marché sans balayage, document vide');

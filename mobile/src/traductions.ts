@@ -224,7 +224,6 @@ export const TRADUCTIONS = {
   'Maintenant': { ar: 'الآن' },
   'Date ou heure invalide (JJ/MM/AAAA et HH:MM).': { ar: 'تاريخ أو ساعة غير صالحة (يوم/شهر/سنة و ساعة:دقيقة).' },
   'La date est dans le futur : vérifiez-la.': { ar: 'التاريخ في المستقبل: تحقّق منه.' },
-  'Équipe': { ar: 'الفريق' },
   'Constat': { ar: 'المعاينة' },
   'Matériau': { ar: 'المادة' },
   'Diamètre (mm) : DE pour le PE, DN pour les conduites': {

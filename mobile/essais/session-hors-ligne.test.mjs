@@ -283,7 +283,7 @@ app2.arreter();
 
 console.log('8. Ouverture dans les autres cas : jeton valide, réseau présent, lent, refus du serveur');
 const sansJetonAvant = sim.sansJeton.length;
-// Fuite signalée par une autre équipe : la liste du serveur diffère alors de la copie de la tablette.
+// Fuite signalée par un autre agent : la liste du serveur diffère alors de la copie de la tablette.
 let numero8 = 10;
 const nouvelleAuServeur = () => {
   const f = fuite(`f${++numero8}`, numero8);
@@ -406,7 +406,7 @@ verifier(repondu9 === false && lecture9 < 1 && sim.journal.length === requetes9 
 const [seule9, attente9] = await attendre(supabase.from('v_fuites').select('*').eq('marche_id', MARCHE.id));
 verifier(seule9.error && sim.sansJeton.at(-1) === 'v_fuites:select:anonyme',
   `auth-js seul : la même lecture part au bout de ${attente9} s avec la clé anonyme (refusée)`, sim.sansJeton);
-attendue = nouvelleAuServeur(); // signalée entre-temps par une autre équipe
+attendue = nouvelleAuServeur(); // signalée entre-temps par un autre agent
 sim.authEnPanne = false;
 const renouvele9 = await attendreQue(() => !a9.etat().aRenouveler);
 verifier(a9.etat().session?.access_token !== s9.access_token && renouvele9 <= 90,

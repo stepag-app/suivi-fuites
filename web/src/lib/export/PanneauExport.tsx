@@ -11,6 +11,7 @@ import {
   PERIODES, REGROUPEMENTS, colonnesAttachement, documentAttachement, documentJeu,
   type Contexte, type Filtres, type Jeu, type JeuId, type Periode,
 } from './jeux';
+import { chargerMatricules } from './matricules';
 import { construireSection, parcourir, texteCellule, type Colonne, type Ligne } from './modele';
 import { estModeleRubriques } from './rubriques';
 
@@ -19,6 +20,20 @@ interface Modele {
   filtres: Partial<Filtres>; format: FormatExport; orientation: 'portrait' | 'paysage';
 }
 interface Choix { id: string; libelle: string }
+
+// Chefs d'équipe du marché (l'équipe, c'est le compte du chef d'équipe : S12) : comptes actifs au rôle chef_reparation.
+async function chargerChefs(marcheId: string): Promise<Choix[]> {
+  const sb = getSupabase();
+  const { data, error } = await sb.from('affectations').select('profil_id, roles').eq('marche_id', marcheId).eq('actif', true);
+  if (error) return [];
+  const ids = ((data as { profil_id: string; roles: string[] | null }[] | null) ?? [])
+    .filter((a) => a.roles?.includes('chef_reparation')).map((a) => a.profil_id);
+  if (!ids.length) return [];
+  const p = await sb.from('profils').select('id, nom_complet').in('id', ids).eq('actif', true);
+  return ((p.data as { id: string; nom_complet: string }[] | null) ?? [])
+    .map((x) => ({ id: x.id, libelle: x.nom_complet }))
+    .sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+}
 
 const APERCU = 5;
 
@@ -38,7 +53,7 @@ export function PanneauExport({
   const [modeles, setModeles] = useState<Modele[]>([]);
   const [zones, setZones] = useState<Choix[]>([]);
   const [secteurs, setSecteurs] = useState<Choix[]>([]);
-  const [equipes, setEquipes] = useState<Choix[]>([]);
+  const [chefs, setChefs] = useState<Choix[]>([]);
   const [jeuId, setJeuId] = useState<JeuId>(attachement ? 'attachement' : jeux[0]?.id ?? 'fuites');
   const [modeleId, setModeleId] = useState('');
   const [colonnes, setColonnes] = useState<Set<string>>(new Set());
@@ -63,7 +78,7 @@ export function PanneauExport({
     return jeu?.colonnes(ctx) ?? [];
   }, [ctx, jeu, jeuId]);
   const regroupements: [string, string][] = jeuId === 'attachement'
-    ? [['article', 'Par article'], ['zone', 'Par zone'], ['secteur', 'Par secteur'], ['equipe', 'Par équipe'], ['aucun', 'Aucun']]
+    ? [['article', 'Par article'], ['zone', 'Par zone'], ['secteur', 'Par secteur'], ['chef', "Par chef d'équipe"], ['aucun', 'Aucun']]
     : jeu?.regroupements ?? [['aucun', 'Aucun']];
 
   // Contexte du marché (fiche, OS, règles), modèles et listes de filtres : une fois par ouverture.
@@ -78,7 +93,7 @@ export function PanneauExport({
         .eq('marche_id', marcheId).eq('actif', true).order('ordre').order('nom'),
       sb.from('zones').select('id, libelle').eq('marche_id', marcheId).order('numero'),
       sb.from('secteurs').select('id, libelle').eq('marche_id', marcheId).order('libelle'),
-      sb.from('equipes').select('id, libelle').eq('marche_id', marcheId).eq('actif', true).order('libelle'),
+      chargerChefs(marcheId),
     ]);
     const premiere = m.error || o.error;
     if (premiere) setErreur(messageErreur(premiere));
@@ -95,7 +110,7 @@ export function PanneauExport({
     setModeles(((mo.data as Modele[] | null) ?? []).filter((m) => !estModeleRubriques(m)));
     setZones((z.data as Choix[] | null) ?? []);
     setSecteurs((s.data as Choix[] | null) ?? []);
-    setEquipes((e.data as Choix[] | null) ?? []);
+    setChefs(e);
   }, [marcheId, peut]);
 
   useEffect(() => {
@@ -200,8 +215,12 @@ export function PanneauExport({
     setInfo('');
     setOccupe(true);
     try {
+      // R4 : chef d'équipe désigné par son matricule dans l'attachement
+      const matricules = jeuId === 'attachement' && attachement && marcheId ? await chargerMatricules(marcheId) : null;
       const d = jeuId === 'attachement' && attachement
-        ? documentAttachement(attachement.lot, attachement.lignes, attachement.recap, ctx, {
+        ? documentAttachement(attachement.lot, attachement.lignes.map((l) => ({
+            ...l, chef_equipe: matricules && l.chef_equipe_id ? matricules.agent(l.chef_equipe_id, l.chef_equipe) : l.chef_equipe,
+          })), attachement.recap, ctx, {
             colonnes: ordreColonnes, regroupement, orientation, zone: attachement.zone,
           })
         : documentJeu(jeu!, lignesRetenues, ctx, {
@@ -249,7 +268,7 @@ export function PanneauExport({
   }
 
   if (!ouvert) return null;
-  const choixFiltre = (liste: Choix[], valeur: string | undefined, cle: 'zone' | 'secteur' | 'equipe', libelle: string, tous: string) => (
+  const choixFiltre = (liste: Choix[], valeur: string | undefined, cle: 'zone' | 'secteur' | 'chef', libelle: string, tous: string) => (
     <label>
       {libelle}
       <select value={valeur ?? ''} onChange={(e) => setFiltres({ ...filtres, [cle]: e.target.value || undefined })}>
@@ -322,7 +341,7 @@ export function PanneauExport({
               <div className="deux">
                 {jeu.filtres.includes('zone') && choixFiltre(zones, filtres.zone, 'zone', 'Zone', 'Toutes')}
                 {jeu.filtres.includes('secteur') && choixFiltre(secteurs, filtres.secteur, 'secteur', 'Secteur', 'Tous')}
-                {jeu.filtres.includes('equipe') && choixFiltre(equipes, filtres.equipe, 'equipe', 'Équipe', 'Toutes')}
+                {jeu.filtres.includes('chef') && choixFiltre(chefs, filtres.chef, 'chef', "Chef d'équipe", 'Tous')}
               </div>
               {jeu.filtres.includes('synthese') && (
                 <label className="ligne">

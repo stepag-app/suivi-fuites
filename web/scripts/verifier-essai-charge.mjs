@@ -99,14 +99,14 @@ await ok('fonctionAbsente : fonction inconnue de l\'API ou rpc sans résultat (d
 await ok('état de balayage compact déplié comme etat_balayage', () => {
   const l = deplierEtatBalayage({
     t: ['t1', 't2', 't3'], p: ['2026-09-01', '2026-09-02', '2026-09-03'], d: ['2026-09-20', '2026-09-02', '2026-09-03'],
-    n: [2, 1, 1], e: [null, 0, 1], a: [1, 0, null], equipes: ['eA', 'eB'], agents: ['g1', 'g2'],
+    n: [2, 1, 1], a: [1, 0, null], agents: ['g1', 'g2'],
   });
   assert.deepEqual(l, [
-    { troncon_id: 't1', premier_le: '2026-09-01', dernier_le: '2026-09-20', nb_passages: 2, equipe_id: null, agent_id: 'g2' },
-    { troncon_id: 't2', premier_le: '2026-09-02', dernier_le: '2026-09-02', nb_passages: 1, equipe_id: 'eA', agent_id: 'g1' },
-    { troncon_id: 't3', premier_le: '2026-09-03', dernier_le: '2026-09-03', nb_passages: 1, equipe_id: 'eB', agent_id: null },
+    { troncon_id: 't1', premier_le: '2026-09-01', dernier_le: '2026-09-20', nb_passages: 2, agent_id: 'g2' },
+    { troncon_id: 't2', premier_le: '2026-09-02', dernier_le: '2026-09-02', nb_passages: 1, agent_id: 'g1' },
+    { troncon_id: 't3', premier_le: '2026-09-03', dernier_le: '2026-09-03', nb_passages: 1, agent_id: null },
   ]);
-  assert.deepEqual(deplierEtatBalayage({ t: [], p: [], d: [], n: [], e: [], a: [], equipes: [], agents: [] }), []);
+  assert.deepEqual(deplierEtatBalayage({ t: [], p: [], d: [], n: [], a: [], agents: [] }), []);
 });
 
 const MAINTENANT = new Date('2026-10-05T09:00:00Z');

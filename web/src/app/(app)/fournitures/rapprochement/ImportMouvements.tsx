@@ -10,7 +10,7 @@ import styles from '../fournitures.module.css';
 
 const TAILLE_MAX = 20 * 1024 * 1024;
 
-// Import des mouvements de stock (administrateur) : un ou plusieurs fichiers CSV lus dans le navigateur
+// Import manuel des mouvements de stock (administrateur), en secours de l'envoi automatique (X8) : un ou plusieurs fichiers CSV lus dans le navigateur
 // (export courant et complément de la dotation initiale) ; seules les colonnes utiles partent vers la base.
 export function ImportMouvements({
   entrepotMarche, dernierImport, apresImport,
@@ -64,14 +64,15 @@ export function ImportMouvements({
 
   return (
     <section className="carte">
-      <h2>Importer les mouvements de stock (export Dolibarr)</h2>
+      <h2>Import manuel des mouvements (secours)</h2>
       <p className="discret">
+        À utiliser si l&apos;envoi automatique est arrêté (serveur Dolibarr hors service, tâche planifiée non installée).
         Fichiers « mouvements_chantier… .csv » de l&apos;export Dolibarr (séparateur « ; », UTF-8), un ou plusieurs à la fois
         (export courant et complément de la dotation initiale). On peut réimporter à tout moment : un mouvement déjà connu est
         laissé tel quel, ou mis à jour s&apos;il a changé dans Dolibarr ; rien n&apos;est supprimé.
         {dernierImport && (
           <>
-            {' '}Dernier import le {dateHeure(dernierImport.importe_le)} : {dernierImport.lignes_lues} ligne{dernierImport.lignes_lues > 1 ? 's' : ''}
+            {' '}Dernier import CSV le {dateHeure(dernierImport.importe_le)} : {dernierImport.lignes_lues} ligne{dernierImport.lignes_lues > 1 ? 's' : ''}
             {dernierImport.date_min && dernierImport.date_max ? ` (du ${dateHeure(dernierImport.date_min)} au ${dateHeure(dernierImport.date_max)})` : ''}.
           </>
         )}

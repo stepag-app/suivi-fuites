@@ -20,3 +20,7 @@ verify_jwt = true
 
 [functions.reseau-tuiles]
 verify_jwt = true
+
+# Appelée par la tâche planifiée du serveur Dolibarr, sans compte : elle vérifie elle-même le jeton dédié (DOLIBARR_JETON).
+[functions.dolibarr-mouvements]
+verify_jwt = false

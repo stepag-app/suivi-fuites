@@ -74,6 +74,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/34_s11_suivi_gps.test.sql` | 57 tests S11 : privilèges, un tracé par agent et par jour, géométrie M, idempotence (même lot, lot qui recoupe, lot plus ancien reçu après), minuit d'Oujda, points invalides, refus (autre marché, révoqué, marché désactivé, 1 000 points), lecture responsable / administrateur seulement, isolation entre marchés, purge (droits, marché actif refusé, journal) |
 | `tests/database/13_inventaire_fournitures.test.sql` | 17 tests du lot P3 (privilèges, aucun prix ni référence, inventaire réel avec corrections, remplacées / retirées / réparation supprimée exclues, résumé par période, droits : responsable et administrateur seulement, isolation) |
 | `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
+| `migrations/20261013100000_envoi_dolibarr.sql` | chantier v3, S13 (X8) : envoi automatique des mouvements Dolibarr ; `envois_dolibarr` (journal : envois reçus, signes de vie et erreurs regroupés, 400 jours ; lecture comme `imports_mouvements_dolibarr`), `recevoir_envoi_dolibarr(jsonb)` (**service_role seulement**, appelée par la fonction `dolibarr-mouvements` : actions `etat`, `envoyer`, `erreur` ; entrepôts suivis seulement, nouveaux ou changés seulement, puis `importer_mouvements_dolibarr`) |
+| `tests/database/43_s13_envoi_dolibarr.test.sql` | 34 tests S13 : privilèges (service_role seulement, journal en lecture), état par entrepôt suivi, entrepôt non suivi ignoré, sans doublon, renvoi sans nouvel import, mise à jour, envoi refusé en bloc et journalisé, regroupements, erreur du script, lecture du journal |
+| `functions/dolibarr-mouvements/` | fonction serveur sans JWT : jeton dédié `x-jeton-dolibarr` comparé au secret `DOLIBARR_JETON` (posé par le workflow depuis le secret GitHub du même nom), puis `recevoir_envoi_dolibarr` ; 503 si le secret manque |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -344,8 +347,16 @@ depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par en
   Dolibarr, administrateur) ; `importer_mouvements_dolibarr(jsonb)` ne lit que les clés utiles (jamais prix, valeur, PMP),
   idempotent par rowid. Importer **les deux fichiers** (courant et dotation initiale du 2026-09-30) : sur l'export du
   2026-10-05, 93 mouvements, 16 lignes d'annulation, 45 références, **143,5 unités transférées** (égal au stock de
-  l'entrepôt 76 relevé dans Dolibarr). L'envoi automatique depuis le serveur Dolibarr (X8) appellera la même fonction en
-  `service_role`.
+  l'entrepôt 76 relevé dans Dolibarr). Ce CSV reste le **secours** de l'envoi automatique (ci-dessous).
+- **Envoi automatique (X8, S13)** : tâche planifiée sur le serveur Dolibarr (`outils/dolibarr/`, toutes les 15 min,
+  sortante seulement) → fonction `dolibarr-mouvements` (jeton dédié) → `recevoir_envoi_dolibarr` (service_role) →
+  `importer_mouvements_dolibarr`. Le script demande d'abord l'**état** (plus grand rowid reçu par entrepôt suivi, CSV
+  compris), lit dans Dolibarr les mouvements plus récents et ceux des 3 derniers jours, et les envoie par lots ; la base ne
+  passe à l'import que les nouveaux ou changés (jamais de doublon : clé = rowid Dolibarr), ignore les entrepôts qu'aucun
+  marché ne suit et refuse un lot invalide **en bloc** (journalisé, réessayé au passage suivant). Après une coupure, le
+  rattrapage est automatique. Journal `envois_dolibarr` affiché sur la page Rapprochement (« Dernier envoi automatique »,
+  erreurs, « en retard » au-delà d'une heure sans nouvelles). Un import de l'envoi automatique n'a pas d'auteur
+  (`imports_mouvements_dolibarr.importe_par` nul).
 - **Calcul** (`rapprochement_fournitures`) : transféré = somme signée des mouvements de l'entrepôt du marché hors
   consommations (retours déduits, paires « CANCEL » neutralisées) ; consommé = sortie de type 1 sans entrepôt de
   contrepartie, hors annulation ; posé = inventaire réel par jour de réparation ; écart = transféré − consommé − posé, sur la

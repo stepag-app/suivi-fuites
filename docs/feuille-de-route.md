@@ -146,7 +146,90 @@ règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF a
         avec le fichier) ;
       - **procédure de restauration écrite et testée** (base + photos) sur une pile Supabase locale.
 
-## 5. Questions ouvertes pour Issam
+## 5. Étape ultime : dépôt fermé et rotation de tous les secrets (avant la mise en production)
+
+Demande d'Issam du 2026-10-10. **Dernière étape avant la remise au client.** Le dépôt `stepag-app/suivi-fuites`
+est **public depuis le 2026-10-09** : tout ce qui y a transité doit être considéré comme vu (clones, forks, caches).
+Le refermer ne suffit pas : on **change tout**, puis on range **tout** au même endroit.
+
+**Coffre unique** : un gestionnaire de mots de passe (Bitwarden ou KeePassXC, à choisir par Issam), une entrée par
+compte ou secret (site, identifiant, mot de passe ou valeur, 2FA, codes de secours, date de rotation), le keystore
+en pièce jointe ; **une copie hors ligne** (clé USB chiffrée) en plus. Jamais dans le dépôt, le chat, un e-mail ni
+un fichier en clair sur le Mac. Claude prépare la liste et le pas-à-pas ; **Issam saisit lui-même** chaque mot de
+passe et chaque valeur (Claude ne voit ni ne tape aucun secret).
+
+### Ordre
+
+1. **Avant** : `gitleaks` sur tout l'historique Git (y compris branches fermées) ; liste de ce qui a fuité, s'il y a lieu.
+2. **Fermer le dépôt** : GitHub > Settings > visibility **Private** (facturation des minutes Actions réglée avant) ;
+   vérifier les forks et retirer les collaborateurs ou applications inutiles.
+3. **Comptes** (A) : changer le mot de passe, vérifier la 2FA, régénérer les codes de secours, déconnecter les
+   autres sessions, revoir les applications tierces autorisées. **Gmail d'abord** (il récupère tous les autres).
+4. **Secrets techniques** (B) : régénérer, reposer partout où ils servent, **ancienne valeur révoquée seulement
+   après** vérification que tout marche.
+5. **Comptes de l'application** (C).
+6. **Keystore** (D), s'il le faut.
+7. **Contrôle final** : panneau web, APK, sauvegarde nocturne, push, photos R2 et satellite essayés avec les
+   nouvelles valeurs ; date de la prochaine rotation notée dans le coffre.
+
+### A. Comptes (mot de passe + 2FA + codes de secours)
+
+| # | Compte | Remarques |
+|---|---|---|
+| A1 | Google `stepag.app@gmail.com` | en premier ; mots de passe d'application à révoquer ; adresse et téléphone de récupération à vérifier ; sert aussi à Firebase et à Esri |
+| A2 | GitHub `stepag-app` | 2FA ; jetons personnels (PAT), clés SSH, applications OAuth / GitHub Apps (Vercel, Supabase, Claude) à revoir |
+| A3 | Supabase (connexion par GitHub) | 2FA + **seconde appli d'authentification** ; jetons d'accès personnels |
+| A4 | Vercel, équipe `STEPAG` (connexion par GitHub) | jetons d'accès ; passage à Pro au même moment |
+| A5 | Cloudflare | 2FA, codes de récupération **régénérés** ; jetons API ; DNS de `stepag.ma` |
+| A6 | Firebase / Google Cloud (compte A1) | comptes de service à revoir |
+| A7 | Esri ArcGIS `stepag-fuites.maps.arcgis.com` | mot de passe (pas de 2FA, décision d'Issam) |
+| A8 | Compte Claude utilisé pour le développement | sessions et intégrations GitHub connectées |
+| A9 | Sentry, s'il a été créé | |
+| A10 | Mac de développement | sessions CLI à refaire après rotation : `gh auth`, `supabase login`, `vercel login` |
+
+### B. Secrets techniques (où ils vivent)
+
+| # | Secret | Où le reposer | Comment le régénérer |
+|---|---|---|---|
+| B1 | Mot de passe de la base Supabase (`SUPABASE_DB_PASSWORD`) | secret GitHub, `.env` local | Supabase > Database > Reset password |
+| B2 | Clé anon / publishable (`NEXT_PUBLIC_SUPABASE_ANON_KEY`, `EXPO_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_ANON_KEY`) | Vercel, secret GitHub (APK), `web/.env.local`, `mobile/.env` | nouvelles clés d'API Supabase (publishable / secret) ou rotation du secret JWT ; **un nouvel APK est nécessaire** (clé compilée dedans) |
+| B3 | Clé `service_role` / secret (`SUPABASE_SERVICE_ROLE_KEY`, `SB_SERVICE` des scripts) | injectée par Supabase dans les fonctions ; `.env` local des scripts | même opération que B2 ; la rotation du secret JWT **déconnecte tous les utilisateurs** |
+| B4 | Jeton d'accès Supabase (`SUPABASE_ACCESS_TOKEN`) | secret GitHub (déploiement de la base) | Supabase > Account > Access tokens : en créer un, supprimer l'ancien |
+| B5 | Phrase secrète des sauvegardes (`SAUVEGARDE_PASSPHRASE`) | secret GitHub | nouvelle phrase ; **garder l'ancienne dans le coffre** (elle seule ouvre les sauvegardes déjà faites) |
+| B6 | R2 (`R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, variable `R2_BUCKET`) | secrets GitHub, secrets des fonctions Supabase (`photos-r2`, `reseau-tuiles`), Vercel si posés | Cloudflare > R2 > API tokens : nouveau jeton limité au bucket, supprimer l'ancien |
+| B7 | Firebase (`GOOGLE_SERVICES_JSON`, `FIREBASE_SERVICE_ACCOUNT`) | secrets GitHub (APK), secret de la fonction `envoyer-push` | nouvelle clé du compte de service, ancienne supprimée ; `google-services.json` se retélécharge (identifiants de projet, pas un vrai secret) |
+| B8 | Clé Esri (`NEXT_PUBLIC_ESRI_CLE`) | Vercel | nouvelle clé limitée à `fuites.stepag.ma` et au privilège Basemaps ; renouvellement annuel |
+| B9 | Keystore Android (`ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`) | secrets GitHub ; fichier dans `~/Documents/STEPAG-KEYSTORE/` + 2 copies | voir D |
+| B10 | Clé de test PostgREST (`PGRST_JWT_SECRET`) | essai local seulement | à vérifier qu'il ne s'agit que d'une valeur d'essai |
+
+Valeurs **non secrètes** à recopier quand même dans le coffre (pour tout reconstruire) : `SUPABASE_URL`,
+`SUPABASE_PROJECT_REF`, `NEXT_PUBLIC_DOMAINE_AGENTS` / `DOMAINE_AGENTS`, `NEXT_PUBLIC_NOM_ORGANISATION`,
+`EXPO_PUBLIC_WEB_URL`.
+
+**Recensement à refaire juste avant l'étape** (de nouveaux secrets auront pu s'ajouter) : `git grep` sur
+`secrets.`, `vars.`, `process.env.`, `Deno.env.get` et les `.env.example`, puis comparaison avec les listes de
+GitHub (Settings > Secrets), Vercel (Environment Variables) et Supabase (Edge Functions > Secrets).
+
+### C. Comptes de l'application
+
+- Comptes d'essai et de démonstration créés pendant le développement : **supprimés** ou désactivés.
+- Comptes administrateur STEPAG : nouveau mot de passe ; comptes agents : mot de passe réinitialisé par l'administrateur.
+- Comptes de suivi SRM : créés seulement à la mise en production.
+
+### D. Keystore Android (s'il le faut)
+
+Le keystore n'est jamais passé par le dépôt ; le changer n'est **utile que s'il a été exposé** (secrets GitHub lus
+par un tiers, copie perdue). Si on le change :
+
+- générer le nouveau keystore hors dépôt, 2 copies + coffre, mettre à jour les 3 secrets GitHub ;
+- **de préférence, rotation de clé APK v3** (`apksigner rotate` + lignée signée par l'ancienne clé) : les tablettes
+  acceptent la mise à jour **sans désinstaller** ;
+- sinon, une signature différente oblige à **désinstaller puis réinstaller** sur chaque tablette : vider d'abord la
+  file d'attente hors ligne de chaque tablette (rien de non envoyé), puis reconnexion des agents ;
+- compiler et installer un nouvel APK signé (de toute façon nécessaire si B2 change), vérifier la signature
+  (`apksigner verify --print-certs`).
+
+## 6. Questions ouvertes pour Issam
 
 - Modèle exact des états journaliers / hebdomadaires et du rapport par fuite exigé par la SRM.
 - Suivi GPS : heures de suivi, information des agents, CNDP ; seuil de contrôle tronçon / tracé.
@@ -154,3 +237,4 @@ règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF a
 - Logos : fichiers du titulaire (STEPAG) et du maître d'ouvrage (SRM), droit d'usage du logo client.
 - Sauvegarde complète : destination (Gmail dédié, Drive, R2), fréquence (nuit ? semaine pour les photos ?),
   durée de conservation, qui détient la phrase secrète.
+- Étape ultime (§ 5) : gestionnaire de mots de passe retenu (Bitwarden ou KeePassXC) et emplacement de la copie hors ligne.

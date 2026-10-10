@@ -139,6 +139,7 @@
 
 
 /* Envoi automatique Dolibarr (X8) */
+.synchro { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.8rem; }
 .etatEnvoi { display: inline-block; padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.82rem; font-weight: 600; border: 1px solid currentColor; }
 .etat_en_service { color: var(--st-positif); background: var(--succes-fond); }
 .etat_en_retard { color: var(--attention); background: var(--carte); border-color: var(--attention-bord); }

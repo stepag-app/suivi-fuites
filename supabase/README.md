@@ -78,7 +78,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/14_rapprochement_dolibarr.test.sql` | 54 tests du lot P4 (RLS, aucun prix, entrepôt réservé à l'administrateur, seuil du responsable, import idempotent et mis à jour, serveur accepté, isolation par l'entrepôt, annulations, retours, consommations, posé réel, période et cumul, seuil, copie du marché, journal) |
 | `migrations/20261013100000_envoi_dolibarr.sql` | chantier v3, S13 (X8) : envoi automatique des mouvements Dolibarr ; `envois_dolibarr` (journal : envois reçus, signes de vie et erreurs regroupés, 400 jours ; lecture comme `imports_mouvements_dolibarr`), `recevoir_envoi_dolibarr(jsonb)` (**service_role seulement**, appelée par la fonction `dolibarr-mouvements` : actions `etat`, `envoyer`, `erreur` ; entrepôts suivis seulement, nouveaux ou changés seulement, puis `importer_mouvements_dolibarr`) |
 | `tests/database/43_s13_envoi_dolibarr.test.sql` | 34 tests S13 : privilèges (service_role seulement, journal en lecture), état par entrepôt suivi, entrepôt non suivi ignoré, sans doublon, renvoi sans nouvel import, mise à jour, envoi refusé en bloc et journalisé, regroupements, erreur du script, lecture du journal |
-| `functions/dolibarr-mouvements/` | fonction serveur sans JWT : jeton dédié `x-jeton-dolibarr` comparé au secret `DOLIBARR_JETON` (posé par le workflow depuis le secret GitHub du même nom), puis `recevoir_envoi_dolibarr` ; 503 si le secret manque |
+| `migrations/20261014700000_lecture_api_dolibarr.sql` | chantier v3, S13 bis (X8) : **lecture de l'API REST de Dolibarr** à la place de l'envoi poussé (script retiré) ; `private.synchro_dolibarr` (adresse de la fonction, clé d'appel tirée au hasard, verrou), `verifier_cle_synchro_dolibarr` (service_role), `peut_synchroniser_dolibarr` (bouton : administrateur ou « quantités / lire »), `recevoir_envoi_dolibarr` étendue (actions `debut` / `fin` du verrou, erreur d'origine `api`, n° de bon et projet absents gardés, sinon projet de l'entrepôt), `declencher_synchro_dolibarr` planifiée par pg_cron (`lecture-dolibarr`, toutes les 15 min, pg_net) |
+| `tests/database/46_s13_lecture_api_dolibarr.test.sql` | 27 tests : clé d'appel privée et vérifiée, droits du bouton, verrou (occupé, périmé, rendu), bon et projet gardés ou projet de l'entrepôt, date avec fuseau, renvoi sans changement, erreur de lecture journalisée |
+| `functions/dolibarr-mouvements/` | fonction serveur sans JWT imposé : lit l'API REST de Dolibarr derrière Cloudflare Access (`lecture-api.ts`, GET seulement, secrets `DOLIBARR_API_URL`, `DOLIBARR_API_CLE`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`) et passe les mouvements à `recevoir_envoi_dolibarr` ; appelée par la base (clé `x-cle-synchro`, réponse 202) ou par le bouton du panneau (jeton du compte) ; 503 si les secrets manquent ; détails `outils/dolibarr/README.md` |
 | `migrations/20261013300000_debits_nuit.sql` | chantier v3, S15 (D1 à D6) : débits de nuit et pénalités de performance (CPS art. II-17, II-22, II-23, tableau n° 1) ; `zones.q_plus_bas_historique_m3h`, `q_actuel_m3h` (SRM : tableau n° 1), `balayage_acheve_le` ; réglages `marches.debits_*` (saisie proposée, assiette zone ou marché, points proportionnels ou entiers, plafond et seuils de 25 %) ; `points_mesure` (« paramètres »), `campagnes_debit` (avant, après, maintien, libre ; « mesures_debit / valider »), `mesures_nuit` (une par campagne, point et nuit : relevés de 0 h à 6 h ou minimum ; saisie du terrain à valider, `valider_etapes` étape « debit ») ; compartiment privé `debits` ; vues `v_debits_nuits` (somme des points au même instant, sinon somme des minimums « approchée »), `v_debits_campagnes`, `v_debits_a_valider` ; `debits_resultats` (Qi, Qf, ΔQ, τ1, τ2, pénalités, alertes d'arrêt de zone et de dégradation), `penalite_points`, `enregistrer_mesures_nuit`. Contrat : `docs/lots/chantier-v3-debits.md` |
 | `tests/database/40_s15_debits_nuit.test.sql` | 91 tests S15 : privilèges, tableau n° 1, points de pénalité, points et campagnes (droits, défauts), saisie (normalisation, refus), débit au même instant ou approché, nuits incomplètes, validation du terrain, Qi, Qf, τ1, τ2, plafond, points entiers, assiette marché, seuils, montants cachés, suppression logique, isolation, pièces jointes, marché désactivé, journal |
 | `migrations/20261013400000_reseau_lecture_paginee.sql` | tuiles du réseau (X5) : `reseau_geojson_page` et `noeuds_geojson_page`, lecture du réseau complet d'un marché (zonés et non zonés, actifs) par pages bornées dans l'ordre de la référence (index unique `marche_id, reference` ; 1 à 5 000, 2 000 tronçons ou 3 000 nœuds par défaut ; « suivant » = dernière référence, nul à la fin), mêmes propriétés que `reseau_geojson` / `noeuds_geojson`, RLS de l'appelant : le réseau d'Oujda en un bloc (15 Mo de JSON) dépassait le délai maximal d'une requête en production |
@@ -492,8 +494,9 @@ Les produits Dolibarr sont le seul référentiel des pièces posées, commun à 
    ligne ou sélection). L'activation vaut pour tous les marchés.
 
 Article du bordereau suggéré pour une pièce (contrôles de l'attachement) : Paramètres > Bordereau > « Article suggéré pour
-les pièces posées », règle par article ou par famille, propre à chaque marché. Le réparateur ne voit jamais de code. L'API REST de Dolibarr n'accepte que les adresses du réseau local (`API_RESTRICT_ON_IP`) : pas d'appel
-depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par envoi depuis le serveur.
+les pièces posées », règle par article ou par famille, propre à chaque marché. Le réparateur ne voit jamais de code. L'API REST de Dolibarr est ouverte en lecture à Supabase seul
+(Cloudflare Access, jeton de service ; utilisateur `api-suivi-fuites` en lecture ; liste d'adresses IP vidée le 2026-10-10) :
+voir `outils/dolibarr/README.md`.
 
 ## Fournitures posées et rapprochement Dolibarr (chantier v2, X3 : lots P3 et P4)
 
@@ -508,15 +511,16 @@ depuis Vercel ni GitHub ; la synchronisation automatique (lot P4) se fera par en
   idempotent par rowid. Importer **les deux fichiers** (courant et dotation initiale du 2026-09-30) : sur l'export du
   2026-10-05, 93 mouvements, 16 lignes d'annulation, 45 références, **143,5 unités transférées** (égal au stock de
   l'entrepôt 76 relevé dans Dolibarr). Ce CSV reste le **secours** de l'envoi automatique (ci-dessous).
-- **Envoi automatique (X8, S13)** : tâche planifiée sur le serveur Dolibarr (`outils/dolibarr/`, toutes les 15 min,
-  sortante seulement) → fonction `dolibarr-mouvements` (jeton dédié) → `recevoir_envoi_dolibarr` (service_role) →
-  `importer_mouvements_dolibarr`. Le script demande d'abord l'**état** (plus grand rowid reçu par entrepôt suivi, CSV
-  compris), lit dans Dolibarr les mouvements plus récents et ceux des 3 derniers jours, et les envoie par lots ; la base ne
-  passe à l'import que les nouveaux ou changés (jamais de doublon : clé = rowid Dolibarr), ignore les entrepôts qu'aucun
-  marché ne suit et refuse un lot invalide **en bloc** (journalisé, réessayé au passage suivant). Après une coupure, le
-  rattrapage est automatique. Journal `envois_dolibarr` affiché sur la page Rapprochement (« Dernier envoi automatique »,
-  erreurs, « en retard » au-delà d'une heure sans nouvelles). Un import de l'envoi automatique n'a pas d'auteur
-  (`imports_mouvements_dolibarr.importe_par` nul).
+- **Synchronisation (X8, S13)** : Supabase lit l'API REST de Dolibarr toutes les 15 min (pg_cron → pg_net → fonction
+  `dolibarr-mouvements`, clé d'appel de la base) ou à la demande (bouton « Synchroniser maintenant » de la page
+  Rapprochement), puis `recevoir_envoi_dolibarr` (service_role) → `importer_mouvements_dolibarr`. Une lecture à la fois
+  (verrou de 3 min). Par entrepôt suivi : mouvements de rowid plus grand que le dernier reçu (CSV compris) et ceux des
+  3 derniers jours ; seuls les nouveaux ou changés sont importés (jamais de doublon : clé = rowid Dolibarr) ; entrepôts
+  qu'aucun marché ne suit ignorés ; lot invalide refusé **en bloc** (journalisé, retenté au passage suivant). Entrepôt
+  d'en face retrouvé par le mouvement jumeau ; n° de bon et projet absents de l'API gardés. Rattrapage automatique après
+  une coupure. Journal `envois_dolibarr` affiché sur la page Rapprochement (« Dernière lecture avec nouveautés », erreurs,
+  « en retard » au-delà d'une heure sans passage). Un import de la synchronisation n'a pas d'auteur
+  (`imports_mouvements_dolibarr.importe_par` nul). Accès, pièges de l'API et essais : `outils/dolibarr/README.md`.
 - **Calcul** (`rapprochement_fournitures`) : transféré = somme signée des mouvements de l'entrepôt du marché hors
   consommations (retours déduits, paires « CANCEL » neutralisées) ; consommé = sortie de type 1 sans entrepôt de
   contrepartie, hors annulation ; posé = inventaire réel par jour de réparation ; écart = transféré − consommé − posé, sur la

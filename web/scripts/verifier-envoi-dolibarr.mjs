@@ -1,5 +1,6 @@
-// Vérification de l'état de l'envoi automatique Dolibarr (X8) lu dans le journal envois_dolibarr : jamais reçu, en service,
-// en retard au-delà d'une heure, en erreur après le dernier passage réussi, libellés du journal.
+// Vérification de l'état de la synchronisation Dolibarr (X8) lu dans le journal envois_dolibarr : jamais reçu, en service,
+// en retard au-delà d'une heure, en erreur après le dernier passage réussi, libellés du journal et du bouton
+// « Synchroniser maintenant ».
 // Lancement, dans web/ : node scripts/verifier-envoi-dolibarr.mjs (Node 22.18 ou plus récent).
 import assert from 'node:assert/strict';
 
@@ -90,6 +91,24 @@ ok('libellés du journal', () => {
   assert.equal(env.libelleEnvoi(envoi({ statut: 'rien', mouvements: 2 })), 'rien de neuf (2 mouvements relus)');
   assert.equal(env.libelleEnvoi(envoi({ statut: 'erreur', message: 'Jeton refusé' })), 'Jeton refusé');
   assert.equal(env.LIBELLES_ETAT.en_retard, 'En retard');
+});
+
+ok('erreur de lecture de l\'API : origine lisible', () => {
+  const e = envoi({ statut: 'erreur', origine: 'api', message: 'Dolibarr injoignable' });
+  const r = env.resumerEnvois([e], MAINTENANT);
+  assert.equal(r.etat, 'en_erreur');
+  assert.equal(env.LIBELLES_ORIGINE[r.erreurs[0].origine], 'lecture de Dolibarr');
+  assert.equal(env.LIBELLES_ORIGINE.fonction, 'import');
+});
+
+ok('bilan du bouton « Synchroniser maintenant »', () => {
+  const b = (p) => ({ statut: 'recu', mouvements: 0, nouveaux: 0, modifies: 0, ignores: 0, ...p });
+  assert.equal(env.libelleBilan(b({ statut: 'rien', mouvements: 36 })), 'Synchronisé : rien de neuf (36 mouvements lus).');
+  assert.equal(env.libelleBilan(b({ mouvements: 129, modifies: 93 })), 'Synchronisé : 93 mis à jour (129 mouvements lus).');
+  assert.equal(env.libelleBilan(b({ mouvements: 36, nouveaux: 1, modifies: 2 })), 'Synchronisé : 1 nouveau, 2 mis à jour (36 mouvements lus).');
+  assert.equal(env.libelleBilan(b({ statut: 'erreur', erreur: 'Dolibarr refuse la clé API' })), 'Lecture impossible : Dolibarr refuse la clé API');
+  assert.match(env.libelleBilan(b({ statut: 'occupe', depuis: '2026-10-12T09:58:00Z' })), /^Une lecture est déjà en cours \(commencée à \d{2}:\d{2}\) : réessayez dans une minute\.$/);
+  assert.equal(env.libelleBilan(b({ statut: 'occupe' })), 'Une lecture est déjà en cours : réessayez dans une minute.');
 });
 
 console.log(`\n${n} vérifications réussies.`);

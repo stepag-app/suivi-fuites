@@ -7,6 +7,8 @@ Dernière mise à jour : 2026-10-09 (**fin du chantier v2, session S8** : audit,
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
+**Suite (2026-10-10) : plan du chantier v3, `docs/lots/chantier-v3.md`** (équipes supprimées, débits de nuit, rapports,
+e-mail, Dolibarr, sauvegarde hors plateformes, audit, purge de DEMO, fermeture).
 
 ## 1. Fait
 
@@ -216,6 +218,9 @@ après / maintien, 3 nuits) et vues de performance (Qi, Qf, ΔQ, τ1, τ2, péna
 Le droit `balayage` et le droit `mesures_debit` existent déjà dans `type_donnee`.
 
 ## 5. Prochaines étapes proposées
+
+**Depuis le 2026-10-10 : chantier v3**, plan de fin du projet en trois vagues de sessions parallèles (S12 à S24) :
+`docs/lots/chantier-v3.md`. Il remplace la liste ci-dessous et le « reste à faire » du § 2 (décisions d'Issam au § 0 du plan).
 
 **Après le chantier v2 (2026-10-09)**, par ordre : (1) régler la facturation GitHub et les secrets Firebase (§ 2) ; (2) installer l'APK de
 `main` sur la tablette et dérouler le parcours terrain ; (3) corriger selon les retours ; (4) X8, l'envoi automatique Dolibarr ;

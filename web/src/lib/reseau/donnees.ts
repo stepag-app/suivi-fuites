@@ -3,9 +3,9 @@
 // `modifie_le` de `v_lineaire_secteurs` change). L'état de balayage n'est jamais mis en cache : il est
 // relu à chaque ouverture et posé par `setFeatureState` (voir etat.ts et carte/reseau-carte.ts).
 import type { MultiPolygon, Polygon } from 'geojson';
-import { messageErreur } from '@/lib/format';
+import { messageErreur, nombre } from '@/lib/format';
 import { listerBalayagesEnAttente, mettreBalayagesEnAttente, synchroniser } from '@/lib/hors-ligne';
-import { getSupabase, lireTout } from '@/lib/supabase';
+import { fonctionAbsente, getSupabase, lireTout } from '@/lib/supabase';
 import type {
   EtatBalayageTroncon, LigneBalayageJournalier, LigneLineaireSecteur, TronconsSansSecteur,
 } from '@/lib/types';
@@ -181,12 +181,41 @@ export async function chargerNoeudsSecteur(marcheId: string, secteurId: string, 
 }
 
 // Le réseau entier en une seule requête (Oujda : 44 044 tronçons, 15 Mo de JSON) dépasse le délai maximal d'une requête
-// de l'API en production (« canceling statement due to statement timeout ») : lecture par paquets de secteurs, puis les
-// non zonés, chaque requête restant de l'ordre d'une seconde.
+// de l'API en production (« canceling statement due to statement timeout »), et même par paquets de secteurs : les 8 862
+// non zonés restent un seul bloc. Lecture par pages bornées dans l'ordre de la référence (reseau_geojson_page,
+// noeuds_geojson_page, une page à la fois) ; base sans ces fonctions (déploiement en cours, mode démonstration) : repli
+// sur les paquets de secteurs.
+const TRONCONS_PAR_PAGE = 2000;
+const NOEUDS_PAR_PAGE = 3000;
 const SECTEURS_PAR_LECTURE = 8;
 const LECTURES_SIMULTANEES = 4;
 
-async function lireParPaquetsDeSecteurs<T extends { type: 'FeatureCollection'; features: unknown[] }>(
+/** Nombre d'éléments lus jusqu'ici, pour afficher l'avancement. */
+export type Progression = (lus: number) => void;
+
+type Collection = { type: 'FeatureCollection'; features: unknown[] };
+
+async function lireParPages<T extends Collection>(
+  quoi: string,
+  lirePage: (apres: string | null) => PromiseLike<{ data: unknown; error: { code?: string; message?: string } | null }>,
+  progression?: Progression,
+): Promise<T | null> {
+  const features: unknown[] = [];
+  let apres: string | null = null;
+  for (let page = 1; ; page++) {
+    const { data, error } = await lirePage(apres);
+    if (page === 1 && fonctionAbsente(error, data)) return null;
+    if (error) {
+      throw Object.assign(new Error(`Lecture des ${quoi}, page ${page} (${nombre(features.length, 0)} déjà lus) : ${messageErreur(error)}`), { code: codeDe(error) });
+    }
+    for (const f of normaliser<T>(data).features) features.push(f);
+    progression?.(features.length);
+    apres = (data as { suivant?: string | null }).suivant ?? null;
+    if (!apres) return { type: 'FeatureCollection', features } as unknown as T;
+  }
+}
+
+async function lireParPaquetsDeSecteurs<T extends Collection>(
   marcheId: string,
   lire: (secteurs: string[], sansSecteur: boolean) => PromiseLike<{ data: unknown; error: unknown }>,
 ): Promise<T> {
@@ -212,15 +241,21 @@ async function lireParPaquetsDeSecteurs<T extends { type: 'FeatureCollection'; f
 }
 
 /** Tout le réseau du marché, zoné ou non, légèrement simplifié (carte de zonage ; jamais en cache). */
-export function chargerReseauComplet(marcheId: string, tolerance = 0.000005): Promise<CollectionTroncons> {
-  return lireParPaquetsDeSecteurs<CollectionTroncons>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('reseau_geojson', {
+export async function chargerReseauComplet(marcheId: string, tolerance = 0.000005, progression?: Progression): Promise<CollectionTroncons> {
+  const pages = await lireParPages<CollectionTroncons>('tronçons', (apres) => getSupabase().rpc('reseau_geojson_page', {
+    p_marche: marcheId, p_apres: apres, p_limite: TRONCONS_PAR_PAGE, p_tolerance: tolerance,
+  }), progression);
+  return pages ?? lireParPaquetsDeSecteurs<CollectionTroncons>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('reseau_geojson', {
     p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur, p_tolerance: tolerance,
   }));
 }
 
 /** Tous les nœuds du marché, zonés ou non (tuiles du réseau ; jamais en cache). */
-export function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
-  return lireParPaquetsDeSecteurs<CollectionNoeuds>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('noeuds_geojson', {
+export async function chargerNoeudsComplet(marcheId: string, progression?: Progression): Promise<CollectionNoeuds> {
+  const pages = await lireParPages<CollectionNoeuds>('nœuds', (apres) => getSupabase().rpc('noeuds_geojson_page', {
+    p_marche: marcheId, p_apres: apres, p_limite: NOEUDS_PAR_PAGE,
+  }), progression);
+  return pages ?? lireParPaquetsDeSecteurs<CollectionNoeuds>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('noeuds_geojson', {
     p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur,
   }));
 }

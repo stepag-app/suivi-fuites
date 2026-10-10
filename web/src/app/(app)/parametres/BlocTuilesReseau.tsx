@@ -33,11 +33,21 @@ export function BlocTuilesReseau({ marcheId, contexte }: { marcheId: string; con
   const generer = async () => {
     setOccupe(true);
     setErreur('');
+    // Après un échec d'une des deux lectures, l'autre continue : elle ne doit plus réécrire l'étape.
+    let enLecture = true;
     try {
-      setEtape('Lecture des tronçons et des nœuds…');
+      const attendus = contexte.lignes.reduce((s, l) => s + (Number(l.nb_troncons) || 0), Number(contexte.sansSecteur?.nb_troncons) || 0);
+      const lus = { troncons: 0, noeuds: 0 };
+      const avancement = () => {
+        if (enLecture) setEtape(`Lecture du réseau : ${nombre(lus.troncons, 0)}${attendus ? ` / ${nombre(attendus, 0)}` : ''} tronçons, ${nombre(lus.noeuds, 0)} nœuds…`);
+      };
+      avancement();
       const [troncons, noeuds, { genererPmtiles }] = await Promise.all([
-        chargerReseauComplet(marcheId, 0), chargerNoeudsComplet(marcheId), import('@/lib/reseau/pmtiles'),
+        chargerReseauComplet(marcheId, 0, (n) => { lus.troncons = n; avancement(); }),
+        chargerNoeudsComplet(marcheId, (n) => { lus.noeuds = n; avancement(); }),
+        import('@/lib/reseau/pmtiles'),
       ]);
+      enLecture = false;
       setEtape(`Découpage de ${nombre(troncons.features.length, 0)} tronçons et ${nombre(noeuds.features.length, 0)} nœuds en tuiles…`);
       await new Promise((r) => setTimeout(r, 30));
       const debut = performance.now();
@@ -50,6 +60,7 @@ export function BlocTuilesReseau({ marcheId, contexte }: { marcheId: string; con
       setEtape('');
       await lire();
     } catch (e) {
+      enLecture = false;
       setErreur(messageErreur(e));
       setEtape('');
     }

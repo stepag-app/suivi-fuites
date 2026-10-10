@@ -101,10 +101,10 @@ faute de quoi les compilations d'APK et le déploiement automatique de la base s
   (PR `fix(reseau)` lecture paginée) : `reseau_geojson_page` / `noeuds_geojson_page` lisent tout le réseau par pages bornées
   (2 000 tronçons, 3 000 nœuds) ; en local sur Oujda, 23 pages de 50 ms au lieu d'un bloc de 1 060 ms. Le bloc affiche
   l'avancement et, en cas d'échec, la lecture et la page fautives. Repli sur les paquets de secteurs si la base n'a pas encore les
-  fonctions. Ensuite, dans l'ordre :
-  1. Règle CORS du compartiment R2 `suivi-fuites-photos` : en-tête `Range`, méthode `HEAD`, origine `https://fuites.stepag.ma`
-     (texte complet dans `web/README.md` § Tuiles ; il remplace la règle des photos, qui y est comprise).
-  2. **Paramètres > Réseau > Générer les tuiles** : l'état doit passer à « À jour » (date, tronçons, nœuds, taille).
+  fonctions. PR #92 fusionnée et déployée le 2026-10-10 : **tuiles générées en production** (02:46:30, 44 044 tronçons,
+  30 820 nœuds, 4,7 Mo, état « À jour » ; dépôt `PUT` et lecture par plages acceptés par R2). Reste : vérifier sur la tablette que
+  la carte de balayage lit les tuiles (fluide, réseau entier d'un bloc). À refaire après chaque import du réseau ou changement
+  de zonage (Paramètres > Réseau > **Régénérer les tuiles**), donc après la correction des 8 862 tronçons non zonés et après S22.
 - Facultatif : règle de cycle de vie Cloudflare (préfixe `sauvegardes/base/`, 30 jours). Le miroir des photos est fait par la copie sur le Drive (X9, § 11).
 - Vérifier dans le SQL Editor que la tâche `pg_cron` `alertes-reparation` existe (`select jobname, schedule from cron.job;`) ; sinon activer
   l'extension (Database > Extensions) puis `select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');`

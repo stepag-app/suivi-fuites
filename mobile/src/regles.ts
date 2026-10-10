@@ -231,13 +231,23 @@ export const versionPlusRecente = (installee: number | null | undefined, publiee
 
 export interface NotificationLigne {
   id: number; evenement: string; titre: string; corps: string | null; donnees: Record<string, unknown> | null;
-  fuite_id: string; cree_le: string; lue_le: string | null;
+  /** Nulle pour une alerte du suivi GPS (suivi_coupe). */
+  fuite_id: string | null; cree_le: string; lue_le: string | null;
 }
 
 const RESULTATS: Record<string, string> = { reparee: 'Réparée', en_cours: 'En cours', non_reparee: 'Non réparée' };
 
 export function texteNotification(n: Pick<NotificationLigne, 'evenement' | 'titre' | 'corps' | 'donnees'>): { titre: string; corps: string | null } {
   const d = n.donnees ?? {};
+  if (n.evenement === 'suivi_coupe') {
+    const heure = String(d.heure ?? '');
+    return {
+      titre: t('Suivi GPS interrompu : {agent}', { agent: String(d.agent ?? '') }),
+      corps: d.etat === 'autorisation'
+        ? t('Autorisation de position refusée sur la tablette ; aucune position depuis {heure}.', { heure })
+        : t('Aucune position depuis {heure} : application fermée, autorisation retirée, tablette éteinte ou sans réseau.', { heure }),
+    };
+  }
   const numero = d.numero as number | string | undefined;
   if (numero == null) return { titre: n.titre, corps: n.corps };
   const lieu = (d.adresse as string | null) ?? (d.reference_srm as string | null) ?? n.corps;

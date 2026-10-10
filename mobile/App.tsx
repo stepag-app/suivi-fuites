@@ -40,8 +40,8 @@ function Racine() {
   // Fenêtre de mise à jour refermée (« Plus tard ») : numéro de la version, jusqu'au prochain démarrage.
   const [reportee, setReportee] = useState<number | null>(null);
   const uid = session?.user.id;
-  // Suivi GPS (X6) : démarré tant que la session est ouverte, arrêté à « Quitter ».
-  const [suivi, relireSuivi] = useSuiviGps(uid, marche?.id);
+  // Suivi GPS (X6) : pendant les heures de travail du marché, tant que la session est ouverte ; arrêté à « Quitter ».
+  const [suivi, relireSuivi] = useSuiviGps(uid, marche);
 
   // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
   // L'écran Balayage le prend lui-même (historique de la WebView d'abord).

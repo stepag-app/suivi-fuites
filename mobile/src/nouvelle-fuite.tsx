@@ -21,6 +21,7 @@ import { champsExiges, champsManquants, nombreOuNul } from './regles';
 import { Proposition } from './saisie';
 import { useSession } from './session';
 import { jetonARenouveler } from './session-donnees';
+import { reprendreSuivi } from './suivi-gps';
 import { supabase } from './supabase';
 import { MATERIAUX, OUVRAGES, VISIBILITES, type FicheFuite, type Proche, type Secteur, type Suggestions } from './types';
 import {
@@ -326,6 +327,8 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         },
       });
       gardees.current = true;
+      // Fuite signalée : une pause du suivi GPS en cours prend fin.
+      void reprendreSuivi('fuite').catch(() => undefined);
       setEnvoi(t('Envoi…'));
       await synchroniser();
       retour();

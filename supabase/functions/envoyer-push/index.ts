@@ -17,7 +17,7 @@ const reponse = (statut: number, corps: Record<string, unknown>) =>
 
 interface CompteService { project_id: string; client_email: string; private_key: string }
 interface Notification {
-  id: number; destinataire_id: string; marche_id: string; evenement: string; fuite_id: string; titre: string;
+  id: number; destinataire_id: string; marche_id: string; evenement: string; fuite_id: string | null; titre: string;
   corps: string | null; donnees: Record<string, unknown>; langue: 'fr' | 'ar' | 'fr_ar'; non_lues: number; jetons: string[];
 }
 
@@ -94,6 +94,14 @@ function texteArabe(n: Notification): { titre: string; corps: string | null } | 
       };
     case 'alerte_reparation':
       return { titre: `التسرب رقم ${numero} لم يُصلَح منذ أكثر من ${d.delai_h ?? 48} ساعة`, corps: adresse };
+    // Suivi GPS coupé (sans fuite) : même phrase que mobile/src/traductions.ts.
+    case 'suivi_coupe':
+      return {
+        titre: `انقطع تتبع الموقع: ${String(d.agent ?? '')}`,
+        corps: d.etat === 'autorisation'
+          ? `إذن الموقع مرفوض على الجهاز اللوحي؛ لا يوجد أي موقع منذ ${String(d.heure ?? '')}.`
+          : `لا يوجد أي موقع منذ ${String(d.heure ?? '')}: التطبيق مغلق، أو الإذن مسحوب، أو الجهاز اللوحي مطفأ أو بدون شبكة.`,
+      };
     default:
       return null;
   }
@@ -112,7 +120,10 @@ async function envoyer(c: CompteService, jeton: string, n: Notification): Promis
         token: jeton,
         notification: { title: titre, ...(corps ? { body: corps } : {}) },
         // Lu par l'appli au toucher : ouvre la fiche, marque la notification lue, la retire du rideau.
-        data: { notification_id: String(n.id), fuite_id: n.fuite_id, marche_id: n.marche_id, evenement: n.evenement },
+        // FCM n'accepte que des textes : pas de fuite_id pour une alerte du suivi GPS.
+        data: {
+          notification_id: String(n.id), marche_id: n.marche_id, evenement: n.evenement, ...(n.fuite_id ? { fuite_id: n.fuite_id } : {}),
+        },
         android: {
           priority: 'high',
           notification: { channel_id: 'notifications', tag: `notification-${n.id}`, notification_count: n.non_lues },

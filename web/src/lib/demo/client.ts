@@ -2,6 +2,11 @@
 // functions), servis depuis les tables en mémoire de donnees.ts. Rien n'est envoyé nulle part.
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { ADMIN_ID, EMAIL_DEMO, MARCHE_SRM, TABLES, anticipeesDemo, profils, secteurs, vFuites } from "./donnees";
+import { campagnesDebit, mesuresNuit, phasesDemo, pointsMesure } from "./debits";
+import {
+  REGLAGES_DEFAUT, debitsNuits, normaliserReleves, resultatsCampagnes, resultatsDebits,
+  type Campagne, type MesureNuit, type PointMesure, type ReglagesDebits, type ZoneDebit,
+} from "@/lib/debits";
 
 type Ligne = Record<string, unknown>;
 type Reponse = { data: unknown; error: { message: string; code?: string } | null; count: number | null };
@@ -11,8 +16,41 @@ const copie = (l: Ligne) => ({ ...l });
 const nomProfil = (pid: unknown) => profils.find((p) => p.id === pid)?.nom_complet ?? null;
 const nombreOuNul = (v: unknown) => (v == null || v === "" ? null : Number(v));
 
+// Débits de nuit (S15) : tables du mode démonstration, vues recalculées comme la base.
+TABLES.points_mesure = pointsMesure;
+TABLES.campagnes_debit = campagnesDebit;
+TABLES.mesures_nuit = mesuresNuit;
+TABLES.phases = [...(TABLES.phases ?? []), ...phasesDemo];
+const debitsDe = (marche?: unknown) => {
+  const zones = (TABLES.zones ?? []).filter((z) => marche == null || z.marche_id === marche) as unknown as ZoneDebit[];
+  const points = (TABLES.points_mesure ?? []).filter((p) => marche == null || p.marche_id === marche) as unknown as PointMesure[];
+  const campagnes = (TABLES.campagnes_debit ?? []).filter((c) => marche == null || c.marche_id === marche) as unknown as Campagne[];
+  const mesures = (TABLES.mesures_nuit ?? []).filter((m) => marche == null || m.marche_id === marche) as unknown as MesureNuit[];
+  const nuits = debitsNuits(zones, points, campagnes, mesures).map((x) => ({ ...x, marche_id: campagnes.find((c) => c.id === x.campagne_id)?.marche_id }));
+  return { zones, points, campagnes, mesures, nuits, camps: resultatsCampagnes(zones, campagnes, nuits) };
+};
+
 // Vues calculées à la lecture (chantier v2) : étapes à valider, pièces déclarées par le terrain.
 function vueCalculee(table: string): Ligne[] | null {
+  if (table === "v_debits_nuits") return debitsDe().nuits as unknown as Ligne[];
+  if (table === "v_debits_campagnes") {
+    const d = debitsDe();
+    return d.camps.map((c) => ({ ...c, marche_id: d.campagnes.find((x) => x.id === c.campagne_id)?.marche_id })) as unknown as Ligne[];
+  }
+  if (table === "v_debits_a_valider") {
+    const d = debitsDe();
+    return d.mesures.filter((m) => !m.validee_le && !m.supprime_le).flatMap((m) => {
+      const c = d.campagnes.find((x) => x.id === m.campagne_id && !x.supprime_le);
+      const p = d.points.find((x) => x.id === m.point_id);
+      const z = d.zones.find((x) => x.id === p?.zone_id);
+      return c && p ? [{
+        id: m.id, marche_id: m.marche_id, campagne_id: c.id, campagne_type: c.type, campagne_libelle: c.libelle ?? null, point_id: p.id,
+        point_code: p.code, point_libelle: p.libelle, zone_id: p.zone_id, zone_numero: z?.numero ?? null, nuit: m.nuit, mode: m.mode,
+        minimum_m3h: m.minimum_m3h, releves: m.releves, piece_jointe: m.piece_jointe ?? null, observation: m.observation ?? null,
+        auteur_terrain_id: m.auteur_terrain_id, auteur: nomProfil(m.auteur_terrain_id), saisi_par: m.saisi_par, source_saisie: "tablette", cree_le: m.cree_le,
+      }] : [];
+    });
+  }
   if (table === "v_a_valider") {
     const photos = (TABLES.photos ?? []).filter((p) => p.supprime_le == null);
     const fuite = (id: unknown) => vFuites.find((f) => f.id === id) as unknown as Ligne | undefined;
@@ -75,7 +113,13 @@ function completerInsertion(table: string, v: Ligne) {
     if (f) Object.assign(f, { statut: "achevee", derniere_refection_le: v.realisee_le });
   }
   if (table === "reparation_pieces") Object.assign(v, { provenance: "terrain", etat: "posee", nature_correction: null, supprime_le: null, designation_libre: null });
-  if (table === "diametres_materiau" || table === "representants_srm") v.actif = v.actif ?? true;
+  if (table === "diametres_materiau" || table === "representants_srm" || table === "points_mesure") v.actif = v.actif ?? true;
+  if (table === "campagnes_debit") {
+    v.date_fin = v.date_fin ?? (["avant", "apres"].includes(String(v.type))
+      ? new Date(Date.parse(`${v.date_debut}T12:00:00Z`) + 2 * 86_400_000).toISOString().slice(0, 10) : v.date_debut);
+    Object.assign(v, { saisi_par: ADMIN_ID, supprime_le: null });
+  }
+  if (table === "mesures_nuit") completerMesure(v, true);
   if (table === "photos") {
     const f = vFuites.find((x) => x.id === v.fuite_id);
     if (f) Object.assign(f, { nb_photos: f.nb_photos + 1, alerte_sans_photo: false });
@@ -83,8 +127,23 @@ function completerInsertion(table: string, v: Ligne) {
   }
 }
 
+// Mesure de nuit : relevés normalisés, minimum, mode ; saisie du compte de démonstration (responsable) validée d'emblée.
+function completerMesure(v: Ligne, insertion: boolean) {
+  const releves = normaliserReleves(v.releves as { h: string; q: number }[] | null);
+  Object.assign(v, { releves, mode: releves ? "releves" : "minimum", minimum_m3h: releves ? Math.min(...releves.map((x) => x.q)) : Number(v.minimum_m3h) });
+  if (insertion) Object.assign(v, {
+    origine: v.origine ?? "saisie", saisi_par: ADMIN_ID, auteur_terrain_id: v.auteur_terrain_id ?? ADMIN_ID, validee_le: new Date().toISOString(),
+    validee_par: ADMIN_ID, supprime_le: null, source_saisie: v.source_saisie ?? "web",
+  });
+}
+
 function completerModification(table: string, l: Ligne, v: Ligne) {
   const maintenant = new Date().toISOString();
+  if (table === "mesures_nuit" && ("releves" in v || "minimum_m3h" in v)) {
+    const n = { ...l, ...v };
+    completerMesure(n, false);
+    Object.assign(v, { releves: n.releves, mode: n.mode, minimum_m3h: n.minimum_m3h });
+  }
   if ("validee_le" in v) Object.assign(v, { validee_le: v.validee_le ? l.validee_le ?? maintenant : null, validee_par: v.validee_le ? l.validee_par ?? ADMIN_ID : null });
   if (table === "fuites") {
     const pos = /POINT\(([-\d.]+) ([-\d.]+)\)/.exec(String(v.position ?? ""));
@@ -310,7 +369,7 @@ export function creerClientDemo(): SupabaseClient {
       }
       if (nom === "recalculer_contour_secteur" || nom === "definir_contour_secteur") return { data: null, error: null };
       if (nom === "valider_etapes") {
-        const tables: Record<string, string> = { detection: "fuites", reparation: "reparations", refection: "refections" };
+        const tables: Record<string, string> = { detection: "fuites", reparation: "reparations", refection: "refections", debit: "mesures_nuit" };
         let n = 0;
         for (const e of (params.p_elements as { etape: string; id: string }[]) ?? []) {
           const l = (TABLES[tables[e.etape]] ?? []).find((x) => x.id === e.id && !x.validee_le && !x.supprime_le);
@@ -379,6 +438,44 @@ export function creerClientDemo(): SupabaseClient {
         return { data: anticipeesDemo.filter((f) => f.marche_id === params.p_marche).map((f) => ({
           fuite_id: f.id, fuite_numero: f.numero, premier_lot: 3, attachee_le: TABLES.attachements.find((x) => x.numero === 3)?.date_arret ?? null, articles: 1,
         })), error: null };
+      }
+      if (nom === "debits_resultats") {
+        const d = debitsDe(params.p_marche);
+        const m = (TABLES.marches ?? []).find((x) => x.id === params.p_marche) as Partial<ReglagesDebits> | undefined;
+        const prixDe = (famille: string) => {
+          const p = (TABLES.prix ?? []).find((x) => x.marche_id === params.p_marche && x.famille === famille && x.actif !== false && !x.hors_bordereau);
+          return p ? { pu: Number(p.pu_ht), quantite: Number(p.quantite_marche) } : null;
+        };
+        const fin = (TABLES.phases ?? []).filter((p) => p.marche_id === params.p_marche && String(p.code).startsWith("maintien"))
+          .map((p) => String(p.date_fin)).sort().at(-1) ?? null;
+        return { data: resultatsDebits(d.zones, d.camps, { ...REGLAGES_DEFAUT, ...m }, { balayage: prixDe("balayage"), maintien: prixDe("maintien") }, fin), error: null };
+      }
+      if (nom === "enregistrer_mesures_nuit") {
+        const c = (TABLES.campagnes_debit ?? []).find((x) => x.id === params.p_campagne);
+        if (!c) return { data: null, error: { message: "Campagne introuvable" } };
+        let ajoutees = 0;
+        let modifiees = 0;
+        try {
+          for (const e of (params.p_mesures as Ligne[]) ?? []) {
+            const existante = (TABLES.mesures_nuit ?? []).find((m) => m.campagne_id === c.id && m.point_id === e.point_id && m.nuit === e.nuit && !m.supprime_le);
+            if (existante) {
+              const n: Ligne = { ...existante, releves: e.releves ?? null, minimum_m3h: e.minimum_m3h ?? null };
+              completerMesure(n, false);
+              Object.assign(existante, { releves: n.releves, mode: n.mode, minimum_m3h: n.minimum_m3h, modifie_le: new Date().toISOString() });
+              modifiees++;
+            } else {
+              const v: Ligne = { id: crypto.randomUUID(), marche_id: c.marche_id, campagne_id: c.id, point_id: e.point_id, nuit: e.nuit,
+                releves: e.releves ?? null, minimum_m3h: e.minimum_m3h ?? null, origine: params.p_origine ?? "saisie", observation: e.observation ?? null,
+                piece_jointe: e.piece_jointe ?? null, cree_le: new Date().toISOString() };
+              completerMesure(v, true);
+              TABLES.mesures_nuit.push(v);
+              ajoutees++;
+            }
+          }
+        } catch (err) {
+          return { data: null, error: { message: err instanceof Error ? err.message : String(err) } };
+        }
+        return { data: { ajoutees, modifiees }, error: null };
       }
       if (nom === "resume_fournitures") {
         const du = params.p_du as string | null;

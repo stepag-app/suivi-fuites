@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import {
-  Banknote, Boxes, ClipboardList, Layers3, ListChecks, type LucideIcon, Map, Plus, ReceiptText, Route, Settings2, Users,
+  Banknote, Boxes, ClipboardList, Gauge, Layers3, ListChecks, type LucideIcon, Map, Plus, ReceiptText, Route, Settings2, Users,
 } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -20,6 +20,7 @@ import type { TypeDonnee } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { ongletsParametresVisibles, type Onglet } from "../_coque/elements-nav";
 import { OngletAttachement } from "./OngletAttachement";
+import { OngletDebits } from "./OngletDebits";
 import { OngletBordereau } from "./OngletBordereau";
 import { OngletEvenements } from "./OngletEvenements";
 import { OngletMarche } from "./OngletMarche";
@@ -42,7 +43,7 @@ interface MotifLigne {
 const CATEGORIES = { sans_reparation: "Fuite non réparée", sans_refection: "Clôture sans réfection" } as const;
 const ICONES: Record<Onglet, LucideIcon> = {
   marche: Settings2, bordereau: Banknote, attachement: ReceiptText, evenements: ClipboardList, ouvriers: Users,
-  motifs: ListChecks, secteurs: Map, reseau: Route, natures: Layers3, articles: Boxes,
+  motifs: ListChecks, secteurs: Map, reseau: Route, debits: Gauge, natures: Layers3, articles: Boxes,
 };
 const DESCRIPTIONS: Record<Onglet, string> = {
   marche: "Fiche du marché : titulaire, maître d'ouvrage, logos, délais, OS, libellés et alertes du client, réglages de la saisie terrain.",
@@ -53,6 +54,7 @@ const DESCRIPTIONS: Record<Onglet, string> = {
   motifs: "Listes proposées sur la fiche d'une fuite non réparée et à la clôture sans réfection.",
   secteurs: "Zones et secteurs du marché : code, libellé, ordre, linéaire.",
   reseau: "Plan du réseau : import des tronçons et des nœuds, zonage par secteur, linéaires.",
+  debits: "Débits de nuit : points de mesure, débits de référence du tableau n° 1, réglages des pénalités, phases du marché.",
   natures: "Natures de réfection (libellés FR / AR, symbole, emplacement, article lié).",
   articles: "Produits Dolibarr importés, communs à tous les marchés : activer ceux que le réparateur peut choisir.",
 };
@@ -170,6 +172,8 @@ function Parametres() {
             {onglet === "natures" && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
             {onglet === "articles" && <OngletArticles importer={!!profil?.est_admin} />}
           </div>
+
+          {onglet === "debits" && <OngletDebits key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
 
           {onglet === "ouvriers" && (
             <Card>

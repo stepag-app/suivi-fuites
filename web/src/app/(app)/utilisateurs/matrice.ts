@@ -131,6 +131,12 @@ export const LIGNES: readonly LigneMatrice[] = [
   droit('Balayage', 'balayage', 'supprimer', 'Balayage : annuler un balayage', { aide: 'les siens = balayés ou saisis par lui ; motif obligatoire' }),
   droit('Balayage', 'balayage', 'valider', 'Balayage : annuler le balayage d\'un autre'),
 
+  droit('Débits de nuit', 'mesures_debit', 'lire', 'Débits de nuit : voir les mesures et les performances', { aide: 'page Débits de nuit, widget du tableau de bord ; montants avec « Quantités et prix : voir »' }),
+  droit('Débits de nuit', 'mesures_debit', 'creer', 'Débits de nuit : saisir une mesure', { aide: 'saisie du terrain, à valider par le responsable' }),
+  droit('Débits de nuit', 'mesures_debit', 'modifier', 'Débits de nuit : modifier une mesure non validée', { aide: 'les siennes = saisies par lui' }),
+  droit('Débits de nuit', 'mesures_debit', 'supprimer', 'Débits de nuit : retirer une mesure non validée'),
+  droit('Débits de nuit', 'mesures_debit', 'valider', 'Débits de nuit : campagnes, validation, corrections', { aide: 'créer les campagnes, valider le terrain, joindre le procès-verbal' }),
+
   droit('Paramètres du marché', 'parametres', 'lire', 'Paramètres : voir', { aide: 'logos des documents ; l\'écran Paramètres demande « ajouter » ou « modifier »' }),
   droit('Paramètres du marché', 'parametres', 'creer', 'Paramètres : ajouter', { aide: 'secteurs, articles, natures, pièces, motifs, OS, avenants' }),
   droit('Paramètres du marché', 'parametres', 'modifier', 'Paramètres : modifier', { aide: 'fiche du marché, logos, bordereau, règles d\'attachement' }),

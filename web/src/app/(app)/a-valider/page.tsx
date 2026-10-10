@@ -23,6 +23,7 @@ import { getSupabase, lireTout } from "@/lib/supabase";
 import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { cleEtapePhoto } from "../fuites/[id]/photos";
+import { RappelDebitsAValider } from "../debits/RappelAValider";
 import { DialogueSansPhoto, validerEtapes, type ElementAValider } from "../fuites/[id]/validation";
 
 interface LigneAValider {
@@ -159,6 +160,7 @@ export default function AValider() {
 
       {message && <Alert role="status"><CheckCheck /><AlertDescription>{message}</AlertDescription></Alert>}
       {erreur && <Alert variant="destructive"><CircleAlert /><AlertDescription>{erreur}</AlertDescription></Alert>}
+      {marcheId && peut("mesures_debit", "valider") && <RappelDebitsAValider marcheId={marcheId} />}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Tabs value={filtre} onValueChange={(v) => setFiltre(v as typeof filtre)}>

@@ -1,5 +1,6 @@
 import {
-  Boxes, Briefcase, CheckCheck, CloudOff, CloudUpload, Droplets, Footprints, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route, Settings2, Siren, Users,
+  Boxes, Briefcase, CheckCheck, CloudOff, CloudUpload, Droplets, Footprints, Gauge, LayoutDashboard, ListTodo, type LucideIcon, MapPinned, ReceiptText, Route,
+  Settings2, Siren, Users,
 } from "lucide-react";
 import type { Action, Profil, TypeDonnee } from "@/lib/types";
 
@@ -42,7 +43,7 @@ export interface NavGroup {
 }
 
 export type Onglet = "marche" | "bordereau" | "attachement" | "evenements" | "ouvriers" | "motifs" | "secteurs" | "reseau"
-  | "natures" | "articles";
+  | "debits" | "natures" | "articles";
 
 export const ONGLETS_PARAMETRES: [Onglet, string][] = [
   ["marche", "Marché"],
@@ -53,6 +54,7 @@ export const ONGLETS_PARAMETRES: [Onglet, string][] = [
   ["motifs", "Motifs"],
   ["secteurs", "Secteurs"],
   ["reseau", "Réseau"],
+  ["debits", "Débits de nuit"],
   ["natures", "Natures de réfection"],
   ["articles", "Articles (tous marchés)"],
 ];
@@ -86,6 +88,8 @@ export function elementsNav(peut: Peut, profil: Profil | null, verrous = 0): Nav
     ...(lireFuites ? [
       { id: "carte", title: "Carte", url: "/carte", icon: MapPinned },
       ...(peut("balayage", "lire") ? [{ id: "balayage", title: "Balayage", url: "/balayage", icon: Route }] : []),
+      // Débits de nuit (chantier v3, S15) : droit « mesures_debit / lire »
+      ...(peut("mesures_debit", "lire") ? [{ id: "debits", title: "Débits de nuit", url: "/debits", icon: Gauge }] : []),
       // Suivi GPS (S11) : tracés des agents, responsable et administrateur (la base filtre aussi)
       ...(admin || peut("fuites", "valider") ? [{ id: "suivi-gps", title: "Suivi GPS", url: "/suivi-gps", icon: Footprints }] : []),
       { id: "alertes", title: "Alertes", url: "/alertes", icon: Siren },

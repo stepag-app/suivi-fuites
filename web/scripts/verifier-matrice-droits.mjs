@@ -194,7 +194,7 @@ ok('libellés : valeurs, cases sans écran, verrous', () => {
   assert.equal(texteValeur('siennes'), 'Les siennes');
   assert.equal(libelleDroit('fuites', 'supprimer'), 'Fuites : supprimer');
   assert.equal(libelleDroit('balayage', 'creer'), 'Balayage : cocher les tronçons balayés');
-  assert.equal(libelleDroit('mesures_debit', 'creer'), 'Mesures de débit : creer (sans écran)');
+  assert.equal(libelleDroit('balayage', 'modifier'), 'Balayage : modifier (sans écran)');
   assert.equal(libelleVerrou('comptes.revoquer'), 'Comptes : révoquer un accès');
   assert.equal(Object.keys(ROLES).length, 3);
 });

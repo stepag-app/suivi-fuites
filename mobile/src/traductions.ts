@@ -495,7 +495,7 @@ export const TRADUCTIONS = {
   'Dernière position enregistrée : {date}': { ar: 'آخر موقع مسجّل: {date}' },
   'Aucune position enregistrée pour le moment.': { ar: 'لا يوجد أي موقع مسجّل حتى الآن.' },
 
-  // Mesures de nuit (chantier v3, S19, D8) : libellés à relire par Issam (M01 à M53 de l'artefact)
+  // Mesures de nuit (chantier v3, S19, D8) : libellés à relire par Issam (D01 à D53 de l'artefact)
   'Mesures de nuit': { ar: 'قياسات التدفق الليلي', hyb: 'Mesures de nuit' },
   'Mesure de nuit · {mesure}': { ar: 'قياس ليلي · {mesure}' },
   'Correction de mesure de nuit · {mesure}': { ar: 'تصحيح قياس ليلي · {mesure}' },

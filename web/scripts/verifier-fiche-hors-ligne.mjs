@@ -10,6 +10,7 @@ import {
   LIMITES_HORS_LIGNE, actionsFiche, choisirAffichage, clePhoto, ficheConsultee, fichesAPurger, nomsUtiles,
   photosAMemoriser, photosAOublier,
 } from '../src/app/(app)/fuites/[id]/fiche-hors-ligne.ts';
+import { fichesDisponibles } from '../src/app/(app)/fuites/hors-ligne/fiches-gardees.ts';
 
 let n = 0;
 const ok = async (nom, fn) => {
@@ -152,6 +153,35 @@ await ok('affichage : en ligne, copie, « non disponible hors ligne » ou attent
   assert.equal(choisirAffichage({ lecture: 'en_cours', copie: false }), 'attente');
 });
 
+// ---- Liste « Fiches disponibles hors ligne » (U3) ------------------------------------------------------
+
+const copie = (id, j, numero, o = {}) => ({
+  id, utilisateur_id: MOI, consultee_le: jour(j), version_le: jour(j - 1), nb_photos: 2,
+  fuite: { marche_id: 'm1', numero, statut: 'detectee', adresse: `${numero} rue Ibn Sina`, reference_srm: `T-${numero}`, secteur: 'Secteur A' },
+  ...o,
+});
+
+await ok('liste hors ligne : copies de ce compte seulement, les plus récemment ouvertes d\'abord', () => {
+  const copies = [copie('a', 10, 12), copie('b', 30, 7), copie('c', 20, 3, { utilisateur_id: AUTRE }), copie('d', 5, 40)];
+  const liste = fichesDisponibles(copies, MOI);
+  assert.deepEqual(liste.map((f) => f.id), ['b', 'a', 'd']);
+  assert.deepEqual(liste[0], {
+    id: 'b', marche_id: 'm1', numero: 7, statut: 'detectee', adresse: '7 rue Ibn Sina', reference_srm: 'T-7', secteur: 'Secteur A',
+    version_le: jour(29), consultee_le: jour(30), nb_photos: 2,
+  });
+  assert.deepEqual(fichesDisponibles(copies, AUTRE).map((f) => f.id), ['c']);
+  assert.deepEqual(fichesDisponibles([], MOI), []);
+});
+
+await ok('liste hors ligne : copie illisible ignorée, recherche N° / référence / adresse', () => {
+  const copies = [copie('a', 10, 12), copie('b', 30, 7), { id: 'x', utilisateur_id: MOI, consultee_le: jour(40), version_le: jour(40), nb_photos: 0 }];
+  assert.deepEqual(fichesDisponibles(copies, MOI).map((f) => f.id), ['b', 'a']);
+  assert.deepEqual(fichesDisponibles(copies, MOI, ' 12 ').map((f) => f.id), ['a']);
+  assert.deepEqual(fichesDisponibles(copies, MOI, 'introuvable').map((f) => f.id), []);
+  assert.deepEqual(fichesDisponibles(copies, MOI, 't-7').map((f) => f.id), ['b']);
+  assert.deepEqual(fichesDisponibles(copies, MOI, 'IBN').map((f) => f.id), ['b', 'a']);
+});
+
 // ---- Service worker (public/sw.js) dans un bac à sable ---------------------------------------------
 
 const ORIGINE = 'https://fuites.exemple.ma';
@@ -250,6 +280,16 @@ await ok('SW : hors ligne, toute fiche s\'ouvre avec la coquille, à son propre 
   // Scripts de la page servis depuis le cache, sans réseau
   const script = await sw.requete('/_next/static/chunks/app/(app)/fuites/%5Bid%5D/page-abc.js');
   assert.equal(script.status, 200);
+});
+
+await ok('SW : la liste « Fiches disponibles hors ligne » est gardée avec la coquille et s\'ouvre sans réseau', async () => {
+  const sw = bacASable();
+  await sw.requete(`/fuites/${A}`, { mode: 'navigate' });
+  assert.ok(sw.magasin.has(`${ORIGINE}/fuites/hors-ligne`), 'liste gardée sans avoir été visitée');
+  sw.etat.enLigne = false;
+  const r = await sw.requete('/fuites/hors-ligne', { mode: 'navigate' });
+  assert.equal(r.status, 200);
+  assert.equal(await r.text(), '<html>/fuites/hors-ligne</html>');
 });
 
 await ok('SW : hors ligne sans coquille, message « pas encore ouverte » (503)', async () => {

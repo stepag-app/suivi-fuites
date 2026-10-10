@@ -422,6 +422,15 @@ export async function garderFiche<T extends EnteteFicheGardee>(fiche: T, aPurger
   });
 }
 
+/** Toutes les copies gardées sur l'appareil (liste « Fiches disponibles hors ligne », photos non lues). */
+export async function listerFichesGardees<T extends EnteteFicheGardee>(): Promise<T[]> {
+  try {
+    return ((await dansFiches(['fiches'], 'readonly', (t) => t.objectStore('fiches').getAll())) as T[] | undefined) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /** Note l'ouverture d'une copie (ordre de purge : les moins récemment ouvertes partent d'abord). */
 export async function noterConsultation(id: string, quand: string) {
   try {

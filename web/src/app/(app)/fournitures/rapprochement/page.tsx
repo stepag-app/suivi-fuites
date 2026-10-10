@@ -3,14 +3,15 @@
 // Rapprochement posé / transféré (lot P4, chantier v2 X3) : par article Dolibarr, ce qui est parti au chantier (bons de
 // transfert vers l'entrepôt du marché, retours déduits, annulations neutralisées), ce qui a été posé (inventaire réel des
 // réparations) et l'écart, sur la période choisie et en cumul ; seuil d'alerte réglable par marché ; import du CSV des
-// mouvements (administrateur) ; export Excel. Responsable et administrateur (« quantités / lire »). Jamais de prix.
+// mouvements (administrateur, en secours) ; état de l'envoi automatique depuis le serveur Dolibarr (X8) ; export Excel. Responsable et administrateur (« quantités / lire »). Jamais de prix.
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CarteIndicateur, GrilleIndicateurs } from '@/components/carte-indicateur';
 import {
-  chargerDernierImportMouvements, chargerRapprochement, chargerReglagesFournitures, enregistrerReglagesFournitures, messageDolibarr,
+  chargerDernierImportMouvements, chargerEnvoisDolibarr, chargerRapprochement, chargerReglagesFournitures, enregistrerReglagesFournitures, messageDolibarr,
   type DernierImportMouvements, type ReglagesFournitures,
 } from '@/lib/dolibarr/donnees';
+import type { EnvoiDolibarr } from '@/lib/dolibarr/envoi-auto';
 import {
   FILTRES_RAPPROCHEMENT_DEFAUT, colonnesExportRapprochement, famillesDe, filtrerRapprochement, totalRapprochement, trierRapprochement,
   type FiltresRapprochement, type LigneRapprochement,
@@ -20,6 +21,7 @@ import { useSession } from '@/lib/session';
 import { formaterQuantite, libelleFamille } from '@/lib/ui/fournitures';
 import { debutDeMois, finDeMois, jourCasa, libellePeriode } from '../inventaire';
 import styles from '../fournitures.module.css';
+import { EnvoiAutomatique } from './EnvoiAutomatique';
 import { ImportMouvements } from './ImportMouvements';
 
 type ChoixPeriode = 'mois' | 'precedent' | 'debut' | 'libre';
@@ -51,6 +53,8 @@ export default function PageRapprochement() {
   const [reglages, setReglages] = useState<ReglagesFournitures | null>(null);
   const [saisie, setSaisie] = useState({ seuil: '', entrepot: '' });
   const [dernierImport, setDernierImport] = useState<DernierImportMouvements | null>(null);
+  const [envois, setEnvois] = useState<EnvoiDolibarr[] | null>([]);
+  const [chargeLe, setChargeLe] = useState(() => new Date());
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState('');
   const [info, setInfo] = useState('');
@@ -65,13 +69,16 @@ export default function PageRapprochement() {
     setChargement(true);
     setErreur('');
     try {
-      const [l, r, d] = await Promise.all([
+      const [l, r, d, e] = await Promise.all([
         chargerRapprochement(marcheId, periode.du, periode.au),
         chargerReglagesFournitures(marcheId),
         chargerDernierImportMouvements(),
+        chargerEnvoisDolibarr(),
       ]);
       if (demande !== derniereDemande.current) return;
       setLignes(l);
+      setEnvois(e);
+      setChargeLe(new Date());
       setReglages(r);
       setSaisie({ seuil: String(r.seuil_ecart_fournitures_pct), entrepot: r.entrepot_dolibarr_id ? String(r.entrepot_dolibarr_id) : '' });
       setDernierImport(d);
@@ -184,12 +191,14 @@ export default function PageRapprochement() {
             <span className="discret">
               {reglages.entrepot_dolibarr_id == null
                 ? 'Sans entrepôt, rien n\'est rapproché.'
-                : dernierImport ? `Mouvements importés le ${dateHeure(dernierImport.importe_le)}.` : 'Aucun mouvement importé.'}
+                : dernierImport ? `Dernier import CSV le ${dateHeure(dernierImport.importe_le)}.` : 'Aucun import CSV.'}
               {!admin && ' L\'entrepôt est choisi par l\'administrateur.'}
             </span>
           </div>
         </section>
       )}
+
+      {reglages?.entrepot_dolibarr_id != null && <EnvoiAutomatique envois={envois} maintenant={chargeLe} />}
 
       {admin && <ImportMouvements entrepotMarche={reglages?.entrepot_dolibarr_id ?? null} dernierImport={dernierImport} apresImport={charger} />}
 

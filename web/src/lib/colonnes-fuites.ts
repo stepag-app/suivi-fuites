@@ -10,7 +10,7 @@ const ALERTES = [
 ] as const;
 
 const CHAMPS_LISTE = [
-  'id', 'numero', 'reference_srm', 'origine', 'statut', 'zone', 'secteur_id', 'secteur', 'adresse', 'latitude', 'longitude',
+  'id', 'numero', 'reference_srm', 'origine', 'statut', 'zone_id', 'zone', 'secteur_id', 'secteur', 'adresse', 'latitude', 'longitude',
   'date_detection', 'derniere_reparation_le', 'derniere_refection_le', 'emplacement_fouille', 'nb_photos', 'verrouillee_le',
   'detectee_par', ...ALERTES,
 ] as const;

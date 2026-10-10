@@ -3,12 +3,15 @@
 // - fiche d'une fuite (/fuites/<uuid>) : une seule « coquille » (la page sans données, quelle que
 //   soit la fuite) servie hors ligne pour toutes les fiches ; les données de la fiche sont gardées
 //   par la page elle-même (IndexedDB). Rien n'est gardé par fuite ici : taille constante ;
+// - liste « Fiches disponibles hors ligne » (/fuites/hors-ligne) : gardée avec la coquille, pour s'ouvrir
+//   sans réseau même si elle n'a jamais été visitée ;
 // - autres pages et données de navigation : réseau d'abord, dernière copie en secours.
 // Les appels à Supabase (autre domaine) ne passent jamais par ici.
 const CACHE = 'suivi-fuites-v1';
 const FICHE = /^\/fuites\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/?$/i;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COQUILLE = '/__hors-ligne/fiche-fuite';
+const LISTE_HORS_LIGNE = '/fuites/hors-ligne';
 // La coquille suit les mises en ligne : relue au plus une fois par heure quand une fiche s'ouvre.
 const COQUILLE_FRAICHE_MS = 60 * 60 * 1000;
 
@@ -119,8 +122,22 @@ async function garderCoquille(reponse, id) {
   await cache.put(COQUILLE, new Response(html, {
     headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Fuite-Id': id, 'X-Garde-Le': String(Date.now()) },
   }));
-  // Scripts et styles de la page : gardés tout de suite, pour qu'elle s'ouvre même s'ils n'ont
-  // jamais été chargés sur cet appareil (mise en ligne récente).
+  await garderFichiers(cache, html);
+  try {
+    const liste = await fetch(LISTE_HORS_LIGNE, { credentials: 'same-origin', headers: { Accept: 'text/html' } });
+    if (liste.ok && estHtml(liste)) {
+      const page = await liste.clone().text();
+      await cache.put(LISTE_HORS_LIGNE, liste);
+      await garderFichiers(cache, page);
+    }
+  } catch {
+    /* réessayé à la prochaine coquille */
+  }
+}
+
+// Scripts et styles d'une page : gardés tout de suite, pour qu'elle s'ouvre même s'ils n'ont
+// jamais été chargés sur cet appareil (mise en ligne récente).
+async function garderFichiers(cache, html) {
   const fichiers = new Set(html.match(/\/_next\/static\/[^"'\s<>\\]+/g) || []);
   for (const fichier of fichiers) {
     if (await cache.match(fichier)) continue;

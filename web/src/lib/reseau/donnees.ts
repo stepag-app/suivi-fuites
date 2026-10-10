@@ -181,20 +181,49 @@ export async function chargerNoeudsSecteur(marcheId: string, secteurId: string, 
   return collection;
 }
 
+// Le réseau entier en une seule requête (Oujda : 44 044 tronçons, 15 Mo de JSON) dépasse le délai maximal d'une requête
+// de l'API en production (« canceling statement due to statement timeout ») : lecture par paquets de secteurs, puis les
+// non zonés, chaque requête restant de l'ordre d'une seconde.
+const SECTEURS_PAR_LECTURE = 8;
+const LECTURES_SIMULTANEES = 4;
+
+async function lireParPaquetsDeSecteurs<T extends { type: 'FeatureCollection'; features: unknown[] }>(
+  marcheId: string,
+  lire: (secteurs: string[], sansSecteur: boolean) => PromiseLike<{ data: unknown; error: unknown }>,
+): Promise<T> {
+  // Tous les secteurs du marché, actifs ou non, comme `p_secteurs` nul dans reseau_geojson et noeuds_geojson.
+  const secteurs = await lireTout<{ id: string }>((de, a) => getSupabase().from('secteurs').select('id').eq('marche_id', marcheId)
+    .order('id').range(de, a) as unknown as PromiseLike<{ data: { id: string }[] | null; error: { message: string } | null }>);
+  const paquets: [string[], boolean][] = [[[], true]];
+  for (let i = 0; i < secteurs.length; i += SECTEURS_PAR_LECTURE) {
+    paquets.push([secteurs.slice(i, i + SECTEURS_PAR_LECTURE).map((s) => s.id), false]);
+  }
+  const resultats: T[] = new Array(paquets.length);
+  let suivant = 0;
+  const ouvrier = async () => {
+    while (suivant < paquets.length) {
+      const i = suivant++;
+      const { data, error } = await lire(...paquets[i]);
+      if (error) throw error;
+      resultats[i] = normaliser<T>(data);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(LECTURES_SIMULTANEES, paquets.length) }, ouvrier));
+  return { type: 'FeatureCollection', features: resultats.flatMap((r) => r.features) } as unknown as T;
+}
+
 /** Tout le réseau du marché, zoné ou non, légèrement simplifié (carte de zonage ; jamais en cache). */
-export async function chargerReseauComplet(marcheId: string, tolerance = 0.000005): Promise<CollectionTroncons> {
-  const { data, error } = await getSupabase().rpc('reseau_geojson', {
-    p_marche: marcheId, p_secteurs: null, p_sans_secteur: true, p_tolerance: tolerance,
-  });
-  if (error) throw error;
-  return normaliser<CollectionTroncons>(data);
+export function chargerReseauComplet(marcheId: string, tolerance = 0.000005): Promise<CollectionTroncons> {
+  return lireParPaquetsDeSecteurs<CollectionTroncons>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('reseau_geojson', {
+    p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur, p_tolerance: tolerance,
+  }));
 }
 
 /** Tous les nœuds du marché, zonés ou non (tuiles du réseau ; jamais en cache). */
-export async function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
-  const { data, error } = await getSupabase().rpc('noeuds_geojson', { p_marche: marcheId, p_secteurs: null, p_sans_secteur: true });
-  if (error) throw error;
-  return normaliser<CollectionNoeuds>(data);
+export function chargerNoeudsComplet(marcheId: string): Promise<CollectionNoeuds> {
+  return lireParPaquetsDeSecteurs<CollectionNoeuds>(marcheId, (secteurs, sansSecteur) => getSupabase().rpc('noeuds_geojson', {
+    p_marche: marcheId, p_secteurs: secteurs, p_sans_secteur: sansSecteur,
+  }));
 }
 
 // ---- État de balayage, équipes, noms --------------------------------------------------------------------

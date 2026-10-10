@@ -8,7 +8,10 @@ import { construireSection, type Colonne, type DocumentExport, type Ligne, type 
 import { construireEntete, type Contexte } from "@/lib/export/jeux";
 
 const PIED = "Débit de la nuit : minimum des relevés de 0 h à 6 h (art. II-17). Débit d'une zone : somme de ses points au même instant "
-  + "(tableau n° 1) ; « ≈ » : somme des minimums des points (approchée). Qi et Qf : minimum des nuits complètes (art. II-17 et II-22).";
+  + "(tableau n° 1) ; « ~ » : somme des minimums des points (approchée). Qi et Qf : minimum des nuits complètes (art. II-17 et II-22).";
+
+// Polices standard du PDF (WinAnsi) : ni « ≈ », ni « τ », ni espaces fines ; « ~ » et « Tau » à la place.
+const nb = (n: number) => n.toLocaleString("fr-FR", { maximumFractionDigits: 2 }).replace(/[\u202f\u00a0]/g, " ");
 
 const nom = (ctx: Contexte, cle: string, defaut: string) => String(ctx.marche[cle] ?? "").trim() || defaut;
 
@@ -23,7 +26,6 @@ export function documentProcesVerbal(
   const valides = mesures.filter((m) => m.validee_le && !m.supprime_le);
   const nz = debitsNuits(zones, points, [campagne], valides);
   const cz = resultatsCampagnes(zones, [campagne], nz);
-  const enTete = (titre: string): SectionDoc["colonnes"][number] => ({ titre, type: "nombre", decimales: [2], largeur: 9 });
 
   const zoneDe = (id: string) => zonesC.find((z) => z.id === id);
   const lignesPoints: Ligne[] = ptsC
@@ -42,14 +44,14 @@ export function documentProcesVerbal(
     ], { titre: "Débit minimum de chaque point par nuit (m³/h)" }),
   ];
 
-  const valeurZone = (n: NuitZone | undefined) => (n?.q_zone_m3h == null ? null : `${n.approchee ? "≈ " : ""}${n.q_zone_m3h.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}${n.complete ? "" : " (incomplet)"}`);
+  const valeurZone = (n: NuitZone | undefined) => (n?.q_zone_m3h == null ? null : `${n.approchee ? "~ " : ""}${nb(n.q_zone_m3h)}${n.complete ? "" : " (incomplet)"}`);
   const lignesZones: Ligne[] = zonesC.map((z) => {
     const r = cz.find((c) => c.zone_id === z.id);
     const t = campagne.type === "apres" && z.q_exige_m3h && r?.q_m3h != null ? Math.round((10000 * (z.q_exige_m3h - r.q_m3h)) / z.q_exige_m3h) / 100 : null;
     return {
       zone: `Zone ${z.numero} – ${z.libelle}`,
       ...Object.fromEntries(nuits.map((n) => [n, valeurZone(nz.find((x) => x.zone_id === z.id && x.nuit === n))])),
-      resultat: r?.q_m3h == null ? null : `${r.approchee ? "≈ " : ""}${r.q_m3h.toLocaleString("fr-FR", { maximumFractionDigits: 2 })}`,
+      resultat: r?.q_m3h == null ? null : `${r.approchee ? "~ " : ""}${nb(r.q_m3h)}`,
       q_exige: z.q_exige_m3h, tau: t,
     };
   });
@@ -59,7 +61,7 @@ export function documentProcesVerbal(
     ...nuits.map((n): Colonne => ({ cle: n, titre: `Nuit du ${jourFr(n).slice(0, 5)}`, groupe: "", largeur: 11 })),
     { cle: "resultat", titre: campagne.type === "libre" ? "Minimum" : court, groupe: "", largeur: 10 },
     { cle: "q_exige", titre: "Q exigé", groupe: "", type: "nombre", decimales: 0, largeur: 8 },
-    ...(campagne.type === "apres" ? [{ cle: "tau", titre: "τ1 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 } as Colonne] : []),
+    ...(campagne.type === "apres" ? [{ cle: "tau", titre: "Tau 1 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 } as Colonne] : []),
   ], { titre: `Débit de chaque zone par nuit et résultat de la campagne (m³/h)` }));
 
   if (o.detail) {
@@ -75,7 +77,10 @@ export function documentProcesVerbal(
         });
         sections.push({
           titre: `Relevés de la nuit du ${jourFr(n)}, zone ${z.numero} (m³/h)`,
-          colonnes: [{ titre: "Heure", type: "texte", decimales: [0], largeur: 7 }, ...pz.map((p) => enTete(p.code)), enTete("Zone")],
+          colonnes: [
+            { titre: "Heure", type: "texte", decimales: lignes.map(() => 0), largeur: 7 },
+            ...[...pz.map((p) => p.code), "Zone"].map((titre) => ({ titre, type: "nombre" as const, decimales: lignes.map(() => 2), largeur: 9 })),
+          ],
           lignes: lignes.map((cellules) => ({ type: "donnees" as const, cellules })),
         });
       }
@@ -112,13 +117,13 @@ export function documentSynthese(
     { cle: "qi_m3h", titre: "Qi", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     { cle: "qf_m3h", titre: "Qf", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     { cle: "delta_q_m3h", titre: "ΔQ", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
-    { cle: "tau1_pct", titre: "τ1 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
+    { cle: "tau1_pct", titre: "Tau 1 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     { cle: "points_balayage", titre: "Points balayage", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     ...(montants ? [{ cle: "penalite_balayage", titre: "Pénalité balayage", groupe: "", type: "montant", largeur: 10 } as Colonne<ResultatDebits & Ligne>] : []),
     { cle: "alerte_arret", titre: "Arrêt de zone", groupe: "", largeur: 7, valeur: (x) => oui(x.alerte_arret) },
     { cle: "nb_controles", titre: "Contrôles", groupe: "", type: "nombre", decimales: 0, largeur: 7 },
     { cle: "q_maintien_moyen_m3h", titre: "Moyenne maintien", groupe: "", type: "nombre", decimales: 2, largeur: 9 },
-    { cle: "tau2_pct", titre: "τ2 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
+    { cle: "tau2_pct", titre: "Tau 2 (%)", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     { cle: "points_maintien", titre: "Points maintien", groupe: "", type: "nombre", decimales: 2, largeur: 8 },
     ...(montants ? [{ cle: "penalite_maintien", titre: "Pénalité maintien", groupe: "", type: "montant", largeur: 10 } as Colonne<ResultatDebits & Ligne>] : []),
     { cle: "degradation_pct", titre: "Dégradation (% du gain)", groupe: "", type: "nombre", decimales: 2, largeur: 9 },

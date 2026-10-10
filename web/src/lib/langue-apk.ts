@@ -24,6 +24,8 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   'Désélectionner tout': { ar: 'إلغاء تحديد الكل' },
   'Enregistrer…': { ar: 'حفظ…' },
   'Quitter le balayage': { ar: 'الخروج من مسح الشبكة' },
+  'Satellite': { ar: 'القمر الصناعي', hyb: 'Satellite' },
+  'Plan': { ar: 'الخريطة' },
   'Préparation des tronçons…': { ar: 'جارٍ تجهيز المقاطع…' },
   'Secteurs, légende et enregistrement': { ar: 'القطاعات ومفتاح الخريطة والحفظ' },
   'Rien à prolonger : jonction à 3 branches, bout de rue ou changement de direction (± 20°).': {
@@ -175,15 +177,18 @@ export function memoriserLangueApk(suite: string) {
   }
 }
 
-const remplir = (texte: string, valeurs?: Record<string, string | number>) =>
-  valeurs ? texte.replace(/\{(\w+)\}/g, (m, k: string) => (k in valeurs ? String(valeurs[k]) : m)) : texte;
+// En arabe, chaque valeur insérée est isolée (FSI … PDI) : sans cela « 0 m » devient « m 0 » dans la phrase.
+const remplir = (texte: string, valeurs?: Record<string, string | number>, isoler = false) =>
+  valeurs
+    ? texte.replace(/\{(\w+)\}/g, (m, k: string) => (k in valeurs ? (isoler ? `\u2068${valeurs[k]}\u2069` : String(valeurs[k])) : m))
+    : texte;
 
 /** Texte dans la langue de la tablette ; `fr` : texte français déjà composé (pluriels). Inconnu : tel quel. */
 export function traduire(langue: LangueApk, cle: string, valeurs?: Record<string, string | number>, fr?: string): string {
   if (langue === 'fr') return fr ?? remplir(cle, valeurs);
   const e = TRADUCTIONS_BALAYAGE[cle];
   if (!e) return fr ?? remplir(cle, valeurs);
-  return RLM + remplir(langue === 'hybride' ? e.hyb ?? e.ar : e.ar, valeurs);
+  return RLM + remplir(langue === 'hybride' ? e.hyb ?? e.ar : e.ar, valeurs, true);
 }
 
 /** Nom d'équipe venu de la base, mots connus traduits. */

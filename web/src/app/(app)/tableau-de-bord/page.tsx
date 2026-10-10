@@ -23,6 +23,7 @@ import {
 import { useFuitesAnticipees } from "@/lib/anticipation";
 import { AnticipeesPrioritaires } from "./Anticipees";
 import { BlocAttachements, type DonneesAttachements } from "./BlocAttachements";
+import { DebitsNuit } from "./Debits";
 import { FournituresPosees } from "./Fournitures";
 import { DernieresFuites, type FuiteRecente } from "./DernieresFuites";
 import { Synthese, TableauGroupes, type Anomalie } from "./Synthese";
@@ -89,6 +90,7 @@ export default function TableauDeBord() {
   const voirAnomalies = peut("quantites", "lire") && peut("interventions", "lire");
   const voirAttachements = peut("attachements", "lire") && peut("quantites", "lire");
   const voirFournitures = peut("quantites", "lire");
+  const voirDebits = peut("mesures_debit", "lire");
   const [versionAnticipees, setVersionAnticipees] = useState(0);
   const { liste: anticipees } = useFuitesAnticipees(lireFuites ? marcheId : undefined, versionAnticipees);
 
@@ -247,6 +249,7 @@ export default function TableauDeBord() {
               <Synthese fuites={fuites} anomalies={donnees.anomalies} maintenant={donnees.maintenant}
                 periode={periode} titrePeriode={titrePeriode} seuilH={libelles.delaiReparationH} comparer={choix !== "debut"} />
               {voirFournitures && marcheId && <FournituresPosees marcheId={marcheId} periode={periode} titrePeriode={titrePeriode} />}
+              {voirDebits && marcheId && <DebitsNuit marcheId={marcheId} />}
             </TabsContent>
             <TabsContent value="secteurs">
               <TableauGroupes fuites={fuites} periode={periode} titrePeriode={titrePeriode} />

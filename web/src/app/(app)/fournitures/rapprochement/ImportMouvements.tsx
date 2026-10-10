@@ -66,7 +66,7 @@ export function ImportMouvements({
     <section className="carte">
       <h2>Import manuel des mouvements (secours)</h2>
       <p className="discret">
-        À utiliser si l&apos;envoi automatique est arrêté (serveur Dolibarr hors service, tâche planifiée non installée).
+        À utiliser si la synchronisation est arrêtée (Dolibarr injoignable, clés de l&apos;API retirées).
         Fichiers « mouvements_chantier… .csv » de l&apos;export Dolibarr (séparateur « ; », UTF-8), un ou plusieurs à la fois
         (export courant et complément de la dotation initiale). On peut réimporter à tout moment : un mouvement déjà connu est
         laissé tel quel, ou mis à jour s&apos;il a changé dans Dolibarr ; rien n&apos;est supprimé.

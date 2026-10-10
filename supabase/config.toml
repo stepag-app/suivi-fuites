@@ -21,6 +21,6 @@ verify_jwt = true
 [functions.reseau-tuiles]
 verify_jwt = true
 
-# Appelée par la tâche planifiée du serveur Dolibarr, sans compte : elle vérifie elle-même le jeton dédié (DOLIBARR_JETON).
+# Appelée par la base (pg_cron, pg_net) avec sa clé d'appel, ou par le panneau avec le jeton du compte : elle vérifie elle-même.
 [functions.dolibarr-mouvements]
 verify_jwt = false

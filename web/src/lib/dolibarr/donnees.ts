@@ -4,7 +4,7 @@
 import { messageErreur } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase';
 import { chargeImport, type MouvementLu } from './csv';
-import type { EnvoiDolibarr } from './envoi-auto';
+import type { BilanSynchro, EnvoiDolibarr } from './envoi-auto';
 import { SEUIL_PAR_DEFAUT_PCT, normaliserLigne, type LigneRapprochement } from './rapprochement';
 
 export interface ReglagesFournitures {
@@ -63,7 +63,7 @@ export async function chargerDernierImportMouvements(): Promise<DernierImportMou
   return (data as DernierImportMouvements | null) ?? null;
 }
 
-// Journal de l'envoi automatique (X8) : derniers envois, signes de vie et erreurs. Base pas encore à jour : liste vide.
+// Journal de la synchronisation (X8) : derniers passages, signes de vie et erreurs. Base pas encore à jour : null.
 export async function chargerEnvoisDolibarr(limite = 30): Promise<EnvoiDolibarr[] | null> {
   const { data, error } = await getSupabase().from('envois_dolibarr')
     .select('id, recu_le, dernier_le, appels, statut, origine, mouvements, nouveaux, modifies, ignores, dernier_dolibarr_id, date_max, message, poste, version_script')
@@ -73,6 +73,24 @@ export async function chargerEnvoisDolibarr(limite = 30): Promise<EnvoiDolibarr[
     throw error;
   }
   return (data as EnvoiDolibarr[] | null) ?? [];
+}
+
+// Lecture immédiate de l'API Dolibarr par la fonction serveur (droits vérifiés par la base). « tout » : tout l'historique
+// relu. Une lecture déjà en cours (409) ou refusée par Dolibarr (502) renvoie aussi un bilan, affiché tel quel.
+export async function synchroniserDolibarr(tout = false): Promise<BilanSynchro> {
+  const { data, error } = await getSupabase().functions.invoke('dolibarr-mouvements', { body: { action: 'synchroniser', tout } });
+  if (!error) return data as BilanSynchro;
+  const contexte = (error as { context?: Response }).context;
+  let detail: Partial<BilanSynchro> & { erreur?: string } = {};
+  if (contexte && typeof contexte.json === 'function') {
+    try {
+      detail = await contexte.json();
+    } catch {
+      /* corps illisible */
+    }
+  }
+  if (detail.statut) return detail as BilanSynchro;
+  throw new Error(detail.erreur ?? error.message);
 }
 
 // Seules les colonnes utiles partent vers la base (jamais un prix ni une valeur, même si le fichier en contenait).

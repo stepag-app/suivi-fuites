@@ -1,59 +1,160 @@
-// Fonction serveur dolibarr-mouvements (X8) : reçoit les mouvements de stock envoyés par la tâche planifiée du serveur
-// Dolibarr (outils/dolibarr/envoi-mouvements.php), sans compte ni JWT : l'appel porte le jeton dédié dans l'en-tête
-// x-jeton-dolibarr. Tout le reste (entrepôts suivis, nouveaux ou changés seulement, import, journal) est fait par la
-// base : recevoir_envoi_dolibarr (service_role seulement), qui appelle importer_mouvements_dolibarr.
+// Fonction serveur dolibarr-mouvements (X8) : mouvements de stock Dolibarr → Supabase, sans JWT imposé (verify_jwt = false).
 //
-// Corps JSON : { action: 'etat' } → rowid reçus par entrepôt suivi ; { action: 'envoyer', mouvements: [...] } ;
-// { action: 'erreur', message } (le script n'a pas pu lire Dolibarr). Toujours avec script: { version, poste }.
+// Lecture de l'API REST de Dolibarr (corps { action: 'synchroniser', tout?: true }), deux appelants :
+//  * la base, toutes les 15 minutes (pg_cron → pg_net) avec sa clé d'appel x-cle-synchro, vérifiée par la base
+//    (verifier_cle_synchro_dolibarr) ; réponse 202 immédiate, la lecture continue en arrière-plan ;
+//  * le bouton « Synchroniser maintenant » de la page Rapprochement, avec le jeton du compte (administrateur, ou
+//    « quantités / lire » : peut_synchroniser_dolibarr) ; réponse au bout de la lecture, erreurs comprises. « tout » :
+//    tout l'historique des entrepôts suivis est relu (contrôle, ou correction des lignes venues du CSV) ; rien n'est doublé.
+// Une seule lecture à la fois (verrou de recevoir_envoi_dolibarr). Le détail de la lecture est dans lecture-api.ts.
+// L'ancien envoi poussé par un script du serveur Dolibarr (S13, jamais installé) est retiré ; l'import CSV reste le secours.
 //
-// Secret de la fonction : DOLIBARR_JETON (32 caractères au moins), posé par le workflow « Déploiement de la base »
-// depuis le secret GitHub du même nom. Absent : 503 { configure: false } et rien n'est lu.
+// Secrets de la fonction, posés par le workflow « Déploiement de la base » depuis les secrets GitHub du même nom :
+// DOLIBARR_API_URL, DOLIBARR_API_CLE, CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET. Absents : 503 { configure: false }.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { ErreurApi, clientDolibarr, lireEntrepot, nouveauxCaches, type ConfigApi, type MouvementEnvoye } from './lecture-api.ts';
 
-const TAILLE_MAX = 4 * 1024 * 1024;
+const TAILLE_LOT = 1000;
+const JOURS_RECOUVREMENT = 3;
+const VERSION = 'api-1.0';
+
+const CORS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
 
 const reponse = (statut: number, corps: Record<string, unknown>) =>
-  new Response(JSON.stringify(corps), { status: statut, headers: { 'Content-Type': 'application/json' } });
+  new Response(JSON.stringify(corps), { status: statut, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
-// Comparaison en temps constant (empreintes de même longueur) : la durée ne dit rien du jeton attendu.
-async function memeJeton(recu: string, attendu: string): Promise<boolean> {
-  const empreinte = async (t: string) => new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
-  const [a, b] = await Promise.all([empreinte(recu), empreinte(attendu)]);
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a[i] ^ b[i];
-  return diff === 0;
+const serviceRole = () => createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+function configurationApi(): ConfigApi | null {
+  const url = Deno.env.get('DOLIBARR_API_URL')?.trim() ?? '';
+  const cle = Deno.env.get('DOLIBARR_API_CLE')?.trim() ?? '';
+  const cfId = Deno.env.get('CF_ACCESS_CLIENT_ID')?.trim() ?? '';
+  const cfSecret = Deno.env.get('CF_ACCESS_CLIENT_SECRET')?.trim() ?? '';
+  if (!/^https:\/\/[^/\s]+\/\S*api\/index\.php\/?$/.test(url) || !cle || !cfId || !cfSecret) return null;
+  return { url, cle, cfId, cfSecret };
 }
 
+async function rpc(admin: SupabaseClient, envoi: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const { data, error } = await admin.rpc('recevoir_envoi_dolibarr', { p_envoi: envoi });
+  if (error) throw new Error(`Base : ${error.message}`);
+  return (data ?? {}) as Record<string, unknown>;
+}
+
+interface Bilan {
+  statut: 'recu' | 'rien' | 'erreur' | 'occupe';
+  mouvements: number;
+  nouveaux: number;
+  modifies: number;
+  ignores: number;
+  lots: number;
+  appels_dolibarr: number;
+  erreur?: string;
+  depuis?: unknown;
+}
+
+// Une lecture complète : verrou, entrepôts suivis, mouvements lus, envoyés par lots dans l'ordre des rowid, verrou rendu.
+async function synchroniser(admin: SupabaseClient, config: ConfigApi, poste: string, tout = false): Promise<Bilan> {
+  const script = { version: VERSION, poste };
+  const debut = await rpc(admin, { action: 'debut', script });
+  const bilan: Bilan = { statut: 'rien', mouvements: 0, nouveaux: 0, modifies: 0, ignores: 0, lots: 0, appels_dolibarr: 0 };
+  if (debut.occupe) return { ...bilan, statut: 'occupe', depuis: debut.depuis };
+
+  const client = clientDolibarr(config);
+  try {
+    const caches = nouveauxCaches();
+    const entrepots = (Array.isArray(debut.entrepots) ? debut.entrepots : []) as { id: number; dernier_id: number | null }[];
+    const lus: MouvementEnvoye[] = [];
+    for (const e of entrepots) lus.push(...(await lireEntrepot(client, caches, e.id, tout ? null : e.dernier_id, JOURS_RECOUVREMENT)));
+    lus.sort((a, b) => a.dolibarr_id - b.dolibarr_id);
+    bilan.appels_dolibarr = client.appels();
+
+    // Rien de lu : un envoi vide laisse quand même un signe de vie (« Dernier passage »).
+    const lots = lus.length ? Array.from({ length: Math.ceil(lus.length / TAILLE_LOT) }, (_, i) => lus.slice(i * TAILLE_LOT, (i + 1) * TAILLE_LOT)) : [[]];
+    for (const lot of lots) {
+      const r = await rpc(admin, { action: 'envoyer', mouvements: lot, script });
+      bilan.lots++;
+      bilan.mouvements += Number(r.mouvements ?? 0);
+      if (r.statut === 'erreur') return { ...bilan, statut: 'erreur', erreur: String(r.erreur ?? 'Envoi refusé par la base') };
+      bilan.nouveaux += Number(r.nouveaux ?? 0);
+      bilan.modifies += Number(r.modifies ?? 0);
+      bilan.ignores += Number(r.ignores ?? 0);
+    }
+    bilan.statut = bilan.nouveaux || bilan.modifies ? 'recu' : 'rien';
+    return bilan;
+  } catch (e) {
+    bilan.appels_dolibarr = client.appels();
+    const message = e instanceof ErreurApi ? e.message : `Lecture interrompue : ${e instanceof Error ? e.message : String(e)}`;
+    await rpc(admin, { action: 'erreur', origine: 'api', message, script }).catch(() => undefined);
+    return { ...bilan, statut: 'erreur', erreur: message };
+  } finally {
+    await rpc(admin, { action: 'fin', script }).catch(() => undefined);
+  }
+}
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+
 Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
   if (req.method !== 'POST') return reponse(405, { erreur: 'Méthode non autorisée' });
 
-  const attendu = Deno.env.get('DOLIBARR_JETON') ?? '';
-  if (attendu.length < 32) return reponse(503, { erreur: 'Envoi automatique Dolibarr non configuré sur le serveur', configure: false });
-  if (!(await memeJeton(req.headers.get('x-jeton-dolibarr') ?? '', attendu))) return reponse(401, { erreur: 'Jeton refusé' });
+  const admin = serviceRole();
+  const cle = req.headers.get('x-cle-synchro');
+  let poste: string;
+  if (cle !== null) {
+    const { data: valide, error } = await admin.rpc('verifier_cle_synchro_dolibarr', { p_cle: cle });
+    if (error) return reponse(500, { erreur: `Base : ${error.message}` });
+    if (valide !== true) return reponse(401, { erreur: 'Clé d\'appel refusée' });
+    poste = 'lecture planifiée';
+  } else {
+    // Bouton du panneau : jeton du compte, droits vérifiés par la base sous son nom.
+    const jeton = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');
+    if (!jeton) return reponse(401, { erreur: 'Non connecté' });
+    const compte = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: `Bearer ${jeton}` } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: appelant, error: erreurJeton } = await compte.auth.getUser(jeton);
+    if (erreurJeton || !appelant.user) return reponse(401, { erreur: 'Non connecté' });
+    const { data: peut, error } = await compte.rpc('peut_synchroniser_dolibarr');
+    if (error) return reponse(500, { erreur: `Base : ${error.message}` });
+    if (peut !== true) return reponse(403, { erreur: 'Réservé à l\'administrateur et aux comptes qui voient le rapprochement' });
+    const identifiant = String(appelant.user.user_metadata?.identifiant ?? appelant.user.email?.split('@')[0] ?? 'compte');
+    poste = `lecture demandée par ${identifiant}`.slice(0, 100);
+  }
 
-  const longueur = Number(req.headers.get('content-length') ?? '0');
-  if (longueur > TAILLE_MAX) return reponse(413, { erreur: 'Envoi trop volumineux (4 Mo au plus) : réduire le lot' });
-  const texte = await req.text();
-  if (texte.length > TAILLE_MAX) return reponse(413, { erreur: 'Envoi trop volumineux (4 Mo au plus) : réduire le lot' });
-  let envoi: unknown;
+  let corps: Record<string, unknown> = {};
   try {
-    envoi = JSON.parse(texte);
+    corps = await req.json();
   } catch {
-    return reponse(400, { erreur: 'Corps illisible (JSON attendu)' });
+    // corps vide : synchroniser
   }
-  if (!envoi || typeof envoi !== 'object' || Array.isArray(envoi)) return reponse(400, { erreur: 'Corps illisible (objet attendu)' });
+  if ((corps.action ?? 'synchroniser') !== 'synchroniser') return reponse(400, { erreur: 'Action inconnue' });
 
-  const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
-  const { data, error } = await admin.rpc('recevoir_envoi_dolibarr', { p_envoi: envoi });
-  if (error) {
-    const statut = error.code === '22023' ? 400 : 500;
-    return reponse(statut, { erreur: error.message, code: error.code });
+  const config = configurationApi();
+  if (!config) {
+    return reponse(503, {
+      erreur: 'Lecture de l\'API Dolibarr non configurée sur le serveur (secrets DOLIBARR_API_URL, DOLIBARR_API_CLE, CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET)',
+      configure: false,
+    });
   }
-  const resultat = (data ?? {}) as Record<string, unknown>;
-  // Envoi refusé par la base (déjà journalisé) : le script garde son point de reprise et réessaiera.
-  if (resultat.statut === 'erreur') return reponse(422, resultat);
-  return reponse(200, resultat);
+
+  const travail = synchroniser(admin, config, poste, corps.tout === true);
+  if (cle !== null && typeof EdgeRuntime !== 'undefined') {
+    EdgeRuntime.waitUntil(travail.catch((e) => console.error('lecture Dolibarr', e)));
+    return reponse(202, { lancee: true });
+  }
+  try {
+    const bilan = await travail;
+    const statut = bilan.statut === 'occupe' ? 409 : bilan.statut === 'erreur' ? 502 : 200;
+    return reponse(statut, { ...bilan });
+  } catch (e) {
+    return reponse(500, { erreur: e instanceof Error ? e.message : String(e) });
+  }
 });

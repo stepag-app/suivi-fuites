@@ -3,7 +3,8 @@
 -- Données fictives : entrepôt suivi 711, entrepôt non suivi 999.
 -- Droits (service_role seulement), état par entrepôt suivi, import des seuls nouveaux ou
 -- changés, sans doublon, entrepôts non suivis ignorés, envoi refusé en bloc et journalisé,
--- signes de vie et erreurs identiques regroupés, erreur signalée par le script, lecture du
+-- signes de vie et erreurs identiques regroupés, erreur de lecture signalée (origine « api » depuis
+-- 20261014600000 : le script du serveur est retiré), lecture du
 -- journal (administrateur, responsable ; pas l'agent de détection).
 -- =============================================================================
 begin;
@@ -29,7 +30,7 @@ grant select on t_envoi to service_role, authenticated;
 create temporary table t_res (cle text primary key, valeur jsonb);
 grant select, insert on t_res to service_role;
 
--- Format envoyé par outils/dolibarr/envoi-mouvements.php (dates à l'heure du serveur Dolibarr, Maroc).
+-- Format des mouvements reçus (dates sans fuseau : heure du Maroc ; « prix » ignoré).
 insert into t_envoi values
   ('m1', '{"dolibarr_id": 91001, "date_mouvement": "2026-10-12 09:00:00", "produit_dolibarr_id": 9301, "produit_ref": "ESS01301",
            "produit_designation": "MANCHON S13 DN 25", "entrepot_id": 711, "entrepot_libelle": "DP-ESSAI S13",
@@ -190,8 +191,8 @@ select results_eq($$ select statut, origine, appels, message ~ 'invalide|valide'
   $$ values ('erreur', 'fonction', 2, true) $$,
   'erreur identique répétée : une ligne, appels = 2');
 select results_eq($$ select origine, message, poste from envois_dolibarr order by id desc limit 1 $$,
-  $$ values ('script', 'Lecture de Dolibarr impossible (connexion à la base, code 2002)', 'SERVEUR-ESSAI') $$,
-  'erreur signalée par le script : journalisée');
+  $$ values ('api', 'Lecture de Dolibarr impossible (connexion à la base, code 2002)', 'SERVEUR-ESSAI') $$,
+  'erreur signalée sans origine : journalisée comme erreur de lecture de l''API');
 
 -- -----------------------------------------------------------------------------
 -- 4. Lecture du journal

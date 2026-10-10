@@ -202,7 +202,3 @@ planches/
 rclone.conf
 *.rclone.conf
 
-# Envoi automatique Dolibarr (outils/dolibarr/) : configuration locale du serveur (jeton) et journaux
-outils/dolibarr/config.ini
-outils/dolibarr/journal/
-outils/dolibarr/*.lock

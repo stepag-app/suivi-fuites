@@ -9,7 +9,8 @@ est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionn
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
 **Suite (2026-10-10) : plan du chantier v3, `docs/lots/chantier-v3.md`** (équipes supprimées, débits de nuit, rapports,
 e-mail, Dolibarr, sauvegarde hors plateformes, audit, purge de DEMO, fermeture). **Correctif du 2026-10-10** : 403 des tuiles
-du réseau (fonction `reseau-tuiles`), cause et gestes restants au § 2.
+du réseau (fonction `reseau-tuiles`), cause et gestes restants au § 2. **Sauvegarde hors plateformes (X9, S14)** : copie
+nocturne sur le Drive de `stepag.app` en service, restauration depuis le Drive testée, voir § 11.
 
 ## 1. Fait
 
@@ -25,7 +26,7 @@ du réseau (fonction `reseau-tuiles`), cause et gestes restants au § 2.
 | Panneau web + mode terrain (Next.js) | `web/` (voir `web/README.md`) | **en ligne** : https://fuites.stepag.ma (domaine branché le 2026-10-07 : CNAME `fuites` dans Cloudflare, DNS only, vers Vercel ; Supabase Auth : Site URL et Redirect URL mises à jour) ; ancienne adresse https://suivi-fuites-web.vercel.app toujours active (Vercel, équipe STEPAG, plan Hobby) ; connexion, création de compte et saisie de fuite validées par Issam le 2026-10-04 |
 | Écran Paramètres (ouvriers, équipes, motifs, prix hors bordereau) et mode hors ligne léger (file d'attente IndexedDB, synchro, service worker, page « En attente ») | `web/src/app/(app)/parametres`, `web/src/lib/hors-ligne.ts` | PR 1 de la session ; **à tester sur la tablette** (mode avion : créer une fuite avec photo, rétablir le réseau) |
 | Socle de l'application Android Expo : connexion, liste, nouvelle fuite (GPS, photos), file d'attente hors ligne, envois en attente ; workflow de compilation de l'APK | `mobile/` (voir `mobile/README.md`), `.github/workflows/apk.yml` | PR 2 de la session ; types et bundle Android vérifiés ici, **compilation APK à valider par le workflow** |
-| Sauvegarde nocturne chiffrée de la base (schéma, données, comptes), 30 jours | `.github/workflows/sauvegarde-base.yml`, `supabase/README.md` | **active** (secret créé le 2026-10-05, premières exécutions réussies) ; essai de restauration à faire |
+| Sauvegarde nocturne chiffrée de la base (schéma, données, comptes) : GitHub 30 jours, R2 30 jours, **Google Drive de `stepag.app`** (30 quotidiennes, 12 mensuelles) ; photos, APK et fichiers Storage copiés sur le Drive, en incrémental, rien d'effacé | `.github/workflows/sauvegarde-base.yml` (jobs `sauvegarde` et `drive`), `test-restauration.yml`, `outils/sauvegarde/`, `supabase/README.md` § Sauvegarde et restauration et § Reprise après sinistre | **active** (X9, S14, PR [#86](https://github.com/stepag-app/suivi-fuites/pull/86)) : exécution manuelle du 2026-10-10 verte (archive de 10,6 Mo, 18 fichiers R2, 10 fichiers Storage sur le Drive) ; **test de restauration depuis le Drive vert** (base vierge, 23 fichiers référencés retrouvés), voir § 11 |
 | Correctif droits `service_role` (migration `20261004130000`) | `supabase/migrations/` | déployé ; simulateur de test rendu strict (aucun droit par défaut), 64 tests |
 | **Étape A** : application standard (fiche du marché : titulaire, maître d'ouvrage, délai, OS typés, arrêts et reprises, avenants, bordereau versionné, journal des événements avec pièces jointes, règles d'attachement, libellés et contrôles du client par marché) | migrations `20261004180000`, `20261004180100` ; Paramètres > Marché, Bordereau, Attachement, Événements | **PR [#10](https://github.com/stepag-app/suivi-fuites/pull/10) fusionnée** (accord d'Issam) ; migrations **déployées** le 2026-10-04 à 19 h 05 UTC |
 | **Étape B** : lots d'attachement figés (solde fuite × article, brouillon puis arrêt, régularisations, réfection anticipée, ligne libre, refacturation forcée et réouverture par l'admin) | migration `20261004200000` ; pages `/attachements` | même PR #10, déployée |
@@ -104,7 +105,7 @@ faute de quoi les compilations d'APK et le déploiement automatique de la base s
   1. Règle CORS du compartiment R2 `suivi-fuites-photos` : en-tête `Range`, méthode `HEAD`, origine `https://fuites.stepag.ma`
      (texte complet dans `web/README.md` § Tuiles ; il remplace la règle des photos, qui y est comprise).
   2. **Paramètres > Réseau > Générer les tuiles** : l'état doit passer à « À jour » (date, tronçons, nœuds, taille).
-- Facultatif : règle de cycle de vie Cloudflare (préfixe `sauvegardes/base/`, 30 jours) et miroir des photos déjà dans R2 (voir `supabase/README.md`).
+- Facultatif : règle de cycle de vie Cloudflare (préfixe `sauvegardes/base/`, 30 jours). Le miroir des photos est fait par la copie sur le Drive (X9, § 11).
 - Vérifier dans le SQL Editor que la tâche `pg_cron` `alertes-reparation` existe (`select jobname, schedule from cron.job;`) ; sinon activer
   l'extension (Database > Extensions) puis `select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');`
   (la CI n'affiche pas les NOTICE ; à vérifier aussi pour `pg_net`, déclencheur du push).
@@ -122,7 +123,7 @@ certificat. **Sans ce fichier, plus de mise à jour de l'APK possible** : faire 
 5. **Essai sur une vraie tablette Samsung** : installer l'APK de `main` (artefact `suivi-fuites-apk`, signée STEPAG), parcours complet, mode avion, trois langues, suivi GPS.
 6. **Relire l'arabe** : les listes paramétrées (natures dont carrelage, REVSOL, faïence, pavé ciment ; motifs ; ouvrages) et les 121 libellés ajoutés par S7 (artefact de relecture).
 7. Importer `produits.csv` et activer les articles utiles (Paramètres > Articles), relire le zonage, importer le réseau en production (§ 7) si ce n'est pas fait.
-8. Essai de restauration réelle de la sauvegarde sur un projet Supabase neuf (étapes 1 à 6 de `supabase/README.md`).
+8. ~~Essai de restauration de la sauvegarde~~ : fait en CI (le test de restauration restaure l'archive du **Drive** dans une base vierge, lundi 04:07 UTC et à la demande). Facultatif : jouer une fois la « Reprise après sinistre » de `supabase/README.md` sur un vrai projet Supabase neuf, de préférence avant la purge de DEMO.
 9. Dolibarr : bons 6804 et 6814 rattachés au projet 30, bon 6796 en brouillon, pose non saisie (voir § 3) ; à décider avec le magasinier.
 
 **Comportement à connaître.** Les champs obligatoires d'une nouvelle fuite (tournée, secteur, ouvrage, visibilité, nature de dégradation) sont
@@ -193,7 +194,7 @@ Mesures de débit et pénalités de performance (§ 4).
 - **Exports** : fichiers fabriqués dans le navigateur ; write-excel-file (19 Ko), jsPDF + autotable (140 Ko),
   docx (112 Ko), chargés à la demande ; police arabe Amiri (OFL) ; dans les PDF, l'arabe est composé par le
   navigateur et inséré en image.
-- Supabase gratuit pour l'instant ; aucune sauvegarde automatique → backup maison (workflow `sauvegarde-base.yml`, photos non incluses).
+- Supabase gratuit pour l'instant ; aucune sauvegarde automatique Supabase → backup maison (workflow `sauvegarde-base.yml`) avec copies hors plateformes : R2 et Drive de `stepag.app` (base, photos, APK, fichiers Storage), voir § 11.
 - Bordereau « à majoration » (15 %) : l'appli montre les montants au prix du bordereau seulement ;
   la majoration et la facture se font à la main (décision du 2026-10-04 ci-dessus).
 - Fuites signalées par la SRM : réparées et payées comme celles de STEPAG (`origine = 'srm'`).
@@ -420,3 +421,28 @@ Cadrage : `docs/lots/chantier-v2.md` (tâches R, V, F, P, A, N, L, C, X ; répon
 corrections de champs restent visibles du terrain, seules les pièces du bureau sont masquées ; (5) push et satellite inactifs faute de
 secrets / clé ; (6) ce fichier décrivait la PR #40 comme ouverte et les PR APK #56 à #58 comme à fusionner alors qu'elles sont fusionnées ;
 (7) copies de travail P3 / P4 (`.claude/worktrees/agent-a717…`, `agent-a3be…`) toujours présentes : à supprimer par Issam.
+
+## 11. Chantier v3, S14 : sauvegarde hors plateformes sur le Drive (X9, 2026-10-10)
+
+PR [#86](https://github.com/stepag-app/suivi-fuites/pull/86) fusionnée (`a71c04f`), sans migration. Détail et procédure :
+`supabase/README.md` (§ Copie hors plateformes, § Reprise après sinistre).
+
+- **Ce qui tourne** : chaque nuit (02:17 UTC) et à la demande, le job `drive` de `sauvegarde-base.yml` copie par rclone (version et
+  empreinte épinglées) dans le dossier `Suivi-fuites-sauvegarde` du Drive de `stepag.app@gmail.com` : `base/` (archives chiffrées,
+  relues en SHA-256, rotation 30 quotidiennes et 12 mensuelles, 20 suppressions au plus par exécution), `r2/` (compartiment R2 hors
+  `sauvegardes/` : photos, `apk/`, `reseau/`), `stockage-supabase/`. `rclone copy` seulement : rien n'est effacé côté Drive hors
+  rotation. Échec visible : étape rouge, résumé de l'exécution, alerte sous 3 Go libres, e-mail GitHub.
+- **Contrôle** : « Test de restauration » restaure l'archive prise sur le Drive (comparée à l'artefact GitHub), puis vérifie que
+  chaque photo R2 non supprimée et chaque objet Storage que la base restaurée référence existe sur le Drive (taille comprise pour
+  Storage) et relit un échantillon. Premier essai réel le 2026-10-10 : sauvegarde 38018099863 et test 38018472028 verts.
+- **Accès Drive** : secret GitHub `SAUVEGARDE_DRIVE_CONFIG` (section `[drive]` de rclone, créé par Issam) ; client OAuth « rclone »
+  (application de bureau) du projet Google Cloud `suivi-fuites-sauvegarde`, **publié en production** (sinon jeton expiré après
+  7 jours), un seul code secret actif, étendue `drive`. Google exige pour cela trois liens publics : pages `/confidentialite` et
+  `/conditions` du panneau (`web/src/app/`), texte à relire par Issam. Note pas à pas d'Issam : Claude Docs « Autoriser rclone sur le
+  Drive ».
+- **Si la copie échoue** : « Connexion au Drive » en échec = jeton révoqué ou expiré (refaire la note, recréer le secret) ; Drive
+  presque plein = Google One 100 Go (15 Go gratuits partagés avec Gmail) ; les APK de R2 ne sont jamais supprimées du Drive.
+- **Reste** : relire les deux pages publiques ; activer les notifications d'échec d'Actions (compte GitHub) ; e-mail d'échec par
+  M2 (S18) ; refaire les parties 2 et 3 de la note lors de la rotation des secrets (S23) ; surveiller les minutes d'Actions une fois le
+  dépôt privé (Z4) : la sauvegarde nocturne, le job Drive et le test hebdomadaire en consomment ; S22 (purge de DEMO) peut s'appuyer
+  sur cette copie.

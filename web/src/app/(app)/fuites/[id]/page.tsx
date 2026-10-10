@@ -13,6 +13,7 @@ import { BadgeStatut, BadgesAlertes, STATUT_STYLE, ORDRE_STATUTS } from "@/compo
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { BoutonEnvoyerEmail } from "@/components/envoyer-email";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -431,6 +432,10 @@ export default function DetailFuite() {
             <Button size="sm" variant="outline" disabled={rapportEnCours} onClick={rapportPdf}>
               {rapportEnCours ? <Spinner /> : <FileText data-icon="inline-start" />}Rapport PDF
             </Button>
+          )}
+          {actions.rapportPdf && marcheId && (
+            <BoutonEnvoyerEmail size="sm" document="rapport_fuite" reference={`Fuite N° ${fuite.numero}`}
+              fabriquer={async () => (await import("@/lib/export/rapport-fuite")).fabriquerRapports([id], marcheId, peut("quantites", "lire"))} />
           )}
           {actions.verrouiller && (
             <Button size="sm" variant={verrouillee ? "outline" : "default"} disabled={occupe}

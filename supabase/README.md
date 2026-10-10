@@ -83,6 +83,8 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/40_s15_debits_nuit.test.sql` | 91 tests S15 : privilèges, tableau n° 1, points de pénalité, points et campagnes (droits, défauts), saisie (normalisation, refus), débit au même instant ou approché, nuits incomplètes, validation du terrain, Qi, Qf, τ1, τ2, plafond, points entiers, assiette marché, seuils, montants cachés, suppression logique, isolation, pièces jointes, marché désactivé, journal |
 | `migrations/20261013400000_reseau_lecture_paginee.sql` | tuiles du réseau (X5) : `reseau_geojson_page` et `noeuds_geojson_page`, lecture du réseau complet d'un marché (zonés et non zonés, actifs) par pages bornées dans l'ordre de la référence (index unique `marche_id, reference` ; 1 à 5 000, 2 000 tronçons ou 3 000 nœuds par défaut ; « suivant » = dernière référence, nul à la fin), mêmes propriétés que `reseau_geojson` / `noeuds_geojson`, RLS de l'appelant : le réseau d'Oujda en un bloc (15 Mo de JSON) dépassait le délai maximal d'une requête en production |
 | `tests/database/44_reseau_lecture_paginee.test.sql` | 14 tests : privilèges, pages successives (inactifs sautés, suivant nul à la fin), pages réunies = `reseau_geojson` avec les non zonés, zonés et non zonés, propriétés, taille bornée, nœuds, isolation entre marchés |
+| `migrations/20261014100000_envoi_email.sql` | chantier v3, S18 (M1, M2) : envoi des documents par e-mail ; `destinataires_email` (carnet par marché), `envois_email` (journal, aucune écriture directe), `marches.emails_par_jour` (défaut 20) ; `peut_envoyer_email`, `reserver_envoi_email` (droit du responsable du marché ou de l'administrateur, marché actif, limites du marché et commune de 90 par jour), `terminer_envoi_email`. Contrat : `docs/lots/chantier-v3-email.md` |
+| `tests/database/44_s18_envoi_email.test.sql` | 47 tests S18 : privilèges et RLS, carnet par marché, journal, réservation et clôture, limites du jour (échecs non comptés), marché désactivé |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -595,6 +597,20 @@ vue ni fonction ne lit les équipes. **E4 (S21)**, seulement quand toutes les ta
 `equipe_id` de `fuites`, `reparations`, `refections` et `balayages`, la table `equipes`, le type `type_equipe`, la
 liste `type_equipe` de `libelles_listes` (et sa valeur dans le contrôle de la table). D'ici là, une APK plus ancienne
 peut encore envoyer `equipe_id` : la colonne l'accepte, rien ne la lit.
+
+## Envoi des documents par e-mail (chantier v3, S18)
+
+Migration `20261014100000_envoi_email.sql`, tests `44_s18_envoi_email.test.sql`, contrat `docs/lots/chantier-v3-email.md`.
+Droits : **responsable du marché** (rôle actif dans `affectations.roles`) et administrateur (`private.marches_emails`) ;
+pour un non-administrateur, un marché désactivé reste lisible mais n'envoie plus.
+
+- `destinataires_email` : carnet par marché (adresse unique sans casse) ; lecture, ajout, modification, suppression
+  par le responsable et l'administrateur ; journalisé.
+- `envois_email` : journal (auteur, document, référence, objet, destinataires, pièce, statut `en_cours` / `envoye` /
+  `echec`, identifiant du fournisseur, erreur) ; lecture seule, écrit par `reserver_envoi_email` (contrôles, limite du
+  marché `marches.emails_par_jour`, limite commune de 90 envois par jour d'Oujda, verrou consultatif contre deux clics
+  simultanés) et `terminer_envoi_email` (auteur seulement, depuis `en_cours`). Les échecs ne comptent pas.
+- `peut_envoyer_email(marché)` : affichage du bouton dans le panneau.
 
 ## Règles pour les migrations suivantes
 

@@ -139,18 +139,26 @@ export async function fabriquerPdfCarte(
   return new Blob([pdf], { type: 'application/pdf' });
 }
 
-// Charge l'en-tête du marché, fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).
-export async function imprimerCarte(
+// Charge l'en-tête du marché et fabrique le PDF (téléchargement ou envoi par e-mail).
+export async function fabriquerCarte(
   marcheId: string, choix: ChoixImpression, d: DonneesImpression, etape: (texte: string) => void,
-): Promise<{ octets: number; secondes: number }> {
-  const debut = performance.now();
+): Promise<{ blob: Blob; nom: string }> {
   etape('Chargement de l\'en-tête du marché…');
-  const [{ chargerContexteRapport }, { nomFichierSur, telecharger }] = await Promise.all([
+  const [{ chargerContexteRapport }, { nomFichierSur }] = await Promise.all([
     import('@/lib/export/rapport-fuite'), import('@/lib/export/modele'),
   ]);
   const ctx = await chargerContexteRapport(marcheId, false);
   const blob = await fabriquerPdfCarte(ctx, choix, d, etape);
   const date = new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
-  telecharger(blob, `${nomFichierSur(`carte-fuites-${String(ctx.marche.code ?? '')}-${choix.format}-${choix.orientation}`)}-${date}.pdf`);
+  return { blob, nom: `${nomFichierSur(`carte-fuites-${String(ctx.marche.code ?? '')}-${choix.format}-${choix.orientation}`)}-${date}.pdf` };
+}
+
+// Fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).
+export async function imprimerCarte(
+  marcheId: string, choix: ChoixImpression, d: DonneesImpression, etape: (texte: string) => void,
+): Promise<{ octets: number; secondes: number }> {
+  const debut = performance.now();
+  const [{ blob, nom }, { telecharger }] = await Promise.all([fabriquerCarte(marcheId, choix, d, etape), import('@/lib/export/modele')]);
+  telecharger(blob, nom);
   return { octets: blob.size, secondes: (performance.now() - debut) / 1000 };
 }

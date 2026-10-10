@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import { Carte, type CarteRef, type ReseauCarteProps } from "./Carte";
 import { CENTRE_DEFAUT, COLONNES_CARTE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
 import { ApercuFuite, CommandesCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
-import type { ChoixImpression } from "./impression";
+import type { ChoixImpression, DonneesImpression } from "./impression";
 import { ListeCarte } from "./liste-carte";
 import { PanneauImpression } from "./PanneauImpression";
 import { PanneauReseau, type BalayagePanneau, type OngletReseau } from "./PanneauReseau";
@@ -380,19 +380,27 @@ function CarteDesFuites() {
     : "";
   const filtresImpression = `Filtres : ${descriptionFiltres || "aucun (toutes les fuites du marché)"}${descriptionReseau}`;
 
-  const imprimer = async (choix: ChoixImpression, etape: (texte: string) => void) => {
+  const donneesImpression = (): DonneesImpression => {
     const etat = carte.current?.etatImpression();
     if (!etat || !marcheId) throw new Error("La carte n'est pas encore affichée : attendez la fin du chargement puis réessayez.");
-    const { imprimerCarte } = await import("./impression");
-    const r = await imprimerCarte(marcheId, choix, {
+    return {
       etat, fuites: filtrees, zones: zonesAffichees, secteurs: secteursAffiches, filtres: filtresImpression, libelleReference: libelles.reference,
       reseau: reseau.actif ? {
         secteurs: reseau.secteursAffiches, coloration: reseau.coloration, palette: reseau.palette, etats: reseau.etats,
         tuiles: reseau.tuiles, inventaire: reseau.tuiles ? reseau.inventaire : undefined, bornes: reseau.tuiles ? bornesChoisis : null,
       } : null,
       zonesReseau: reseau.contexte?.zones ?? [],
-    }, etape);
+    };
+  };
+  const imprimer = async (choix: ChoixImpression, etape: (texte: string) => void) => {
+    const d = donneesImpression();
+    const { imprimerCarte } = await import("./impression");
+    const r = await imprimerCarte(marcheId!, choix, d, etape);
     return `PDF téléchargé (${(r.octets / 1048576).toFixed(1).replace(".", ",")} Mo, ${Math.max(1, Math.round(r.secondes))} s).`;
+  };
+  const fabriquerCarte = async (choix: ChoixImpression) => {
+    const d = donneesImpression();
+    return (await import("./impression")).fabriquerCarte(marcheId!, choix, d, () => undefined);
   };
 
   const filtresActifs = !!statut || !!filtres.secteur || !!filtres.du || !!filtres.au || filtres.alertes || !!texte.trim();
@@ -445,7 +453,7 @@ function CarteDesFuites() {
         <TabsContent className="min-h-0 overflow-auto px-4 py-3" value="impression">
           <PanneauImpression key={marcheId} marcheId={marcheId ?? ""} peutEnregistrer={peut("exports", "creer")}
             titreDefaut={`Carte des fuites – ${libelleSecteur ?? marche?.code ?? ""}`} nombreSurCarte={placees.length}
-            nombreListe={filtrees.length} filtres={filtresImpression} imprimer={imprimer} />
+            nombreListe={filtrees.length} filtres={filtresImpression} imprimer={imprimer} fabriquer={fabriquerCarte} />
         </TabsContent>
       )}
     </OngletsCarte>

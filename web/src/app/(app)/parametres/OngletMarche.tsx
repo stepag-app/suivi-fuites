@@ -5,6 +5,7 @@ import { dateSeule, messageErreur } from '@/lib/format';
 import { COLONNES_LOGO, TYPES_LOGO, envoyerLogo, retirerLogo, telechargerLogo, type RoleLogo } from '@/lib/logos';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
+import { BlocDestinataires } from './BlocDestinataires';
 import { FormulaireFiche, type Champ } from './commun';
 import styles from './Logos.module.css';
 
@@ -197,6 +198,12 @@ export function OngletMarche({ marcheId, modifiable }: { marcheId: string; modif
         valeurs={fiche}
         modifiable={modifiable}
         enregistrer={enregistrerFiche}
+      />
+
+      <BlocDestinataires
+        marcheId={marcheId}
+        limite={(fiche?.emails_par_jour as number | undefined) ?? null}
+        enregistrerLimite={(v) => enregistrerFiche({ emails_par_jour: v })}
       />
     </>
   );

@@ -262,7 +262,7 @@ et paysage et classeurs Excel relus, conseil « tableaux chargés » confronté 
   droit. Le panneau « Exporter » et les rubriques des autres documents ignorent ces lignes.
 - **J2** : « Recherche de fuites » propose le rapport de recherche de fuites de la page Balayage (même code,
   `balayage/rapport.ts`) pour la période de l'écran, avec ses filtres agent et secteur et ses rubriques.
-- **Envoi par e-mail** : `fabriquer()` (Blob et nom) est séparé du téléchargement, prêt pour `BoutonEnvoyerEmail` de S18.
+- **Envoi par e-mail** : bouton « Envoyer par e-mail » de la carte Aperçu (`BoutonEnvoyerEmail`, document `rapport`), qui joint le fichier de `fabriquer()` (PDF ou Excel). Le rapport de recherche de fuites (J2) n'en a pas encore : il peut produire un fichier par agent.
 
 ### Rapport PDF par fuite
 
@@ -285,6 +285,30 @@ Google Maps en mode itinéraire, application sur la tablette Android, site sur o
 intégrée). Lecture des photos (fiche et rapports) par une seule fonction, `urlsPhotos` dans `src/lib/photo.ts`,
 qui choisit selon `photos.stockage` (aujourd'hui `supabase` seulement) : le lot R2 ne changera qu'elle. Ces PDF gardent les images : ils serviront d'archive
 avant toute purge des anciennes photos (CLAUDE.md § 7).
+
+## Envoi par e-mail (chantier v3, S18)
+
+Bouton **Envoyer par e-mail** (responsable du marché et administrateur ; masqué pour les autres) : fiche d'une fuite
+(rapport PDF), dialogue « Rapports PDF (n) » de la liste, Carte › Impression, panneau « Exporter » (lot d'attachement,
+liste, journal), Débits de nuit › procès-verbal d'une campagne, Rapports › Aperçu (S17).
+Le dialogue fabrique le document (même code que « Télécharger »), coche les destinataires « par défaut » du marché,
+accepte d'autres adresses (10 au plus), propose objet et message modifiables, affiche le poids de la pièce. Contrat
+complet : `docs/lots/chantier-v3-email.md`.
+
+- **Route serveur** `POST /api/email` (`src/app/api/email/route.ts`) : jeton de la session en en-tête, base appelée
+  avec ce jeton (RLS, aucune clé `service_role`) ; `reserver_envoi_email` décide (droit, marché actif, limites du jour),
+  puis envoi par **Resend** depuis `contact@stepag.ma`, réponses et copie cachée vers `contact@stepag.ma`, puis
+  `terminer_envoi_email` (envoyé ou échec). Un échec du fournisseur ne compte pas dans la limite.
+- **Limites** : pièce jointe 4 Mo (plafond Vercel de 4,5 Mo par requête ; au-delà, le dialogue propose de télécharger) ;
+  envois par marché et par jour réglables (défaut 20) ; 90 par jour pour l'ensemble des marchés (offre gratuite Resend).
+- **Paramètres › Marché › Destinataires** (`parametres/BlocDestinataires.tsx`) : carnet du marché (nom, adresse,
+  organisme, « par défaut », masquer, retirer), limite du jour, 30 derniers envois avec leur statut.
+- Règles pures et traitement complet (dépendances injectées) : `src/lib/email.ts`, vérifiées par
+  `node scripts/verifier-email.mjs` (base et fournisseur factices). Mode démonstration : rien ne part, l'envoi est
+  inscrit au journal en mémoire.
+- Mise en service (Issam) : compte Resend, domaine `stepag.ma` vérifié par trois enregistrements DNS dans Cloudflare
+  (sans toucher aux MX ni au SPF de la boîte), clé posée dans Vercel ; note pas à pas « Envoi des e-mails : mise en
+  service de Resend » (Claude Docs).
 
 ## Carte (`/carte`)
 
@@ -501,6 +525,10 @@ Rapport et mesures : `docs/essai-charge-3000.md` ; outils : `outils/charge/`.
 | `NEXT_PUBLIC_DOMAINE_AGENTS` | facultative : domaine technique des identifiants (défaut `agents.stepag.ma`, même valeur que `DOMAINE_AGENTS` de la fonction serveur) |
 | `NEXT_PUBLIC_ESRI_CLE` | facultative : clé d'API ArcGIS Location Platform (satellite, § Satellite), **restreinte au domaine** `fuites.stepag.ma` ; absente : pas de bouton Satellite |
 | `NEXT_PUBLIC_MESURE_CARTE` | essais locaux seulement (`1` : carte exposée à `scripts/mesurer-carte.mjs`) ; **jamais sur Vercel** |
+
+| `RESEND_API_KEY` | **serveur seulement** (jamais `NEXT_PUBLIC_`) : clé Resend de l'envoi des documents par e-mail (§ Envoi par e-mail), posée par Issam dans Vercel ; absente : envoi refusé « non configuré » |
+| `EMAIL_EXPEDITEUR`, `EMAIL_COPIE` | facultatives, serveur : expéditeur (défaut `STEPAG <contact@stepag.ma>`), copie cachée et réponses (défaut `contact@stepag.ma`) |
+| `EMAIL_FOURNISSEUR`, `RESEND_API_URL` | essais locaux seulement (`essai` : rien ne part ; URL d'un faux serveur) ; **jamais sur Vercel** |
 
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.

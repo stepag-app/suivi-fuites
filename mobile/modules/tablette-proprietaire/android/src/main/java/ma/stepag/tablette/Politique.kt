@@ -280,12 +280,15 @@ object Politique {
       bilan.put("sans4g", privees.size - refusees.size).put("sans4gRefusees", JSONArray(refusees))
     }
 
-    // 4. Heure automatique (heures des fuites fiables). Le fuseau reste réglable : celui du Maroc peut être en retard
+    // 4. Localisation allumée (suivi GPS, et liste des réseaux Wi-Fi), heure automatique (heures des fuites fiables). Le fuseau reste réglable : celui du Maroc peut être en retard
     // dans Android (mobile/src/date-heure.tsx).
     runCatching {
       if (Build.VERSION.SDK_INT >= 30) dpm.setAutoTimeEnabled(admin, true)
       else @Suppress("DEPRECATION") dpm.setAutoTimeRequired(admin, true)
     }.onFailure { Log.w(ETIQUETTE, "heure automatique : ${it.message}") }
+    if (Build.VERSION.SDK_INT >= 30) {
+      runCatching { dpm.setLocationEnabled(admin, true) }.onFailure { Log.w(ETIQUETTE, "localisation : ${it.message}") }
+    }
 
     // 5. Suivi fuites jamais arrêtée par l'agent ni endormie par Android (suivi GPS) : ni arrêt forcé ni effacement des
     // données depuis les Paramètres, exemption des paliers d'inactivité (App Standby). L'économiseur de batterie

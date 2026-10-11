@@ -21,6 +21,7 @@ OS2.0.203.0.VOWMIXM, Android 15), qui sert aussi de tablette d'essai.
 | Écran d'accueil | celui d'HyperOS, réduit aux applis gardées. Pas de kiosque |
 | Déverrouillage | **code temporaire** créé sur le panneau web par un compte administrateur, tapé dans Suivi fuites : Paramètres et Play Store remontrés, installations permises, puis reverrouillage automatique. Doit marcher sans Issam et sans Claude (son binôme, pendant ses congés, avec un compte administrateur) |
 | Préparation d'une tablette | **QR code** (seul moyen sans ordinateur, Android n'accepte le propriétaire qu'au premier démarrage) ; Redmi par câble |
+| Wi-Fi | **toujours joignable par l'agent, sans code** (Issam, 2026-10-11 soir : forfait 4G épuisé → Wi-Fi → les fuites partent) : écran Tablette › bloc Wi-Fi (réseaux disponibles, mot de passe), le bandeau « Hors ligne » de la liste y mène ; droits du propriétaire (`WifiManager.addNetwork`), Paramètres restent cachés |
 | Play Store | caché ; remontré seulement pendant un déverrouillage |
 | Compte Google | **un seul** compte dédié à toutes les tablettes, ajouté pendant un déverrouillage ; `stepag.app@gmail.com` jamais sur une tablette |
 | Point ouvert n° 7 du `CLAUDE.md` | réglé : l'appli propriétaire installe elle-même ses mises à jour |
@@ -246,6 +247,9 @@ Pour la Redmi et toute tablette où adb est disponible (les tablettes préparée
 4. **Heure automatique imposée et autorisations accordées d'office**. Proposé : oui aux deux.
 
 ## 12. Vérifications sur la Redmi (décrites dans la PR)
+
+PR [#117](https://github.com/stepag-app/suivi-fuites/pull/117) **fusionnée** le 2026-10-11 (`72def81`), migration et fonction
+`apk-enrolement` déployées. Suite : PR Wi-Fi (`claude/tablette-wifi`).
 
 Résultats du 2026-10-11 (appli DEV `7cef633` propriétaire, profil essai, après retrait du compte Xiaomi par Issam) :
 `dpm set-device-owner` accepté ; politique : 13 applis cachées (Paramètres, Play Store, Galerie, Thèmes, Services SIM,

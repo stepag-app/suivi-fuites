@@ -297,7 +297,14 @@ export function Liste({
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
         </View>
-        {!!message && <Message ton="attention" icone="wifi-off">{message}</Message>}
+        {!!message && (tablette ? (
+          // Tablette verrouillée : Paramètres cachés, le Wi-Fi se choisit dans l'écran Tablette.
+          <Pressable onPress={tablette} accessibilityRole="button">
+            <Message ton="attention" icone="wifi-off">{t('Hors ligne : dernière liste connue. Touchez ici pour choisir un Wi-Fi.')}</Message>
+          </Pressable>
+        ) : (
+          <Message ton="attention" icone="wifi-off">{message}</Message>
+        ))}
         {!!suivi && (suivi.mode === 'arrete' || suivi.mode === 'autorisation') && (
           <Pressable onPress={suiviGps} accessibilityRole="button">
             <Message ton="attention" icone="locate-fixed">{t("Le suivi de position n'est pas actif. Touchez ici pour l'activer.")}</Message>

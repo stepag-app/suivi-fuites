@@ -50,6 +50,8 @@ export function ModeEmploiTablettes() {
                 <li>Toucher <strong>Reverrouiller maintenant</strong> (écran Tablette, ou toucher le bandeau). Sinon la tablette se reverrouille seule à l&apos;heure, même éteinte puis rallumée.</li>
               </Etapes>
               <Note>Une appli installée pendant le déverrouillage reste visible ensuite sur cette tablette. Cinq codes faux dans l&apos;heure bloquent les essais du compte pendant une heure.</Note>
+              <p className="font-medium">Wi-Fi sans code</p>
+              <p>L&apos;agent n&apos;a pas besoin de code pour rejoindre un Wi-Fi (forfait 4G épuisé) : Suivi fuites › bouton <strong>Tablette</strong> (cadenas) › bloc <strong>Wi-Fi</strong> : réseaux disponibles, mot de passe, connexion. Le bandeau « Hors ligne » de la liste y mène aussi d&apos;un toucher.</p>
             </TabsContent>
 
             <TabsContent value="premiere" className="flex flex-col gap-3">
@@ -93,6 +95,7 @@ export function ModeEmploiTablettes() {
                     <tr><td>« Code inconnu, expiré ou déjà utilisé »</td><td>Générer un nouveau code (24 h, une seule fois).</td></tr>
                     <tr><td>« Trop de codes refusés »</td><td>Attendre une heure, ou se connecter avec un autre compte dans Suivi fuites.</td></tr>
                     <tr><td>« Vérification impossible : vérifiez le réseau »</td><td>Aller là où il y a la 4G ou un Wi-Fi : le code est vérifié par le serveur.</td></tr>
+                    <tr><td>Pas de Wi-Fi, forfait 4G épuisé</td><td>Suivi fuites › Tablette › Wi-Fi : choisir le réseau, taper le mot de passe. Les envois en attente partent dès la connexion.</td></tr>
                     <tr><td>Pas de bouton « Tablette » dans Suivi fuites</td><td>Cette tablette n&apos;est pas verrouillée par Suivi fuites : la préparer (« Première tablette »).</td></tr>
                     <tr><td>Suivi fuites plante dès son ouverture</td><td>Téléphone, Maps et WhatsApp marchent encore. Réinitialiser par les boutons (tablette éteinte : Volume + et Marche ensemble, puis « Wipe data ») ; Android demande le compte Google des tablettes ; puis « Première tablette ».</td></tr>
                     <tr><td>Tablette perdue ou volée</td><td>Désactiver le compte de l&apos;agent (Utilisateurs). Sans le compte Google des tablettes, elle est inutilisable après une réinitialisation.</td></tr>

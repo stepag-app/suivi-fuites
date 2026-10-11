@@ -42,7 +42,7 @@ const verrouAdmis = (cle) => {
 // Modèles de rôles insérés par les migrations (rôle, type, lire, créer, modifier, supprimer, valider).
 // Une migration plus récente remplace le modèle d'un même (rôle, type) (« on conflict … do update ») : le dernier gagne.
 const MODELES_LUS = [...sql.matchAll(
-  /\('(detection|chef_reparation|responsable)', '([a-z_]+)',\s+(true|false),\s+(true|false),\s+'(non|siennes|toutes)',\s+'(non|siennes|toutes)',\s+(true|false)\)/g,
+  /\('(detection|chef_reparation|refection|responsable)',\s+'([a-z_]+)',\s+(true|false),\s+(true|false),\s+'(non|siennes|toutes)',\s+'(non|siennes|toutes)',\s+(true|false)\)/g,
 )].map((m) => ({
   role: m[1], type_donnee: m[2], lire: m[3] === 'true', creer: m[4] === 'true', modifier: m[5], supprimer: m[6], valider: m[7] === 'true',
 }));
@@ -50,7 +50,7 @@ const MODELES = [...new Map(MODELES_LUS.map((m) => [`${m.role}|${m.type_donnee}`
 
 // Couples type × colonne que la base contrôle aujourd'hui (règles RLS, déclencheurs, fonctions) : chacun a sa ligne.
 const CONTROLES_PAR_LA_BASE = [
-  ...['fuites', 'interventions', 'photos', 'quantites', 'attachements'].flatMap((t) => COLONNES.map((c) => `${t}.${c}`)),
+  ...['fuites', 'interventions', 'refections', 'photos', 'quantites', 'attachements'].flatMap((t) => COLONNES.map((c) => `${t}.${c}`)),
   'parametres.lire', 'parametres.creer', 'parametres.modifier', 'ouvriers.creer', 'ouvriers.modifier',
   'evenements.lire', 'evenements.creer', 'evenements.modifier', 'evenements.supprimer',
   'exports.lire', 'exports.creer', 'journal.lire',
@@ -63,7 +63,7 @@ ok('les migrations sont lues (types, verrous admis, modèles de rôles)', () => 
   assert.deepEqual(new Set(OBJETS_DROITS), new Set(TYPES), 'la contrainte des verrous couvre tous les types de donnée');
   assert.deepEqual(ACTIONS_DROITS, ['lire', 'creer', 'modifier', 'supprimer', 'valider']);
   assert.deepEqual(RESERVEES, ['attachements.rouvrir', 'attachements.forcer', 'marches.desactiver', 'marches.copier', 'comptes.revoquer']);
-  assert.equal(MODELES.length, 20);
+  assert.equal(MODELES.length, 26);
   assert.deepEqual(Object.keys(TITRES_TYPES).sort(), [...TYPES].sort());
 });
 
@@ -76,7 +76,7 @@ ok('chaque ligne de droit correspond à une colonne de « droits », sans doublo
     assert.equal(!!l.portee, l.action === 'modifier' || l.action === 'supprimer', `${l.cle} : 3 états seulement pour une portée`);
     assert.equal(l.cle, cleVerrou(l.objet, l.action));
   }
-  assert.deepEqual(GROUPES.slice(0, 5), ['Fuites', 'Interventions', 'Photos', 'Quantités et prix', 'Attachements']);
+  assert.deepEqual(GROUPES.slice(0, 6), ['Fuites', 'Interventions', 'Réfections', 'Photos', 'Quantités et prix', 'Attachements']);
 });
 
 ok('tout couple contrôlé par la base a sa ligne ; chaque ligne est verrouillable en base', () => {
@@ -118,6 +118,17 @@ ok('rôles cumulés : on garde le plus large ; droits personnalisés repérés',
   assert.equal(estPersonnalise({}, [], MODELES), false);
 });
 
+ok('rôles de terrain : chacun ne saisit que son étape, les rôles cochés se cumulent', () => {
+  const creer = (roles) => ['fuites', 'interventions', 'refections'].map((t) => valeur(droitsDesRoles(MODELES, roles), t, 'creer'));
+  assert.deepEqual(creer(['detection']), [true, false, false]);
+  assert.deepEqual(creer(['chef_reparation']), [false, true, false], 'Réparation : pas de fuite à signaler');
+  assert.deepEqual(creer(['refection']), [false, false, true], 'Réfection : ni fuite ni réparation');
+  assert.deepEqual(creer(['chef_reparation', 'refection']), [false, true, true]);
+  assert.deepEqual(creer(['detection', 'chef_reparation']), [true, true, false]);
+  assert.equal(valeur(droitsDesRoles(MODELES, ['chef_reparation', 'refection']), 'fuites', 'modifier'), 'non');
+  assert.equal(valeur(droitsDesRoles(MODELES, ['chef_reparation']), 'fuites', 'lire'), true);
+});
+
 ok('cases : lecture et copie sans modification sur place', () => {
   const avant = droitsDepuisLignes([{ type_donnee: 'fuites', ...DROIT_VIDE, lire: true }]);
   const apres = avecValeur(avant, 'fuites', 'supprimer', 'toutes');
@@ -150,7 +161,7 @@ ok('lignes à enregistrer : une ligne complète par utilisateur × type changé'
   ]);
   // Modèle « aucun droit » : chaque type tenu est remis à zéro.
   const vide = lignesAEnregistrer(initial, { b: droitsDuModele(MODELES, null) });
-  assert.deepEqual(vide.map((l) => l.type_donnee).sort(), ['balayage', 'fuites', 'interventions', 'photos']);
+  assert.deepEqual(vide.map((l) => l.type_donnee).sort(), ['balayage', 'fuites', 'interventions', 'photos', 'refections']);
   assert.ok(vide.every((l) => !l.lire && !l.creer && l.modifier === 'non' && l.supprimer === 'non' && !l.valider));
 });
 
@@ -196,7 +207,7 @@ ok('libellés : valeurs, cases sans écran, verrous', () => {
   assert.equal(libelleDroit('balayage', 'creer'), 'Balayage : cocher les tronçons balayés');
   assert.equal(libelleDroit('balayage', 'modifier'), 'Balayage : modifier (sans écran)');
   assert.equal(libelleVerrou('comptes.revoquer'), 'Comptes : révoquer un accès');
-  assert.equal(Object.keys(ROLES).length, 3);
+  assert.deepEqual(Object.keys(ROLES), ['detection', 'chef_reparation', 'refection', 'responsable']);
 });
 
 console.log(`\n${n} vérifications réussies`);

@@ -3,7 +3,7 @@
 import type { Action, Droit, TypeDonnee } from '@/lib/types';
 
 export type Portee = 'non' | 'siennes' | 'toutes';
-export type Role = 'detection' | 'chef_reparation' | 'responsable';
+export type Role = 'detection' | 'chef_reparation' | 'refection' | 'responsable';
 export type Valeur = boolean | Portee;
 
 export interface ValeursDroit {
@@ -44,7 +44,8 @@ export const COLONNES: readonly Action[] = ['lire', 'creer', 'modifier', 'suppri
 export const DROIT_VIDE: ValeursDroit = { lire: false, creer: false, modifier: 'non', supprimer: 'non', valider: false };
 export const ROLES: Record<Role, string> = {
   detection: 'Détection',
-  chef_reparation: 'Chef d\'équipe réparation',
+  chef_reparation: 'Réparation',
+  refection: 'Réfection',
   responsable: 'Responsable (bureau)',
 };
 
@@ -100,11 +101,17 @@ export const LIGNES: readonly LigneMatrice[] = [
   droit('Fuites', 'fuites', 'supprimer', 'Fuites : supprimer', { sensible: true }),
   droit('Fuites', 'fuites', 'valider', 'Fuites : valider / verrouiller', { aide: 'statut, jalons du client, correction d\'une fuite verrouillée' }),
 
-  droit('Interventions', 'interventions', 'lire', 'Interventions : voir les réparations et réfections'),
-  droit('Interventions', 'interventions', 'creer', 'Interventions : saisir une réparation ou une réfection'),
-  droit('Interventions', 'interventions', 'modifier', 'Interventions : modifier', { aide: 'réparations, réfections, pièces posées' }),
+  droit('Interventions', 'interventions', 'lire', 'Interventions : voir les réparations'),
+  droit('Interventions', 'interventions', 'creer', 'Interventions : saisir une réparation'),
+  droit('Interventions', 'interventions', 'modifier', 'Interventions : modifier', { aide: 'réparations, pièces posées ; les siennes = saisies par lui' }),
   droit('Interventions', 'interventions', 'supprimer', 'Interventions : supprimer'),
   droit('Interventions', 'interventions', 'valider', 'Interventions : corriger sur une fuite verrouillée'),
+
+  droit('Réfections', 'refections', 'lire', 'Réfections : voir'),
+  droit('Réfections', 'refections', 'creer', 'Réfections : saisir une réfection'),
+  droit('Réfections', 'refections', 'modifier', 'Réfections : modifier', { aide: 'les siennes = saisies par lui' }),
+  droit('Réfections', 'refections', 'supprimer', 'Réfections : supprimer'),
+  droit('Réfections', 'refections', 'valider', 'Réfections : corriger sur une fuite verrouillée'),
 
   droit('Photos', 'photos', 'lire', 'Photos : voir'),
   droit('Photos', 'photos', 'creer', 'Photos : ajouter'),

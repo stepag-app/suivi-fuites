@@ -24,7 +24,7 @@
 | Rôle | fuites | interventions | refections | photos | balayage |
 |---|---|---|---|---|---|
 | detection | lire, créer, modifier siennes | lire | lire | lire, créer, modifier / supprimer siennes | lire, créer, supprimer siennes |
-| chef_reparation | lire, créer, modifier siennes | lire, créer, modifier siennes | lire | lire, créer, modifier / supprimer siennes | — |
+| chef_reparation | lire (depuis 2026-10-11, migration `20261015200000` : ne signale plus de fuite) | lire, créer, modifier siennes | lire | lire, créer, modifier / supprimer siennes | — |
 | refection | lire | lire | lire, créer, modifier siennes | lire, créer, modifier / supprimer siennes | — |
 | responsable | tout + valider | tout + valider | tout + valider | tout + valider | tout |
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
-  ActivityIndicator, Alert, AppState, FlatList, Pressable, ScrollView, StatusBar, StyleSheet, Text, useWindowDimensions, View,
+  ActivityIndicator, Alert, AppState, FlatList, Keyboard, Platform, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, useWindowDimensions, View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { compterAValider } from './a-valider';
@@ -25,11 +25,30 @@ export function Connexion() {
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [occupe, setOccupe] = useState(false);
+  const [voir, setVoir] = useState(false);
+  const [clavier, setClavier] = useState(0);
+  const defilement = useRef<ScrollView>(null);
+  const champMotDePasse = useRef<TextInput>(null);
   const large = useWindowDimensions().width >= LARGEUR_LARGE;
   const haut = useSafeAreaInsets().top || (StatusBar.currentHeight ?? 24);
   useLangue();
 
+  // Le clavier n'apparaît qu'au toucher d'un champ ; il ne masque pas le bouton de connexion : la page se décale de
+  // sa hauteur et défile jusqu'au bouton.
+  useEffect(() => {
+    const ouvert = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow', (e) => {
+      setClavier(e.endCoordinates.height);
+      setTimeout(() => defilement.current?.scrollToEnd({ animated: true }), 50);
+    });
+    const ferme = Keyboard.addListener(Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide', () => setClavier(0));
+    return () => {
+      ouvert.remove();
+      ferme.remove();
+    };
+  }, []);
+
   async function entrer() {
+    Keyboard.dismiss();
     setOccupe(true);
     setErreur('');
     const { error } = await supabase.auth.signInWithPassword({
@@ -51,7 +70,13 @@ export function Connexion() {
         </View>
       )}
       <BoutonLangue style={[l.langueConnexion, { top: haut + 12 }]} />
-      <ScrollView style={{ flex: 2 }} contentContainerStyle={l.formulaire} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        ref={defilement}
+        style={{ flex: 2 }}
+        contentContainerStyle={[l.formulaire, { paddingBottom: 32 + clavier }]}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+      >
         <View style={{ width: '100%', maxWidth: 440, gap: 28 }}>
           <View style={{ alignItems: 'center', gap: 10 }}>
             {!large && (
@@ -68,11 +93,29 @@ export function Connexion() {
           <View style={{ gap: 16 }}>
             <View style={{ gap: 6 }}>
               <Text style={s.etiquette}>{t('Identifiant')}</Text>
-              <Saisie value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} placeholder={t('ex. agent1')} />
+              <Saisie
+                value={identifiant} onChangeText={setIdentifiant} autoCapitalize="none" autoCorrect={false} placeholder={t('ex. agent1')}
+                returnKeyType="next" submitBehavior="submit" onSubmitEditing={() => champMotDePasse.current?.focus()}
+              />
             </View>
             <View style={{ gap: 6 }}>
               <Text style={s.etiquette}>{t('Mot de passe')}</Text>
-              <Saisie value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" />
+              <View>
+                <Saisie
+                  ref={champMotDePasse} value={motDePasse} onChangeText={setMotDePasse} secureTextEntry={!voir} autoCapitalize="none"
+                  autoCorrect={false} returnKeyType="go" onSubmitEditing={() => identifiant && motDePasse && !occupe && entrer()}
+                  style={{ paddingRight: 52 }}
+                />
+                <Pressable
+                  onPress={() => setVoir((v) => !v)}
+                  style={l.oeil}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel={voir ? t('Masquer le mot de passe') : t('Afficher le mot de passe')}
+                >
+                  <Icone nom={voir ? 'eye-off' : 'eye'} taille={22} couleur={COULEURS.discret} />
+                </Pressable>
+              </View>
               <Text style={s.petit}>{t("La session reste ouverte sur cette tablette jusqu'à « Quitter ».")}</Text>
             </View>
             {!!erreur && <Message ton="erreur">{erreur}</Message>}
@@ -536,6 +579,7 @@ const l = StyleSheet.create({
   bonjour: { fontFamily: POLICE, fontSize: 44, fontWeight: '400', color: COULEURS.principalTexte },
   sousBonjour: { fontFamily: POLICE, fontSize: 19, color: 'rgba(250, 250, 250, 0.8)', textAlign: 'center' },
   formulaire: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  oeil: { position: 'absolute', right: 0, top: 0, bottom: 0, width: 52, alignItems: 'center', justifyContent: 'center' },
   titreConnexion: { fontFamily: POLICE, fontSize: 24, fontWeight: '600', color: COULEURS.texte },
   page: { flex: 1, paddingHorizontal: 20, paddingTop: 18, gap: 14 },
   tetePage: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-end', justifyContent: 'space-between', gap: 14 },

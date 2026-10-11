@@ -3,11 +3,12 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
-import { CircleAlert, Droplets, Globe } from "lucide-react";
+import { CircleAlert, Droplets, Eye, EyeOff, Globe } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
 import { messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -18,6 +19,7 @@ export default function Connexion() {
   const router = useRouter();
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
+  const [voir, setVoir] = useState(false);
   const [erreur, setErreur] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const annee = new Date().getFullYear();
@@ -85,8 +87,16 @@ export default function Connexion() {
                 </Field>
                 <Field className="gap-1.5">
                   <FieldLabel htmlFor="mot-de-passe">Mot de passe</FieldLabel>
-                  <Input id="mot-de-passe" type="password" value={motDePasse} onChange={(e) => setMotDePasse(e.target.value)}
-                    autoComplete="current-password" placeholder="••••••••" required />
+                  <InputGroup>
+                    <InputGroupInput id="mot-de-passe" type={voir ? "text" : "password"} value={motDePasse}
+                      onChange={(e) => setMotDePasse(e.target.value)} autoComplete="current-password" placeholder="••••••••" required />
+                    <InputGroupAddon align="inline-end">
+                      <InputGroupButton type="button" size="icon-xs" aria-label={voir ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                        aria-pressed={voir} onClick={() => setVoir(!voir)}>
+                        {voir ? <EyeOff /> : <Eye />}
+                      </InputGroupButton>
+                    </InputGroupAddon>
+                  </InputGroup>
                   <FieldDescription>La session reste ouverte sur cet appareil jusqu&apos;à « Quitter ».</FieldDescription>
                 </Field>
               </FieldGroup>

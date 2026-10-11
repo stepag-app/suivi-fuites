@@ -17,7 +17,7 @@ OS2.0.203.0.VOWMIXM, Android 15), qui sert aussi de tablette d'essai.
 | Le reste | applis qu'on ne peut pas désinstaller : **cachées** ; applis qui tournent en arrière-plan : **retirées** (Redmi, par câble) ou **cachées** (tablettes préparées par QR code) ; une appli cachée est arrêtée |
 | 4G | réservée à Suivi fuites et à ses dépendances (services Google, WebView, Maps) ; Play Store et mises à jour du système en Wi-Fi |
 | Batterie | seules Suivi fuites et ses dépendances tournent en arrière-plan |
-| Mise à jour | l'agent touche « Installer » dans la fenêtre « Mise à jour disponible », et c'est tout |
+| Mise à jour | l'agent touche « Installer » dans la fenêtre « Mise à jour disponible » ; l'appli se ferme et se rouvre seule, sauf sur Xiaomi où l'agent la rouvre d'un toucher (règle validée par Issam le 2026-10-11 au soir : « l'agent va l'ouvrir naturellement de toutes manières ») |
 | Écran d'accueil | celui d'HyperOS, réduit aux applis gardées. Pas de kiosque |
 | Déverrouillage | **code temporaire** créé sur le panneau web par un compte administrateur, tapé dans Suivi fuites : Paramètres et Play Store remontrés, installations permises, puis reverrouillage automatique. Doit marcher sans Issam et sans Claude (son binôme, pendant ses congés, avec un compte administrateur) |
 | Préparation d'une tablette | **QR code** (seul moyen sans ordinateur, Android n'accepte le propriétaire qu'au premier démarrage) ; Redmi par câble |

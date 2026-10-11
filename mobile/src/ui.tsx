@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
@@ -374,7 +374,7 @@ export function Case({ libelle, valeur, onChange }: { libelle: string; valeur: b
 }
 
 /** Zone de saisie du panneau : bord gris, halo gris quand elle a le curseur. */
-export function Saisie(props: ComponentProps<typeof TextInput>) {
+export function Saisie(props: ComponentProps<typeof TextInput> & { ref?: Ref<TextInput> }) {
   const [actif, setActif] = useState(false);
   return (
     <TextInput

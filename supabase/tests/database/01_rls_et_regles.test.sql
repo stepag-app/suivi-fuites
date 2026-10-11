@@ -10,7 +10,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(64);
+select plan(66);
 
 -- -----------------------------------------------------------------------------
 -- Jeu d'essai (rôle postgres)
@@ -199,8 +199,9 @@ reset role;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 
-select throws_ok($$ update fuites set adresse = 'Autre' where id = 'aaaaaaaa-1111-0000-0000-000000000001' $$,
-  '42501', 'Modification non autorisée', 'chef : ne modifie pas une fuite signalée par un autre');
+select results_eq($$ with u as (update fuites set adresse = 'Autre' where id = 'aaaaaaaa-1111-0000-0000-000000000001'
+                                returning 1) select count(*)::int from u $$,
+  $$ values (0) $$, 'chef : fuites en lecture seule, ne modifie pas la fuite');
 
 select lives_ok($$
   insert into reparations (id, marche_id, fuite_id, materiau, diametre_mm, tuyau_repare,
@@ -239,14 +240,20 @@ $$, '23514', null, 'clôture sans réfection : motif obligatoire');
 
 select is((select count(*)::int from lignes_quantites), 0, 'chef : ne voit pas les quantités ni les montants');
 
--- Fuite 2 (signalée par le chef) : robinet PEC + bouche à clé ; fuite 3 : AC DN 150 ;
--- fuite 4 : AC DN 400 (hors bordereau) ; fuite 5 : sondage négatif
+-- Fuite 2 : robinet PEC + bouche à clé ; fuite 3 : AC DN 150 ; fuite 4 : AC DN 400 (hors bordereau) ;
+-- fuite 5 : sondage négatif. Signalées par l'agent de détection (le rôle Réparation ne signale pas).
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
 select lives_ok($$
   insert into fuites (id, marche_id) values
     ('aaaaaaaa-1111-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001'),
     ('aaaaaaaa-1111-0000-0000-000000000003', 'aaaaaaaa-0000-0000-0000-000000000001'),
     ('aaaaaaaa-1111-0000-0000-000000000004', 'aaaaaaaa-0000-0000-0000-000000000001'),
     ('aaaaaaaa-1111-0000-0000-000000000005', 'aaaaaaaa-0000-0000-0000-000000000001');
+$$, 'détection : quatre autres fuites signalées');
+select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
+select throws_ok($$ insert into fuites (marche_id) values ('aaaaaaaa-0000-0000-0000-000000000001') $$,
+  '42501', null, 'chef : ne signale pas de fuite');
+select lives_ok($$
   insert into reparations (id, marche_id, fuite_id, materiau, diametre_mm, robinet_pec_change, bouche_a_cle_mise_a_niveau) values
     ('aaaaaaaa-2222-0000-0000-000000000002', 'aaaaaaaa-0000-0000-0000-000000000001', 'aaaaaaaa-1111-0000-0000-000000000002', 'polyethylene', 25, true, true);
   insert into reparations (marche_id, fuite_id, materiau, diametre_mm, tuyau_repare) values

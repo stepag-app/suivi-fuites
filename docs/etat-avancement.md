@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+Dernière mise à jour : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
@@ -74,6 +74,7 @@ nocturne sur le Drive de `stepag.app` en service, restauration depuis le Drive t
 | **APK : requêtes bornées** (2026-10-07) : le fetch de l'APK (`expo/fetch` dans Expo SDK 57, sur le client OkHttp de React Native) n'a aucun délai ; une requête restée sans réponse sur une connexion 4G morte figeait la file d'attente (une seule synchro à la fois : minuteur des 30 s, retour sur l'appli et « Envoyer maintenant » attendaient la même) jusqu'à l'expiration TCP (souvent un quart d'heure) ou un redémarrage. Chaque requête Supabase (API, connexion, photos) est maintenant abandonnée après **60 s**, **3 min** pour l'envoi d'une photo ; l'abandon compte comme une coupure (saisie gardée sans message, renvoyée au tour suivant) et n'est pas relancé par supabase-js ; la liste garde ses 20 s (PR #48). Limite probable, à voir sur la tablette : une connexion HTTP/2 morte reste dans le pool d'OkHttp après l'abandon, les requêtes suivantes peuvent s'y bloquer aussi (60 s chacune) jusqu'à ce qu'Android la ferme ; piste : délai de lecture natif d'OkHttp (fait : ligne suivante, PR #53) | `mobile/src/reseau.ts`, `mobile/src/supabase.ts` ; `mobile/README.md` § Hors ligne ; essai sans pile 42/42 (section 9, horloge simulée ; 6 mutations détectées) ; vrai supabase-js 2.117 contre un fetch muet (insertion, lecture sans relance, photo, renouvellement de session) | PR [#51](https://github.com/stepag-app/suivi-fuites/pull/51), **fusionnée** le 2026-10-07 ; tsc et bundle Android verts ; **non essayée sur l'émulateur ni la tablette** |
 | **APK : mise à jour annoncée au démarrage** (2026-10-10) : quand une version plus récente est publiée (X2), une fenêtre « Mise à jour disponible » s'ouvre sur la liste (jamais au milieu d'une saisie) : « Installer maintenant » (téléchargement avec pourcentage, puis installateur d'Android) ou « Plus tard » (refermée jusqu'au prochain démarrage ; le bandeau de la liste reste). Libellés FR / arabe. **Réglage par tablette, une seule fois** : autoriser « Installer des applis inconnues » pour Suivi des fuites (Android le demande au premier « Installer ») | `mobile/src/mise-a-jour.tsx`, `mobile/App.tsx`, `mobile/src/traductions.ts` | branche `claude/maj-au-demarrage` ; tsc et essais sans pile verts ; fenêtre vue sur la tablette SM-X236B (appli DEV, version simulée) ; s'applique aux tablettes **à partir de la version suivante** : les APK déjà installées n'ont que le bandeau |
 | **APK : connexion HTTP/2 morte écartée** (2026-10-07) : après un abandon par JavaScript (`reseau.ts` ; liste : 20 s), OkHttp n'y voyait qu'une annulation locale et gardait la connexion morte dans son pool, sans PING de contrôle (aucun délai natif) : les requêtes suivantes s'y bloquaient à leur tour jusqu'à ce qu'Android ferme le socket. Plugin de configuration Expo : délais d'**inactivité** du client OkHttp de l'APK (fetch, images) : connexion 10 s, lecture et écriture **15 s**, 60 s pour un corps de plus de 16 Ko (photos) ; dépassé, un délai envoie un PING, et sans réponse en 1 s OkHttp écarte la connexion. Délais plus courts que ceux de JavaScript pour tomber avant eux (à 60 s chacun, l'abandon JavaScript gagne toujours la course) ; pas de PING régulier (batterie) | `mobile/plugins/okhttp-delais.js` (déclaré dans `mobile/app.json`, posé par `expo prebuild` dans `MainApplication.kt`, non versionné) ; `mobile/README.md` § Hors ligne | PR [#53](https://github.com/stepag-app/suivi-fuites/pull/53) (après la #51) ; tsc, essai sans pile 42/42, CI verte (fabrique vue dans le code compilé de l'APK, OkHttp 4.9.2) ; essai sur la JVM avec OkHttp 4.9.2 et le bloc Kotlin généré, vraie connexion HTTP/2 vers Supabase à travers un proxy « trou noir » : avant, la connexion morte resservait après chaque abandon ; après, délai à 15,0 s puis connexion neuve dès la requête suivante (60,0 s pour un envoi de 300 Ko) ; **non essayée sur l’émulateur** ni sur la tablette : essai tenté par un proxy de l'émulateur (qui contourne sa panne DNS), mais Supabase a refusé le jeton gardé, d'où plus de session ; APK et réglages de l'émulateur remis comme avant  ; **fusionnée** le 2026-10-07 |
+| **Lot TP : Suivi fuites propriétaire de la tablette** (2026-10-11, décisions d'Issam) : module natif Kotlin (Device Owner) qui cache tout sauf Suivi fuites, Appareil photo, Maps, Téléphone, Contacts, Messages, WhatsApp, interdit installations / comptes / réinitialisation, réserve la 4G à l'appli et ses dépendances, accorde ses autorisations ; **code temporaire** de 8 chiffres créé sur le panneau (Paramètres › Tablettes : 15 min, 1 h, 4 h, ou libérer) et tapé dans l'appli (bouton « Tablette ») ; mise à jour de l'APK **en un bouton** (sans fenêtre d'Android) ; QR code de préparation des tablettes neuves ; journal ; mode d'emploi intégré ; script de ménage par câble | `docs/lots/lot-tablette-proprietaire.md` ; `mobile/modules/tablette-proprietaire/`, `mobile/src/tablette.tsx`, `mobile/src/mise-a-jour.tsx` ; migration `20261016100000_tablettes.sql`, test 50 ; fonction `apk-enrolement` ; `web/src/app/(app)/parametres/OngletTablettes.tsx`, `ModeEmploiTablettes.tsx` ; `outils/tablettes/` | PR [#117](https://github.com/stepag-app/suivi-fuites/pull/117) ; **vérifié sur la Redmi** (appli DEV propriétaire, § 12) ; à fusionner (déploiement de la base et de la fonction à la fusion) |
 | **Rôles de terrain : chacun son étape** (2026-10-11) : un compte Réparation seul pouvait signaler une fuite (modèle `chef_reparation` avec « fuites / créer »). Réparation passe en lecture seule sur les fuites ; droits en place recalculés ; matrice « Droits » complétée (lignes Réfections, rôle Réfection) | `supabase/migrations/20261015200000_droits_role_reparation.sql`, test 49, `web/src/app/(app)/utilisateurs/matrice.ts` | PR à fusionner (déploiement de la base à la fusion) |
 
 ## 2. En attente d'Issam (état au 2026-10-09)
@@ -451,3 +452,29 @@ PR [#86](https://github.com/stepag-app/suivi-fuites/pull/86) fusionnée (`a71c04
 - **Reste** : relire les deux pages publiques ; e-mail d'échec par M2 (S18) ; refaire les parties 2 et 3 de la note lors de la rotation des secrets (S23) ; surveiller les minutes d'Actions une fois le
   dépôt privé (Z4) : la sauvegarde nocturne, le job Drive et le test hebdomadaire en consomment ; S22 (purge de DEMO) peut s'appuyer
   sur cette copie.
+
+## 12. Lot TP (2026-10-11) : Suivi fuites propriétaire des tablettes
+
+Cadrage : `docs/lots/lot-tablette-proprietaire.md` (décisions d'Issam du soir : simple, 4G et batterie réservées à l'appli,
+mise à jour en un bouton, déverrouillage par code sans Issam ni Claude, QR code pour les tablettes neuves, un seul compte
+Google pour toutes). Explication pour Issam et son binôme : note Claude Docs « Briefing — Tablettes verrouillées Suivi
+fuites » et, dans le panneau, Paramètres › Tablettes › **Mode d'emploi**. PR [#117](https://github.com/stepag-app/suivi-fuites/pull/117).
+
+**Vérifié sur la Redmi Pad 2** (appli DEV `7cef633` déclarée propriétaire par adb, profil essai, compte Xiaomi retiré par
+Issam) : écran d'accueil réduit aux applis gardées ; 13 applis cachées, 6 interdictions, 234 paquets privés de 4G sans
+refus, heure automatique, autorisations accordées ; `adb install` refusé ; déverrouillage puis **reverrouillage
+automatique** par alarme ; mode d'emploi et QR code (relu par le navigateur) dans le panneau en mode démonstration ;
+28 tests pgTAP, tsc web et APK, 6 essais sans pile, CI verte.
+
+**Reste** (dans l'ordre) :
+1. Fusionner la PR (migration et fonction `apk-enrolement` déployées), puis, sur la Redmi, **le parcours complet du code** :
+   Issam génère un code sur `fuites.stepag.ma` › Paramètres › Tablettes, le tape dans Suivi fuites DEV › Tablette ;
+   journal à relire dans l'onglet.
+2. Publier une version de l'APK normale avec le module (à la demande d'Issam, `apk.yml`), l'installer sur la Redmi, puis
+   « Transférer la propriété à l'appli normale » (écran Tablette de l'appli DEV, pendant un déverrouillage).
+3. Issam : créer le **compte Google des tablettes** (jamais `stepag.app@gmail.com`), l'ajouter sur la Redmi pendant un
+   déverrouillage, installer WhatsApp et mettre WebView à jour par le Play Store.
+4. Première tablette d'agent par **QR code** (imprimé depuis le panneau) : réinitialisation d'une tablette à la date
+   d'Issam ; vérifier la consommation 4G par appli au bout d'une semaine.
+5. Les tablettes Samsung déjà en service ne sont pas verrouillées tant qu'elles ne sont pas préparées par QR code.
+

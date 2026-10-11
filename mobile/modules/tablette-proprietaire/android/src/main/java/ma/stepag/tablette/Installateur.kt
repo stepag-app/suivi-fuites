@@ -106,7 +106,10 @@ object Installateur {
         confirmation?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)?.let { ctx.startActivity(it) }
       }
       PackageInstaller.STATUS_SUCCESS -> {
+        // Reçu par le nouveau processus (l'ancien a été tué par l'installateur) : politique, puis réouverture.
+        Log.i(Politique.ETIQUETTE, "installation réussie")
         Politique.appliquer(ctx)
+        Politique.relancerSiDemande(ctx, "compte rendu d'installation")
         attente?.resolve(null)
         attente = null
       }

@@ -388,6 +388,21 @@ object Politique {
     return oui
   }
 
+  /**
+   * Rouvre l'appli après sa mise à jour si « Installer » l'a demandé. Appelée par le compte rendu d'installation
+   * (RecepteurInstallation, PendingIntent du système : il atteint le nouveau processus même quand HyperOS refuse le
+   * « démarrage automatique ») et par la diffusion « paquet remplacé » (RecepteurDemarrage) ; le premier arrivé consomme
+   * le drapeau. Au premier plan seulement si Android (propriétaire : permis) et HyperOS (« fenêtres contextuelles en
+   * arrière-plan », réglage de la préparation) l'acceptent.
+   */
+  fun relancerSiDemande(ctx: Context, origine: String) {
+    if (!doitRelancer(ctx)) return
+    val lancement = ctx.packageManager.getLaunchIntentForPackage(ctx.packageName)
+      ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+    val resultat = runCatching { ctx.startActivity(lancement) }
+    Log.i(ETIQUETTE, "relance après mise à jour ($origine) : ${if (resultat.isSuccess) "demandée" else "refusée : ${resultat.exceptionOrNull()?.message}"}")
+  }
+
   // ---------------------------------------------------------------------------------------------------------------
   // Passage de la propriété (appli DEV → appli normale) et libération
 

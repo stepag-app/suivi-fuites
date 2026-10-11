@@ -68,6 +68,7 @@ export function ModeEmploiTablettes() {
                 <li>Ici, générer un code <strong>Déverrouiller 1 heure</strong> ; le taper dans Suivi fuites › Tablette.</li>
                 <li>Paramètres › Comptes (ou « Comptes et synchronisation ») : ajouter le compte Google des tablettes.</li>
                 <li>Play Store : installer <strong>WhatsApp</strong> ; dans les réglages du Play Store, mises à jour automatiques en <strong>Wi-Fi uniquement</strong>.</li>
+                <li>Réglages de Suivi fuites (Xiaomi / HyperOS) : Paramètres › Applis › Gérer les applis › <strong>Suivi des fuites</strong> › Économiseur de batterie : <strong>Aucune restriction</strong> ; Démarrage automatique : <strong>activé</strong> ; Autres autorisations › <strong>Fenêtres contextuelles en arrière-plan : autorisé</strong> (sans cela, l&apos;appli ne se rouvre pas seule après une mise à jour). Sur Samsung : Batterie › Applications jamais en veille.</li>
                 <li><strong>Reverrouiller maintenant</strong>. La tablette apparaît dans le journal (« Préparée (QR code) »).</li>
               </Etapes>
               <Note>La 4G de la tablette est réservée à Suivi fuites, Maps, WhatsApp et aux services Google ; le Play Store et les mises à jour d&apos;Android passent par le Wi-Fi.</Note>

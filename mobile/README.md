@@ -284,6 +284,16 @@ déverrouillage) une fois celle-ci installée avec le module. À savoir : Androi
 propriétaire (pour relancer l'appli DEV : `adb shell run-as ma.stepag.suivifuites.dev kill <pid>`) ; le reverrouillage
 automatique passe par une alarme inexacte (quelques minutes de marge).
 
+**HyperOS (Xiaomi)** : trois autorisations propres au fabricant, que le propriétaire ne peut pas s'accorder lui-même, font
+partie de la préparation (mode d'emploi du panneau, pendant un déverrouillage, Paramètres › Applis › Gérer les applis ›
+Suivi des fuites) : **Démarrage automatique** (sans lui, HyperOS refuse de lancer l'appli pour une diffusion :
+« process is not permitted to auto start », donc ni relance après une mise à jour, ni alarme de reverrouillage si l'appli
+est fermée, ni réapplication au redémarrage), **Fenêtres contextuelles en arrière-plan** (relance au premier plan après
+une mise à jour) et **Économiseur de batterie : aucune restriction** (suivi GPS). Sur la Redmi d'essai, par adb :
+`adb shell appops set <paquet> 10008 allow` (démarrage automatique) et `… 10021 allow` (fenêtres en arrière-plan). Pour
+que ces pages restent accessibles, la « Sécurité » de Xiaomi (`com.miui.securitycenter`) est remontrée pendant un
+déverrouillage, avec Paramètres et Play Store.
+
 ### Suivi GPS : à faire sur chaque tablette Samsung
 
 1. À la première connexion, ouvrir **Suivi GPS** (bouton de la liste), « Activer le suivi », accepter la position puis

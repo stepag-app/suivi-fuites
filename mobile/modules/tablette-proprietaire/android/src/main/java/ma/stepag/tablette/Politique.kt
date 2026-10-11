@@ -72,8 +72,12 @@ object Politique {
     "com.google.android.inputmethod.latin",
   )
 
-  /** Remontrées pendant un déverrouillage. */
-  private val VISIBLES_DEVERROUILLEE = setOf(PARAMETRES, PLAY_STORE)
+  /**
+   * Remontrées pendant un déverrouillage : Paramètres, Play Store, et la « Sécurité » de Xiaomi, dont les pages règlent
+   * le démarrage automatique, la batterie et les fenêtres en arrière-plan de Suivi fuites (HyperOS les exige pour que
+   * l'appli reçoive ses diffusions et se rouvre seule après une mise à jour : préparation de la tablette).
+   */
+  private val VISIBLES_DEVERROUILLEE = setOf(PARAMETRES, PLAY_STORE, "com.miui.securitycenter")
 
   /** 4G permise : Suivi fuites et ses dépendances (notifications, position, WebView du balayage), Maps, WhatsApp. */
   private val DONNEES_PERMISES = setOf(
@@ -283,9 +287,18 @@ object Politique {
       else @Suppress("DEPRECATION") dpm.setAutoTimeRequired(admin, true)
     }.onFailure { Log.w(ETIQUETTE, "heure automatique : ${it.message}") }
 
-    // 5. Autorisations de Suivi fuites (et de l'appli normale quand l'appli DEV est propriétaire).
+    // 5. Suivi fuites jamais arrêtée par l'agent ni endormie par Android (suivi GPS) : ni arrêt forcé ni effacement des
+    // données depuis les Paramètres, exemption des paliers d'inactivité (App Standby). L'économiseur de batterie
+    // d'HyperOS reste un réglage de la préparation (mode d'emploi du panneau).
+    val protegees = setOf(ctx.packageName, APPLI).filter { installee(pm, it) }
+    if (Build.VERSION.SDK_INT >= 30) {
+      runCatching { dpm.setUserControlDisabledPackages(admin, protegees) }
+        .onFailure { Log.w(ETIQUETTE, "paquets protégés : ${it.message}") }
+    }
+
+    // 6. Autorisations de Suivi fuites (et de l'appli normale quand l'appli DEV est propriétaire).
     val permissions = JSONObject()
-    for (paquet in setOf(ctx.packageName, APPLI).filter { installee(pm, it) }) {
+    for (paquet in protegees) {
       for (p in permissionsAccordees()) {
         val ok = runCatching {
           dpm.setPermissionGrantState(admin, paquet, p, DevicePolicyManager.PERMISSION_GRANT_STATE_GRANTED)
@@ -364,8 +377,9 @@ object Politique {
     if (estProprietaire(ctx)) dpm(ctx).clearUserRestriction(admin(ctx), UserManager.DISALLOW_INSTALL_APPS)
   }
 
+  // Écriture synchrone (commit) : l'installateur tue le processus juste après, une écriture différée serait perdue.
   fun relancerApresMiseAJour(ctx: Context, oui: Boolean) {
-    prefs(ctx).edit().putBoolean("relancer", oui).apply()
+    prefs(ctx).edit().putBoolean("relancer", oui).commit()
   }
 
   fun doitRelancer(ctx: Context): Boolean {
@@ -400,6 +414,7 @@ object Politique {
     }
     for (r in INTERDICTIONS + UserManager.DISALLOW_DEBUGGING_FEATURES) dpm.clearUserRestriction(admin, r)
     if (Build.VERSION.SDK_INT >= 28) runCatching { dpm.setMeteredDataDisabledPackages(admin, emptyList()) }
+    if (Build.VERSION.SDK_INT >= 30) runCatching { dpm.setUserControlDisabledPackages(admin, emptyList()) }
     for (paquet in setOf(ctx.packageName, APPLI).filter { installee(pm, it) }) {
       for (p in permissionsAccordees()) {
         runCatching { dpm.setPermissionGrantState(admin, paquet, p, DevicePolicyManager.PERMISSION_GRANT_STATE_DEFAULT) }

@@ -88,10 +88,13 @@ class RecepteurDemarrage : BroadcastReceiver() {
       Politique.verifier(context)
       if (action == Intent.ACTION_MY_PACKAGE_REPLACED) {
         Politique.noterEvenement(context, "mise_a_jour")
-        if (Politique.doitRelancer(context)) {
-          context.packageManager.getLaunchIntentForPackage(context.packageName)
-            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            ?.let { context.startActivity(it) }
+        val relancer = Politique.doitRelancer(context)
+        Log.i(Politique.ETIQUETTE, "paquet remplacé, relance demandée : $relancer")
+        if (relancer) {
+          val lancement = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
+          val resultat = runCatching { context.startActivity(lancement) }
+          Log.i(Politique.ETIQUETTE, "relance : ${if (resultat.isSuccess) "demandée" else "refusée : ${resultat.exceptionOrNull()?.message}"}")
         }
       }
       null

@@ -469,6 +469,7 @@ export const TRADUCTIONS = {
   'Code inconnu, expiré ou déjà utilisé.': { ar: 'رمز غير معروف أو منتهي الصلاحية أو مستعمل من قبل.' },
   'Trop de codes refusés : réessayez dans une heure.': { ar: 'رُفضت رموز كثيرة: أعد المحاولة بعد ساعة.' },
   'Vérification impossible : vérifiez le réseau.': { ar: 'تعذّر التحقق: تحقّق من الاتصال بالإنترنت.' },
+  'Serveur pas encore à jour pour les codes : réessayez plus tard.': { ar: 'الخادم غير محدّث بعد لدعم الرموز: أعد المحاولة لاحقًا.' },
   "Tablette déverrouillée jusqu'à {heure}. Touchez ici pour la reverrouiller.": { ar: 'الجهاز اللوحي مفتوح حتى {heure}. المس هنا لإعادة قفله.' },
   "Tablette déverrouillée jusqu'à {heure}": { ar: 'الجهاز اللوحي مفتوح حتى {heure}' },
   'Paramètres et Play Store sont visibles ; une appli installée maintenant restera sur la tablette. Elle se reverrouille seule à {heure}.': {

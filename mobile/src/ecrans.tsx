@@ -265,6 +265,9 @@ export function Liste({
               titre={large ? t('Notifications') : ''} icone="bell" fantome onPress={notifications}
               compteur={nonLues > 0 ? (nonLues > 9 ? '9+' : nonLues) : undefined}
             />
+            {/* Suivi GPS et Tablette : discrets, icône seule (demande d'Issam du 2026-10-11) */}
+            <Bouton titre="" icone="locate-fixed" fantome onPress={suiviGps} />
+            {!!tablette && <Bouton titre="" icone="lock" fantome onPress={tablette} />}
             <BoutonBarre titre={t('Quitter')} icone="log-out" onPress={deconnecter} />
           </>
         )}
@@ -291,8 +294,6 @@ export function Liste({
             {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
             {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
             {peut('mesures_debit', 'creer') && <Bouton titre={t('Mesures de nuit')} icone="gauge" onPress={mesures} />}
-            <Bouton titre={t('Suivi GPS')} icone="locate-fixed" onPress={suiviGps} />
-            {!!tablette && <Bouton titre={t('Tablette')} icone="lock" onPress={tablette} />}
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>
         </View>
@@ -300,11 +301,6 @@ export function Liste({
         {!!suivi && (suivi.mode === 'arrete' || suivi.mode === 'autorisation') && (
           <Pressable onPress={suiviGps} accessibilityRole="button">
             <Message ton="attention" icone="locate-fixed">{t("Le suivi de position n'est pas actif. Touchez ici pour l'activer.")}</Message>
-          </Pressable>
-        )}
-        {!!suivi?.pause && suivi.mode === 'pause' && (
-          <Pressable onPress={suiviGps} accessibilityRole="button">
-            <Message ton="info" icone="pause">{t("En pause jusqu'à {heure}. Touchez ici pour reprendre.", { heure: hhmm(heureLocale(suivi.pause.finPrevue).minutes) })}</Message>
           </Pressable>
         )}
         {bandeauTablette}

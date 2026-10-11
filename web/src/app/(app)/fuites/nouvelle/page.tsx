@@ -278,7 +278,7 @@ export default function NouvelleFuite() {
             <ul className="flex flex-col gap-1.5">
               {proches.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-2">
-                  <Link href={`/fuites/${p.id}`} className="font-medium underline-offset-4 hover:underline" target="_blank">N° {p.numero}</Link>
+                  <Link href={`/fuites/${p.id}`} className="font-medium underline-offset-4 hover:underline" target="_blank" rel="noopener">N° {p.numero}</Link>
                   <BadgeStatut statut={p.statut} court />
                   <span>{dateHeure(p.date_detection)}{p.meme_reference ? " · même référence" : ""}{p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ""}</span>
                 </li>

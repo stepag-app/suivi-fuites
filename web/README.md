@@ -544,6 +544,17 @@ chargés tels quels par Node dans les scripts de vérification l'importent en re
 La clé anon est publique par conception (elle est dans le navigateur de chaque utilisateur).
 **Ne jamais** mettre la clé `service_role` ici.
 
+## En-têtes HTTP de sécurité
+
+Posés par `next.config.mjs` sur toutes les réponses (audit S20) : `Content-Security-Policy: frame-ancestors 'self';
+base-uri 'self'; object-src 'none'; form-action 'self'` (aucune page du panneau dans le cadre d'un autre site ; l'APK
+ouvre les pages dans une WebView, hors de portée de cette règle), `X-Frame-Options: SAMEORIGIN`,
+`X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy`
+(caméra et position pour le panneau seul, micro interdit) ; `X-Powered-By` retiré. Vercel ajoute
+`Strict-Transport-Security`. Pas de règle `script-src` : les bibliothèques de cartes et d'export (workers, blobs) et
+les URL signées de R2 et Supabase rendraient une liste exacte fragile ; la sécurité des données reste celle de la RLS.
+Contrôle : `curl -sI https://fuites.stepag.ma/connexion`.
+
 ## Développement local
 
 ```bash

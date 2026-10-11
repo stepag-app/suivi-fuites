@@ -6,6 +6,9 @@ import { TAILLE_MAX_PIECE, traiterEnvoi, type Courriel, type Demande } from '@/l
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+// Pièce de 4 Mo vers Resend (30 s au plus) et trois appels à la base : au-delà des 10 s par défaut d'une fonction Vercel
+// Hobby sans Fluid compute, qui tuerait la requête sans clore le journal (envoi resté « en cours »).
+export const maxDuration = 60;
 
 const EXPEDITEUR = process.env.EMAIL_EXPEDITEUR || 'STEPAG <contact@stepag.ma>';
 const COPIE = process.env.EMAIL_COPIE || 'contact@stepag.ma';

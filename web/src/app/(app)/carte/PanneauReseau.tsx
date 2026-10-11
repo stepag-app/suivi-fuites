@@ -3,7 +3,7 @@
 // Panneau « Réseau » de la carte, en trois onglets (C4 : le même panneau sur la tablette et dans le panneau web,
 // ouvert au besoin par-dessus la carte) : Secteurs (interrupteur mémorisé, coloration, arbre Zone → secteurs avec
 // cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente).
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { basculerZone, etatCaseZone, totauxChoisis, tousLesSecteurs } from '@/lib/reseau/arbre';
 import { METHODES, MOTIFS_REPASSE, aujourdhuiMaroc, type ChoixBalayage, type MotifRepasse } from '@/lib/reseau/balayage';
 import { compterEtats } from '@/lib/reseau/etat';

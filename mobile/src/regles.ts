@@ -230,7 +230,7 @@ export const versionPlusRecente = (installee: number | null | undefined, publiee
 // ---------------------------------------------------------------------------
 
 export interface NotificationLigne {
-  id: number; evenement: string; titre: string; corps: string | null; donnees: Record<string, unknown> | null;
+  id: number; marche_id: string; evenement: string; titre: string; corps: string | null; donnees: Record<string, unknown> | null;
   /** Nulle pour une alerte du suivi GPS (suivi_coupe). */
   fuite_id: string | null; cree_le: string; lue_le: string | null;
 }

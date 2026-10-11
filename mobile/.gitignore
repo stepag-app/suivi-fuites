@@ -1,8 +1,8 @@
 node_modules/
 .expo/
 # Générés par « expo prebuild » (jamais versionnés : le workflow les recrée)
-android/
-ios/
+/android/
+/ios/
 dist/
 .env
 .env.*

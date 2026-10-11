@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Administrateur de l'appareil de Suivi fuites (lot TP) : propriétaire de la tablette. La propriété peut passer de
+     l'appli DEV à l'appli normale sans réinitialiser (transferOwnership). -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+  <support-transfer-ownership />
+  <uses-policies />
+</device-admin>

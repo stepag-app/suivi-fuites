@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["ma.stepag.tablette.TabletteModule"]
+  }
+}

@@ -1,0 +1,9 @@
+# Applis désactivées (pm disable-user --user 0) : Xiaomi refuse leur retrait (« Failure [-1000] »). Redmi Pad 2,
+# 2026-10-11. Même liste dans la politique de l'appli (Politique.kt, SERVICES_CACHES).
+com.miui.notes
+com.miui.creation
+com.miui.calculator
+com.miui.weather2
+com.android.soundrecorder
+com.miui.screenrecorder
+com.xiaomi.scanner

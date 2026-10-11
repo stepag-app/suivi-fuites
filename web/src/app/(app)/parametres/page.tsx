@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useState, type FormEvent } from "react";
 import {
-  Banknote, Boxes, ClipboardList, Gauge, Layers3, ListChecks, type LucideIcon, Map, Plus, ReceiptText, Route, Settings2, Users,
+  Banknote, Boxes, ClipboardList, Gauge, Layers3, ListChecks, type LucideIcon, Map, Plus, ReceiptText, Route, Settings2, Tablet, Users,
 } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,6 +33,8 @@ const chargementOnglet = () => <p className="flex items-center gap-2 text-muted-
 const OngletArticles = dynamic(() => import("./OngletArticles").then((m) => m.OngletArticles), { ssr: false, loading: chargementOnglet });
 // Plan du réseau (import GeoJSON, carte de zonage MapLibre) : chargé seulement à l'ouverture de l'onglet.
 const OngletReseau = dynamic(() => import("./OngletReseau").then((m) => m.OngletReseau), { ssr: false, loading: chargementOnglet });
+// Tablettes verrouillées (lot TP, administrateur) : codes, QR code de préparation, journal.
+const OngletTablettes = dynamic(() => import("./OngletTablettes").then((m) => m.OngletTablettes), { ssr: false, loading: chargementOnglet });
 
 interface Ouvrier { id: string; nom_complet: string; matricule?: string | null; telephone: string | null; actif: boolean }
 interface MotifLigne {
@@ -43,7 +45,7 @@ interface MotifLigne {
 const CATEGORIES = { sans_reparation: "Fuite non réparée", sans_refection: "Clôture sans réfection" } as const;
 const ICONES: Record<Onglet, LucideIcon> = {
   marche: Settings2, bordereau: Banknote, attachement: ReceiptText, evenements: ClipboardList, ouvriers: Users,
-  motifs: ListChecks, secteurs: Map, reseau: Route, debits: Gauge, natures: Layers3, articles: Boxes,
+  motifs: ListChecks, secteurs: Map, reseau: Route, debits: Gauge, natures: Layers3, articles: Boxes, tablettes: Tablet,
 };
 const DESCRIPTIONS: Record<Onglet, string> = {
   marche: "Fiche du marché : titulaire, maître d'ouvrage, logos, délais, OS, libellés et alertes du client, réglages de la saisie terrain, heures du suivi GPS.",
@@ -57,6 +59,7 @@ const DESCRIPTIONS: Record<Onglet, string> = {
   debits: "Débits de nuit : points de mesure, débits de référence du tableau n° 1, réglages des pénalités, phases du marché.",
   natures: "Natures de réfection (libellés FR / AR, symbole, emplacement, article lié).",
   articles: "Produits Dolibarr importés, communs à tous les marchés : activer ceux que le réparateur peut choisir.",
+  tablettes: "Tablettes des agents verrouillées par Suivi fuites : code temporaire de déverrouillage, QR code de préparation, journal.",
 };
 
 const codeDepuis = (texte: string) =>
@@ -174,6 +177,8 @@ function Parametres() {
             {onglet === "natures" && <OngletNatures key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
             {onglet === "articles" && <OngletArticles importer={!!profil?.est_admin} />}
           </div>
+
+          {onglet === "tablettes" && <OngletTablettes />}
 
           {onglet === "debits" && <OngletDebits key={marche.id} marcheId={marche.id} peutCreer={peutCreer} peutModifier={peutModifier} />}
 

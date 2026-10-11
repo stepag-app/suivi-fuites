@@ -1,0 +1,67 @@
+# Applis retirées pour l'utilisateur (pm uninstall -k --user 0) : liste appliquée à la Redmi Pad 2 le 2026-10-11.
+# Une ligne par paquet ; « # » : commentaire. Même liste dans la politique de l'appli (Politique.kt, SERVICES_CACHES),
+# comparée par mobile/essais/tablette-listes.test.mjs.
+# Jeux, vidéo, musique
+com.king.candycrushsaga
+com.oakever.tiletrip
+com.bekids.art
+com.zhiliaoapp.musically
+com.netflix.mediaclient
+com.spotify.music
+com.linkedin.android
+com.lemon.lvoverseas
+com.lemon.ccpadpro
+com.google.android.youtube
+com.google.android.apps.youtube.music
+com.google.android.videos
+com.miui.videoplayer
+com.miui.player
+com.miui.fm
+com.miui.fmservice
+# Bureautique, agenda, horloge, éditeurs
+cn.wps.moffice_eng
+cn.wps.xiaomi.abroad.lite
+com.xiaomi.calendar
+com.android.deskclock
+com.miui.mediaeditor
+com.miui.phrase
+# Navigateurs, fichiers, boutique, maison connectée
+com.android.chrome
+com.mi.globalbrowser
+com.mi.android.globalFileexplorer
+com.google.android.apps.nbu.files
+com.mi.global.shop
+com.xiaomi.smarthome
+com.google.android.apps.chromecast.app
+com.xiaomi.discover
+com.xiaomi.payment
+# Applis Google sans usage au travail
+com.google.android.gm
+com.google.android.apps.docs
+com.google.android.apps.photos
+com.google.android.apps.tachyon
+com.google.android.apps.subscriptions.red
+com.google.android.apps.bard
+com.google.android.projection.gearhead
+com.google.android.apps.safetyhub
+com.google.android.apps.adm
+com.google.android.apps.restore
+com.google.android.apps.wellbeing
+com.google.ambient.streaming
+com.android.hotwordenrollment.okgoogle
+com.android.hotwordenrollment.xgoogle
+com.google.android.googlequicksearchbox
+# Services Xiaomi en arrière-plan (publicité, statistiques, partage, nettoyeur…)
+com.miui.msa.global
+com.miui.analytics
+com.miui.bugreport
+com.miui.miservice
+com.miui.cleaner
+com.xiaomi.barrage
+com.miui.huanji
+com.xiaomi.mi_connect_service
+com.xiaomi.miralink
+com.miui.mishare.connectivity
+com.milink.service
+com.microsoftsdk.crossdeviceservicebroker
+com.android.providers.downloads.ui

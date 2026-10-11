@@ -1,6 +1,7 @@
 // Préparation des lignes `balayages` saisies sur la carte : identifiants créés sur l'appareil, mises en
 // file d'attente (hors-ligne.ts, type d'envoi « balayage ») puis envoyées. Fonctions pures.
 import type { MethodeBalayage } from '@/lib/types';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 export const METHODES: { valeur: MethodeBalayage; libelle: string }[] = [
   { valeur: 'ecoute', libelle: 'Écoute (sol, bouches à clé)' },
@@ -69,4 +70,4 @@ export function enFileAttente(lignes: LigneBalayageEnvoi[]): { id: string; march
 }
 
 /** Jour d'aujourd'hui à l'heure du Maroc (valeur par défaut du champ date). */
-export const aujourdhuiMaroc = (maintenant = new Date()) => maintenant.toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+export const aujourdhuiMaroc = (maintenant = new Date()) => jourMaroc(maintenant);

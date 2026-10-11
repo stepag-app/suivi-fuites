@@ -89,9 +89,12 @@ export function nettoyer(v: unknown, max: number): string | null {
 
 const ANNULATION = / CANCEL\s*$/;
 
-/** Jour de début du recouvrement (« AAAA-MM-JJ », sans heure : voir les filtres), un jour de marge pour le fuseau. */
+/**
+ * Jour de début du recouvrement (« AAAA-MM-JJ », sans heure : voir les filtres). Jour UTC : le jour de marge couvre le
+ * décalage de `datem` (heure du serveur Dolibarr) sans dépendre de la base des fuseaux de Deno, en retard sur le Maroc.
+ */
 export function debutRecouvrement(jours: number, maintenant: Date): string {
-  return new Date(maintenant.getTime() - (jours + 1) * 86_400_000).toLocaleDateString('sv-SE', { timeZone: 'Africa/Casablanca' });
+  return new Date(maintenant.getTime() - (jours + 1) * 86_400_000).toISOString().slice(0, 10);
 }
 
 // Une valeur avec « : », une apostrophe ou une parenthèse casserait le filtre (ignoré sans erreur, ou refusé).

@@ -12,14 +12,14 @@ import { useSession } from "@/lib/session";
 import { getSupabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { ilYA, type Notification } from "../_coque/cloche";
+import { formatMaroc } from "@/lib/heure-maroc";
 
 // N1, « Tout voir » de la cloche : toutes les notifications du compte, par pages de 50, les plus récentes d'abord.
 // Comme la cloche : ce qui n'était pas lu reste en bleu sur cette page, puis tout est marqué lu.
 const PAGE = 50;
 const COLONNES = "id, marche_id, evenement, fuite_id, titre, corps, cree_le, lue_le";
 
-const FORMAT_JOUR = new Intl.DateTimeFormat("fr-FR", { timeZone: "Africa/Casablanca", weekday: "long", day: "numeric", month: "long", year: "numeric" });
-const jour = (iso: string) => FORMAT_JOUR.format(new Date(iso));
+const jour = (iso: string) => formatMaroc(iso, "fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 
 export default function Notifications() {
   const { marches } = useSession();

@@ -1,4 +1,5 @@
 // Types et outils communs aux écrans d'attachement (lots, à attacher, exports).
+import { formatMaroc } from '@/lib/heure-maroc';
 
 export interface Lot {
   id: string;
@@ -156,7 +157,7 @@ export function finDuMois(): string {
 }
 
 export const moisAnnee = (d: Date = new Date()) =>
-  d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric', timeZone: 'Africa/Casablanca' });
+  formatMaroc(d, 'fr-FR', { month: 'long', year: 'numeric' });
 
 // « de mars 2026 », « d'août 2026 », « d'octobre 2026 »
 export const duMois = (mois = moisAnnee()) => (/^[aeiouyéh]/i.test(mois) ? `d'${mois}` : `de ${mois}`);

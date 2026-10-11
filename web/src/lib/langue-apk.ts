@@ -6,6 +6,7 @@
 // arabe complet, sauf les libellés entièrement en français (Balayage, Secteur, Diamètre, Lasso) et « Réfection ».
 // Le panneau web lui-même reste en français.
 import { useMemo, useSyncExternalStore } from 'react';
+import { dateMaroc } from '@/lib/heure-maroc';
 
 export type LangueApk = 'fr' | 'hybride' | 'ar';
 interface Entree { ar: string; hyb?: string }
@@ -200,7 +201,7 @@ export function texteEtatTronconApk(etat: { balaye: boolean; dernier: string | n
   const l = langueApk();
   if (!etat || !etat.balaye) return traduire(l, 'Non balayé');
   const qui = etat.agent ?? '';
-  const quand = etat.dernier ? new Date(etat.dernier).toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' }) : '—';
+  const quand = etat.dernier ? dateMaroc(etat.dernier) : '—';
   const base = traduire(l, 'Balayé le {date}', { date: quand }) + (qui ? traduire(l, ' par {qui}', { qui }).replace(/^‏/, '') : '');
   return etat.passages > 1 ? base + traduire(l, ' · {n} passages', { n: etat.passages }).replace(/^‏/, '') : base;
 }

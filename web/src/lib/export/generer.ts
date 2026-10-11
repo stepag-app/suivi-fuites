@@ -1,6 +1,7 @@
 // Aiguillage par format. Chaque bibliothèque n'est téléchargée qu'au moment de
 // l'export qui en a besoin (aucun poids ajouté à l'ouverture des pages).
 import { decimalesPour, nomFichierSur, parcourir, telecharger, texteDate, type DocumentExport } from './modele';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 export type FormatExport = 'xlsx' | 'pdf' | 'docx' | 'csv';
 
@@ -49,7 +50,7 @@ export async function fabriquer(d: DocumentExport, format: FormatExport): Promis
   else if (format === 'pdf') blob = await (await import('./pdf')).genererPdf(d);
   else if (format === 'docx') blob = await (await import('./docx')).genererDocx(d);
   else blob = genererCsv(d);
-  const date = d.genereLe.toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+  const date = jourMaroc(d.genereLe);
   return { blob, nom: `${nomFichierSur(d.nomFichier)}-${date}.${format}` };
 }
 

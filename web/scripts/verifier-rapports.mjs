@@ -59,11 +59,12 @@ verifier('semaine : un lundi ouvre la semaine', egal(r.bornesPeriode('semaine', 
 verifier('semaine à cheval sur deux années', egal(r.bornesPeriode('semaine', '2027-01-01'), { du: '2026-12-28', au: '2027-01-03' }));
 verifier('dates libres remises dans l\'ordre', egal(r.bornesPeriode('libre', '2026-10-14', '2026-10-20', '2026-10-01'), { du: '2026-10-01', au: '2026-10-20' }));
 verifier('dates libres manquantes : la date de référence', egal(r.bornesPeriode('libre', '2026-10-14'), { du: '2026-10-14', au: '2026-10-14' }));
-verifier('date illisible : aujourd\'hui (Casablanca)', r.bornesPeriode('jour', 'n\'importe quoi').du === r.aujourdhui());
+verifier('date illisible : aujourd\'hui (heure du Maroc)', r.bornesPeriode('jour', 'n\'importe quoi').du === r.aujourdhui());
 verifier('titre : journalier', r.titreRapport('jour', { du: '2026-10-14', au: '2026-10-14' }) === 'État journalier du 14/10/2026');
 verifier('titre : hebdomadaire', r.titreRapport('semaine', { du: '2026-10-12', au: '2026-10-18' }) === 'État hebdomadaire du 12/10/2026 au 18/10/2026');
 verifier('titre : période libre', r.titreRapport('libre', { du: '2026-10-01', au: '2026-10-20' }) === 'État de la période du 01/10/2026 au 20/10/2026');
-verifier('jour de Casablanca d\'un horodatage tardif', r.jourCasablanca('2026-10-14T23:30:00Z') === '2026-10-15');
+verifier('jour du Maroc d\'un horodatage tardif (UTC+0 depuis le 20/09/2026)', r.jourCasablanca('2026-10-14T23:30:00Z') === '2026-10-14');
+verifier('jour du Maroc d\'un horodatage tardif (UTC+1 avant)', r.jourCasablanca('2026-08-14T23:30:00Z') === '2026-08-15');
 
 // ---------------------------------------------------------------------------
 // 2. Rubriques, colonnes, droits
@@ -218,7 +219,7 @@ const periode = { du: r.ajouterJours(fin, -27), au: fin };
 const d = await rd.chargerDonneesRapport(MARCHE, periode, droitsTout);
 verifier('lignes lues : fuites, réparations, balayage, attente', d.fuites.length > 0 && d.reparations.length > 0 && d.balayage.length > 0 && d.attente.length > 0,
   `${d.fuites.length} fuites, ${d.reparations.length} réparations, ${d.refections.length} réfections, ${d.balayage.length} balayages, ${d.pieces.length} pièces, ${d.attente.length} en attente, ${d.debitsNuits.length} nuits`);
-verifier('fuites et interventions dans la période (jour de Casablanca)', d.fuites.every((l) => l.jour_detection >= periode.du && l.jour_detection <= periode.au)
+verifier('fuites et interventions dans la période (jour du Maroc)', d.fuites.every((l) => l.jour_detection >= periode.du && l.jour_detection <= periode.au)
   && d.reparations.every((l) => { const j = r.jourCasablanca(l.realisee_le); return j >= periode.du && j <= periode.au; }));
 verifier('réparations enrichies de leur fuite (N°, secteur, statut)', d.reparations.every((l) => l.fuite_numero != null && l.secteur_id && l.statut));
 verifier('attente : non achevées ou en alerte', d.attente.every((l) => ['detectee', 'en_reparation'].includes(l.statut) || r.enAlerte(l)));

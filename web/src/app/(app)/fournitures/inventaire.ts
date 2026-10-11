@@ -10,6 +10,7 @@ import {
   type LigneInventaire, type Provenance, type Quantites,
 } from '@/lib/ui/fournitures';
 import { lienFuites } from '../fuites/filtres';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 export type DimensionLigne = 'article' | 'famille' | 'secteur' | 'zone' | 'chef' | 'fuite' | 'mois';
 export type DimensionColonne = 'aucune' | 'mois' | 'secteur' | 'chef' | 'provenance';
@@ -141,8 +142,7 @@ export const filtresRapidesActifs = (f: FiltresInventaire) =>
 // ---------------------------------------------------------------------------
 export interface Periode { du: string; au: string }
 
-const FORMAT_JOUR = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' });
-export const jourCasa = (d: Date | string | number) => FORMAT_JOUR.format(new Date(d));
+export const jourCasa = (d: Date | string | number) => jourMaroc(d);
 
 const dateUtc = (jour: string) => new Date(`${jour}T00:00:00Z`);
 export function ajouterJours(jour: string, n: number): string {

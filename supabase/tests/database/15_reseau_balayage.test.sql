@@ -363,8 +363,8 @@ select is((select count(*)::int from journal where table_nom = 'balayages'), 3,
 -- -----------------------------------------------------------------------------
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000b", "role": "authenticated"}', true);
-select results_eq($$ select premier_le = (now() at time zone 'Africa/Casablanca')::date,
-                            dernier_le = (now() at time zone 'Africa/Casablanca')::date,
+select results_eq($$ select premier_le = private.jour_maroc(now()),
+                            dernier_le = private.jour_maroc(now()),
                             nb_passages, agent_id::text
                       from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001')
                      where troncon_id = (select id from t_ids where cle = 'T5') $$,

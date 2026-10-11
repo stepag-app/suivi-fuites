@@ -107,6 +107,8 @@ Deno.serve(async (req) => {
   const admin = serviceRole();
   const cle = req.headers.get('x-cle-synchro');
   let poste: string;
+  // « tout » (relecture de tout l'historique) : administrateur seulement ; la lecture planifiée ne le demande jamais.
+  let toutPermis = false;
   if (cle !== null) {
     const { data: valide, error } = await admin.rpc('verifier_cle_synchro_dolibarr', { p_cle: cle });
     if (error) return reponse(500, { erreur: `Base : ${error.message}` });
@@ -125,6 +127,8 @@ Deno.serve(async (req) => {
     const { data: peut, error } = await compte.rpc('peut_synchroniser_dolibarr');
     if (error) return reponse(500, { erreur: `Base : ${error.message}` });
     if (peut !== true) return reponse(403, { erreur: 'Réservé à l\'administrateur et aux comptes qui voient le rapprochement' });
+    const { data: profil } = await compte.from('profils').select('est_admin').eq('id', appelant.user.id).maybeSingle();
+    toutPermis = profil?.est_admin === true;
     const identifiant = String(appelant.user.user_metadata?.identifiant ?? appelant.user.email?.split('@')[0] ?? 'compte');
     poste = `lecture demandée par ${identifiant}`.slice(0, 100);
   }
@@ -136,6 +140,7 @@ Deno.serve(async (req) => {
     // corps vide : synchroniser
   }
   if ((corps.action ?? 'synchroniser') !== 'synchroniser') return reponse(400, { erreur: 'Action inconnue' });
+  if (corps.tout === true && !toutPermis) return reponse(403, { erreur: 'Relecture de tout l\'historique réservée à l\'administrateur' });
 
   const config = configurationApi();
   if (!config) {

@@ -467,8 +467,9 @@ automatique** par alarme (même appli fermée) ; **mise à jour silencieuse** de
 d'emploi et QR code (relu par le navigateur) dans le panneau en mode démonstration ; 28 tests pgTAP, tsc web et APK,
 6 essais sans pile, CI verte. **HyperOS** exige trois réglages manuels à la préparation (démarrage automatique, batterie,
 fenêtres en arrière-plan : mode d'emploi du panneau, `mobile/README.md`) ; sans le premier, l'appli ne reçoit aucune
-diffusion quand elle est fermée. Retour au premier plan après une mise à jour : correction poussée (`d48116c`), à
-revérifier avec l'APK DEV suivante.
+diffusion quand elle est fermée. Réouverture automatique après une mise à jour : impossible sur Xiaomi (HyperOS
+refuse tout réveil de l'appli sans « démarrage automatique », réglage absent sur la Redmi Pad 2) : **l'agent rouvre
+l'appli d'un toucher** (texte adapté) ; automatique ailleurs (Samsung).
 
 **Reste** (dans l'ordre) :
 1. Fusionner la PR (migration et fonction `apk-enrolement` déployées), puis, sur la Redmi, **le parcours complet du code** :

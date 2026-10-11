@@ -129,8 +129,14 @@ export function EcranTablette({ etat, relire, retour }: { etat: EtatTablette | n
       }
       relire();
     } catch (e) {
-      const texte = (e as { message?: string }).message ?? String(e);
-      setMessage({ ton: 'erreur', texte: /fetch|network|réseau|timeout|abort/i.test(texte) ? t('Vérification impossible : vérifiez le réseau.') : texte });
+      const erreur = e as { message?: string; code?: string };
+      const texte = erreur.message ?? String(e);
+      setMessage({
+        ton: 'erreur',
+        // PGRST202 : fonction absente de la base (migration du lot pas encore déployée).
+        texte: erreur.code === 'PGRST202' ? t('Serveur pas encore à jour pour les codes : réessayez plus tard.')
+          : /fetch|network|réseau|timeout|abort/i.test(texte) ? t('Vérification impossible : vérifiez le réseau.') : texte,
+      });
     } finally {
       setOccupe(false);
     }

@@ -76,7 +76,7 @@ export function ModeEmploiTablettes() {
 
             <TabsContent value="maintenance" className="flex flex-col gap-3">
               <ul className="ml-5 flex list-disc flex-col gap-2">
-                <li><strong>Mise à jour de Suivi fuites</strong> : rien à faire. Quand une version est publiée, l&apos;agent touche « Installer maintenant » ; l&apos;appli se ferme quelques secondes et se rouvre seule.</li>
+                <li><strong>Mise à jour de Suivi fuites</strong> : rien à faire. Quand une version est publiée, l&apos;agent touche « Installer maintenant » ; l&apos;appli se ferme quelques secondes. Sur les tablettes Xiaomi, elle ne se rouvre pas seule : l&apos;agent la rouvre d&apos;un toucher (HyperOS interdit tout réveil de l&apos;appli après une mise à jour).</li>
                 <li><strong>WebView, Maps, WhatsApp</strong> (une fois par mois, au bureau, en Wi-Fi) : code « 1 heure » › Ouvrir le Play Store › photo du compte › Gérer les applis › Tout mettre à jour › Reverrouiller.</li>
                 <li><strong>Changer un réglage</strong> (Wi-Fi, langue, luminosité…) : code « 15 minutes » › Ouvrir les Paramètres › Reverrouiller.</li>
                 <li><strong>Ajouter une appli</strong> : code « 1 heure » › Play Store › installer › Reverrouiller. L&apos;appli reste sur cette tablette.</li>

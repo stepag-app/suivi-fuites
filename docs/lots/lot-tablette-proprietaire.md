@@ -261,8 +261,11 @@ sans « Démarrage automatique » (op MIUI 10008), HyperOS refuse de lancer l'ap
 (« process is not permitted to auto start ») ; sans « Fenêtres contextuelles en arrière-plan » (op 10021), la relance ne
 revient pas au premier plan. Le réglage « fenêtres en arrière-plan » (et la batterie) fait partie de la préparation de la tablette (mode d'emploi du
 panneau) ; il survit aux mises à jour. Le « démarrage automatique » n'est **pas proposé** par HyperOS 2.0 tablette pour
-l'appli : la réouverture après mise à jour passe par le compte rendu d'installation (reçu par le nouveau processus) ; si
-l'appli est fermée, le reverrouillage se fait à l'ouverture suivante. La « Sécurité » de Xiaomi reste visible pendant un
+l'appli, et sans lui HyperOS refuse **tout** réveil de l'appli après l'installation (diffusion « paquet remplacé » et
+compte rendu de la session d'installation, vérifié sur 5 mises à jour) : **sur Xiaomi, l'agent rouvre l'appli d'un
+toucher après « Installer »** (texte de la fenêtre adapté) ; la réouverture automatique reste en place pour les tablettes
+qui l'acceptent (Samsung, AOSP : propriétaire exempté). Si l'appli est fermée, le reverrouillage se fait à l'ouverture
+suivante. La « Sécurité » de Xiaomi reste visible pendant un
 déverrouillage pour accéder à ces pages. `adb install` refusé par HyperOS (« Installer via USB ») : l'APK DEV s'installe
 par la mise à jour de l'appli elle-même.
 

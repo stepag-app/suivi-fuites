@@ -455,7 +455,9 @@ export const TRADUCTIONS = {
   'Installer maintenant': { ar: 'ثبّت الآن' },
   'Plus tard': { ar: 'لاحقًا' },
   'Installation…': { ar: 'جارٍ التثبيت…' },
-  "L'application se ferme quelques secondes puis se rouvre seule.": { ar: 'يُغلَق التطبيق بضع ثوانٍ ثم يُفتح من جديد تلقائيًا.' },
+  "L'application se ferme quelques secondes. Si elle ne se rouvre pas seule, rouvrez-la depuis l'écran d'accueil.": {
+    ar: 'يُغلَق التطبيق بضع ثوانٍ. إن لم يُفتح من جديد تلقائيًا، افتحه من الشاشة الرئيسية.',
+  },
 
   // Tablette verrouillée par Suivi fuites (lot TP, 2026-10-11) : à relire par Issam
   'Tablette': { ar: 'الجهاز اللوحي' },

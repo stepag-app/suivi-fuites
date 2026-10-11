@@ -3,7 +3,8 @@
 // une URL signée. Quand elle est plus récente que celle installée, la liste propose « Nouvelle version » : téléchargement
 // dans le cache de l'appli, puis l'installateur d'Android (même signature : données et envois en attente gardés) ; sur
 // une tablette dont Suivi fuites est propriétaire (lot TP), installation directe sans fenêtre d'Android : l'agent a
-// seulement touché « Installer », l'appli se ferme et se rouvre seule.
+// seulement touché « Installer », l'appli se ferme et se rouvre seule (sauf sur Xiaomi / HyperOS, qui empêche tout réveil
+// de l'appli après la mise à jour : l'agent la rouvre d'un toucher).
 // Contrôle à l'ouverture puis au retour sur l'appli, au plus toutes les 6 h ; jamais sans réseau. Une version trouvée
 // s'annonce d'abord par une fenêtre (sur la liste, jamais au milieu d'une saisie) ; « Plus tard » la referme jusqu'au
 // prochain démarrage et le bandeau de la liste reste.
@@ -119,7 +120,7 @@ export function BandeauMiseAJour({ version }: { version: Version }) {
         </View>
         <Bouton titre={titreBouton ?? t('Installer')} icone="download" primaire onPress={installer} occupe={occupe} />
       </View>
-      {installation && <Message ton="info">{t("L'application se ferme quelques secondes puis se rouvre seule.")}</Message>}
+      {installation && <Message ton="info">{t("L'application se ferme quelques secondes. Si elle ne se rouvre pas seule, rouvrez-la depuis l'écran d'accueil.")}</Message>}
       {!!erreur && <Message ton="erreur">{erreur}</Message>}
     </Carte>
   );
@@ -141,7 +142,7 @@ export function FenetreMiseAJour({ version, plusTard }: { version: Version; plus
           <Text style={s.discret}>
             {t('{taille} Mo à télécharger ; vos saisies et envois en attente sont gardés.', { taille: mo(version.taille) })}
           </Text>
-          {installation && <Message ton="info">{t("L'application se ferme quelques secondes puis se rouvre seule.")}</Message>}
+          {installation && <Message ton="info">{t("L'application se ferme quelques secondes. Si elle ne se rouvre pas seule, rouvrez-la depuis l'écran d'accueil.")}</Message>}
           {!!erreur && <Message ton="erreur">{erreur}</Message>}
           <View style={s.ligne}>
             <Bouton titre={t('Plus tard')} grand onPress={plusTard} desactive={occupe} style={{ flexGrow: 1, flexBasis: 160 }} />

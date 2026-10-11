@@ -289,8 +289,10 @@ automatique passe par une alarme inexacte (quelques minutes de marge).
   (« process is not permitted to auto start ») : ni alarme de reverrouillage si l'appli est fermée (le reverrouillage se
   fait alors à l'ouverture suivante), ni diffusion « paquet remplacé ». Sur la Redmi Pad 2 (HyperOS 2.0, tablette), ce
   réglage **n'est pas proposé** pour l'appli (ni sur sa page, ni dans la liste globale) ; par adb, `appops set <paquet>
-  10008 allow` tient jusqu'au prochain réglage fait dans l'interface. L'appli n'en dépend donc pas : la réouverture
-  après une mise à jour passe par le compte rendu d'installation (envoyé par le système, il atteint le nouveau processus).
+  10008 allow` tient jusqu'au prochain réglage fait dans l'interface. Vérifié le 2026-10-11 : sans lui, ni la diffusion
+  « paquet remplacé » ni le compte rendu de la session d'installation n'atteignent le nouveau processus : **sur Xiaomi,
+  l'agent rouvre l'appli d'un toucher après « Installer »** ; la réouverture automatique (`relancerSiDemande`, depuis les
+  deux récepteurs) sert aux tablettes qui l'acceptent (Samsung, AOSP).
 - **Fenêtres contextuelles en arrière-plan** (op 10021, Paramètres › Applis › Gérer les applis › Suivi des fuites ›
   Autorisations de l'application › Autres autorisations › « Ouvrir de nouvelles fenêtres contextuelles pendant
   l'exécution en arrière-plan », « Toujours autoriser ») : nécessaire pour revenir au premier plan après une mise à jour ;

@@ -263,7 +263,7 @@ export default function Marches() {
                   </div>
                 ) : (
                   <Table className="**:data-[slot=table-cell]:px-5 **:data-[slot=table-head]:px-5">
-                    <TableHeader className="bg-muted/50 [&_tr]:border-y">
+                    <TableHeader className="[&_tr]:border-y">
                       <TableRow className="hover:bg-transparent">
                         <TableHead className="font-medium">Agent</TableHead><TableHead>Identifiant</TableHead><TableHead>Rôles</TableHead><TableHead>Affectation</TableHead><TableHead>Compte</TableHead>
                       </TableRow>

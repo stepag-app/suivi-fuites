@@ -182,8 +182,8 @@ export default function HorsBordereau() {
                 </tr>
               </thead>
               <tbody>
-                {affichees.map((l, i) => (
-                  <tr key={`${l.nature}-${l.reparation_id}-${l.piece_ligne_id ?? ''}`} className={i % 2 === 1 ? 'zebre' : ''}>
+                {affichees.map((l) => (
+                  <tr key={`${l.nature}-${l.reparation_id}-${l.piece_ligne_id ?? ''}`}>
                     <td className="nowrap">
                       <Link href={`/fuites/${l.fuite_id}`} target="_blank" rel="noopener" className="lien-fuite" title="Ouvrir la fiche dans un nouvel onglet">
                         N° {l.fuite_numero} ↗

@@ -325,7 +325,7 @@ export default function DetailLot() {
                     <th>Lignes du lot</th>{modifiable && <th />}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="sans-zebre">
                   {groupes.map((g, i) => {
                     const t = g[0];
                     const anticipable = modifiable && regles?.refection_anticipee && t.fuite_id && !t.refectionnee_le && !g.some((l) => l.nature === "anticipation");

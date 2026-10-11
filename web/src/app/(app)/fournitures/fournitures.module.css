@@ -40,9 +40,11 @@
 .defilement { overflow: auto; max-height: 70vh; }
 .croise { border-collapse: separate; border-spacing: 0; }
 .croise th, .croise td { white-space: nowrap; }
-.croise thead th { position: sticky; top: 0; z-index: 2; background: var(--carte); }
+.croise thead th { position: sticky; top: 0; z-index: 2; background: var(--tableau-entete); }
 .croise th:first-child, .croise td:first-child { position: sticky; left: 0; z-index: 1; background: var(--carte); white-space: normal; min-width: 14rem; max-width: 24rem; }
 .croise thead th:first-child { z-index: 3; }
+/* Colonne figée (opaque) : le zébrage de la ligne est repeint par-dessus le fond de la carte */
+.croise tbody tr:nth-child(even):not(:hover) > td:first-child { background: linear-gradient(var(--tableau-zebre), var(--tableau-zebre)), var(--carte); }
 .croise tbody tr:hover > td { background: var(--survol); }
 .croise td.num, .croise th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .croise td.total, .croise th.total { font-weight: 700; border-left: 1px solid var(--bord); }

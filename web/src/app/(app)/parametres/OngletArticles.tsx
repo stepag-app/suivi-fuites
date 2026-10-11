@@ -180,8 +180,8 @@ export function OngletArticles({ importer }: { importer: boolean }) {
                 </tr>
               </thead>
               <tbody>
-                {visibles.map((p, i) => (
-                  <tr key={p.dolibarr_id} className={`${i % 2 ? 'zebre' : ''} ${p.actif ? '' : 'discret'}`}>
+                {visibles.map((p) => (
+                  <tr key={p.dolibarr_id} className={p.actif ? undefined : 'discret'}>
                     <td className={styles.selection}>
                       <input type="checkbox" checked={selection.has(p.dolibarr_id)} onChange={() => basculerSelection(p.dolibarr_id)}
                         aria-label={`Sélectionner ${p.designation}`} />

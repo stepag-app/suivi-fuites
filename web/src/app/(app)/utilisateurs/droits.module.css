@@ -26,7 +26,7 @@
 .matrice td { text-align: center; vertical-align: middle; padding: 0.15rem 0.3rem; min-width: 5.75rem; }
 
 .matrice thead th {
-  position: sticky; top: 0; z-index: 2; background: var(--fond); vertical-align: bottom;
+  position: sticky; top: 0; z-index: 2; background: var(--tableau-entete); vertical-align: bottom;
   border-bottom: 1px solid var(--bord); white-space: normal;
 }
 .matrice thead th.coin { left: 0; z-index: 3; vertical-align: bottom; color: var(--texte); font-weight: 700; }
@@ -43,6 +43,7 @@
   min-width: 15rem; max-width: 19rem; white-space: normal; text-align: left; color: var(--texte); font-weight: 400;
   padding: 0.2rem 0.5rem; border-right: 1px solid var(--bord); line-height: 1.25;
 }
+.matrice tbody tr:nth-child(even):not(.groupe):not(:hover) > th.libelle { background: linear-gradient(var(--tableau-zebre), var(--tableau-zebre)), var(--carte); }
 .matrice thead th.coin { min-width: 15rem; border-right: 1px solid var(--bord); padding: 0.35rem 0.5rem; }
 .aide { display: block; font-size: 0.72rem; color: var(--discret); margin-top: 0; }
 .sensible { background: #fdecea; color: var(--danger); font-size: 0.7rem; margin-left: 0.35rem; vertical-align: 1px; }

@@ -141,6 +141,22 @@
   [hidden] {
     display: none !important;
   }
+
+  /* Tableaux : en-tête teinté, une ligne sur deux à peine grisée. Couche de base, donc les classes utilitaires
+     (survol, ligne sélectionnée, bandeau de groupe) passent devant ; le calendrier (role="grid") n'est pas touché ;
+     tbody.sans-zebre pour un tableau qui zèbre lui-même par groupe de lignes (classe .zebre). */
+  table:not([role="grid"]) > thead {
+    background-color: var(--tableau-entete);
+  }
+  table:not([role="grid"]) > tbody:not(.sans-zebre) > tr:nth-child(even) {
+    background-color: var(--tableau-zebre);
+  }
+}
+
+/* Rapportées aux jetons du thème (préréglages, mode sombre). L'en-tête est opaque : il sert aussi aux cellules figées au défilement. */
+:root {
+  --tableau-entete: color-mix(in oklab, var(--foreground) 3%, var(--muted));
+  --tableau-zebre: color-mix(in oklab, var(--muted) 50%, transparent);
 }
 
 @layer utilities {

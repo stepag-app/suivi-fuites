@@ -58,6 +58,7 @@ import { barreEchelle, centreImage, echelleNumerique, metresParMm, type Bornes, 
 import { construireEntete, type Contexte } from './jeux';
 import { dimensionsLogo, lignesEntete, mmEnPixels, nomFichierSur, octetsDataUrl, texteDate, texteNombre, textesArabesEntete, type EnteteDoc, type LogoEntete } from './modele';
 import { BLEU, FOND_GROUPE, GRIS_TRAIT, dessinerEntete } from './pdf';
+import { formatMaroc } from '@/lib/heure-maroc';
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
 type Rgb = [number, number, number];
@@ -260,7 +261,7 @@ const distincts = (t: (string | null | undefined)[]) => [...new Set(t.map((x) =>
 export function jourEnLettres(date: string): string {
   const d = new Date(`${date}T12:00:00Z`);
   if (Number.isNaN(d.getTime())) return date;
-  return d.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  return formatMaroc(d, 'fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     .replace(/^(\S+) 1 /, '$1 1er ');
 }
 

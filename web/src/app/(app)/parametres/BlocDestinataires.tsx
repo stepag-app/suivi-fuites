@@ -7,10 +7,11 @@ import { DOCUMENTS_EMAIL, adresseValide, texteTaille } from '@/lib/email';
 import { lireDestinataires, lireEnvois, usePeutEnvoyerEmail, type Destinataire, type EnvoiEmail } from '@/lib/email-client';
 import { messageErreur } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase';
+import { formatMaroc } from '@/lib/heure-maroc';
 
 const STATUTS_ENVOI: Record<EnvoiEmail['statut'], string> = { en_cours: 'en cours', envoye: 'envoyé', echec: 'échec' };
 const dateHeure = (iso: string) =>
-  new Date(iso).toLocaleString('fr-FR', { timeZone: 'Africa/Casablanca', dateStyle: 'short', timeStyle: 'short' });
+  formatMaroc(iso, 'fr-FR', { dateStyle: 'short', timeStyle: 'short' });
 
 export function BlocDestinataires({ marcheId, limite, enregistrerLimite }: {
   marcheId: string;

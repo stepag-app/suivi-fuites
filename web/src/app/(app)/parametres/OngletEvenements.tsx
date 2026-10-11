@@ -7,6 +7,7 @@ import { PanneauExport } from '@/lib/export/PanneauExport';
 import { useSession } from '@/lib/session';
 import { getSupabase } from '@/lib/supabase';
 import type { Secteur } from '@/lib/types';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 interface Categorie { id: string; code: string; libelle: string; libelle_ar: string | null; ordre: number; actif: boolean }
 interface Evenement {
@@ -17,7 +18,7 @@ interface Piece { id: string; evenement_id: string; nom_fichier: string; chemin:
 
 const TAILLE_MAX = 10 * 1024 * 1024;
 const TYPES_ACCEPTES = '.pdf,.jpg,.jpeg,.png,.webp,.doc,.docx,.xls,.xlsx';
-const aujourdHui = () => new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+const aujourdHui = () => jourMaroc(new Date());
 
 const codeDepuis = (texte: string) =>
   texte.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40);

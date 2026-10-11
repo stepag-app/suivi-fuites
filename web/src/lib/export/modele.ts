@@ -1,5 +1,6 @@
 // Modèle neutre d'un document exporté : les générateurs Excel, PDF, Word et CSV
 // le traduisent chacun dans leur format. Rien ici ne dépend d'une bibliothèque.
+import { dateHeureMaroc, dateMaroc } from '../heure-maroc.ts';
 
 export type TypeCellule = 'texte' | 'nombre' | 'quantite' | 'montant' | 'date' | 'dateheure';
 
@@ -202,8 +203,8 @@ export function decimalesPour(section: SectionDoc, ligne: LigneDoc, i: number, i
 // -----------------------------------------------------------------------------
 export const texteDate = (d: Date | null, avecHeure = false) =>
   d == null ? '' : avecHeure
-    ? d.toLocaleString('fr-FR', { timeZone: 'Africa/Casablanca', day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : d.toLocaleDateString('fr-FR', { timeZone: 'Africa/Casablanca' });
+    ? dateHeureMaroc(d)
+    : dateMaroc(d);
 
 export const texteNombre = (n: number | null, dec: number) =>
   n == null ? '' : n.toLocaleString('fr-FR', { minimumFractionDigits: dec, maximumFractionDigits: dec }).replace(/ /g, ' ');

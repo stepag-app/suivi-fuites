@@ -10,6 +10,7 @@ import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/li
 import type { Marche, StatutFuite } from '@/lib/types';
 import { construireEntete, type Contexte } from './jeux';
 import { construireSection, parcourir, texteCellule, type Colonne, type DocumentExport, type Ligne, type SectionDoc } from './modele';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 export type TypePeriode = 'jour' | 'semaine' | 'libre';
 export type CleRubrique = 'synthese' | 'fuites' | 'reparations' | 'refections' | 'balayage' | 'debits' | 'pieces' | 'attente';
@@ -73,19 +74,19 @@ export interface DonneesRapport {
 type LibellesMarche = ReturnType<typeof libellesMarche>;
 
 // ---------------------------------------------------------------------------
-// Période (dates de Casablanca, AAAA-MM-JJ)
+// Période (jours du Maroc, AAAA-MM-JJ)
 // ---------------------------------------------------------------------------
 export const PERIODES: Record<TypePeriode, string> = { jour: 'Jour', semaine: 'Semaine', libre: 'Dates libres' };
 
-export const aujourdhui = () => new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+export const aujourdhui = () => jourMaroc(new Date());
 export const ajouterJours = (t: string, n: number) => {
   const d = new Date(`${t}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
 };
 const dateValide = (t: unknown): t is string => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t) && !Number.isNaN(Date.parse(`${t}T12:00:00Z`));
-/** Jour de Casablanca d'un horodatage (une réparation saisie à 23 h 30 UTC appartient au lendemain au Maroc l'été). */
-export const jourCasablanca = (v: unknown) => (v ? new Date(String(v)).toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' }) : '');
+/** Jour du Maroc d'un horodatage (avant le 2026-09-20, une réparation saisie à 23 h 30 UTC appartenait au lendemain). */
+export const jourCasablanca = (v: unknown) => (v ? jourMaroc(String(v)) : '');
 
 /** Bornes de la période : jour = la date ; semaine = du lundi au dimanche de la date ; libre = du… au… (remis dans l'ordre). */
 export function bornesPeriode(type: TypePeriode, reference: string, du?: string, au?: string): { du: string; au: string } {

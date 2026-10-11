@@ -35,12 +35,12 @@ update affectations set roles = array['detection'] where profil_id in
 -- Hier à Oujda (j1), et quelques instants de ce jour-là.
 create temp table h on commit drop as
   select x.j1,
-         extract(epoch from (x.j1 + time '07:30') at time zone 'Africa/Casablanca')::bigint as t0730,
-         extract(epoch from (x.j1 + time '10:00') at time zone 'Africa/Casablanca')::bigint as t1000,
-         extract(epoch from (x.j1 + time '12:00') at time zone 'Africa/Casablanca')::bigint as t1200,
-         extract(epoch from (x.j1 + time '18:30') at time zone 'Africa/Casablanca')::bigint as t1830,
-         (x.j1 + time '12:00') at time zone 'Africa/Casablanca' as midi
-    from (select (now() at time zone 'Africa/Casablanca')::date - 1 as j1) x;
+         extract(epoch from private.instant_maroc(x.j1 + time '07:30'))::bigint as t0730,
+         extract(epoch from private.instant_maroc(x.j1 + time '10:00'))::bigint as t1000,
+         extract(epoch from private.instant_maroc(x.j1 + time '12:00'))::bigint as t1200,
+         extract(epoch from private.instant_maroc(x.j1 + time '18:30'))::bigint as t1830,
+         private.instant_maroc(x.j1 + time '12:00') as midi
+    from (select private.jour_maroc(now()) - 1 as j1) x;
 grant select on h to authenticated;
 create temp table jwt (cle text primary key, claims text) on commit drop;
 insert into jwt values
@@ -110,17 +110,17 @@ update marches set suivi_gps_debut = '08:00', suivi_gps_fin = '18:00', suivi_gps
                    suivi_gps_pause_min = 60, suivi_gps_pause_jour_min = 90;
 
 -- 3. Heures de travail (heure d'Oujda)
-select ok(not private.heure_de_travail(timestamp '2026-10-12 07:59' at time zone 'Africa/Casablanca', '08:00', '18:00', '{1,2,3,4,5,6}'),
+select ok(not private.heure_de_travail(private.instant_maroc(timestamp '2026-10-12 07:59'), '08:00', '18:00', '{1,2,3,4,5,6}'),
   'lundi 07:59 : hors des heures');
-select ok(private.heure_de_travail(timestamp '2026-10-12 08:00' at time zone 'Africa/Casablanca', '08:00', '18:00', '{1,2,3,4,5,6}'),
+select ok(private.heure_de_travail(private.instant_maroc(timestamp '2026-10-12 08:00'), '08:00', '18:00', '{1,2,3,4,5,6}'),
   'lundi 08:00 : dans les heures');
-select ok(private.heure_de_travail(timestamp '2026-10-12 17:59' at time zone 'Africa/Casablanca', '08:00', '18:00', '{1,2,3,4,5,6}'),
+select ok(private.heure_de_travail(private.instant_maroc(timestamp '2026-10-12 17:59'), '08:00', '18:00', '{1,2,3,4,5,6}'),
   'lundi 17:59 : dans les heures');
-select ok(not private.heure_de_travail(timestamp '2026-10-12 18:00' at time zone 'Africa/Casablanca', '08:00', '18:00', '{1,2,3,4,5,6}'),
+select ok(not private.heure_de_travail(private.instant_maroc(timestamp '2026-10-12 18:00'), '08:00', '18:00', '{1,2,3,4,5,6}'),
   'lundi 18:00 : fin exclue');
-select ok(not private.heure_de_travail(timestamp '2026-10-11 10:00' at time zone 'Africa/Casablanca', '08:00', '18:00', '{1,2,3,4,5,6}'),
+select ok(not private.heure_de_travail(private.instant_maroc(timestamp '2026-10-11 10:00'), '08:00', '18:00', '{1,2,3,4,5,6}'),
   'dimanche : hors des jours de travail');
-select ok(private.heure_de_travail(timestamp '2026-10-11 23:59' at time zone 'Africa/Casablanca', '00:00', '24:00', '{7}'),
+select ok(private.heure_de_travail(private.instant_maroc(timestamp '2026-10-11 23:59'), '00:00', '24:00', '{7}'),
   'fin à 24:00 : toute la journée');
 
 -- 4. Points : rien de gardé hors des heures ni hors des jours
@@ -300,7 +300,7 @@ select is((select array[n.titre, n.corps] from notifications n
             where n.evenement = 'suivi_coupe' and n.donnees ->> 'profil_id' = '00000000-0000-0000-0000-00000000000b' limit 1),
   array['Suivi GPS interrompu : Détection',
         format('Aucune position depuis %s : application fermée, autorisation retirée, tablette éteinte ou sans réseau.',
-               to_char(((select midi from h) + interval '3 hours') at time zone 'Africa/Casablanca', 'HH24:MI'))],
+               to_char(private.heure_maroc((select midi from h) + interval '3 hours'), 'HH24:MI'))],
   'titre et texte de l''alerte (heure d''Oujda)');
 select ok((select bool_and(fuite_id is null) from notifications where evenement = 'suivi_coupe'), 'alerte sans fuite');
 select is(generer_alertes_suivi_gps((select midi from h) + interval '3 hours 50 minutes'), 0, 'une seule alerte par interruption');

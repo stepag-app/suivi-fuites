@@ -19,6 +19,7 @@ import { construireEntete, type Contexte } from './jeux';
 import { chargerMatricules } from './matricules';
 import { choixEffectif, dernierChoix } from './rubriques';
 import { nomFichierSur, telecharger, texteDate, texteNombre, textesArabesEntete } from './modele';
+import { jourMaroc } from '@/lib/heure-maroc';
 
 type Pdf = InstanceType<typeof import('jspdf').jsPDF>;
 
@@ -638,7 +639,7 @@ export async function fabriquerRapports(
   if (!fiches.length) throw new Error('Aucune fuite à imprimer.');
   const blob = await genererRapports(fiches, ctx, progres, choix);
   const code = String(ctx.marche.code ?? '');
-  const date = new Date().toLocaleDateString('fr-CA', { timeZone: 'Africa/Casablanca' });
+  const date = jourMaroc(new Date());
   const nom = fiches.length === 1
     ? `rapport-fuite-${fiches[0].fuite.numero}-${code}`
     : `rapports-fuites-${code}-${fiches.length}`;

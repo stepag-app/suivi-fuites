@@ -88,7 +88,9 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `migrations/20261014100000_envoi_email.sql` | chantier v3, S18 (M1, M2) : envoi des documents par e-mail ; `destinataires_email` (carnet par marché), `envois_email` (journal, aucune écriture directe), `marches.emails_par_jour` (défaut 20) ; `peut_envoyer_email`, `reserver_envoi_email` (droit du responsable du marché ou de l'administrateur, marché actif, limites du marché et commune de 90 par jour), `terminer_envoi_email`. Contrat : `docs/lots/chantier-v3-email.md` |
 | `migrations/20261014500000_penalites_arrondi_normal.sql` | débits de nuit (R-CPS-150, décision d'Issam du 2026-10-10) : points de pénalité « entiers » arrondis au plus proche (`round`, −3,5 → 4) au lieu de la troncature ; « entiers » devient le défaut de `marches.debits_points` et s'applique aux marchés existants |
 | `tests/database/44_s18_envoi_email.test.sql` | 47 tests S18 : privilèges et RLS, carnet par marché, journal, réservation et clôture, limites du jour (échecs non comptés), marché désactivé |
-| `migrations/20261014800000_suivi_gps_heures_pauses.sql` | suivi GPS, **compromis présenté aux agents** (décision d'Issam du 2026-10-10) : `marches.suivi_gps_debut / _fin / _jours / _pause_min / _pause_jour_min` (08:00 à 18:00, lundi à samedi, pause de 60 min, 90 min par jour), modifiables seulement par `regler_suivi_gps` (**responsable du marché ou administrateur**, journalisé, verrou « paramètres / modifier ») ; `ajouter_points_trace` **ignore les points hors des heures de travail ou pendant une pause** (APK pas encore à jour comprises) ; `pauses_gps` (début, fin prévue, fin, motif ; **aucune position**), écrites par `enregistrer_pause_gps` (idempotente sur le début, durée bornée par les réglages et le reste du jour, une pause finie ne se rouvre pas, points déjà reçus pendant la pause retirés) ; `suivi_gps_etats` (état de la tablette : actif, pause, hors heures, autorisation, fermé ; dernier signe ; décalage UTC de l'heure de la tablette, qui fait foi pour les heures de l'agent), écrit par `signaler_suivi_gps` (rend les réglages du marché) ; alerte **« suivi coupé »** (`generer_alertes_suivi_gps`, pg_cron toutes les 5 min) : session ouverte, heures de travail, pas de pause, aucun signe depuis 30 min, une notification par interruption au responsable et à l'administrateur (`notifications.fuite_id` devient facultatif pour cet événement seulement) ; `v_suivi_gps_etats` (`coupe_depuis`) ; RLS : responsable et administrateur, comme les tracés ; `purger_traces_marche` efface aussi pauses et états ; points déjà reçus hors des heures par défaut retirés des tracés existants. Texte à remettre aux agents : `docs/suivi-gps-information-agents.md` |
+| `migrations/20261014900000_heure_maroc.sql` | **heure du Maroc explicite** (décision d'Issam du 2026-10-10) : `private.heure_maroc`, `private.instant_maroc`, `private.jour_maroc` (UTC+0 depuis le 2026-09-20 01:00 UTC, `Africa/Casablanca` avant) ; 6 fonctions, 7 vues et 2 valeurs par défaut reprises sans autre changement |
+| `tests/database/47_heure_maroc.test.sql` | 24 tests : règle (octobre UTC+0, août UTC+1, ramadan, bascule, été 2027), inverse, garde-fou (aucun autre objet ne porte `'Africa/Casablanca'`), droits, `v_fuites` lue par un agent |
+| `migrations/20261014950000_suivi_gps_heures_pauses.sql` | suivi GPS, **compromis présenté aux agents** (décision d'Issam du 2026-10-10) : `marches.suivi_gps_debut / _fin / _jours / _pause_min / _pause_jour_min` (08:00 à 18:00, lundi à samedi, pause de 60 min, 90 min par jour), modifiables seulement par `regler_suivi_gps` (**responsable du marché ou administrateur**, journalisé, verrou « paramètres / modifier ») ; `ajouter_points_trace` **ignore les points hors des heures de travail ou pendant une pause** (APK pas encore à jour comprises) ; `pauses_gps` (début, fin prévue, fin, motif ; **aucune position**), écrites par `enregistrer_pause_gps` (idempotente sur le début, durée bornée par les réglages et le reste du jour, une pause finie ne se rouvre pas, points déjà reçus pendant la pause retirés) ; `suivi_gps_etats` (état de la tablette : actif, pause, hors heures, autorisation, fermé ; dernier signe ; décalage UTC de l'heure de la tablette, qui fait foi pour les heures de l'agent), écrit par `signaler_suivi_gps` (rend les réglages du marché) ; alerte **« suivi coupé »** (`generer_alertes_suivi_gps`, pg_cron toutes les 5 min) : session ouverte, heures de travail, pas de pause, aucun signe depuis 30 min, une notification par interruption au responsable et à l'administrateur (`notifications.fuite_id` devient facultatif pour cet événement seulement) ; `v_suivi_gps_etats` (`coupe_depuis`) ; RLS : responsable et administrateur, comme les tracés ; `purger_traces_marche` efface aussi pauses et états ; points déjà reçus hors des heures par défaut retirés des tracés existants. Texte à remettre aux agents : `docs/suivi-gps-information-agents.md` |
 | `tests/database/45_suivi_gps_heures_pauses.test.sql` | 96 tests : privilèges et RLS, réglages (défauts, responsable, administrateur, refus agent / autre marché / modification directe, valeurs invalides, journal), heures d'Oujda, points hors heures et hors jours ignorés, nettoyage, pauses (durée, quota du jour, fin réelle, points retirés, lecture), décalage de la tablette, suivi coupé (pause, fin de pause, matin, 3 jours, session fermée, autorisation), alertes (destinataires, une par interruption, isolation), purge |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
@@ -619,6 +621,22 @@ pour un non-administrateur, un marché désactivé reste lisible mais n'envoie p
   simultanés) et `terminer_envoi_email` (auteur seulement, depuis `en_cours`). Les échecs ne comptent pas.
 - `peut_envoyer_email(marché)` : affichage du bouton dans le panneau.
 
+## Heure du Maroc
+
+Le Maroc est à **UTC+0 depuis le 2026-09-20 à 01:00 UTC** (sans heure d'été ni changement pendant le ramadan). La
+base des fuseaux du PostgreSQL de Supabase (17.11, mesuré le 2026-10-10) le croit encore à UTC+1 : un calcul en
+`at time zone 'Africa/Casablanca'` y serait faux d'une heure (entre 23 h et minuit, tout passe au lendemain).
+Migration `20261014900000_heure_maroc.sql`, test `47_heure_maroc.test.sql` :
+
+- `private.heure_maroc(instant)` → heure affichée au Maroc ; `private.jour_maroc(instant)` → jour civil
+  (`jour_maroc(now())` : aujourd'hui) ; `private.instant_maroc(heure)` → instant (inverse) ;
+- règle : UTC à partir de la bascule, `Africa/Casablanca` avant (UTC+1, UTC+0 au ramadan), que toutes les versions de
+  la base des fuseaux connaissent ; exécutables par `authenticated` (vues en security_invoker, valeurs par défaut) ;
+- le test 47 refuse tout autre objet (fonction, vue, valeur par défaut, contrainte, index, règle RLS) qui écrirait
+  `'Africa/Casablanca'` ; même bascule dans le panneau (`web/src/lib/heure-maroc.ts`, vérifiée par
+  `web/scripts/verifier-heure-maroc.mjs`) ;
+- si le Maroc rechange d'heure : modifier `heure_maroc` et `instant_maroc`, puis `BASCULE_UTC0` du panneau.
+
 ## Règles pour les migrations suivantes
 
 - `alter table … enable row level security` juste après chaque `create table`.
@@ -626,6 +644,8 @@ pour un non-administrateur, un marché désactivé reste lisible mais n'envoie p
   rien pour `anon` ; pas de `delete` sur les données terrain.
 - Toute nouvelle fonction : `revoke execute … from public, anon` puis `grant` ciblé.
 - Fonctions SECURITY DEFINER dans `private`, avec `set search_path = ''`.
+- Jour ou heure du Maroc : `private.jour_maroc`, `private.heure_maroc`, `private.instant_maroc` ; jamais
+  `at time zone 'Africa/Casablanca'` (test 47).
 
 ## Reste à faire (migrations suivantes)
 

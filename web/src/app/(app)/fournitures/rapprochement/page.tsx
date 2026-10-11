@@ -2,17 +2,21 @@
 
 // Rapprochement posé / transféré (lot P4, chantier v2 X3) : par article Dolibarr, ce qui est parti au chantier (bons de
 // transfert vers l'entrepôt du marché, retours déduits, annulations neutralisées), ce qui a été posé (inventaire réel des
-// réparations) et l'écart, sur la période choisie et en cumul ; seuil d'alerte réglable par marché ; import du CSV des
-// mouvements (administrateur, en secours) ; synchronisation Dolibarr (X8 : lecture de l'API toutes les 15 minutes, bouton
-// « Synchroniser maintenant ») ; export Excel. Responsable et administrateur (« quantités / lire »). Jamais de prix.
+// réparations) et l'écart, sur la période choisie et en cumul ; export Excel. Responsable et administrateur
+// (« quantités / lire »). Jamais de prix. Onglets (dans l'adresse, ?onglet=) : Rapprochement (vignettes et tableau),
+// Synchronisation (X8 : lecture de l'API Dolibarr toutes les 15 minutes, bouton « Synchroniser maintenant »), Import CSV
+// (administrateur, en secours), Réglages (entrepôt Dolibarr : administrateur ; seuil : « paramètres / modifier »).
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CarteIndicateur, GrilleIndicateurs } from '@/components/carte-indicateur';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   chargerDernierImportMouvements, chargerEnvoisDolibarr, chargerRapprochement, chargerReglagesFournitures, enregistrerReglagesFournitures, messageDolibarr,
   type DernierImportMouvements, type ReglagesFournitures,
 } from '@/lib/dolibarr/donnees';
-import type { EnvoiDolibarr } from '@/lib/dolibarr/envoi-auto';
+import { resumerEnvois, type EnvoiDolibarr } from '@/lib/dolibarr/envoi-auto';
 import {
   FILTRES_RAPPROCHEMENT_DEFAUT, colonnesExportRapprochement, famillesDe, filtrerRapprochement, totalRapprochement, trierRapprochement,
   type FiltresRapprochement, type LigneRapprochement,
@@ -26,6 +30,7 @@ import { EnvoiAutomatique } from './EnvoiAutomatique';
 import { ImportMouvements } from './ImportMouvements';
 
 type ChoixPeriode = 'mois' | 'precedent' | 'debut' | 'libre';
+type Onglet = 'rapprochement' | 'synchro' | 'import' | 'reglages';
 
 function bornes(choix: ChoixPeriode, du: string, au: string, maintenant = new Date()): { du: string; au: string } {
   const auj = jourCasa(maintenant);
@@ -43,10 +48,24 @@ function bornes(choix: ChoixPeriode, du: string, au: string, maintenant = new Da
 const q = (n: number, unite: string) => (n === 0 ? '—' : formaterQuantite(n, unite));
 
 export default function PageRapprochement() {
+  return (
+    <Suspense fallback={<p className="discret">Chargement…</p>}>
+      <Rapprochement />
+    </Suspense>
+  );
+}
+
+function Rapprochement() {
   const { marche, peut, profil } = useSession();
+  const router = useRouter();
+  const chemin = usePathname();
+  const params = useSearchParams();
   const marcheId = marche?.id;
   const admin = !!profil?.est_admin;
   const lire = peut('quantites', 'lire');
+  const demande = params.get('onglet');
+  const onglet: Onglet = demande === 'synchro' || demande === 'reglages' || (demande === 'import' && admin) ? demande : 'rapprochement';
+  const aller = (o: Onglet) => router.replace(o === 'rapprochement' ? chemin : `${chemin}?onglet=${o}`, { scroll: false });
   const [choix, setChoix] = useState<ChoixPeriode>('debut');
   const [libre, setLibre] = useState({ du: '', au: '' });
   const [filtres, setFiltres] = useState<FiltresRapprochement>(FILTRES_RAPPROCHEMENT_DEFAUT);
@@ -98,6 +117,7 @@ export default function PageRapprochement() {
   const visibles = useMemo(() => trierRapprochement(filtrerRapprochement(lignes, filtres)), [lignes, filtres]);
   const total = useMemo(() => totalRapprochement(visibles), [visibles]);
   const familles = useMemo(() => famillesDe(lignes), [lignes]);
+  const etatSynchro = useMemo(() => resumerEnvois(envois ?? [], chargeLe).etat, [envois, chargeLe]);
   const titrePeriode = periode.du ? libellePeriode({ du: periode.du, au: periode.au }) : `depuis le début, jusqu'au ${periode.au.split('-').reverse().join('/')}`;
 
   async function enregistrerReglages() {
@@ -167,144 +187,166 @@ export default function PageRapprochement() {
         </div>
       </div>
       <p className={`discret ${styles.intro}`}>
-        Dolibarr connaît ce qui part au chantier (bons de transfert vers l&apos;entrepôt du marché, retours au dépôt déduits,
-        annulations neutralisées), pas ce qui est posé. Écart = transféré − consommé − posé : le reste théorique au chantier,
-        à contrôler sur place ; négatif, une pièce posée sans transfert enregistré. Indicatif, jamais bloquant ; quantités
-        seulement, aucun prix. Posé : inventaire réel des réparations (corrections du bureau comprises).
+        Pièces transférées au chantier (Dolibarr) face aux pièces posées (réparations). Écart positif : reste au chantier ;
+        négatif : posé sans transfert enregistré. Indicatif, quantités seulement.
       </p>
       {erreur && <p className="erreur">{erreur}</p>}
       {info && <p className="carte succes" role="status">{info}</p>}
 
-      {reglages && (
-        <section className="carte">
-          <div className={styles.reglages}>
-            <label>
-              Entrepôt Dolibarr du chantier
-              <input inputMode="numeric" value={saisie.entrepot} disabled={!admin || occupe} placeholder="aucun"
-                onChange={(e) => setSaisie((s) => ({ ...s, entrepot: e.target.value.replace(/\D/g, '') }))} />
-            </label>
-            <label>
-              Seuil d&apos;alerte (% du transféré cumulé)
-              <input inputMode="decimal" value={saisie.seuil} disabled={!peutSeuil || occupe}
-                onChange={(e) => setSaisie((s) => ({ ...s, seuil: e.target.value }))} />
-            </label>
-            {peutSeuil && <button onClick={enregistrerReglages} disabled={occupe}>Enregistrer</button>}
-            <span className="discret">
-              {reglages.entrepot_dolibarr_id == null
-                ? 'Sans entrepôt, rien n\'est rapproché.'
-                : dernierImport ? `Dernier import CSV le ${dateHeure(dernierImport.importe_le)}.` : 'Aucun import CSV.'}
-              {!admin && ' L\'entrepôt est choisi par l\'administrateur.'}
-            </span>
-          </div>
-        </section>
-      )}
+      <Tabs value={onglet} onValueChange={(v) => aller(v as Onglet)}>
+        <TabsList>
+          <TabsTrigger value="rapprochement">Rapprochement</TabsTrigger>
+          <TabsTrigger value="synchro">
+            Synchronisation
+            {etatSynchro === 'en_erreur' && <Badge variant="destructive" className="ml-1.5">erreur</Badge>}
+            {etatSynchro === 'en_retard' && <Badge className="ml-1.5 bg-amber-500/15 text-amber-700 dark:text-amber-300">retard</Badge>}
+          </TabsTrigger>
+          {admin && <TabsTrigger value="import">Import CSV</TabsTrigger>}
+          <TabsTrigger value="reglages">Réglages</TabsTrigger>
+        </TabsList>
 
-      {reglages?.entrepot_dolibarr_id != null && <EnvoiAutomatique envois={envois} maintenant={chargeLe} admin={admin} apresSynchro={charger} />}
+        <TabsContent value="rapprochement" className="mt-2">
+          <section className={`carte ${styles.filtres}`} aria-label="Filtres">
+            <div className={styles.saisies}>
+              <label>
+                Période
+                <select value={choix} onChange={(e) => setChoix(e.target.value as ChoixPeriode)}>
+                  <option value="debut">Depuis le début</option>
+                  <option value="mois">Mois en cours</option>
+                  <option value="precedent">Mois précédent</option>
+                  <option value="libre">Dates libres</option>
+                </select>
+              </label>
+              {choix === 'libre' && (
+                <>
+                  <label>du<input type="date" value={libre.du} max={libre.au || undefined} onChange={(e) => setLibre((p) => ({ ...p, du: e.target.value }))} /></label>
+                  <label>au<input type="date" value={libre.au} min={libre.du || undefined} onChange={(e) => setLibre((p) => ({ ...p, au: e.target.value }))} /></label>
+                </>
+              )}
+              <label>
+                Famille
+                <select value={filtres.famille} onChange={(e) => maj({ famille: e.target.value })}>
+                  <option value="">Toutes</option>
+                  {familles.map((f) => <option key={f} value={f}>{libelleFamille(f)} ({f})</option>)}
+                </select>
+              </label>
+              <label>
+                Article
+                <input value={filtres.texte} placeholder="désignation" onChange={(e) => maj({ texte: e.target.value })} />
+              </label>
+              <label className="ligne">
+                <input type="checkbox" checked={filtres.piecesSeulement} onChange={(e) => maj({ piecesSeulement: e.target.checked })} />
+                Pièces seulement (sans carburant, outillage…)
+              </label>
+              <label className="ligne">
+                <input type="checkbox" checked={filtres.alertesSeulement} onChange={(e) => maj({ alertesSeulement: e.target.checked })} />
+                Au-delà du seuil seulement
+              </label>
+            </div>
+          </section>
 
-      {admin && <ImportMouvements entrepotMarche={reglages?.entrepot_dolibarr_id ?? null} dernierImport={dernierImport} apresImport={charger} />}
+          <GrilleIndicateurs className="mb-4">
+            <CarteIndicateur libelle="Articles" valeur={total.articles} commentaire={titrePeriode} />
+            <CarteIndicateur libelle="Au-delà du seuil" valeur={total.alertes} ton={total.alertes ? 'negatif' : 'normal'}
+              commentaire={`écart cumulé > ${reglages?.seuil_ecart_fournitures_pct ?? '—'} % du transféré`} />
+            <CarteIndicateur libelle="Articles posés" valeur={total.posees} commentaire="sur la période" />
+            <CarteIndicateur libelle="Posés sans transfert" valeur={total.sansTransfert} ton={total.sansTransfert ? 'critique' : 'normal'}
+              commentaire="rien de transféré au cumul" />
+          </GrilleIndicateurs>
 
-      <section className={`carte ${styles.filtres}`} aria-label="Filtres">
-        <div className={styles.saisies}>
-          <label>
-            Période
-            <select value={choix} onChange={(e) => setChoix(e.target.value as ChoixPeriode)}>
-              <option value="debut">Depuis le début</option>
-              <option value="mois">Mois en cours</option>
-              <option value="precedent">Mois précédent</option>
-              <option value="libre">Dates libres</option>
-            </select>
-          </label>
-          {choix === 'libre' && (
-            <>
-              <label>du<input type="date" value={libre.du} max={libre.au || undefined} onChange={(e) => setLibre((p) => ({ ...p, du: e.target.value }))} /></label>
-              <label>au<input type="date" value={libre.au} min={libre.du || undefined} onChange={(e) => setLibre((p) => ({ ...p, au: e.target.value }))} /></label>
-            </>
+          <section className="carte">
+            {chargement && <p className="discret">Chargement…</p>}
+            {!chargement && visibles.length === 0 && (
+              <p className="discret">
+                {reglages?.entrepot_dolibarr_id == null && lignes.length === 0
+                  ? 'Aucun entrepôt Dolibarr pour ce marché et aucune pièce posée.'
+                  : 'Aucun article avec ces filtres.'}
+              </p>
+            )}
+            {visibles.length > 0 && (
+              <div className={styles.defilement}>
+                <table className={styles.croise}>
+                  <thead>
+                    <tr>
+                      <th>Article</th>
+                      <th className="num">Transféré</th>
+                      {total.aConsomme && <th className="num">Consommé</th>}
+                      <th className="num">Posé</th>
+                      <th className="num">Écart</th>
+                      <th className={`num ${styles.total}`}>Transféré cumulé</th>
+                      <th className="num">Posé cumulé</th>
+                      <th className="num">Écart cumulé</th>
+                      <th className="num">%</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibles.map((l) => (
+                      <tr key={l.produit_id} className={l.au_dela_seuil ? styles.alerte : ''}>
+                        <td>
+                          {l.designation}
+                          <span className={styles.detail}>
+                            {libelleFamille(l.famille)} · {l.unite}{l.dans_articles ? '' : ' · hors articles'}
+                            {l.au_dela_seuil && <> · <span className={styles.badgeSeuil}>au-delà du seuil</span></>}
+                          </span>
+                        </td>
+                        <td className="num">{q(l.transfere, l.unite)}</td>
+                        {total.aConsomme && <td className="num">{q(l.consomme, l.unite)}</td>}
+                        <td className="num" title={l.pieces ? `${l.pieces} ligne${l.pieces > 1 ? 's' : ''} de pièces` : undefined}>{q(l.pose, l.unite)}</td>
+                        <td className={`num ${l.ecart < 0 ? styles.negatif : ''}`}>{q(l.ecart, l.unite)}</td>
+                        <td className={`num ${styles.total}`}>{q(l.cumul_transfere, l.unite)}</td>
+                        <td className="num">{q(l.cumul_pose, l.unite)}</td>
+                        <td className={`num ${l.cumul_ecart < 0 ? styles.negatif : ''}`}>{q(l.cumul_ecart, l.unite)}</td>
+                        <td className="num">{l.ecart_pct == null ? '—' : `${l.ecart_pct.toLocaleString('fr-FR')} %`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className={`discret ${styles.note}`}>
+              Cumuls depuis le premier mouvement ou la première pose, jusqu&apos;à la fin de la période. Un article est signalé quand
+              l&apos;écart cumulé dépasse le seuil du marché (tout écart si rien n&apos;a été transféré). Unités de Dolibarr, sans conversion.
+            </p>
+          </section>
+        </TabsContent>
+
+        <TabsContent value="synchro" className="mt-2">
+          {reglages?.entrepot_dolibarr_id != null
+            ? <EnvoiAutomatique envois={envois} maintenant={chargeLe} admin={admin} apresSynchro={charger} />
+            : <p className="carte discret">Aucun entrepôt Dolibarr pour ce marché : à choisir dans l&apos;onglet Réglages (administrateur).</p>}
+        </TabsContent>
+
+        {admin && (
+          <TabsContent value="import" className="mt-2">
+            <ImportMouvements entrepotMarche={reglages?.entrepot_dolibarr_id ?? null} dernierImport={dernierImport} apresImport={charger} />
+          </TabsContent>
+        )}
+
+        <TabsContent value="reglages" className="mt-2">
+          {reglages && (
+            <section className="carte">
+              <div className={styles.reglages}>
+                <label>
+                  Entrepôt Dolibarr du chantier
+                  <input inputMode="numeric" value={saisie.entrepot} disabled={!admin || occupe} placeholder="aucun"
+                    onChange={(e) => setSaisie((s) => ({ ...s, entrepot: e.target.value.replace(/\D/g, '') }))} />
+                </label>
+                <label>
+                  Seuil d&apos;alerte (% du transféré cumulé)
+                  <input inputMode="decimal" value={saisie.seuil} disabled={!peutSeuil || occupe}
+                    onChange={(e) => setSaisie((s) => ({ ...s, seuil: e.target.value }))} />
+                </label>
+                {peutSeuil && <button onClick={enregistrerReglages} disabled={occupe}>Enregistrer</button>}
+              </div>
+              <p className="discret">
+                Entrepôt : numéro (rowid) de l&apos;entrepôt du chantier dans Dolibarr, lu par la synchronisation ; sans entrepôt, rien
+                n&apos;est rapproché.{!admin && ' Il est choisi par l\'administrateur.'} Seuil : un article est signalé quand son écart
+                cumulé dépasse ce pourcentage du transféré cumulé.
+              </p>
+            </section>
           )}
-          <label>
-            Famille
-            <select value={filtres.famille} onChange={(e) => maj({ famille: e.target.value })}>
-              <option value="">Toutes</option>
-              {familles.map((f) => <option key={f} value={f}>{libelleFamille(f)} ({f})</option>)}
-            </select>
-          </label>
-          <label>
-            Article
-            <input value={filtres.texte} placeholder="désignation" onChange={(e) => maj({ texte: e.target.value })} />
-          </label>
-          <label className="ligne">
-            <input type="checkbox" checked={filtres.piecesSeulement} onChange={(e) => maj({ piecesSeulement: e.target.checked })} />
-            Pièces seulement (sans carburant, outillage…)
-          </label>
-          <label className="ligne">
-            <input type="checkbox" checked={filtres.alertesSeulement} onChange={(e) => maj({ alertesSeulement: e.target.checked })} />
-            Au-delà du seuil seulement
-          </label>
-        </div>
-      </section>
-
-      <GrilleIndicateurs className="mb-4">
-        <CarteIndicateur libelle="Articles" valeur={total.articles} commentaire={titrePeriode} />
-        <CarteIndicateur libelle="Au-delà du seuil" valeur={total.alertes} ton={total.alertes ? 'negatif' : 'normal'}
-          commentaire={`écart cumulé > ${reglages?.seuil_ecart_fournitures_pct ?? '—'} % du transféré`} />
-        <CarteIndicateur libelle="Articles posés" valeur={total.posees} commentaire="sur la période" />
-        <CarteIndicateur libelle="Posés sans transfert" valeur={total.sansTransfert} ton={total.sansTransfert ? 'critique' : 'normal'}
-          commentaire="rien de transféré au cumul" />
-      </GrilleIndicateurs>
-
-      <section className="carte">
-        {chargement && <p className="discret">Chargement…</p>}
-        {!chargement && visibles.length === 0 && (
-          <p className="discret">
-            {reglages?.entrepot_dolibarr_id == null && lignes.length === 0
-              ? 'Aucun entrepôt Dolibarr pour ce marché et aucune pièce posée.'
-              : 'Aucun article avec ces filtres.'}
-          </p>
-        )}
-        {visibles.length > 0 && (
-          <div className={styles.defilement}>
-            <table className={styles.croise}>
-              <thead>
-                <tr>
-                  <th>Article</th>
-                  <th className="num">Transféré</th>
-                  {total.aConsomme && <th className="num">Consommé</th>}
-                  <th className="num">Posé</th>
-                  <th className="num">Écart</th>
-                  <th className={`num ${styles.total}`}>Transféré cumulé</th>
-                  <th className="num">Posé cumulé</th>
-                  <th className="num">Écart cumulé</th>
-                  <th className="num">%</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibles.map((l) => (
-                  <tr key={l.produit_id} className={l.au_dela_seuil ? styles.alerte : ''}>
-                    <td>
-                      {l.designation}
-                      <span className={styles.detail}>
-                        {libelleFamille(l.famille)} · {l.unite}{l.dans_articles ? '' : ' · hors articles'}
-                        {l.au_dela_seuil && <> · <span className={styles.badgeSeuil}>au-delà du seuil</span></>}
-                      </span>
-                    </td>
-                    <td className="num">{q(l.transfere, l.unite)}</td>
-                    {total.aConsomme && <td className="num">{q(l.consomme, l.unite)}</td>}
-                    <td className="num" title={l.pieces ? `${l.pieces} ligne${l.pieces > 1 ? 's' : ''} de pièces` : undefined}>{q(l.pose, l.unite)}</td>
-                    <td className={`num ${l.ecart < 0 ? styles.negatif : ''}`}>{q(l.ecart, l.unite)}</td>
-                    <td className={`num ${styles.total}`}>{q(l.cumul_transfere, l.unite)}</td>
-                    <td className="num">{q(l.cumul_pose, l.unite)}</td>
-                    <td className={`num ${l.cumul_ecart < 0 ? styles.negatif : ''}`}>{q(l.cumul_ecart, l.unite)}</td>
-                    <td className="num">{l.ecart_pct == null ? '—' : `${l.ecart_pct.toLocaleString('fr-FR')} %`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        <p className={`discret ${styles.note}`}>
-          Cumuls depuis le premier mouvement ou la première pose, jusqu&apos;à la fin de la période. Un article est signalé quand
-          l&apos;écart cumulé dépasse le seuil du marché (tout écart si rien n&apos;a été transféré). Unités de Dolibarr, sans conversion.
-        </p>
-      </section>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

@@ -97,15 +97,15 @@ comment on function public.regler_suivi_gps(uuid, time, time, smallint[], intege
   'Suivi GPS : heures et jours de travail, durée d''une pause et total par jour ; responsable du marché ou administrateur (journalisé)';
 
 -- Heure d'Oujda d'un instant. La tablette donne son décalage UTC (minutes, heure affichée à l'agent, réglée par le
--- réseau) : il fait foi. Sans lui, la base des fuseaux (Africa/Casablanca), qui peut retarder d'un changement d'heure
--- décidé par le Maroc (retour à +00 le 2026-09-20 selon les bases à jour).
+-- réseau) : il fait foi. Sans lui, la règle de l'heure du Maroc (private.heure_maroc, migration 20261014900000), qui ne
+-- dépend pas de la base des fuseaux du serveur.
 create function private.heure_locale(p_instant timestamptz, p_decalage_min integer default null)
 returns timestamp
 language sql
 stable
 set search_path = ''
 as $$
-  select case when p_decalage_min is null then p_instant at time zone 'Africa/Casablanca'
+  select case when p_decalage_min is null then private.heure_maroc(p_instant)
               else (p_instant at time zone 'UTC') + make_interval(mins => p_decalage_min) end
 $$;
 
@@ -116,7 +116,7 @@ language sql
 stable
 set search_path = ''
 as $$
-  select case when p_decalage_min is null then p_local at time zone 'Africa/Casablanca'
+  select case when p_decalage_min is null then private.instant_maroc(p_local)
               else (p_local - make_interval(mins => p_decalage_min)) at time zone 'UTC' end
 $$;
 
@@ -407,7 +407,7 @@ begin
   -- Points valides seulement : trois nombres, coordonnées possibles, horodatage ni futur ni vieux de plus de 7 jours,
   -- pris pendant les heures de travail du marché et hors d'une pause de l'agent.
   select coalesce(jsonb_agg(jsonb_build_object('t', y.t, 'lon', y.lon, 'lat', y.lat,
-                                               'jour', (to_timestamp(y.t) at time zone 'Africa/Casablanca')::date)), '[]'::jsonb),
+                                               'jour', private.jour_maroc(to_timestamp(y.t)))), '[]'::jsonb),
          max(y.t)
     into _valides, _dernier
     from (
@@ -805,7 +805,7 @@ begin
     _retires := _retires + private.nettoyer_trace(_t.marche_id, _t.profil_id, _t.jour);
   end loop;
   raise notice 'Suivi GPS : % point(s) hors des heures de travail retiré(s) des tracés existants', _retires;
-  raise notice 'Suivi GPS : heure d''Oujda selon la base : % (UTC : %)',
-    to_char(now() at time zone 'Africa/Casablanca', 'YYYY-MM-DD HH24:MI'), to_char(now() at time zone 'UTC', 'YYYY-MM-DD HH24:MI');
+  raise notice 'Suivi GPS : heure d''Oujda (private.heure_maroc) : % (UTC : %)',
+    to_char(private.heure_maroc(now()), 'YYYY-MM-DD HH24:MI'), to_char(now() at time zone 'UTC', 'YYYY-MM-DD HH24:MI');
 end
 $$;

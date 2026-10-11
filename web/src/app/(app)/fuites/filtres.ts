@@ -5,6 +5,7 @@
 // tableau de bord (liens vers la liste filtrée). Valeur inconnue ou invalide : ignorée, sans erreur.
 // Seuls des imports de types : scripts/verifier-filtres-fuites.mjs charge ce fichier directement avec Node.
 import type { StatutFuite, VFuite } from '@/lib/types';
+import { jourMaroc as jourDuMaroc } from '../../../lib/heure-maroc.ts';
 
 export interface FiltresListe {
   /** Statuts retenus, dans l'ordre du cycle de vie ; vide = tous les statuts. */
@@ -151,11 +152,10 @@ export function decrirePeriode(f: Pick<Brut, 'du' | 'au'>): string {
 }
 
 // Jour à l'heure du Maroc, comme le tableau de bord (src/lib/ui/tableau-de-bord.ts) et la carte.
-const FORMAT_JOUR = new Intl.DateTimeFormat('fr-CA', { timeZone: 'Africa/Casablanca', year: 'numeric', month: '2-digit', day: '2-digit' });
 export function jourMaroc(iso: string | null | undefined): string | null {
   if (!iso) return null;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? null : FORMAT_JOUR.format(d);
+  return Number.isNaN(d.getTime()) ? null : jourDuMaroc(d);
 }
 
 export type FuiteFiltrable = Pick<VFuite, 'statut' | 'secteur_id' | 'numero' | 'reference_srm' | 'adresse'>

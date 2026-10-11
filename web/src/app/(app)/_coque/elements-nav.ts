@@ -43,7 +43,7 @@ export interface NavGroup {
 }
 
 export type Onglet = "marche" | "bordereau" | "attachement" | "evenements" | "ouvriers" | "motifs" | "secteurs" | "reseau"
-  | "debits" | "natures" | "articles";
+  | "debits" | "natures" | "articles" | "tablettes";
 
 export const ONGLETS_PARAMETRES: [Onglet, string][] = [
   ["marche", "Marché"],
@@ -57,15 +57,20 @@ export const ONGLETS_PARAMETRES: [Onglet, string][] = [
   ["debits", "Débits de nuit"],
   ["natures", "Natures de réfection"],
   ["articles", "Articles (tous marchés)"],
+  ["tablettes", "Tablettes (tous marchés)"],
 ];
 
 type Peut = (type: TypeDonnee, action: Action) => boolean;
 
-/** Onglets des paramètres visibles selon les droits (Réseau et Articles : administrateur ou « paramètres / modifier »). */
+/**
+ * Onglets des paramètres visibles selon les droits (Réseau et Articles : administrateur ou « paramètres / modifier » ;
+ * Tablettes : administrateur seulement, la base refuse les codes aux autres comptes).
+ */
 export function ongletsParametresVisibles(peut: Peut, profil: Profil | null): [Onglet, string][] {
   const accesParametres = peut("parametres", "creer") || peut("parametres", "modifier");
   return ONGLETS_PARAMETRES.filter(([k]) =>
-    k === "evenements" ? peut("evenements", "lire")
+    k === "tablettes" ? !!profil?.est_admin
+      : k === "evenements" ? peut("evenements", "lire")
       : k === "ouvriers" ? peut("ouvriers", "creer") || peut("ouvriers", "modifier")
         : k === "bordereau" ? accesParametres || peut("quantites", "lire")
           : k === "reseau" || k === "articles" ? !!profil?.est_admin || peut("parametres", "modifier")

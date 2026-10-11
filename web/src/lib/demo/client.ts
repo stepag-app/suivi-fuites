@@ -358,6 +358,8 @@ export function creerClientDemo(): SupabaseClient {
         return { data: proches, error: null };
       }
       if (nom === "copier_marche") return { data: crypto.randomUUID(), error: null };
+      // Tablettes (lot TP) : code fictif, rien n'est gardé.
+      if (nom === "creer_code_tablette") return { data: String(10000000 + Math.floor(Math.random() * 90000000)), error: null };
       if (nom === "peut_envoyer_email") return { data: true, error: null };
       // Réseau fictif (zonage) : grille de rues autour du centre d'Oujda, un tiers non zoné.
       if (nom === "reseau_geojson") {

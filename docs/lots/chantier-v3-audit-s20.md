@@ -20,8 +20,10 @@ PR de la session : [#106](https://github.com/stepag-app/suivi-fuites/pull/106) (
 [#112](https://github.com/stepag-app/suivi-fuites/pull/112) (libellé affiché aux tablettes, mode d'emploi de la publication
 pour une session Claude), puis cette note. Toutes fusionnées et déployées (§ 3). La PR
 [#107](https://github.com/stepag-app/suivi-fuites/pull/107) (autre session, docs : keystore gardé, première version
-`1.0.0-beta.1`) a été fusionnée pendant la session ; la PR [#110](https://github.com/stepag-app/suivi-fuites/pull/110)
-(autre session, filtre des notifications par marché) est restée ouverte, hors de cet audit.
+`1.0.0-beta.1`) a été fusionnée pendant la session ; les PR [#110](https://github.com/stepag-app/suivi-fuites/pull/110)
+(filtre des notifications par marché) et [#113](https://github.com/stepag-app/suivi-fuites/pull/113) (œil du mot de passe à
+la connexion), d'une autre session, étaient ouvertes à la fin de l'audit, hors de son périmètre : à fusionner avant de
+compiler `1.0.0-beta.1` si elles doivent en faire partie.
 
 **Tâche 0 (décision d'Issam du 2026-10-11)** : `.github/workflows/apk.yml` ne compile ni ne publie plus sur un push de
 `main` (types et essais seulement) ; sur une PR, Gradle ne tourne que si un fichier natif change (`app.json`,

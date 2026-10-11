@@ -15,7 +15,7 @@ aucun secret dans l'application, uniquement l'adresse du projet et la clé « an
 | Saisir une réfection | faite (nature, longueur et largeur reprises de la fouille si vides) ou non faite + motif ; date et heure au calendrier, photos de réfection ; gardes-fous (P9) : réfection > 30 m², total des réfections de la fuite inférieur au total de ses fouilles ; récapitulatif ; **modifier** une réfection pas encore validée. Bouton selon le droit **« refections / créer »** (rôle Réfection, R1) |
 | À valider (V1) | bouton « À valider (n) » de la liste pour qui peut valider (responsable, administrateur) : détections, réparations, réfections du marché pas encore validées (`v_a_valider`), toutes cochées d'office ; « **Valider (n)** » (`valider_etapes`) ; « Aucune photo » signalé, avec avertissement avant de valider ; un toucher ouvre la fiche (pour ajouter une photo) ; avec réseau seulement |
 | Notifications (N1, N2) | cloche de la barre de la liste avec pastille (non lues, « 9+ ») ; écran des 30 dernières (non lue = point bleu), tout marqué lu à l'ouverture et rideau vidé ; texte dans la langue de la tablette ; **push Android** (expo-notifications, Firebase) : rideau même appli fermée, toucher = fiche de la fuite (dans son marché), notification marquée lue et retirée du rideau |
-| Mise à jour (X2) | « Nouvelle version x disponible » en tête de la liste quand la CI a publié une APK plus récente (contrôle à l'ouverture et au retour sur l'appli, au plus toutes les 6 h, avec réseau) : téléchargement (progression) puis installateur d'Android ; données et envois en attente gardés |
+| Mise à jour (X2) | « Nouvelle version x disponible » en tête de la liste quand une APK plus récente a été publiée (déclenchement manuel du workflow, § Compilation) (contrôle à l'ouverture et au retour sur l'appli, au plus toutes les 6 h, avec réseau) : téléchargement (progression) puis installateur d'Android ; données et envois en attente gardés |
 | Balayage | bouton « Balayage » de la liste (droit « balayage / lire ») : carte du réseau du panneau web dans une **WebView** (`react-native-webview` 13.16.1), ouverte avec la session de la tablette par `/session#access_token=…&refresh_token=…` (jetons dans le fragment, jamais en paramètre ni journalisés), directement en **mode balayage** (toucher, lasso, prolonger, enregistrer ; file d'attente hors ligne du panneau) ; position GPS autorisée ; seuls les liens du panneau restent dans la WebView (itinéraire Google Maps : application de cartes) ; retour Android : historique de la WebView puis liste ; avant d'ouvrir la carte, la tablette vérifie que le panneau répond (simple GET de `/session`, 15 s au plus ; pas de HEAD, dont la réponse arrive après une dizaine de secondes sur la tablette) ; sans réseau : « La carte du réseau a besoin de la connexion » et « Réessayer » ; la tablette renouvelle elle-même la session 5 min avant l'échéance et recharge la carte (environ une fois par heure). Adresse du panneau : `EXPO_PUBLIC_WEB_URL` (défaut `https://fuites.stepag.ma`) |
 | Suivi GPS (X6) | bouton « Suivi GPS » de la liste (et bandeau « Le suivi de position n'est pas actif » quand il devrait tourner, « En pause jusqu'à … » pendant une pause) : **tâche de fond** d'`expo-location` (`src/suivi-gps.ts`, service de premier plan Android avec **notification permanente**, tâche définie par `index.ts` pour tourner aussi quand Android réveille l'appli sans écran). **Compromis du 2026-10-10** (`docs/suivi-gps-information-agents.md`) : le suivi ne tourne que **pendant les heures de travail du marché** (`marches.suivi_gps_*`, 08:00 à 18:00 du lundi au samedi par défaut, heure de la tablette) ; à la fin des heures la tâche s'arrête d'elle-même (plus de notification), positions jetées ; Android ne permet de relancer un service de localisation qu'appli ouverte : il repart à l'ouverture de l'appli, et un **rappel** (notification locale, `expo-notifications`) le propose au début des heures. **« Pause »** remplace « Désactiver le suivi » : GPS au repos et rien de gardé, reprise automatique au bout de 60 min (au plus 90 min par jour, réglages du marché), reprise immédiate à « Reprendre le suivi », à l'enregistrement d'une nouvelle fuite ou quand un tronçon est coché sur la carte Balayage (message `activite-balayage` de la WebView) ; reprise automatique appli fermée : seul le réglage du GPS change (Android interdit de toucher à la notification hors de l'écran, elle est remise à l'ouverture suivante). Pauses envoyées avant les points (`enregistrer_pause_gps`, sans lieu). État signalé à la base (`signaler_suivi_gps` : actif, pause, hors heures, autorisation refusée, « Quitter » ; décalage UTC de l'heure de la tablette ; au plus toutes les 10 min sans changement), qui alerte le responsable d'un suivi coupé. Notification : « Suivi GPS des heures de travail (08:00-18:00) », motif (preuve du linéaire balayé pour la SRM), ou « Pause jusqu'à … ». Mesure au plus toutes les 10 s, même immobile (signe de vie du suivi), livrées par lots d'une minute écran éteint ; filtre de l'appli (`src/suivi-gps-regles.ts`) : **un point tous les 15 m, ou toutes les 30 s si l'agent se déplace** (plus de 8 m et plus que la précision annoncée), précision supérieure à 50 m et sauts de plus de 200 km/h écartés ; points `[t, lon, lat]` gardés **sur la tablette** (file de 20 000 points au plus, 7 jours) puis envoyés **par paquets de 500** (`ajouter_points_trace`), au plus toutes les 2 min en arrière-plan, aussitôt au retour sur l'appli et à « Quitter » ; coupure : tout reste, repart sans doublon (la base ignore un point déjà reçu) ; refus définitif de la base (plus affecté, marché désactivé) : paquet abandonné ; les points d'un agent ne partent jamais sous un autre compte. **Écran du suivi** : état, motif, heures, qui voit le tracé, règles de la pause et pause restante, « Pause » / « Reprendre le suivi », « Activer le suivi » (position, puis « Toujours autoriser » dans les réglages d'Android 11 et plus), ouverture des réglages de la tablette et de la batterie, points en attente, dernier envoi, dernière position. Permissions Android posées par le plugin `expo-location` : `ACCESS_BACKGROUND_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_LOCATION` (vérifié par `expo prebuild`). Libellés dans `src/traductions.ts` (sections « Suivi GPS »), lignes T01 à T34 de l'artefact de relecture |
 | Mesures de nuit (D8) | bouton « Mesures de nuit » de la liste, seulement avec le droit **« mesures_debit / créer »** sur le marché (personne sur le terrain par défaut : la matrice des droits l'ouvre, rubrique « Débits de nuit » ; le responsable l'a) ; lecture des campagnes avec « mesures_debit / lire » (sinon message). `src/mesures-nuit.tsx`, données et règles `src/mesures-donnees.ts`, contrat `docs/lots/chantier-v3-debits.md` § 4 : **campagne** en cours (créée au bureau ; finie depuis 3 jours au plus pour une saisie en retard), **nuit** (jour des relevés de 0 h à 6 h, jusqu'à aujourd'hui), **point de mesure** (actifs de la zone de la campagne, état : non mesuré, à envoyer, à valider, validée), puis **minimum de la nuit** ou **25 relevés au quart d'heure** selon le mode de la campagne, sinon du marché (import : minimum), observation, **photo de l'afficheur** facultative (compartiment `debits/<marché>/<campagne>/`). Hors ligne par la file d'attente (envoi `mesure`, identifiant créé sur la tablette) ; saisie du terrain « à valider », du responsable validée d'emblée (la base en décide) ; correction avant validation (auteur, « modifier ») ; une mesure encore sur la tablette se corrige sur place (une seule création) ; copie des campagnes, points et mesures gardée par marché |
@@ -161,18 +161,30 @@ de proposition de mise à jour dans cette appli ; sa session est séparée de ce
 
 ## Compilation de l'APK (GitHub Actions)
 
-Workflow `.github/workflows/apk.yml` : types, essais sans pile, `expo prebuild`, `gradlew assembleRelease`, APK en
-artefact (14 jours). Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour
-Vercel) ; sans lui l'APK se compile mais ne peut pas se connecter.
+Workflow `.github/workflows/apk.yml`. **Depuis le 2026-10-11 (décision d'Issam), plus de nouvelle version publiée aux
+tablettes à chaque fusion** : les compilations se font à des jalons, à la main.
 
-**Numéro de version** (`app.config.js`) : `versionCode` = numéro du run de la CI (`APK_VERSION_CODE`), nom `1.0.<run>` ;
-toujours croissant, une APK plus récente s'installe par-dessus la précédente. Si le workflow est renommé, son numéro de
-run repart à 1 : ajouter alors un décalage dans `APK_VERSION_CODE`.
+| Déclenchement | Ce qui tourne |
+|---|---|
+| Pull request qui touche `mobile/` | types (`tsc`) et essais sans pile, toujours ; **compilation Gradle** (APK en artefact `suivi-fuites-apk`, 14 jours) seulement si la PR change un fichier natif (`app.json`, `app.config.js`, `plugins/`, `package.json`, `package-lock.json`) ou le workflow lui-même ; jamais de publication |
+| Push sur `main` | types et essais seulement (ni compilation ni publication) |
+| **Run workflow** (Actions › Application Android (APK), branche `main`) | compilation signée avec la clé de production, puis **publication pour les tablettes** si la case « publier » est cochée (par défaut) ; entrée obligatoire : le **nom de la version** (`1.0.0`, `0.9.1`, `1.0.0-rc.1`…), affiché aux tablettes dans « Nouvelle version … disponible ». Case décochée, ou lancé depuis une autre branche : APK en artefact seulement |
 
-**Publication pour les tablettes** (X2) : sur `main`, une APK signée avec la clé de production est déposée dans le
+Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour Vercel) ; sans lui l'APK
+se compile mais ne peut pas se connecter.
+
+**Numéro de version** (`app.config.js`) : `versionCode` = numéro du run du workflow (`APK_VERSION_CODE`), toujours
+croissant quel que soit le déclenchement : c'est lui que l'appli compare à la version publiée, une APK plus récente
+s'installe par-dessus la précédente. Le **nom** de version est celui saisi au déclenchement manuel ; une compilation
+d'essai (PR) porte `1.0.<run>`. Si le workflow est renommé, son numéro de run repart à 1 : ajouter alors un décalage dans
+`APK_VERSION_CODE`.
+
+**Publication pour les tablettes** (X2) : au déclenchement manuel depuis `main`, l'APK signée est déposée dans le
 compartiment privé R2 (`apk/suivi-fuites-<numéro>.apk`, `apk/derniere.json` ; les 3 dernières gardées), avec les
 secrets `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` (ceux des photos). La fonction serveur
-`version-apk` (comptes connectés et actifs) renvoie la dernière version et une URL signée d'une heure.
+`version-apk` (comptes connectés et actifs) renvoie la dernière version et une URL signée d'une heure. Chaque version
+publiée oblige les agents à mettre à jour leur tablette : regrouper les changements de `mobile/` et publier avec l'accord
+d'Issam.
 
 **Notifications push** (N2) : secret **`GOOGLE_SERVICES_JSON`** (contenu du fichier `google-services.json` de
 l'appli Android `ma.stepag.suivifuites` dans Firebase), écrit par la CI dans `mobile/` avant `expo prebuild`, jamais
@@ -210,8 +222,9 @@ secrets, avec la clé de test d'Expo (une APK de test ne s'installe pas par-dess
 
 ## Installation sur la tablette
 
-Télécharger l'artefact `suivi-fuites-apk` (onglet Actions du dépôt), le copier sur la tablette, autoriser
-l'installation depuis cette source.
+Télécharger l'artefact `suivi-fuites-apk` (onglet Actions du dépôt : exécution « Run workflow » ou PR qui a compilé),
+le copier sur la tablette, autoriser l'installation depuis cette source. Ensuite, les tablettes se mettent à jour par
+la fenêtre « Mise à jour disponible » à chaque version publiée.
 
 ### Suivi GPS : à faire sur chaque tablette Samsung
 

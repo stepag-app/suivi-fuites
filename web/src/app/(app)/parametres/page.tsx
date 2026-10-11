@@ -25,6 +25,7 @@ import { OngletBordereau } from "./OngletBordereau";
 import { OngletEvenements } from "./OngletEvenements";
 import { OngletMarche } from "./OngletMarche";
 import { ParametresSaisie } from "./ParametresSaisie";
+import { ReglagesSuiviGps } from "./ReglagesSuiviGps";
 import { OngletNatures } from "./OngletNatures";
 import { OngletSecteurs } from "./OngletSecteurs";
 
@@ -46,7 +47,7 @@ const ICONES: Record<Onglet, LucideIcon> = {
   motifs: ListChecks, secteurs: Map, reseau: Route, debits: Gauge, natures: Layers3, articles: Boxes,
 };
 const DESCRIPTIONS: Record<Onglet, string> = {
-  marche: "Fiche du marché : titulaire, maître d'ouvrage, logos, délais, OS, libellés et alertes du client, réglages de la saisie terrain.",
+  marche: "Fiche du marché : titulaire, maître d'ouvrage, logos, délais, OS, libellés et alertes du client, réglages de la saisie terrain, heures du suivi GPS.",
   bordereau: "Articles du bordereau des prix, avenants et versions, règles de proposition.",
   attachement: "Règles des lots d'attachement : périodicité, mentions obligatoires, verrouillage.",
   evenements: "Journal des événements du marché, pièces jointes, catégories, export.",
@@ -164,6 +165,8 @@ function Parametres() {
           <div className="ancien">
             {onglet === "marche" && <OngletMarche marcheId={marche.id} modifiable={peut("parametres", "modifier")} />}
             {onglet === "marche" && <ParametresSaisie key={marche.id} marcheId={marche.id} peutCreer={peut("parametres", "creer")} peutModifier={peut("parametres", "modifier")} />}
+            {/* Suivi GPS : responsable du marché (valide les fuites) et administrateur ; la base contrôle le rôle. */}
+            {onglet === "marche" && <ReglagesSuiviGps key={`gps-${marche.id}`} marcheId={marche.id} modifiable={!!profil?.est_admin || peut("fuites", "valider")} />}
             {onglet === "bordereau" && <OngletBordereau marcheId={marche.id} peutCreer={peut("parametres", "creer")} peutModifier={peut("parametres", "modifier")} />}
             {onglet === "attachement" && <OngletAttachement marcheId={marche.id} modifiable={peut("parametres", "modifier")} />}
             {onglet === "evenements" && <OngletEvenements marcheId={marche.id} />}

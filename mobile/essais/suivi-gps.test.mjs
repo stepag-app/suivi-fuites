@@ -1,13 +1,17 @@
-// Essai SANS pile du suivi GPS (S11, X6) : règles du filtre (15 m / 30 s en mouvement), file d'attente hors ligne,
-// envoi par lots sans perte ni doublon, tâche de fond (src/suivi-gps.ts) avec expo-location et la base simulés.
+// Essai SANS pile du suivi GPS (S11, X6 ; compromis du 2026-10-10) : règles du filtre (15 m / 30 s en mouvement), heures de
+// travail et pauses, file d'attente hors ligne, envoi par lots sans perte ni doublon, tâche de fond (src/suivi-gps.ts) avec
+// expo-location, expo-notifications et la base simulés, sur une horloge simulée.
 //   node --import ./essais/substituts.mjs essais/suivi-gps.test.mjs
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
-  ajouterPoint, borner, distanceM, envoyerFile, FILE_MAX, FILE_VIDE, LOT_MAX, nbPoints, pointRetenu, retirerAcquits,
+  ajouterPoint, borner, dansHeures, distanceM, envoyerFile, FILE_MAX, FILE_VIDE, fileAvecPause, finPrevuePause, LOT_MAX,
+  nbPoints, pauseRestanteMs, pendantUnePause, pointRetenu, prochainDebut, REGLAGES_DEFAUT, reglagesSuivi, retirerAcquits,
+  retirerPauses,
 } from '../src/suivi-gps-regles.ts';
-import { gps } from './mocks/expo.js';
+import { gps, notifs } from './mocks/expo.js';
 import { simulation as sim, supabase } from './mocks/supabase-simule.js';
 import {
-  assurerSuivi, autorisations, envoyerPoints, etatSuivi, TACHE_GPS, terminerSuivi, voulerSuivi,
+  assurerSuivi, envoyerPoints, etatSuivi, mettreEnPause, reprendreSuivi, TACHE_GPS, terminerSuivi,
 } from '../src/suivi-gps.ts';
 
 let ok = 0, ko = 0;
@@ -70,84 +74,217 @@ verifier(nbPoints(pendant) === 1 && pendant.lots[0].pts[0][0] === T0 + 100, 'le 
 r = await envoyerFile({ dernier: null, lots: [gen('u1', 'm9', 4)] }, 'u1', async () => 'refus');
 verifier(r.envoyes === 0 && r.acquits.length === 1 && !r.interrompu, 'refus définitif de la base : paquet abandonné, pas compté comme envoyé');
 
-console.log('4. Tâche de fond (src/suivi-gps.ts)');
+console.log('4. Heures de travail et pauses (règles)');
+// Heure de la tablette : mardi 13 octobre 2026 (jour de travail), samedi 17, dimanche 18.
+const le = (jour, h, min = 0, s = 0) => new Date(2026, 9, jour, h, min, s).getTime();
+const R = REGLAGES_DEFAUT;
+verifier(R.debut === 480 && R.fin === 1080 && R.jours.join() === '1,2,3,4,5,6' && R.pauseMin === 60 && R.pauseJourMin === 90,
+  'par défaut : 08:00 à 18:00, du lundi au samedi, pause de 60 min, 90 min par jour');
+const lu = reglagesSuivi({ suivi_gps_debut: '07:30:00', suivi_gps_fin: '16:00:00', suivi_gps_jours: [5, 1, 1], suivi_gps_pause_min: 45, suivi_gps_pause_jour_min: 60 });
+verifier(lu.debut === 450 && lu.fin === 960 && lu.jours.join() === '1,5' && lu.pauseMin === 45 && lu.pauseJourMin === 60, 'réglages du marché lus (heures, jours triés sans doublon)');
+verifier(reglagesSuivi({ suivi_gps_debut: '18:00:00', suivi_gps_fin: '08:00:00' }).debut === 480 && reglagesSuivi(null).fin === 1080,
+  'fin avant le début, ou marché sans réglages (base pas à jour) : valeurs par défaut');
+verifier(reglagesSuivi({ suivi_gps_debut: '00:00:00', suivi_gps_fin: '24:00:00' }).fin === 1440, 'fin à 24:00 : toute la journée');
+verifier(dansHeures(R, le(13, 8)) && dansHeures(R, le(13, 17, 59)), 'mardi 08:00 et 17:59 : dans les heures');
+verifier(!dansHeures(R, le(13, 7, 59)) && !dansHeures(R, le(13, 18)), 'mardi 07:59 et 18:00 : hors des heures');
+verifier(!dansHeures(R, le(18, 10)), 'dimanche : hors des jours de travail');
+verifier(prochainDebut(R, le(17, 18, 30)) === le(19, 8), 'samedi soir : prochain début lundi 08:00');
+verifier(prochainDebut(R, le(13, 7)) === le(13, 8), 'mardi 07:00 : début le jour même');
+const pauses = [{ debut: le(13, 12), finPrevue: le(13, 13), fin: le(13, 12, 25), motif: 'fuite' }];
+verifier(finPrevuePause(R, [], le(13, 10)) === le(13, 11), 'première pause : reprise 60 min plus tard');
+verifier(pauseRestanteMs(R, pauses, le(13, 14)) === 65 * 60000 && finPrevuePause(R, pauses, le(13, 14)) === le(13, 15),
+  'après 25 min de pause : 65 min restent, la suivante reste bornée à 60');
+const prises = [...pauses, { debut: le(13, 14), finPrevue: le(13, 15), fin: le(13, 15), motif: 'automatique' }];
+verifier(finPrevuePause(R, prises, le(13, 16)) === le(13, 16, 5), 'après 85 min : il ne reste que 5 min');
+verifier(pauseRestanteMs(R, prises, le(14, 10)) === 90 * 60000, 'le lendemain : 90 min de nouveau');
+verifier(pendantUnePause(pauses, le(13, 12, 10)) && !pendantUnePause(pauses, le(13, 12, 30)), 'une mesure pendant la pause, pas après sa fin réelle');
+let fp = fileAvecPause(FILE_VIDE, { u: 'u1', m: 'm1', debut: 1, fin: null, motif: null });
+fp = fileAvecPause(fp, { u: 'u1', m: 'm1', debut: 1, fin: 5, motif: 'agent' });
+verifier(fp.pauses.length === 1 && fp.pauses[0].fin === 5, 'file des pauses : la fin remplace le début déjà en attente');
+verifier(retirerPauses(fp, [{ u: 'u1', m: 'm1', debut: 1, fin: null, motif: null }]).pauses.length === 1,
+  'pause changée pendant l\'envoi (fin arrivée) : gardée pour le prochain envoi');
+verifier(ajouterPoint(fp, 'u1', 'm1', [T0, 0, 0]).pauses.length === 1, 'un point ajouté ne fait pas perdre les pauses en attente');
+
+console.log('5. Tâche de fond (src/suivi-gps.ts), sur une horloge simulée');
+let horloge = le(13, 10);
+Date.now = () => horloge;
 sim.remettre();
 sim.utilisateur = 'agent-gps';
-await sim.connecter();
+await sim.connecter(undefined, 10 * 86400);
 const uid = (await supabase.auth.getSession()).data.session.user.id;
 const recu = [];
-let reponse = { error: null };
-supabase.rpc = async (nom, args) => { recu.push({ nom, ...args }); return reponse; };
+const reponses = {};
+let reglagesServeur = { suivi_gps_debut: '08:00:00', suivi_gps_fin: '18:00:00', suivi_gps_jours: [1, 2, 3, 4, 5, 6], suivi_gps_pause_min: 60, suivi_gps_pause_jour_min: 90 };
+supabase.rpc = async (nom, args) => {
+  recu.push({ nom, ...args });
+  if (nom === 'signaler_suivi_gps') return reponses.signal ?? { data: reglagesServeur, error: null };
+  return reponses[nom] ?? { error: null };
+};
+const de = (nom) => recu.filter((x) => x.nom === nom);
+const dernier = (nom) => de(nom).at(-1);
 const tache = gps.taches.get(TACHE_GPS);
 verifier(typeof tache === 'function', 'la tâche de fond est définie à l\'import du module');
-const loc = (dt, dLat, precision = 5) => ({ coords: { longitude: -1.91, latitude: 34.68 + dLat, accuracy: precision }, timestamp: (T0 + dt) * 1000 });
-await tache({ data: { locations: [loc(0, 0)] }, error: null });
+const attendre = () => new Promise((fin) => setTimeout(fin, 60));
+const loc = (ms, dLat, precision = 5) => ({ coords: { longitude: -1.91, latitude: 34.68 + dLat, accuracy: precision }, timestamp: ms });
+const livrer = async (...l) => { await tache({ data: { locations: l }, error: null }); await attendre(); };
+
+await livrer(loc(horloge, 0));
 verifier((await etatSuivi()).enAttente === 0, 'sans suivi démarré (aucun contexte), la position n\'est pas gardée');
 
 gps.premierPlan = false; gps.arrierePlan = false;
-verifier(!(await assurerSuivi(uid, 'm1')) && !gps.demarree, 'autorisations refusées : le suivi ne démarre pas');
+verifier(await assurerSuivi(uid, 'm1') === 'autorisation' && !gps.demarree, 'autorisations refusées : le suivi ne démarre pas');
+verifier(dernier('signaler_suivi_gps')?.p_etat === 'autorisation', 'la base apprend que l\'autorisation manque');
 gps.premierPlan = true; gps.arrierePlan = false;
-verifier(!(await assurerSuivi(uid, 'm1')) && !gps.demarree, 'position « seulement pendant l\'utilisation » : pas de suivi en arrière-plan');
+verifier(await assurerSuivi(uid, 'm1') === 'autorisation' && !gps.demarree, 'position « seulement pendant l\'utilisation » : pas de suivi en arrière-plan');
 gps.arrierePlan = true;
-verifier(await assurerSuivi(uid, 'm1') && gps.demarree, 'toutes les autorisations : la tâche démarre');
-verifier(gps.options.foregroundService?.notificationTitle && gps.options.distanceInterval === 5 && gps.options.timeInterval === 10000,
-  'notification permanente (service de premier plan), mesure tous les 5 m / 10 s au plus');
-await voulerSuivi(false);
-gps.demarree = false;
-verifier(!(await assurerSuivi(uid, 'm1')) && !gps.demarree, 'suivi désactivé par l\'agent : la tâche ne repart pas');
-await voulerSuivi(true);
-verifier(await assurerSuivi(uid, 'm1') && gps.demarree, 'réactivé : la tâche repart');
+await AsyncStorage.setItem('suivi-fuites:gps-actif', 'non');
+verifier(await assurerSuivi(uid, 'm1') === 'actif' && gps.demarree, 'heures de travail, autorisations : la tâche démarre (même « désactivée » avant le compromis)');
+verifier(await AsyncStorage.getItem('suivi-fuites:gps-actif') === null, 'l\'ancien choix « Désactiver » est effacé');
+verifier(gps.options.accuracy === 4 && gps.options.timeInterval === 10000 && gps.options.distanceInterval === 0 && gps.options.deferredUpdatesInterval === 60000,
+  'GPS précis : une mesure toutes les 10 s, même immobile, livrées par minute écran éteint');
+verifier(/08:00-18:00/.test(gps.options.foregroundService?.notificationTitle ?? '') && !/actif/.test(gps.options.foregroundService.notificationTitle)
+  && /SRM/.test(gps.options.foregroundService.notificationBody), 'notification : heures de travail et motif (preuve pour la SRM)', gps.options.foregroundService);
+const signal = dernier('signaler_suivi_gps');
+verifier(signal?.p_etat === 'actif' && signal.p_marche === 'm1' && signal.p_decalage_min === -new Date(horloge).getTimezoneOffset(),
+  'état « actif » signalé, avec le décalage UTC de l\'heure de la tablette');
 
-const attendre = () => new Promise((fin) => setTimeout(fin, 60));
 // Premier lot reçu : l'envoi part aussitôt (rien n'a encore été tenté), la coupure du réseau le fait échouer.
 sim.reseau = false;
-reponse = { error: { code: '', message: 'TypeError: Network request failed' } };
-await tache({ data: { locations: [loc(0, 0), loc(10, 0.00003), loc(20, 0.00018), loc(30, 0.00019)] }, error: null });
-await attendre();
+reponses.ajouter_points_trace = { error: { code: '', message: 'TypeError: Network request failed' } };
+const t10 = horloge;
+await livrer(loc(t10, 0), loc(t10 + 10000, 0.00003), loc(t10 + 20000, 0.00018), loc(t10 + 30000, 0.00019));
 let e = await etatSuivi();
 verifier(e.enAttente === 2 && e.dernierePosition != null, 'quatre mesures, deux points gardés (le premier et celui à 20 m)', e.enAttente);
-verifier(recu.length === 1 && recu[0].p_points.length === 2, 'premier envoi tenté aussitôt, refusé par la coupure : les deux points restent');
-await tache({ data: { locations: [loc(60, 0.0004)] }, error: null });
-await attendre();
-verifier(recu.length === 1 && (await etatSuivi()).enAttente === 3, 'un seul essai toutes les 2 minutes en arrière-plan (le point reste en file)');
+verifier(de('ajouter_points_trace').length === 1 && de('ajouter_points_trace')[0].p_points.length === 2, 'premier envoi tenté aussitôt, refusé par la coupure : les deux points restent');
+const signaux = de('signaler_suivi_gps').length;
+verifier(de('signaler_suivi_gps').filter((x) => x.p_etat === 'autorisation').length === 1, 'même état deux fois en moins de 10 min : dit une seule fois à la base');
+horloge = t10 + 60000;
+await livrer(loc(horloge, 0.0004));
+verifier(de('ajouter_points_trace').length === 1 && (await etatSuivi()).enAttente === 3, 'un seul essai toutes les 2 minutes en arrière-plan (le point reste en file)');
 let n = await envoyerPoints(true);
-verifier(n === 0 && recu.length === 2 && (await etatSuivi()).enAttente === 3, 'envoi forcé pendant la coupure : les trois points restent sur la tablette');
+verifier(n === 0 && de('ajouter_points_trace').length === 2 && (await etatSuivi()).enAttente === 3, 'envoi forcé pendant la coupure : les trois points restent sur la tablette');
 sim.reseau = true;
-reponse = { error: null };
+delete reponses.ajouter_points_trace;
 n = await envoyerPoints(true);
-const dernierAppel = recu[recu.length - 1];
-verifier(n === 3 && (await etatSuivi()).enAttente === 0 && dernierAppel.nom === 'ajouter_points_trace' && dernierAppel.p_marche === 'm1'
-  && dernierAppel.p_points.length === 3 && dernierAppel.p_points[0].length === 3, 'réseau revenu : un lot de 3 points [t, lon, lat] envoyé, file vide');
+const lot = dernier('ajouter_points_trace');
+verifier(n === 3 && (await etatSuivi()).enAttente === 0 && lot.p_marche === 'm1' && lot.p_points.length === 3 && lot.p_points[0].length === 3,
+  'réseau revenu : un lot de 3 points [t, lon, lat] envoyé, file vide');
 verifier((await etatSuivi()).dernierEnvoi != null, 'dernier envoi noté');
+horloge = t10 + 11 * 60000;
+await livrer(loc(horloge, 0.0004));
+verifier(dernier('signaler_suivi_gps').p_etat === 'actif' && de('signaler_suivi_gps').length === signaux + 1,
+  'immobile : l\'état est redit au bout de 10 min (signe de vie du suivi)', de('signaler_suivi_gps').length - signaux);
 
-await tache({ data: { locations: [loc(90, 0.0007)] }, error: null });
+console.log('6. Pause, reprise immédiate et automatique');
+horloge = le(13, 10, 30);
+let p = await mettreEnPause();
+verifier(p.ok && p.finPrevue === le(13, 11, 30), 'pause : reprise prévue 60 min plus tard');
+verifier(gps.options.accuracy === 1 && gps.options.timeInterval === 60000, 'GPS au repos pendant la pause (un réveil par minute)');
+verifier(/11:30/.test(gps.options.foregroundService?.notificationTitle ?? '') && /Aucune position/.test(gps.options.foregroundService.notificationBody),
+  'notification : « Pause jusqu\'à 11:30 », aucune position enregistrée');
 await attendre();
-reponse = { error: { code: '42501', message: 'Aucune affectation active sur ce marché' } };
-n = await envoyerPoints(true);
-verifier(n === 0 && (await etatSuivi()).enAttente === 0, 'refus définitif de la base (plus affecté) : points abandonnés');
-await tache({ data: { locations: [loc(120, 0.001)] }, error: null });
+verifier(dernier('signaler_suivi_gps').p_etat === 'pause', 'état « pause » signalé');
+const debutPause = dernier('enregistrer_pause_gps');
+verifier(debutPause && debutPause.p_debut === new Date(le(13, 10, 30)).toISOString() && debutPause.p_fin === null, 'début de la pause envoyé (sans lieu)');
+horloge = le(13, 10, 40);
+await livrer(loc(le(13, 10, 39), 0.002), loc(horloge, 0.003));
+verifier((await etatSuivi()).enAttente === 0, 'positions reçues pendant la pause : jetées, rien gardé');
+e = await etatSuivi();
+verifier(e.mode === 'pause' && e.pause?.finPrevue === le(13, 11, 30), 'écran : en pause jusqu\'à 11:30');
+horloge = le(13, 10, 50);
+verifier(await reprendreSuivi('fuite'), 'fuite signalée : la pause prend fin');
 await attendre();
-reponse = { error: { code: 'PGRST202', message: 'Could not find the function' } };
-n = await envoyerPoints(true);
-verifier(n === 0 && (await etatSuivi()).enAttente === 1, 'fonction pas encore déployée : points gardés sur la tablette');
+const finPause = dernier('enregistrer_pause_gps');
+verifier(finPause.p_fin === new Date(le(13, 10, 50)).toISOString() && finPause.p_motif === 'fuite', 'fin de la pause envoyée (10:50, fuite)');
+verifier(gps.options.accuracy === 4 && /08:00-18:00/.test(gps.options.foregroundService?.notificationTitle ?? ''), 'GPS précis et notification du suivi rétablis');
+verifier(!(await reprendreSuivi('balayage')), 'sans pause en cours : rien à reprendre');
+await livrer(loc(le(13, 10, 51), 0.004));
+verifier((await etatSuivi()).enAttente === 1, 'après la pause, les points comptent de nouveau');
 
-reponse = { error: null };
+// Deuxième pause (20 min déjà prises) : reprise automatique, appli fermée.
+horloge = le(13, 11);
+p = await mettreEnPause();
+verifier(p.ok && p.finPrevue === le(13, 12), 'deuxième pause : 60 min (70 restent)');
+await attendre();
+horloge = le(13, 12, 1);
+await livrer(loc(le(13, 11, 59), 0.005), loc(le(13, 12, 0, 30), 0.006));
+verifier(!gps.options.foregroundService && gps.options.accuracy === 4,
+  'fin prévue passée, appli fermée : GPS précis de nouveau, sans toucher à la notification (Android ne le permet pas)');
+const auto = dernier('enregistrer_pause_gps');
+verifier(auto.p_fin === new Date(le(13, 12)).toISOString() && auto.p_motif === 'automatique', 'pause close à 12:00 (automatique)');
+await envoyerPoints(true);
+const envoyes = de('ajouter_points_trace').flatMap((x) => x.p_points.map((pt) => pt[0] * 1000));
+verifier(!envoyes.some((t) => t >= le(13, 11) && t < le(13, 12)) && envoyes.includes(le(13, 12, 0, 30)) && (await etatSuivi()).enAttente === 0,
+  'aucun point pris pendant la pause, celui d\'après envoyé');
+verifier(await assurerSuivi(uid, 'm1') === 'actif' && /08:00-18:00/.test(gps.options.foregroundService?.notificationTitle ?? ''),
+  'appli rouverte : la notification du suivi revient');
+// Ordre d'envoi : une pause en attente passe avant les points.
+horloge = le(13, 12, 30);
+p = await mettreEnPause();
+verifier(p.ok && p.finPrevue === le(13, 12, 40), 'troisième pause : il ne reste que 10 min');
+reponses.enregistrer_pause_gps = { error: { code: '', message: 'TypeError: Network request failed' } };
+horloge = le(13, 12, 41);
+await livrer(loc(le(13, 12, 41), 0.007));
+const avantEnvoi = de('ajouter_points_trace').length;
+n = await envoyerPoints(true);
+verifier(n === 0 && de('ajouter_points_trace').length === avantEnvoi, 'fin de pause pas encore reçue par la base : les points attendent derrière elle');
+delete reponses.enregistrer_pause_gps;
+const avantReprise = recu.length;
+n = await envoyerPoints(true);
+const ordre = recu.slice(avantReprise).map((x) => x.nom).filter((x) => x !== 'signaler_suivi_gps');
+verifier(n === 1 && ordre.join() === 'enregistrer_pause_gps,ajouter_points_trace' && dernier('enregistrer_pause_gps').p_fin === new Date(le(13, 12, 40)).toISOString(),
+  'réseau revenu : la pause, puis les points', ordre);
+p = await mettreEnPause();
+verifier(!p.ok && p.raison === 'epuisee', '90 min prises : plus de pause aujourd\'hui');
+verifier((await etatSuivi()).pauseRestanteMs === 0, 'écran : 0 min de pause restante');
+
+console.log('7. Fin des heures, rappel du matin, jour non travaillé, réglages de la base');
+horloge = le(13, 18, 0, 30);
+await livrer(loc(le(13, 18, 0, 20), 0.008));
+verifier(!gps.demarree, '18:00 : la tâche s\'arrête d\'elle-même (plus de notification)');
+verifier((await etatSuivi()).enAttente === 0 || (await etatSuivi()).enAttente === 0, 'aucun point gardé après 18:00');
+verifier(dernier('signaler_suivi_gps').p_etat === 'hors_heures', 'état « hors heures » signalé');
+const rappel = notifs.planifiees.get('suivi-gps-reprise');
+verifier(rappel && rappel.trigger.date === le(14, 8) && rappel.trigger.channelId === 'suivi-gps', 'rappel planifié mercredi 08:00', rappel?.trigger);
+horloge = le(13, 19);
+verifier(await assurerSuivi(uid, 'm1') === 'hors_heures' && !gps.demarree, 'appli ouverte le soir : pas de suivi');
+verifier((await etatSuivi()).mode === 'hors_heures', 'écran : hors des heures de travail');
+p = await mettreEnPause();
+verifier(!p.ok, 'pas de pause hors des heures');
+horloge = le(14, 8, 5);
+verifier(await assurerSuivi(uid, 'm1') === 'actif' && gps.demarree && !notifs.planifiees.has('suivi-gps-reprise'),
+  'mercredi 08:05, appli ouverte : le suivi repart, le rappel est retiré');
+verifier((await etatSuivi()).pauseRestanteMs === 90 * 60000, 'nouveau jour : 90 min de pause');
+horloge = le(18, 10);
+verifier(await assurerSuivi(uid, 'm1') === 'hors_heures' && !gps.demarree, 'dimanche : pas de suivi');
+horloge = le(19, 9);
+await assurerSuivi(uid, 'm1');
+reglagesServeur = { ...reglagesServeur, suivi_gps_fin: '20:00:00' };
+horloge = le(19, 9, 15);
+await livrer(loc(horloge, 0.009));
+verifier((await etatSuivi()).reglages.fin === 1200, 'heures changées par le responsable : apportées par la base au signal suivant');
+horloge = le(19, 19);
+verifier(await assurerSuivi(uid, 'm1') === 'actif', 'lundi 19:00 : dans les nouvelles heures (jusqu\'à 20:00)');
+
+console.log('8. « Quitter »');
+p = await mettreEnPause();
+verifier(p.ok, 'pause en cours');
 await terminerSuivi();
 verifier(!gps.demarree && (await etatSuivi()).enAttente === 0, '« Quitter » : derniers points envoyés, tâche arrêtée');
-await tache({ data: { locations: [loc(150, 0.0013)] }, error: null });
-await attendre();
+verifier(dernier('enregistrer_pause_gps').p_motif === 'quitter' && dernier('signaler_suivi_gps').p_etat === 'ferme',
+  'pause close et session fermée signalées à la base');
+await livrer(loc(horloge + 5000, 0.0013));
 verifier((await etatSuivi()).enAttente === 0, 'après « Quitter », une position tardive n\'est pas gardée');
 
-console.log('5. Autre compte connecté : les points d\'un agent ne partent jamais sous un autre compte');
+console.log('9. Autre compte connecté : les points d\'un agent ne partent jamais sous un autre compte');
 await assurerSuivi(uid, 'm1');
-await tache({ data: { locations: [loc(200, 0.002)] }, error: null });
-await attendre();
+await livrer(loc(horloge + 60000, 0.002));
 await sim.deconnecter?.();
 sim.utilisateur = 'autre-agent';
-await sim.connecter();
+await sim.connecter(undefined, 10 * 86400);
 recu.length = 0;
 n = await envoyerPoints(true);
-verifier(n === 0 && recu.length === 0 && (await etatSuivi()).enAttente === 1, 'le point de l\'agent précédent attend sa reconnexion');
+verifier(n === 0 && de('ajouter_points_trace').length === 0 && (await etatSuivi()).enAttente === 1, 'le point de l\'agent précédent attend sa reconnexion');
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 process.exit(ko ? 1 : 0);

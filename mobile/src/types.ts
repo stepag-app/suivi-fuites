@@ -18,6 +18,9 @@ export interface Marche {
   champs_obligatoires_fuite?: string[] | null;
   /** Saisie des débits de nuit proposée (D3), sauf réglage de la campagne. */
   debits_mode_saisie?: 'minimum' | 'releves' | 'import';
+  /** Suivi GPS : heures et jours de travail, pauses (absents d'une liste gardée avant le compromis du 2026-10-10). */
+  suivi_gps_debut?: string | null; suivi_gps_fin?: string | null; suivi_gps_jours?: number[] | null;
+  suivi_gps_pause_min?: number | null; suivi_gps_pause_jour_min?: number | null;
 }
 export interface Droit {
   marche_id: string; type_donnee: string; lire: boolean; creer: boolean;

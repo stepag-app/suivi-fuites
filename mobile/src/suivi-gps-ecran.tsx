@@ -1,25 +1,44 @@
-// Suivi GPS (X6) : démarrage automatique tant que la session est ouverte (useSuiviGps) et écran d'activation clair
-// (autorisations, activation, batterie Samsung, points en attente).
+// Suivi GPS (X6, compromis du 2026-10-10) : démarrage automatique tant que la session est ouverte, pendant les heures
+// de travail du marché (useSuiviGps), et écran du suivi : motif, heures, qui voit le tracé, pause et reprise,
+// autorisations, batterie Samsung, points en attente.
 import * as Application from 'expo-application';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Linking, ScrollView, Text, View } from 'react-native';
 import { dateHeure } from './fiche';
-import { useLangue } from './langue';
+import { enumerer, t, useLangue } from './langue';
 import {
-  arreterSuivi, assurerSuivi, demanderAutorisations, envoyerPoints, etatSuivi, voulerSuivi, type EtatSuivi,
+  assurerSuivi, demanderAutorisations, envoyerPoints, etatSuivi, mettreEnPause, reprendreSuivi, arreterSuivi, type EtatSuivi,
 } from './suivi-gps';
+import { heureLocale, hhmm, reglagesSuivi, type ColonnesSuivi, type ReglagesSuivi } from './suivi-gps-regles';
+import type { Cle } from './traductions';
 import { BarreApp, Bouton, Carte, Message, s, useBas } from './ui';
 
 const PAQUET = Application.applicationId ?? 'ma.stepag.suivifuites';
+const JOURS: Cle[] = ['lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi', 'dimanche'];
+
+export const heuresDeTravail = (r: ReglagesSuivi) => t('{debut} à {fin}', { debut: hhmm(r.debut), fin: hhmm(r.fin) });
+
+/** « du lundi au samedi », « tous les jours », ou la liste des jours. */
+export function joursDeTravail(r: ReglagesSuivi): string {
+  const j = [...r.jours].sort();
+  if (j.length === 7) return t('tous les jours');
+  const suite = j.every((x, i) => i === 0 || x === j[i - 1] + 1);
+  if (suite && j.length >= 3) return t('du {premier} au {dernier}', { premier: t(JOURS[j[0] - 1]), dernier: t(JOURS[j[j.length - 1] - 1]) });
+  return enumerer(j.map((x) => t(JOURS[x - 1])));
+}
+
+export const heureDe = (ms: number) => hhmm(heureLocale(ms).minutes);
 
 /**
- * Démarre le suivi pour le compte et le marché choisis (si les autorisations sont accordées et que l'agent ne l'a pas
- * désactivé), l'arrête quand la session se ferme, envoie les points au premier plan. Retourne l'état et de quoi le relire.
+ * Démarre le suivi pour le compte et le marché choisis (heures de travail, autorisations accordées), l'arrête quand la
+ * session se ferme, envoie les points au premier plan. Retourne l'état et de quoi le relire.
  */
-export function useSuiviGps(uid: string | undefined, marcheId: string | undefined): [EtatSuivi | null, () => void] {
+export function useSuiviGps(uid: string | undefined, marche: (ColonnesSuivi & { id: string }) | null | undefined): [EtatSuivi | null, () => void] {
   const [etat, setEtat] = useState<EtatSuivi | null>(null);
   const avait = useRef(false);
+  const marcheId = marche?.id;
+  const cleReglages = JSON.stringify(reglagesSuivi(marche));
   const relire = useCallback(() => {
     void etatSuivi().then(setEtat, () => undefined);
   }, []);
@@ -34,19 +53,24 @@ export function useSuiviGps(uid: string | undefined, marcheId: string | undefine
       return;
     }
     avait.current = true;
-    const lancer = () => void assurerSuivi(uid, marcheId).then(relire, relire);
+    const r = JSON.parse(cleReglages) as ReglagesSuivi;
+    const lancer = () => void assurerSuivi(uid, marcheId, r).then(relire, relire);
     lancer();
     const abonnement = AppState.addEventListener('change', (e) => {
       if (e !== 'active') return;
       lancer();
       void envoyerPoints(true).then(relire, relire);
     });
-    const minuteur = setInterval(() => void envoyerPoints().then(relire, relire), 60000);
+    // Appli ouverte : début et fin des heures, fin de pause, envois.
+    const minuteur = setInterval(() => {
+      lancer();
+      void envoyerPoints().then(relire, relire);
+    }, 60000);
     return () => {
       abonnement.remove();
       clearInterval(minuteur);
     };
-  }, [uid, marcheId, relire]);
+  }, [uid, marcheId, cleReglages, relire]);
 
   return [etat, relire];
 }
@@ -57,6 +81,7 @@ export function SuiviGpsEcran({ retour, etat, relire, uid, marcheId }: {
   const { t } = useLangue();
   const bas = useBas();
   const [occupe, setOccupe] = useState(false);
+  const [avis, setAvis] = useState('');
 
   useEffect(() => {
     relire();
@@ -66,16 +91,28 @@ export function SuiviGpsEcran({ retour, etat, relire, uid, marcheId }: {
 
   async function activer() {
     setOccupe(true);
-    await voulerSuivi(true);
+    setAvis('');
     await demanderAutorisations();
     await assurerSuivi(uid, marcheId);
     setOccupe(false);
     relire();
   }
-  async function desactiver() {
+  async function pause() {
     setOccupe(true);
-    await voulerSuivi(false);
-    await arreterSuivi();
+    setAvis('');
+    const r = await mettreEnPause();
+    if (!r.ok) {
+      setAvis(r.raison === 'epuisee' ? t("Plus de pause possible aujourd'hui.")
+        : r.raison === 'hors_heures' ? t("Hors des heures de travail : aucune position n'est enregistrée.")
+          : t("Le suivi de position n'est pas encore actif."));
+    }
+    setOccupe(false);
+    relire();
+  }
+  async function reprendre() {
+    setOccupe(true);
+    setAvis('');
+    await reprendreSuivi('agent');
     setOccupe(false);
     relire();
   }
@@ -86,26 +123,24 @@ export function SuiviGpsEcran({ retour, etat, relire, uid, marcheId }: {
       .catch(() => undefined);
   };
 
-  const complet = !!etat && etat.autorisations.premierPlan && etat.autorisations.arrierePlan;
+  const r = etat?.reglages;
+  const minutesPause = etat ? Math.min(etat.reglages.pauseMin, Math.floor(etat.pauseRestanteMs / 60000)) : 0;
   const incomplet = !!etat && etat.autorisations.premierPlan && !etat.autorisations.arrierePlan;
 
   return (
     <View style={s.ecran}>
       <BarreApp titre={t('Suivi GPS')} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]}>
-        {!etat ? null : etat.actif ? (
+        {!etat ? null : etat.mode === 'actif' ? (
           <Message ton="info" icone="locate-fixed">{t('Le suivi de position est actif.')}</Message>
-        ) : !etat.voulu ? (
-          <Message ton="attention">{t('Le suivi de position est désactivé sur cette tablette.')}</Message>
+        ) : etat.mode === 'pause' && etat.pause ? (
+          <Message ton="info" icone="pause">{t("En pause jusqu'à {heure} : aucune position n'est enregistrée.", { heure: heureDe(etat.pause.finPrevue) })}</Message>
+        ) : etat.mode === 'hors_heures' ? (
+          <Message ton="info" icone="clock">{t("Hors des heures de travail : aucune position n'est enregistrée.")}</Message>
         ) : (
           <Message ton="attention">{t("Le suivi de position n'est pas encore actif.")}</Message>
         )}
-        <Text style={s.texte}>
-          {t("Tant que votre session est ouverte, la tablette enregistre votre parcours (un point tous les 15 m environ) et l'envoie à votre responsable. Une notification reste affichée pendant que le suivi tourne ; elle disparaît avec « Quitter ».")}
-        </Text>
-        <Text style={s.discret}>
-          {t("Seuls votre responsable et l'administrateur voient votre tracé. Il est conservé jusqu'à la fin du marché.")}
-        </Text>
+        {!!avis && <Message ton="attention">{avis}</Message>}
 
         {etat && !etat.autorisations.premierPlan && (
           <Message ton="attention">{t("L'autorisation de position est refusée. Ouvrez les réglages de la tablette pour l'accorder.")}</Message>
@@ -115,11 +150,42 @@ export function SuiviGpsEcran({ retour, etat, relire, uid, marcheId }: {
             {t('Choisissez « Toujours autoriser » pour la position : sans cela, le suivi s\'arrête quand l\'écran s\'éteint.')}
           </Message>
         )}
-        {!!etat && (!etat.actif || !complet) && (
+        {etat && (etat.mode === 'autorisation' || etat.mode === 'arrete') && (
           <Bouton titre={t('Activer le suivi')} icone="locate-fixed" primaire grand onPress={activer} occupe={occupe} />
         )}
-        {etat && !complet && <Bouton titre={t('Ouvrir les réglages de la tablette')} onPress={reglages} />}
-        {etat?.actif && <Bouton titre={t('Désactiver le suivi')} danger onPress={desactiver} occupe={occupe} />}
+        {etat?.mode === 'autorisation' && <Bouton titre={t('Ouvrir les réglages de la tablette')} onPress={reglages} />}
+        {etat?.mode === 'pause' && (
+          <Bouton titre={t('Reprendre le suivi')} icone="play" primaire grand onPress={reprendre} occupe={occupe} />
+        )}
+        {etat?.mode === 'actif' && (minutesPause >= 1 ? (
+          <Bouton titre={t('Pause ({n} min)', { n: minutesPause })} icone="pause" grand onPress={pause} occupe={occupe} />
+        ) : (
+          <Text style={s.discret}>{t("Plus de pause possible aujourd'hui.")}</Text>
+        ))}
+
+        {r && (
+          <Carte>
+            <Text style={s.texteFort}>{t('Pourquoi ce suivi ?')}</Text>
+            <Text style={s.texte}>
+              {t('Le tracé prouve à la SRM le linéaire réellement balayé : le balayage est payé au linéaire, et un tronçon coché peut être contesté. Il sert aussi à votre sécurité quand vous travaillez seul sur la voie publique.')}
+            </Text>
+            <Text style={s.texteFort}>{t('Quand ?')}</Text>
+            <Text style={s.texte}>
+              {t("Seulement pendant les heures de travail : {heures}, {jours}. Rien n'est enregistré en dehors, ni pendant une pause. Une notification reste affichée tant que le suivi tourne.", { heures: heuresDeTravail(r), jours: joursDeTravail(r) })}
+            </Text>
+            <Text style={s.texteFort}>{t('Qui le voit ?')}</Text>
+            <Text style={s.texte}>
+              {t("Seul votre responsable (et l'administrateur de l'application) voit votre tracé. Il est conservé jusqu'à la fin du marché.")}
+            </Text>
+            <Text style={s.texteFort}>{t('Pause')}</Text>
+            <Text style={s.texte}>
+              {t("{n} min au plus d'affilée, {total} min par jour. Le suivi reprend seul à la fin, ou dès que vous signalez une fuite ou cochez un tronçon. Votre responsable voit l'heure et la durée de vos pauses, jamais le lieu.", { n: r.pauseMin, total: r.pauseJourMin })}
+            </Text>
+            {etat && (
+              <Text style={s.discret}>{t("Pause restante aujourd'hui : {n} min", { n: Math.floor(etat.pauseRestanteMs / 60000) })}</Text>
+            )}
+          </Carte>
+        )}
 
         <Carte>
           <Text style={s.texteFort}>{t('Batterie (Samsung)')}</Text>

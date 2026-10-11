@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { langueCourante, t, tx, useLangue } from './langue';
+import { reprendreSuivi } from './suivi-gps';
 import { supabase } from './supabase';
 import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
@@ -178,6 +179,10 @@ export function Balayage({ retour }: { retour: () => void }) {
             }
           }}
           onRenderProcessGone={() => setMessage("La carte s'est arrêtée. Réessayez.")}
+          // Tronçon coché ou balayage enregistré sur la carte : une pause du suivi GPS en cours prend fin.
+          onMessage={(e) => {
+            if (/"activite-balayage"/.test(e.nativeEvent.data)) void reprendreSuivi('balayage').catch(() => undefined);
+          }}
         />
       )}
     </View>

@@ -462,18 +462,9 @@ export const TRADUCTIONS = {
 
   // Suivi GPS (S11, X6) : libellés validés par Issam (2026-10-10)
   'Suivi GPS': { ar: 'تتبع الموقع (GPS)', hyb: 'Suivi GPS' },
-  'Suivi de position actif': { ar: 'تتبع الموقع مفعّل' },
-  'Le tracé de votre journée est transmis à votre responsable.': { ar: 'يُرسل مسار يومك إلى مسؤولك.' },
   "Le suivi de position n'est pas actif. Touchez ici pour l'activer.": { ar: 'تتبع الموقع غير مفعّل. المس هنا لتفعيله.' },
   'Le suivi de position est actif.': { ar: 'تتبع الموقع مفعّل.' },
-  'Le suivi de position est désactivé sur cette tablette.': { ar: 'تتبع الموقع معطّل على هذا الجهاز اللوحي.' },
   "Le suivi de position n'est pas encore actif.": { ar: 'تتبع الموقع غير مفعّل بعد.' },
-  "Tant que votre session est ouverte, la tablette enregistre votre parcours (un point tous les 15 m environ) et l'envoie à votre responsable. Une notification reste affichée pendant que le suivi tourne ; elle disparaît avec « Quitter ».": {
-    ar: 'ما دامت جلستك مفتوحة، يسجّل الجهاز اللوحي مسارك (نقطة كل 15 م تقريبًا) ويرسله إلى مسؤولك. يبقى إشعار ظاهرًا أثناء عمل التتبع، ويختفي عند الضغط على «خروج».',
-  },
-  "Seuls votre responsable et l'administrateur voient votre tracé. Il est conservé jusqu'à la fin du marché.": {
-    ar: 'لا يرى مسارك إلا مسؤولك ومسؤول النظام. ويُحفظ إلى نهاية الصفقة.',
-  },
   "L'autorisation de position est refusée. Ouvrez les réglages de la tablette pour l'accorder.": {
     ar: 'تم رفض إذن الموقع. افتح إعدادات الجهاز اللوحي لمنحه.',
   },
@@ -482,7 +473,6 @@ export const TRADUCTIONS = {
   },
   'Activer le suivi': { ar: 'تفعيل التتبع' },
   'Ouvrir les réglages de la tablette': { ar: 'فتح إعدادات الجهاز اللوحي' },
-  'Désactiver le suivi': { ar: 'إيقاف التتبع' },
   'Batterie (Samsung)': { ar: 'البطارية (سامسونغ)' },
   "Pour que le suivi ne soit pas endormi par la tablette, excluez l'application de l'optimisation de la batterie : Réglages > Batterie > Limites d'utilisation en arrière-plan > Applications jamais en veille > ajoutez « Suivi des fuites ».": {
     ar: 'حتى لا يوقف الجهاز اللوحي التتبع، استثنِ التطبيق من تحسين البطارية: الإعدادات > البطارية > حدود الاستخدام في الخلفية > التطبيقات التي لا تدخل وضع السكون أبدًا > أضف «تتبع التسربات».',
@@ -494,6 +484,58 @@ export const TRADUCTIONS = {
   'Aucun envoi pour le moment.': { ar: 'لا يوجد أي إرسال حتى الآن.' },
   'Dernière position enregistrée : {date}': { ar: 'آخر موقع مسجّل: {date}' },
   'Aucune position enregistrée pour le moment.': { ar: 'لا يوجد أي موقع مسجّل حتى الآن.' },
+
+  // Suivi GPS, compromis du 2026-10-10 (heures de travail, pause, motif) : lignes T01 à T34 de l'artefact de relecture
+  'Suivi GPS des heures de travail ({debut}-{fin})': { ar: 'تتبع الموقع خلال ساعات العمل ({debut}-{fin})' },
+  "Preuve du linéaire balayé pour la SRM. Rien n'est enregistré hors des heures ni pendant une pause.": {
+    ar: 'إثبات طول الشبكة الممسوح أمام SRM. لا يُسجَّل أي شيء خارج ساعات العمل ولا أثناء الاستراحة.',
+  },
+  "Pause jusqu'à {heure}": { ar: 'استراحة حتى الساعة {heure}' },
+  'Aucune position enregistrée pendant la pause. Le suivi reprend seul à {heure}.': {
+    ar: 'لا يُسجَّل أي موقع أثناء الاستراحة. يُستأنف التتبع تلقائيًا على الساعة {heure}.',
+  },
+  'Début des heures de travail': { ar: 'بداية ساعات العمل' },
+  'Touchez ici pour reprendre le suivi GPS de la journée.': { ar: 'المس هنا لاستئناف تتبع الموقع لهذا اليوم.' },
+  "En pause jusqu'à {heure} : aucune position n'est enregistrée.": { ar: 'استراحة حتى الساعة {heure}: لا يُسجَّل أي موقع.' },
+  "Hors des heures de travail : aucune position n'est enregistrée.": { ar: 'خارج ساعات العمل: لا يُسجَّل أي موقع.' },
+  "Plus de pause possible aujourd'hui.": { ar: 'لم تعد الاستراحة ممكنة اليوم.' },
+  'Reprendre le suivi': { ar: 'استئناف التتبع' },
+  'Pause ({n} min)': { ar: 'استراحة ({n} دقيقة)' },
+  'Pourquoi ce suivi ?': { ar: 'لماذا هذا التتبع؟' },
+  'Le tracé prouve à la SRM le linéaire réellement balayé : le balayage est payé au linéaire, et un tronçon coché peut être contesté. Il sert aussi à votre sécurité quand vous travaillez seul sur la voie publique.': {
+    ar: 'يُثبت المسار أمام SRM طول الشبكة الذي تم مسحه فعلًا: يُؤدّى مقابل المسح حسب الطول، ويمكن الطعن في مقطع مؤشَّر عليه. كما يخدم سلامتك عندما تعمل وحدك على الطريق العام.',
+  },
+  'Quand ?': { ar: 'متى؟' },
+  "Seulement pendant les heures de travail : {heures}, {jours}. Rien n'est enregistré en dehors, ni pendant une pause. Une notification reste affichée tant que le suivi tourne.": {
+    ar: 'فقط خلال ساعات العمل: {heures}، {jours}. لا يُسجَّل أي شيء خارجها، ولا أثناء الاستراحة. يبقى إشعار ظاهرًا ما دام التتبع يعمل.',
+  },
+  'Qui le voit ?': { ar: 'من يراه؟' },
+  "Seul votre responsable (et l'administrateur de l'application) voit votre tracé. Il est conservé jusqu'à la fin du marché.": {
+    ar: 'لا يرى مسارك إلا مسؤولك (ومسؤول التطبيق). ويُحفظ إلى نهاية الصفقة.',
+  },
+  'Pause': { ar: 'الاستراحة' },
+  "{n} min au plus d'affilée, {total} min par jour. Le suivi reprend seul à la fin, ou dès que vous signalez une fuite ou cochez un tronçon. Votre responsable voit l'heure et la durée de vos pauses, jamais le lieu.": {
+    ar: '{n} دقيقة متواصلة على الأكثر، و{total} دقيقة في اليوم. يُستأنف التتبع تلقائيًا عند انتهائها، أو بمجرد الإبلاغ عن تسرب أو التأشير على مقطع. يرى مسؤولك وقت استراحاتك ومدتها، ولا يرى المكان أبدًا.',
+  },
+  "Pause restante aujourd'hui : {n} min": { ar: 'الاستراحة المتبقية اليوم: {n} دقيقة' },
+  "En pause jusqu'à {heure}. Touchez ici pour reprendre.": { ar: 'استراحة حتى الساعة {heure}. المس هنا للاستئناف.' },
+  '{debut} à {fin}': { ar: 'من {debut} إلى {fin}' },
+  'tous les jours': { ar: 'كل الأيام' },
+  'du {premier} au {dernier}': { ar: 'من {premier} إلى {dernier}' },
+  'lundi': { ar: 'الاثنين' },
+  'mardi': { ar: 'الثلاثاء' },
+  'mercredi': { ar: 'الأربعاء' },
+  'jeudi': { ar: 'الخميس' },
+  'vendredi': { ar: 'الجمعة' },
+  'samedi': { ar: 'السبت' },
+  'dimanche': { ar: 'الأحد' },
+  'Suivi GPS interrompu : {agent}': { ar: 'انقطع تتبع الموقع: {agent}' },
+  'Autorisation de position refusée sur la tablette ; aucune position depuis {heure}.': {
+    ar: 'إذن الموقع مرفوض على الجهاز اللوحي؛ لا يوجد أي موقع منذ {heure}.',
+  },
+  'Aucune position depuis {heure} : application fermée, autorisation retirée, tablette éteinte ou sans réseau.': {
+    ar: 'لا يوجد أي موقع منذ {heure}: التطبيق مغلق، أو الإذن مسحوب، أو الجهاز اللوحي مطفأ أو بدون شبكة.',
+  },
 
   // Mesures de nuit (chantier v3, S19, D8) : libellés validés par Issam (2026-10-10, D01 à D53 de l'artefact)
   'Mesures de nuit': { ar: 'قياسات التدفق الليلي', hyb: 'Mesures de nuit' },

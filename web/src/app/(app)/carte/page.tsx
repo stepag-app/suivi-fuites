@@ -43,6 +43,16 @@ const CLE_LISTE = "suivi-fuites:carte:liste-masquee";
 // Messages du mode balayage composés hors rendu : dans la langue de la tablette (APK), sinon en français.
 const tr = (cle: string, valeurs?: Record<string, string | number>, fr?: string) => traduire(langueApk(), cle, valeurs, fr);
 
+/** Message à l'APK quand la carte est ouverte dans sa WebView (rien dans un navigateur). */
+function signalerApk(type: string) {
+  const w = window as Window & { ReactNativeWebView?: { postMessage: (m: string) => void } };
+  try {
+    w.ReactNativeWebView?.postMessage(JSON.stringify({ type }));
+  } catch {
+    /* WebView fermée */
+  }
+}
+
 export default function PageCarte() {
   return (
     <Suspense fallback={<p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>}>
@@ -212,6 +222,8 @@ function CarteDesFuites() {
   }, [marcheId]);
   const setTroncons = useCallback((s: Set<string>) => {
     setTronconsEtat(s);
+    // Ouverte dans l'APK : un tronçon coché met fin à une pause du suivi GPS de l'agent.
+    if (s.size > 0) signalerApk("activite-balayage");
     if (!marcheId) return;
     try {
       window.sessionStorage.setItem(cleSelection(marcheId), JSON.stringify([...s]));

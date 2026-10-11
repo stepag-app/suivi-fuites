@@ -473,7 +473,9 @@ l'appli d'un toucher** (texte adapté) ; automatique ailleurs (Samsung).
 
 **Wi-Fi** (demande d'Issam après la fusion) : l'agent doit pouvoir rejoindre n'importe quel Wi-Fi sans code (forfait 4G
 épuisé) alors que les Paramètres sont cachés : bloc Wi-Fi dans l'écran Tablette (réseaux, mot de passe, connexion ; droits
-du propriétaire), bandeau « Hors ligne » de la liste cliquable ; PR `claude/tablette-wifi`, à vérifier sur la Redmi.
+du propriétaire), bandeau « Hors ligne » de la liste cliquable ; PR [#118](https://github.com/stepag-app/suivi-fuites/pull/118),
+**vérifié sur la Redmi le 2026-10-12 à 00:15** (tablette verrouillée, liste des réseaux, mot de passe tapé par Issam,
+connexion WPA2 obtenue, événement journalisé).
 
 **Reste** (dans l'ordre) :
 1. ~~Fusionner la PR~~ (fait le 2026-10-11, base déployée), puis, sur la Redmi, **le parcours complet du code** :

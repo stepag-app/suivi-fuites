@@ -249,7 +249,9 @@ Pour la Redmi et toute tablette où adb est disponible (les tablettes préparée
 ## 12. Vérifications sur la Redmi (décrites dans la PR)
 
 PR [#117](https://github.com/stepag-app/suivi-fuites/pull/117) **fusionnée** le 2026-10-11 (`72def81`), migration et fonction
-`apk-enrolement` déployées. Suite : PR Wi-Fi (`claude/tablette-wifi`).
+`apk-enrolement` déployées. Suite : PR Wi-Fi [#118](https://github.com/stepag-app/suivi-fuites/pull/118) : bloc Wi-Fi de l'écran Tablette **vérifié
+sur la Redmi** le 2026-10-12 à 00:15 (tablette verrouillée, réseau WPA2 rejoint depuis l'appli, mot de passe tapé par
+Issam, événement « wifi » journalisé, envois possibles ensuite).
 
 Résultats du 2026-10-11 (appli DEV `7cef633` propriétaire, profil essai, après retrait du compte Xiaomi par Issam) :
 `dpm set-device-owner` accepté ; politique : 13 applis cachées (Paramètres, Play Store, Galerie, Thèmes, Services SIM,

@@ -197,10 +197,10 @@
     @apply h-10 border-b px-2 text-left align-middle text-sm font-medium whitespace-nowrap text-muted-foreground;
   }
   .ancien td:not([data-slot]) { @apply border-b p-2 align-middle; }
-  .ancien tbody tr:hover > td { @apply bg-muted/50; }
+  .ancien tbody tr:hover > td { @apply bg-muted; }
   .ancien tfoot td { @apply bg-muted/50 font-medium; }
   .ancien td.num, .ancien th.num { @apply text-right tabular-nums; }
-  .ancien tr.zebre > td { @apply bg-muted/30; }
+  .ancien tr.zebre > td { background-color: var(--tableau-zebre); }
   .ancien tr.discret td { @apply text-muted-foreground; }
   .ancien .liste-compacte { @apply text-xs; }
   .ancien .liste-compacte th { @apply h-8 px-2 text-xs; }

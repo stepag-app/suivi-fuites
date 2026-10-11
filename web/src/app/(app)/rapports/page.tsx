@@ -398,10 +398,10 @@ export default function PageRapports() {
                       <h3 className="flex items-center gap-2 font-medium text-sm">{s.titre}<Badge variant="secondary">{donneesN} ligne{donneesN > 1 ? "s" : ""}</Badge></h3>
                       <div className="overflow-x-auto rounded-md border">
                         <table className="w-full text-xs">
-                          <thead className="bg-muted/60"><tr>{s.colonnes.map((c, i) => <th key={i} className="whitespace-nowrap px-2 py-1 text-left font-medium">{c.titre}</th>)}</tr></thead>
+                          <thead><tr>{s.colonnes.map((c, i) => <th key={i} className="whitespace-nowrap px-2 py-1 text-left font-medium">{c.titre}</th>)}</tr></thead>
                           <tbody>
                             {lignes.map(({ ligne, indexDonnees }, j) => (
-                                <tr key={j} className={ligne.type === "donnees" ? "border-t" : "border-t bg-muted/40 font-medium"}>
+                                <tr key={j} className={ligne.type === "donnees" ? "border-t" : "border-t bg-muted font-medium"}>
                                   {ligne.type === "groupe"
                                     ? <td colSpan={s.colonnes.length} className="px-2 py-1 text-muted-foreground">{ligne.libelle}</td>
                                     : s.colonnes.map((_, i) => <td key={i} className="whitespace-nowrap px-2 py-1">{i === 0 && ligne.libelle ? ligne.libelle : texteCellule(s, ligne, i, indexDonnees)}</td>)}

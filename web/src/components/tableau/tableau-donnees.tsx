@@ -41,7 +41,7 @@ export function TableauDonnees<T>({ table, vide = "Aucun résultat.", onClicLign
             <TableRow
               key={ligne.id}
               data-state={ligne.getIsSelected() ? "selected" : undefined}
-              className={cn("border-border/60 hover:bg-muted/20", onClicLigne && "cursor-pointer", classeLigne?.(ligne.original))}
+              className={cn("border-border/60 hover:bg-muted", onClicLigne && "cursor-pointer", classeLigne?.(ligne.original))}
               onClick={onClicLigne ? () => onClicLigne(ligne.original) : undefined}
             >
               {ligne.getVisibleCells().map((cellule) => (

@@ -301,7 +301,7 @@ export function Saisie({ d, campagne, peutSaisir, peutValider, peutExporter, ret
           ) : (
             <div className="overflow-x-auto rounded-lg border">
               <table className="w-full text-sm">
-                <thead className="bg-muted/50">
+                <thead>
                   <tr>
                     <th className="px-3 py-2 text-left font-medium">Point de mesure</th>
                     {nuits.map((n) => <th key={n} className="px-3 py-2 text-right font-medium whitespace-nowrap">Nuit du {jourFr(n).slice(0, 5)}</th>)}
@@ -313,7 +313,7 @@ export function Saisie({ d, campagne, peutSaisir, peutValider, peutExporter, ret
                     if (!pz.length) return null;
                     return (
                       <Fragment key={z.id}>
-                        <tr className="border-t bg-muted/30"><td colSpan={nuits.length + 1} className="px-3 py-1.5 font-medium">Zone {z.numero} – {z.libelle}
+                        <tr className="border-t bg-muted"><td colSpan={nuits.length + 1} className="px-3 py-1.5 font-medium">Zone {z.numero} – {z.libelle}
                           <span className="ml-2 font-normal text-muted-foreground text-xs">Q exigé {debit(z.q_exige_m3h, 0)} m³/h</span></td></tr>
                         {pz.map((p) => (
                           <tr key={p.id} className="border-t">

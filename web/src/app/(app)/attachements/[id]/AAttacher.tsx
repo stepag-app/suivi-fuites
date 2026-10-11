@@ -187,7 +187,7 @@ export function AAttacher({
                 {peutCorriger && <th aria-label="Corrections" />}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="sans-zebre">
               {parFuite.slice(0, AFFICHAGE_MAX).map((g, i) => {
                 const t = g[0];
                 const cles = g.filter((u) => !u.brouillon_id).map(cleUnite);

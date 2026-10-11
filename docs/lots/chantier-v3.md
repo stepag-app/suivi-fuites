@@ -20,7 +20,7 @@
 | États journaliers et hebdomadaires | **débloqués** : rubriques à cocher, filtres, A4 portrait ou paysage | S17 |
 | Petits restes du panneau | traités en parallèle | S16 |
 | Facturation GitHub | sans objet tant que le dépôt est public ; il redevient privé à la fermeture | S23 |
-| Keystore Android | **régénéré** à la fermeture et rangé en lieu sûr | S23 |
+| Keystore Android | ~~régénéré à la fermeture~~ **gardé jusqu'à nouvel ordre** (décision du 2026-10-11 : un nouveau keystore oblige à réinstaller l'appli sur chaque tablette et casse les mises à jour) ; deux copies hors ligne | S23 (copies seulement) |
 | Tablette Samsung | branchée au Mac, essais en cours | — |
 | Vercel Pro | **dernier geste du projet** | S24 |
 | Arabe | vérifié (ci-dessous) ; relecture d'Issam à finir | S19 pour les nouveaux libellés |
@@ -118,8 +118,8 @@ Les **ouvriers sans compte** (Paramètres › Ouvriers, rattachés aux réparati
 | Z1 | **Audit Fable 5.1** et correctifs : sécurité (RLS, fonctions `security definer`, droits, secrets, en-têtes, dépendances), fiabilité (hors ligne, files d'attente, reprises), qualité (code mort, écrans `.ancien`, doublons), performances (panneau, APK, base), polish de l'interface |
 | Z2 | **Nettoyage et repliement** : dossier local (fichiers épars à la racine, une trentaine de copies de travail dans `.claude/worktrees`, checkout principal resté sur `claude/reseau-simplification` du 7/10 : ses modifications non commitées sont déjà dans `main`, vérifié le 2026-10-10) ; branches fusionnées et PR obsolètes ; documentation finale (`etat-avancement.md` réécrit, **manuel d'exploitation** : ajouter un marché, un agent ; mettre à jour l'APK ; restaurer la sauvegarde ; faire tourner les clés) ; E4 |
 | Z3 | **Purge** : marché DEMO supprimé (fuites, photos et fichiers, lots, notifications, tracés GPS, balayages, comptes d'essai rattachés à DEMO seulement) ; **SRM à zéro** (aucune fuite ni saisie d'essai, numérotation qui repart à 1) ; gardés : paramètres, bordereau, zones et secteurs, **réseau et zonage**, articles, comptes et droits. Si le réseau n'est pas dans SRM, **le transférer depuis DEMO avant** (ou le réimporter depuis `data-private/IMPORT-RESEAU/`), puis régénérer les tuiles. Sauvegarde vérifiée juste avant ; liste cochée par Issam ; exécution confirmée par lui |
-| Z4 | **Fermeture et rotation** (`docs/feuille-de-route.md` § 5) : `gitleaks` sur tout l'historique, dépôt **privé**, rotation de tous les comptes et secrets, coffre unique, **nouveau keystore** (coffre et deux copies hors ligne), nouvelle clé anon compilée dans l'APK. Dépôt privé : les 2 000 minutes gratuites d'Actions par mois doivent couvrir la sauvegarde nocturne, le test de restauration hebdomadaire et les compilations, sinon la sauvegarde s'arrête (à surveiller) |
-| Z5 | **APK finale** : signée avec le nouveau keystore, publiée en **GitHub Release** (téléchargée depuis le téléphone, envoyée par WhatsApp ou e-mail pour la première installation) et copiée sur le Drive (X9). Sur chaque tablette : file d'attente vidée, ancienne APK désinstallée (signature différente), nouvelle installée ; ensuite, mises à jour par la fenêtre « Mise à jour disponible » |
+| Z4 | **Fermeture et rotation** (`docs/feuille-de-route.md` § 5) : `gitleaks` sur tout l'historique, dépôt **privé**, rotation de tous les comptes et secrets, coffre unique, keystore **gardé** (rangé au coffre, deux copies hors ligne ; décision du 2026-10-11), nouvelle clé anon compilée dans l'APK : publier d'abord l'APK avec la nouvelle clé pendant que l'ancienne reste valide, révoquer l'ancienne ensuite (sinon les tablettes ne joignent plus Supabase, ni même la fenêtre de mise à jour). Dépôt privé : les 2 000 minutes gratuites d'Actions par mois doivent couvrir la sauvegarde nocturne, le test de restauration hebdomadaire et les compilations, sinon la sauvegarde s'arrête (à surveiller) |
+| Z5 | **APK finale** (décisions du 2026-10-11) : version **bêta** (`1.0.0-beta.1`, « 1.0 bêta », essayée sur les tablettes le 2026-10-12), puis `beta.2`… selon les retours du chantier. Plus de version publiée à chaque fusion : essais et réglages sur la tablette d'Issam (appli DEV), puis, **à sa demande**, une session Claude publie la version (`gh workflow run apk.yml`, nom de version en entrée ; mode d'emploi dans `mobile/README.md`) ; les tablettes la reçoivent par la fenêtre « Mise à jour disponible », sans réinstallation (keystore gardé). Copie sur le Drive (X9) |
 | Z6 | **Vercel Pro**, dernier geste. Rappels : bons de transfert Dolibarr (6804 et 6814 rattachés au projet 30, 6796 en brouillon, pose non saisie, à régler avec le magasinier) ; agents informés du suivi GPS ; optimisation de batterie Samsung exclue sur chaque tablette ; relecture arabe faite |
 
 ## 2. Vagues et sessions
@@ -245,12 +245,12 @@ Message de lancement, commun à toutes les sessions (remplacer les crochets) :
 | S20 | Audit complet (Z1) : sécurité d'abord, puis fiabilité, qualité, performances, polish ; correctifs par zone de fichiers |
 | S21 | Nettoyage et repliement (Z2), puis E4 une fois toutes les tablettes à jour |
 | S22 | Purge (Z3) : fonction testée, liste à cocher par Issam, sauvegarde vérifiée, exécution confirmée par lui |
-| S23 | Fermeture, rotation, keystore, APK finale (Z4, Z5), avec Issam, pas à pas |
+| S23 | Fermeture, rotation (keystore gardé), APK finale (Z4, Z5), avec Issam, pas à pas |
 
 ## 8. Définition de terminé
 
 Chaque tâche : règle en base testée (pgTAP) quand il y en a une, écran vérifié (navigateur, tablette), libellés de l'APK en
-français et en arabe, README à jour, PR fusionnée et déployée. Le projet : APK finale (nouveau keystore) installée sur les
+français et en arabe, README à jour, PR fusionnée et déployée. Le projet : APK finale (bêta, keystore actuel) installée sur les
 tablettes ; parcours complet sur la tablette (détection → validation → réparation → réfection → lot → rapport envoyé par
 e-mail → mesure de nuit) ; sauvegarde de la nuit présente sur le Drive et restaurée une fois ; dépôt privé, secrets tournés et
 rangés dans le coffre ; SRM à zéro avec son réseau ; Vercel Pro.

@@ -256,6 +256,34 @@ Télécharger l'artefact `suivi-fuites-apk` (onglet Actions du dépôt : exécut
 le copier sur la tablette, autoriser l'installation depuis cette source. Ensuite, les tablettes se mettent à jour par
 la fenêtre « Mise à jour disponible » à chaque version publiée.
 
+## Tablettes verrouillées (lot TP)
+
+Contrat : `docs/lots/lot-tablette-proprietaire.md` ; mode d'emploi pour l'administrateur : panneau web, Paramètres ›
+Tablettes › **Mode d'emploi** (et la note Claude Docs « Briefing — Tablettes verrouillées Suivi fuites »).
+
+Quand Suivi fuites est **propriétaire de l'appareil** (Device Owner d'Android), le module natif
+`modules/tablette-proprietaire/` (Kotlin, module Expo local autolinké, Android seulement) applique à chaque démarrage une
+politique idempotente (`Politique.kt`) : applis à icône hors de la liste gardée cachées (donc arrêtées), services inutiles
+cachés (`SERVICES_CACHES` = listes de `outils/tablettes/`, comparées par `essais/tablette-listes.test.mjs`), interdictions
+(installer, sources inconnues, comptes, réinitialisation, utilisateurs, mode sans échec ; débogage USB en profil **agent**),
+4G coupée à tout sauf Suivi fuites, services Google, WebView, Maps, WhatsApp, heure automatique, autorisations de Suivi
+fuites accordées d'office. Deux profils : **agent** (préparée par QR code) et **essai** (préparée par adb : la Redmi,
+adb et l'appli DEV gardés). Hors propriétaire (tablettes Samsung actuelles, émulateur), le module ne fait rien.
+
+| Sujet | Où |
+|---|---|
+| Déverrouillage par code temporaire (créé sur le panneau, vérifié par la base, 15 min / 1 h / 4 h, ou libération) | `src/tablette.tsx` (bouton « Tablette » de la liste, écran du code, bandeau), fonctions `utiliser_code_tablette` et `journaliser_tablette` (migration `20261016100000`) |
+| Mise à jour sans fenêtre d'Android (« Installer maintenant » suffit, l'appli se rouvre seule) | `src/mise-a-jour.tsx` → `installerApk` (`Installateur.kt` : empreinte SHA-256, même paquet, même certificat, session PackageInstaller) |
+| Préparation par QR code (Android 12+) | `ActiviteModeProvisionnement`, `ActiviteConformite` ; QR code imprimé depuis le panneau ; APK servie par la fonction `apk-enrolement` |
+| Secours par adb (profil essai seulement, permission `DUMP` réservée au shell) | `adb shell am broadcast -n <paquet>/ma.stepag.tablette.RecepteurSecours --es action etat` (`appliquer`, `deverrouiller --ei minutes 60`, `reverrouiller`, `liberer`) |
+
+Préparer la Redmi d'essai (profil essai) : aucun compte sur la tablette (sinon `dpm` refuse), puis
+`adb install <APK DEV>` et `adb shell dpm set-device-owner ma.stepag.suivifuites.dev/ma.stepag.tablette.RecepteurAdmin`.
+L'appli DEV passe la propriété à l'appli normale par « Transférer la propriété » (écran Tablette, pendant un
+déverrouillage) une fois celle-ci installée avec le module. À savoir : Android refuse `am force-stop` sur l'appli
+propriétaire (pour relancer l'appli DEV : `adb shell run-as ma.stepag.suivifuites.dev kill <pid>`) ; le reverrouillage
+automatique passe par une alarme inexacte (quelques minutes de marge).
+
 ### Suivi GPS : à faire sur chaque tablette Samsung
 
 1. À la première connexion, ouvrir **Suivi GPS** (bouton de la liste), « Activer le suivi », accepter la position puis

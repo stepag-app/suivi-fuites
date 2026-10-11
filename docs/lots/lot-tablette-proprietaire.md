@@ -247,6 +247,15 @@ Pour la Redmi et toute tablette où adb est disponible (les tablettes préparée
 
 ## 12. Vérifications sur la Redmi (décrites dans la PR)
 
+Résultats du 2026-10-11 (appli DEV `7cef633` propriétaire, profil essai, après retrait du compte Xiaomi par Issam) :
+`dpm set-device-owner` accepté ; politique : 13 applis cachées (Paramètres, Play Store, Galerie, Thèmes, Services SIM,
+Sécurité, et les 7 applis désactivées), 6 interdictions, **234 paquets privés de 4G sans aucun refus**, heure automatique,
+4 autorisations accordées (`POLICY_FIXED`) ; écran d'accueil réduit à Suivi fuites DEV, Appareil photo, Maps, Téléphone,
+Contacts, Messages ; `adb install` refusé (« User restriction prevents installing ») ; déverrouillage de 2 min par la
+commande de secours : Paramètres et Play Store réapparus, `no_install_apps` et `no_modify_accounts` levées, alarme posée ;
+**reverrouillage automatique** environ 2 min 30 après (alarme inexacte), interdictions remises. Constat : Android refuse
+`am force-stop` sur l'appli propriétaire (`run-as … kill` pour l'appli DEV).
+
 1. Propriétaire déclaré (`dumpsys device_policy`), profil essai.
 2. Écran d'accueil réduit aux applis gardées ; Paramètres, Play Store, Galerie, Thèmes introuvables ; volet rapide utilisable.
 3. `adb install` refusé ; APK téléchargée refusée ; ajout de compte refusé ; réinitialisation absente.

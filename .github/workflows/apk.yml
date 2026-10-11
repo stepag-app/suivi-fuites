@@ -1,7 +1,18 @@
 name: Application Android (APK)
 
+# Depuis le 2026-10-11 (décision d'Issam) : plus de nouvelle version publiée aux tablettes à chaque fusion.
+#  * Pull request qui touche mobile/ : types (tsc) et essais sans pile, toujours ; compilation Gradle (APK en artefact,
+#    14 jours) seulement si un fichier natif change (app.json, app.config.js, plugins/, package.json, package-lock.json)
+#    ou ce workflow lui-même. Jamais de publication depuis une PR.
+#  * Push sur main : types et essais seulement (ni compilation ni publication).
+#  * Publication pour les tablettes : à la main, Actions > Application Android (APK) > Run workflow, branche main,
+#    avec le nom de version (ex. 1.0.0) : APK signée avec la clé de production, déposée dans le compartiment privé R2
+#    (fenêtre « Mise à jour disponible » sur les tablettes). Le numéro de version (versionCode) reste le numéro du run,
+#    toujours croissant : une APK plus récente s'installe par-dessus la précédente.
+
 on:
   push:
+    branches: [main]
     paths:
       - 'mobile/**'
       - '.github/workflows/apk.yml'
@@ -10,38 +21,41 @@ on:
       - 'mobile/**'
       - '.github/workflows/apk.yml'
   workflow_dispatch:
+    inputs:
+      version:
+        description: "Nom de la version (ex. 1.0.0, 0.9.1, 1.0.0-rc.1) : affiché aux tablettes dans « Nouvelle version … disponible »"
+        required: true
+        type: string
+      publier:
+        description: "Publier pour les tablettes (R2, depuis main seulement). Décocher pour une simple compilation d'essai (artefact)."
+        type: boolean
+        default: true
 
 permissions:
   contents: read
 
 jobs:
-  apk:
-    name: Types et compilation de l'APK
+  verifications:
+    name: Types et essais sans pile
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: mobile
+    outputs:
+      compiler: ${{ steps.natif.outputs.compiler }}
     env:
       EXPO_NO_TELEMETRY: '1'
-      # Adresse et clé « anon » : publiques par conception (jamais la clé service_role).
-      EXPO_PUBLIC_SUPABASE_URL: https://osajiinsibwrsltntmsk.supabase.co
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'cle-factice-pour-la-compilation' }}
-      # Numéro de version (app.config.js) : numéro du run, toujours croissant ; une APK plus récente s'installe
-      # par-dessus la précédente, l'appli propose « Nouvelle version » quand celle publiée a un numéro plus grand.
-      APK_VERSION_CODE: ${{ github.run_number }}
-      APK_VERSION_NAME: 1.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Sur une PR, le commit vérifié est la fusion d'essai : son premier parent est la base, la différence = la PR.
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 17
       - run: npm ci
       - run: npx tsc --noEmit
       # Vrai code de la file d'attente et de la session, vrai client Supabase ; serveur et réseau simulés.
@@ -52,6 +66,71 @@ jobs:
           node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
           node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
           node --import ./essais/substituts.mjs essais/suivi-gps.test.mjs
+      - name: Faut-il compiler l'APK ?
+        id: natif
+        working-directory: .
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "Déclenchement manuel : compilation."
+            echo "compiler=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$GITHUB_EVENT_NAME" != "pull_request" ]; then
+            echo "Push sur main : types et essais seulement, ni compilation ni publication."
+            echo "compiler=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if ! fichiers="$(git diff --name-only HEAD^1 HEAD)"; then
+            echo "::warning::Fichiers modifiés par la PR indéterminés : compilation par prudence."
+            echo "compiler=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s\n' "$fichiers" | grep -Eq '^(mobile/(app\.json|app\.config\.js|package\.json|package-lock\.json|plugins/)|\.github/workflows/apk\.yml)'; then
+            echo "Fichier natif (ou ce workflow) modifié par la PR : compilation de l'APK."
+            echo "compiler=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Aucun fichier natif modifié par la PR : pas de compilation (types et essais suffisent)."
+            echo "compiler=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  apk:
+    name: Compilation de l'APK
+    needs: verifications
+    if: needs.verifications.outputs.compiler == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      EXPO_NO_TELEMETRY: '1'
+      # Adresse et clé « anon » : publiques par conception (jamais la clé service_role).
+      EXPO_PUBLIC_SUPABASE_URL: https://osajiinsibwrsltntmsk.supabase.co
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY || 'cle-factice-pour-la-compilation' }}
+      # Numéro de version (app.config.js) : numéro du run, toujours croissant ; c'est lui que l'appli compare à la
+      # version publiée. Nom de version : celui saisi au déclenchement manuel ; 1.0.<run> pour une compilation d'essai.
+      APK_VERSION_CODE: ${{ github.run_number }}
+      APK_VERSION_NAME: ${{ inputs.version || format('1.0.{0}', github.run_number) }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Contrôler le nom de la version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if ! printf '%s' "$APK_VERSION_NAME" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.]+)?$'; then
+            echo "::error::Nom de version invalide : « $APK_VERSION_NAME » (attendu : 1.0.0, 0.9.1, 1.0.0-rc.1…)."
+            exit 1
+          fi
+          echo "Version $APK_VERSION_NAME, numéro $APK_VERSION_CODE."
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
       # Notifications push : fichier Firebase de l'appli Android (secret GOOGLE_SERVICES_JSON, contenu JSON brut),
       # jamais dans le dépôt. Absent : APK sans push (aucun jeton enregistré), tout le reste fonctionne.
       - name: Firebase (google-services.json)
@@ -122,11 +201,11 @@ jobs:
           name: suivi-fuites-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
           retention-days: 14
-      # Mise à jour des tablettes (X2) : chaque APK de main signée avec la clé de production est publiée dans le
-      # compartiment privé R2 (apk/suivi-fuites-<numéro>.apk + apk/derniere.json) ; la fonction serveur version-apk
-      # la propose aux tablettes par une URL signée. Les 3 dernières APK sont gardées.
+      # Mise à jour des tablettes (X2) : seulement au déclenchement manuel depuis main, case « publier » cochée, APK signée
+      # avec la clé de production. Dépôt dans le compartiment privé R2 (apk/suivi-fuites-<numéro>.apk + apk/derniere.json) ;
+      # la fonction serveur version-apk la propose aux tablettes par une URL signée. Les 3 dernières APK sont gardées.
       - name: Publier la version (R2)
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && steps.signature.outputs.mode == 'production'
+        if: github.event_name == 'workflow_dispatch' && inputs.publier && github.ref == 'refs/heads/main' && steps.signature.outputs.mode == 'production'
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -138,8 +217,8 @@ jobs:
           AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
         run: |
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$AWS_ACCESS_KEY_ID" ] || [ -z "$AWS_SECRET_ACCESS_KEY" ]; then
-            echo "::warning::Secrets R2 absents : version non publiée (les tablettes ne la verront pas)."
-            exit 0
+            echo "::error::Secrets R2 absents : version non publiée (les tablettes ne la verront pas)."
+            exit 1
           fi
           E="https://$R2_ACCOUNT_ID.r2.cloudflarestorage.com"
           APK=$(ls android/app/build/outputs/apk/release/*.apk | head -1)
@@ -160,3 +239,9 @@ jobs:
             | sort -t- -k3 -n | head -n -3 | while read -r ancien; do
               aws s3 rm "s3://$R2_BUCKET/apk/$ancien" --endpoint-url "$E" || true
             done || true
+          echo "## APK publiée" >> "$GITHUB_STEP_SUMMARY"
+          echo "Version **$APK_VERSION_NAME** (numéro $APK_VERSION_CODE), commit \`$GITHUB_SHA\`, déposée dans R2 : les tablettes la proposent à la prochaine ouverture." >> "$GITHUB_STEP_SUMMARY"
+      - name: Publication non faite
+        if: github.event_name == 'workflow_dispatch' && inputs.publier && (github.ref != 'refs/heads/main' || steps.signature.outputs.mode != 'production')
+        run: |
+          echo "::warning::APK compilée mais non publiée : la publication exige la branche main et la clé de production (secrets ANDROID_KEYSTORE_*). Artefact disponible : suivi-fuites-apk."

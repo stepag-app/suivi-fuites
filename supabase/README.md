@@ -381,7 +381,7 @@ R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Stor
 6. **Reconnecter** : `SUPABASE_PROJECT_ID`, URL et clé anon dans les secrets GitHub (`SUPABASE_*`,
    `EXPO_PUBLIC_SUPABASE_ANON_KEY`) et les variables Vercel ; adresse du projet dans `.github/workflows/apk.yml` et
    `sauvegarde-base.yml` ; lancer « Déploiement de la base » (fonctions Edge, secrets R2).
-7. **APK** : l'adresse du projet est compilée dans l'APK : **recompiler** (`apk.yml` sur `main`) et réinstaller à la
+7. **APK** : l'adresse du projet est compilée dans l'APK : **recompiler** (Actions › Application Android (APK) › Run workflow, nom de version) et réinstaller à la
    main sur chaque tablette (la fenêtre « Mise à jour disponible » dépend de la fonction `version-apk`, qui est dans
    le projet perdu ; la dernière APK de l'ancien projet est sur le Drive, dans `r2/apk/`, mais ne parle plus au
    nouveau). Les comptes reviennent avec leurs mots de passe ; les sessions ouvertes sont invalidées.

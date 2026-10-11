@@ -170,6 +170,16 @@ tablettes à chaque fusion** : les compilations se font à des jalons, à la mai
 | Push sur `main` | types et essais seulement (ni compilation ni publication) |
 | **Run workflow** (Actions › Application Android (APK), branche `main`) | compilation signée avec la clé de production, puis **publication pour les tablettes** si la case « publier » est cochée (par défaut) ; entrée obligatoire : le **nom de la version** (`1.0.0`, `0.9.1`, `1.0.0-rc.1`…), affiché aux tablettes dans « Nouvelle version … disponible ». Case décochée, ou lancé depuis une autre branche : APK en artefact seulement |
 
+Publier une version (à la demande d'Issam seulement ; première version prévue : `1.0.0-beta.1`, « 1.0 bêta »,
+décision du 2026-10-11), depuis un poste connecté à GitHub :
+
+```bash
+gh workflow run apk.yml --ref main -f version=1.0.0-beta.1 -f publier=true
+```
+
+puis suivre l'exécution (`gh run watch`) ; le résumé de l'exécution confirme la version déposée dans R2. Même chose sans
+publier (`-f publier=false`) pour une compilation d'essai en artefact.
+
 Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour Vercel) ; sans lui l'APK
 se compile mais ne peut pas se connecter.
 

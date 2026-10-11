@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Suivi fuites propriétaire de la tablette (lot TP, docs/lots/lot-tablette-proprietaire.md). Fusionné dans l'APK par
+     Gradle : rien à poser dans le dossier android/ généré. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <!-- Liste des applis installées : celles à cacher et celles privées de 4G. -->
+  <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+  <application>
+    <receiver
+      android:name="ma.stepag.tablette.RecepteurAdmin"
+      android:exported="true"
+      android:permission="android.permission.BIND_DEVICE_ADMIN">
+      <meta-data android:name="android.app.device_admin" android:resource="@xml/tablette_device_admin" />
+      <intent-filter>
+        <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+        <action android:name="android.app.action.PROFILE_PROVISIONING_COMPLETE" />
+      </intent-filter>
+    </receiver>
+
+    <!-- Préparation par QR code, Android 12 et plus : mode « appareil entièrement géré », puis politique appliquée
+         avant la fin de l'assistant. -->
+    <activity
+      android:name="ma.stepag.tablette.ActiviteModeProvisionnement"
+      android:exported="true"
+      android:permission="android.permission.BIND_DEVICE_ADMIN"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.app.action.GET_PROVISIONING_MODE" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
+    <activity
+      android:name="ma.stepag.tablette.ActiviteConformite"
+      android:exported="true"
+      android:permission="android.permission.BIND_DEVICE_ADMIN"
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.app.action.ADMIN_POLICY_COMPLIANCE" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
+
+    <receiver android:name="ma.stepag.tablette.RecepteurDemarrage" android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+      </intent-filter>
+    </receiver>
+    <receiver android:name="ma.stepag.tablette.RecepteurInstallation" android:exported="false" />
+    <receiver android:name="ma.stepag.tablette.RecepteurFinDeverrouillage" android:exported="false" />
+    <!-- Secours par adb (profil essai seulement) : la permission DUMP n'est accordée qu'au shell d'adb. -->
+    <receiver
+      android:name="ma.stepag.tablette.RecepteurSecours"
+      android:exported="true"
+      android:permission="android.permission.DUMP" />
+  </application>
+</manifest>

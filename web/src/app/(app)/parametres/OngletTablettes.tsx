@@ -16,6 +16,7 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { dateHeure, messageErreur } from '@/lib/format';
 import { getSupabase } from '@/lib/supabase';
+import { ModeEmploiTablettes } from './ModeEmploiTablettes';
 
 // Certificat de signature STEPAG (keystore gardé jusqu'à nouvel ordre) : SHA-256 en base64url, vérifié par Android avant
 // de déclarer l'appli propriétaire. Pas un secret. À refaire si le keystore change (apksigner verify --print-certs).
@@ -178,6 +179,10 @@ ajouter le compte Google des tablettes, installer WhatsApp depuis le Play Store,
 
   return (
     <div className="flex flex-col gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-muted/30 p-3 text-sm">
+        <p className="text-muted-foreground">Déverrouiller une tablette, préparer la première, maintenance : tout est expliqué pas à pas.</p>
+        <ModeEmploiTablettes />
+      </div>
       {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
 
       <Card>

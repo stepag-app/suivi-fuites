@@ -186,6 +186,12 @@ export function EcranTablette({ etat, relire, retour }: { etat: EtatTablette | n
               accessibilityLabel={t('Code de déverrouillage')}
             />
             <Bouton titre={t('Déverrouiller')} icone="lock-open" primaire grand occupe={occupe} desactive={code.length !== 8} onPress={() => void valider()} />
+            <View style={{ gap: 4 }}>
+              <Text style={s.texteFort}>{t('Comment faire ?')}</Text>
+              <Text style={s.discret}>{t("1. L'administrateur crée un code sur le panneau web (Paramètres › Tablettes) et vous le donne.")}</Text>
+              <Text style={s.discret}>{t('2. Tapez le code ici, puis « Déverrouiller » : Paramètres et Play Store réapparaissent.')}</Text>
+              <Text style={s.discret}>{t("3. Après le réglage ou l'installation, « Reverrouiller maintenant ». Sinon la tablette se reverrouille seule à l'heure.")}</Text>
+            </View>
           </Carte>
         ) : null}
         {!!message && <Message ton={message.ton}>{message.texte}</Message>}

@@ -475,6 +475,16 @@ export const TRADUCTIONS = {
     ar: 'الإعدادات ومتجر Play ظاهرة؛ التطبيق الذي يُثبَّت الآن يبقى على الجهاز اللوحي. يُقفَل الجهاز تلقائيًا عند {heure}.',
   },
   'Reverrouiller maintenant': { ar: 'إعادة القفل الآن' },
+  'Comment faire ?': { ar: 'كيف أفعل؟' },
+  "1. L'administrateur crée un code sur le panneau web (Paramètres › Tablettes) et vous le donne.": {
+    ar: '1. ينشئ مسؤول النظام رمزًا في لوحة الويب (الإعدادات › الأجهزة اللوحية) ويعطيك إياه.',
+  },
+  '2. Tapez le code ici, puis « Déverrouiller » : Paramètres et Play Store réapparaissent.': {
+    ar: '2. اكتب الرمز هنا ثم اضغط «فتح القفل»: تظهر الإعدادات ومتجر Play من جديد.',
+  },
+  "3. Après le réglage ou l'installation, « Reverrouiller maintenant ». Sinon la tablette se reverrouille seule à l'heure.": {
+    ar: '3. بعد الضبط أو التثبيت اضغط «إعادة القفل الآن». وإلا يُقفَل الجهاز اللوحي تلقائيًا في الموعد.',
+  },
   'Ouvrir les Paramètres': { ar: 'فتح الإعدادات' },
   'Ouvrir le Play Store': { ar: 'فتح متجر Play' },
   'Tablette libérée : toutes les applis et tous les réglages sont de nouveau accessibles.': {

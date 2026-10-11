@@ -17,6 +17,9 @@ import { createClient } from 'npm:@supabase/supabase-js@2';
 // Domaine technique des identifiants (même valeur que NEXT_PUBLIC_DOMAINE_AGENTS du panneau).
 const DOMAINE_AGENTS = Deno.env.get('DOMAINE_AGENTS') || 'agents.stepag.ma';
 const ROLES = ['detection', 'chef_reparation', 'refection', 'responsable'];
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Identifiant reçu du panneau : un uuid, sinon rien (jamais une chaîne quelconque passée à l'API d'administration).
+const uuid = (v: unknown): string | null => (typeof v === 'string' && UUID.test(v.trim()) ? v.trim().toLowerCase() : null);
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -53,6 +56,7 @@ Deno.serve(async (req) => {
   }
 
   const appliquerRoles = async (profilId: string, marcheId: string, roles: string[]) => {
+    if (!uuid(marcheId)) throw new Error('marche_id (uuid) attendu');
     for (const role of roles) {
       if (!ROLES.includes(role)) throw new Error(`Rôle inconnu : ${role}`);
       const { error } = await admin.rpc('appliquer_modele_role', { p_profil: profilId, p_marche: marcheId, p_role: role });
@@ -96,16 +100,19 @@ Deno.serve(async (req) => {
       }
 
       case 'mot_de_passe': {
+        const profilId = uuid(corps.profil_id);
+        if (!profilId) return reponse(400, { erreur: 'profil_id (uuid) attendu' });
         const motDePasse = String(corps.mot_de_passe ?? '');
         if (motDePasse.length < 8) return reponse(400, { erreur: 'Mot de passe : 8 caractères minimum' });
-        const { error } = await admin.auth.admin.updateUserById(String(corps.profil_id), { password: motDePasse });
+        const { error } = await admin.auth.admin.updateUserById(profilId, { password: motDePasse });
         if (error) return reponse(400, { erreur: error.message });
         return reponse(200, { ok: true });
       }
 
       case 'activer': {
         const actif = corps.actif === true;
-        const profilId = String(corps.profil_id);
+        const profilId = uuid(corps.profil_id);
+        if (!profilId) return reponse(400, { erreur: 'profil_id (uuid) attendu' });
         if (profilId === appelant.user.id) return reponse(400, { erreur: 'Vous ne pouvez pas révoquer votre propre accès' });
         const { error } = await admin.from('profils').update({ actif }).eq('id', profilId);
         if (error) return reponse(400, { erreur: error.message });
@@ -118,12 +125,16 @@ Deno.serve(async (req) => {
       }
 
       case 'affecter': {
-        await appliquerRoles(String(corps.profil_id), String(corps.marche_id), [String(corps.role)]);
+        const profilId = uuid(corps.profil_id);
+        const marcheId = uuid(corps.marche_id);
+        if (!profilId || !marcheId) return reponse(400, { erreur: 'profil_id et marche_id (uuid) attendus' });
+        await appliquerRoles(profilId, marcheId, [String(corps.role)]);
         return reponse(200, { ok: true });
       }
 
       case 'supprimer': {
-        const profilId = String(corps.profil_id);
+        const profilId = uuid(corps.profil_id);
+        if (!profilId) return reponse(400, { erreur: 'profil_id (uuid) attendu' });
         if (profilId === appelant.user.id) return reponse(400, { erreur: 'Vous ne pouvez pas supprimer votre propre compte' });
         const { data: etat, error: erreurEtat } = await admin.rpc('compte_supprimable', { p_profil: profilId });
         if (erreurEtat) return reponse(400, { erreur: erreurEtat.message });

@@ -463,8 +463,12 @@ fuites » et, dans le panneau, Paramètres › Tablettes › **Mode d'emploi**. 
 **Vérifié sur la Redmi Pad 2** (appli DEV `7cef633` déclarée propriétaire par adb, profil essai, compte Xiaomi retiré par
 Issam) : écran d'accueil réduit aux applis gardées ; 13 applis cachées, 6 interdictions, 234 paquets privés de 4G sans
 refus, heure automatique, autorisations accordées ; `adb install` refusé ; déverrouillage puis **reverrouillage
-automatique** par alarme ; mode d'emploi et QR code (relu par le navigateur) dans le panneau en mode démonstration ;
-28 tests pgTAP, tsc web et APK, 6 essais sans pile, CI verte.
+automatique** par alarme (même appli fermée) ; **mise à jour silencieuse** de l'appli par elle-même (3 fois) ; mode
+d'emploi et QR code (relu par le navigateur) dans le panneau en mode démonstration ; 28 tests pgTAP, tsc web et APK,
+6 essais sans pile, CI verte. **HyperOS** exige trois réglages manuels à la préparation (démarrage automatique, batterie,
+fenêtres en arrière-plan : mode d'emploi du panneau, `mobile/README.md`) ; sans le premier, l'appli ne reçoit aucune
+diffusion quand elle est fermée. Retour au premier plan après une mise à jour : correction poussée (`d48116c`), à
+revérifier avec l'APK DEV suivante.
 
 **Reste** (dans l'ordre) :
 1. Fusionner la PR (migration et fonction `apk-enrolement` déployées), puis, sur la Redmi, **le parcours complet du code** :

@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(28);
+select plan(30);
 
 insert into auth.users (id, email, raw_user_meta_data) values
   ('00000000-0000-0000-0000-0000000000a1', 'admin@test.local', '{"identifiant": "admin-tp", "nom_complet": "Admin TP"}'),
@@ -93,6 +93,10 @@ select lives_ok($$ select journaliser_tablette('tab-1', 'Redmi', 'reverrouillage
   'reverrouillage journalisé par la tablette');
 select throws_ok($$ select journaliser_tablette('tab-1', 'Redmi', 'deverrouillage') $$, '22023', null,
   'un déverrouillage ne se journalise que par un code');
+select lives_ok($$ select journaliser_tablette('tab-1', 'Redmi', 'wifi', '{"ssid": "Bureau", "type": "wpa"}') $$,
+  'réseau Wi-Fi rejoint depuis l''appli journalisé');
+select lives_ok($$ select journaliser_tablette('tab-1', 'Redmi', 'fuseau', '{"avant": "Africa/Casablanca", "apres": "GMT"}') $$,
+  'fuseau corrigé journalisé');
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-0000000000a1", "role": "authenticated"}', true);
 select ok((select survenu_le > now() - interval '8 days' from journal_tablettes where action = 'reverrouillage'),
   'heure de la tablette bornée à une semaine');

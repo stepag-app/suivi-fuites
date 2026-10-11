@@ -23,8 +23,12 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Nom de la version (ex. 1.0.0, 0.9.1, 1.0.0-rc.1) : affiché aux tablettes dans « Nouvelle version … disponible »"
+        description: "Nom de la version (ex. 1.0.0-beta.1, 1.0.0) : versionName de l'APK, affiché aux tablettes sans libellé"
         required: true
+        type: string
+      libelle:
+        description: "Libellé affiché aux tablettes dans « Nouvelle version … disponible » (ex. 1.0 bêta) ; vide : le nom de version"
+        required: false
         type: string
       publier:
         description: "Publier pour les tablettes (R2, depuis main seulement). Décocher pour une simple compilation d'essai (artefact)."
@@ -111,6 +115,8 @@ jobs:
       # version publiée. Nom de version : celui saisi au déclenchement manuel ; 1.0.<run> pour une compilation d'essai.
       APK_VERSION_CODE: ${{ github.run_number }}
       APK_VERSION_NAME: ${{ inputs.version || format('1.0.{0}', github.run_number) }}
+      # Libellé lu par les tablettes (derniere.json : version) ; le nom de version reste dans l'APK et dans version_name.
+      APK_LIBELLE: ${{ inputs.libelle }}
     steps:
       - uses: actions/checkout@v4
       - name: Contrôler le nom de la version
@@ -227,11 +233,13 @@ jobs:
           python3 - "$APK" "$CHEMIN" > derniere.json <<'PY2'
           import datetime, hashlib, json, os, sys
           apk, chemin = sys.argv[1], sys.argv[2]
+          nom = os.environ['APK_VERSION_NAME']
+          libelle = ' '.join(os.environ.get('APK_LIBELLE', '').split())[:40] or nom
           print(json.dumps({
-            'version_code': int(os.environ['APK_VERSION_CODE']), 'version': os.environ['APK_VERSION_NAME'], 'chemin': chemin,
+            'version_code': int(os.environ['APK_VERSION_CODE']), 'version': libelle, 'version_name': nom, 'chemin': chemin,
             'taille': os.path.getsize(apk), 'sha256': hashlib.sha256(open(apk, 'rb').read()).hexdigest(),
             'commit': os.environ['GITHUB_SHA'], 'publiee_le': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-          }))
+          }, ensure_ascii=False))
           PY2
           cat derniere.json
           aws s3 cp derniere.json "s3://$R2_BUCKET/apk/derniere.json" --endpoint-url "$E" --content-type application/json --cache-control no-store
@@ -240,7 +248,7 @@ jobs:
               aws s3 rm "s3://$R2_BUCKET/apk/$ancien" --endpoint-url "$E" || true
             done || true
           echo "## APK publiée" >> "$GITHUB_STEP_SUMMARY"
-          echo "Version **$APK_VERSION_NAME** (numéro $APK_VERSION_CODE), commit \`$GITHUB_SHA\`, déposée dans R2 : les tablettes la proposent à la prochaine ouverture." >> "$GITHUB_STEP_SUMMARY"
+          echo "Version **$APK_VERSION_NAME** (numéro $APK_VERSION_CODE, libellé « $(python3 -c "import json; print(json.load(open('derniere.json'))['version'])") »), commit \`$GITHUB_SHA\`, déposée dans R2 : les tablettes la proposent à la prochaine ouverture." >> "$GITHUB_STEP_SUMMARY"
       - name: Publication non faite
         if: github.event_name == 'workflow_dispatch' && inputs.publier && (github.ref != 'refs/heads/main' || steps.signature.outputs.mode != 'production')
         run: |

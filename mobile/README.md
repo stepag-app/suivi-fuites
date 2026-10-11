@@ -168,17 +168,37 @@ tablettes à chaque fusion** : les compilations se font à des jalons, à la mai
 |---|---|
 | Pull request qui touche `mobile/` | types (`tsc`) et essais sans pile, toujours ; **compilation Gradle** (APK en artefact `suivi-fuites-apk`, 14 jours) seulement si la PR change un fichier natif (`app.json`, `app.config.js`, `plugins/`, `package.json`, `package-lock.json`) ou le workflow lui-même ; jamais de publication |
 | Push sur `main` | types et essais seulement (ni compilation ni publication) |
-| **Run workflow** (Actions › Application Android (APK), branche `main`) | compilation signée avec la clé de production, puis **publication pour les tablettes** si la case « publier » est cochée (par défaut) ; entrée obligatoire : le **nom de la version** (`1.0.0`, `0.9.1`, `1.0.0-rc.1`…), affiché aux tablettes dans « Nouvelle version … disponible ». Case décochée, ou lancé depuis une autre branche : APK en artefact seulement |
+| **Run workflow** (`gh workflow run apk.yml`, branche `main`) | compilation signée avec la clé de production, puis **publication pour les tablettes** si l'entrée « publier » est vraie (par défaut) ; entrées : **`version`** (obligatoire : nom de version de l'APK, `1.0.0-beta.1`, `1.0.0`…), **`libelle`** (facultatif : texte affiché aux tablettes dans « Nouvelle version … disponible », ex. `1.0 bêta` ; vide : le nom de version). Publier décoché, ou lancé depuis une autre branche : APK en artefact seulement |
 
-Publier une version (à la demande d'Issam seulement ; première version prévue : `1.0.0-beta.1`, « 1.0 bêta »,
-décision du 2026-10-11), depuis un poste connecté à GitHub :
+### Publier une version aux tablettes (mode d'emploi pour une session Claude)
 
-```bash
-gh workflow run apk.yml --ref main -f version=1.0.0-beta.1 -f publier=true
-```
+Flux décidé par Issam le 2026-10-11 : les essais et réglages se font sur sa tablette avec l'appli DEV (§ Tablette de
+test) ; **à sa demande**, une session Claude publie la version ; les collaborateurs reçoivent la fenêtre « Mise à jour
+disponible ». Un seul déclenchement, qui compile, signe et publie ; pas de canal de test ni de seconde étape. Versions :
+`1.0.0-beta.1` (« 1.0 bêta ») en premier, puis `1.0.0-beta.2`… selon les retours du chantier ; `versionCode` = numéro du
+run, toujours croissant.
 
-puis suivre l'exécution (`gh run watch`) ; le résumé de l'exécution confirme la version déposée dans R2. Même chose sans
-publier (`-f publier=false`) pour une compilation d'essai en artefact.
+1. **Conditions** : demande explicite d'Issam, avec le nom de version ; `gh pr list --state open` : aucune PR `mobile/`
+   qui devait entrer dans cette version ; sur `main`, dernier run « Application Android (APK) » et dernier « Déploiement
+   de la base » verts (une APK qui appelle une fonction de base absente ne sert à rien). **Jamais sans la demande d'Issam,
+   jamais depuis une autre branche que `main`.**
+2. **Lancer** (poste connecté à GitHub avec `gh`) :
+   ```bash
+   gh workflow run apk.yml --ref main -f version=1.0.0-beta.1 -f libelle="1.0 bêta" -f publier=true
+   ```
+3. **Suivre** : `gh run list --workflow apk.yml --limit 1` donne le numéro de l'exécution, puis
+   `gh run watch <numéro> --exit-status` (12 à 15 min : types, essais, `expo prebuild`, Gradle, signature, dépôt).
+4. **Contrôler** : exécution verte ; résumé « APK publiée » (version, numéro = `versionCode`, libellé) ; dans le journal
+   de l'étape « Publier la version (R2) », le contenu de `derniere.json` (`version_code`, `version` = libellé affiché,
+   `version_name`, `chemin`, `sha256`, `publiee_le`) ; sur une tablette connectée, à l'ouverture suivante, la fenêtre
+   « Nouvelle version 1.0 bêta disponible ». Les tablettes vérifient au plus toutes les 6 h : la fenêtre peut attendre la
+   prochaine ouverture de l'appli.
+5. **Rendre compte** à Issam : nom, libellé, numéro, heure de publication, commit de `main`.
+6. **Échec** : étape rouge à lire dans `gh run view <numéro> --log-failed` ; « Secrets R2 absents » : rien n'est publié ;
+   « Publication non faite » (avertissement) : lancé hors de `main` ou sans la clé de production ; panne passagère de
+   GitHub : `gh run rerun <numéro>`. Une exécution qui a échoué avant le dépôt ne change rien pour les tablettes.
+
+Même commande avec `-f publier=false` pour une compilation d'essai (artefact `suivi-fuites-apk`, rien de publié).
 
 Une fois par dépôt, créer le secret **`EXPO_PUBLIC_SUPABASE_ANON_KEY`** (clé anon, comme pour Vercel) ; sans lui l'APK
 se compile mais ne peut pas se connecter.

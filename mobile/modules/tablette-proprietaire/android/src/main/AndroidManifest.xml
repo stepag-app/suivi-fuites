@@ -6,6 +6,9 @@
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <!-- Liste des applis installées : celles à cacher et celles privées de 4G. -->
   <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+  <!-- Wi-Fi depuis l'appli (réseaux disponibles, connexion) : droits du propriétaire de l'appareil. -->
+  <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+  <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
   <application>
     <receiver

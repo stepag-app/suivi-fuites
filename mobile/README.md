@@ -275,6 +275,7 @@ adb et l'appli DEV gardés). Hors propriétaire (tablettes Samsung actuelles, é
 | Déverrouillage par code temporaire (créé sur le panneau, vérifié par la base, 15 min / 1 h / 4 h, ou libération) | `src/tablette.tsx` (bouton « Tablette » de la liste, écran du code, bandeau), fonctions `utiliser_code_tablette` et `journaliser_tablette` (migration `20261016100000`) |
 | Mise à jour sans fenêtre d'Android (« Installer maintenant » suffit, l'appli se rouvre seule) | `src/mise-a-jour.tsx` → `installerApk` (`Installateur.kt` : empreinte SHA-256, même paquet, même certificat, session PackageInstaller) |
 | Préparation par QR code (Android 12+) | `ActiviteModeProvisionnement`, `ActiviteConformite` ; QR code imprimé depuis le panneau ; APK servie par la fonction `apk-enrolement` |
+| Wi-Fi sans Paramètres (l'agent rejoint n'importe quel réseau, forfait 4G épuisé) | `src/tablette.tsx` (`CarteWifi`), `Wifi.kt` (`WifiManager` : balayage du système, `addNetwork` + `enableNetwork`, droits du propriétaire ; WPA/WPA2, WPA3, WEP, ouvert ; pas d'entreprise) |
 | Secours par adb (profil essai seulement, permission `DUMP` réservée au shell) | `adb shell am broadcast -n <paquet>/ma.stepag.tablette.RecepteurSecours --es action etat` (`appliquer`, `deverrouiller --ei minutes 60`, `reverrouiller`, `liberer`) |
 
 Préparer la Redmi d'essai (profil essai) : aucun compte sur la tablette (sinon `dpm` refuse), puis

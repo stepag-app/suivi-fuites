@@ -477,6 +477,11 @@ du propriétaire), bandeau « Hors ligne » de la liste cliquable ; PR [#118](ht
 **vérifié sur la Redmi le 2026-10-12 à 00:15** (tablette verrouillée, liste des réseaux, mot de passe tapé par Issam,
 connexion WPA2 obtenue, événement journalisé).
 
+**Fuseau** (2026-10-12) : la Redmi affichait une heure d'avance (base des fuseaux d'HyperOS d'avant 2026d : Maroc encore
+UTC+1). Réglée à GMT par câble ; la politique de l'appli corrige désormais seule les tablettes dans ce cas (fuseau GMT,
+fuseau automatique coupé, heure toujours automatique), événement « fuseau » au journal (migration `20261016200000`, qui
+admet aussi l'événement « wifi » de la PR #118).
+
 **Reste** (dans l'ordre) :
 1. ~~Fusionner la PR~~ (fait le 2026-10-11, base déployée), puis, sur la Redmi, **le parcours complet du code** :
    Issam génère un code sur `fuites.stepag.ma` › Paramètres › Tablettes, le tape dans Suivi fuites DEV › Tablette ;

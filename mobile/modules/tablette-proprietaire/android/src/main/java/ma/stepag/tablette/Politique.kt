@@ -289,6 +289,7 @@ object Politique {
     if (Build.VERSION.SDK_INT >= 30) {
       runCatching { dpm.setLocationEnabled(admin, true) }.onFailure { Log.w(ETIQUETTE, "localisation : ${it.message}") }
     }
+    corrigerFuseauMaroc(ctx, dpm, admin, bilan)
 
     // 5. Suivi fuites jamais arrêtée par l'agent ni endormie par Android (suivi GPS) : ni arrêt forcé ni effacement des
     // données depuis les Paramètres, exemption des paliers d'inactivité (App Standby). L'économiseur de batterie
@@ -314,6 +315,27 @@ object Politique {
     if (ouverte) programmerFin(ctx, deverrouilleeJusqua(ctx))
     Log.i(ETIQUETTE, "politique : $bilan")
     return bilan
+  }
+
+  /** Bascule du Maroc à UTC+0 sans heure d'été (tzdata 2026d) : 2026-09-20 01:00 UTC. */
+  private const val BASCULE_MAROC_UTC_MS = 1789866000000L
+
+  /**
+   * Tablette réglée sur Africa/Casablanca avec une base des fuseaux d'avant 2026d (Redmi Pad 2, HyperOS 2.0 : encore
+   * UTC+1) : l'heure affichée a une heure d'avance. Fuseau fixé à GMT, fuseau automatique coupé (il remettrait
+   * Casablanca) ; l'heure elle-même reste automatique. Sans effet sur une tablette à jour (décalage déjà nul).
+   */
+  private fun corrigerFuseauMaroc(ctx: Context, dpm: DevicePolicyManager, admin: ComponentName, bilan: JSONObject) {
+    if (Build.VERSION.SDK_INT < 30) return
+    val maintenant = System.currentTimeMillis()
+    val casablanca = java.util.TimeZone.getTimeZone("Africa/Casablanca")
+    if (java.util.TimeZone.getDefault().id != casablanca.id || maintenant < BASCULE_MAROC_UTC_MS || casablanca.getOffset(maintenant) == 0) return
+    runCatching {
+      dpm.setAutoTimeZoneEnabled(admin, false)
+      check(dpm.setTimeZone(admin, "GMT")) { "fuseau refusé" }
+      bilan.put("fuseau", "GMT")
+      noterEvenement(ctx, "fuseau", JSONObject().put("avant", casablanca.id).put("apres", "GMT"))
+    }.onFailure { Log.w(ETIQUETTE, "fuseau : ${it.message}") }
   }
 
   // ---------------------------------------------------------------------------------------------------------------

@@ -54,6 +54,8 @@ const ACTIONS: Record<string, string> = {
   preparation: 'Préparée (QR code)',
   transfert: 'Propriété transférée',
   transfert_recu: 'Propriété reçue',
+  wifi: 'Wi-Fi rejoint',
+  fuseau: 'Fuseau corrigé (GMT)',
 };
 
 interface LigneJournal {
@@ -82,6 +84,7 @@ function detailJournal(l: LigneJournal): string {
     if (gardees.length) morceaux.push(`applis gardées : ${gardees.join(', ')}`);
   }
   if (l.action === 'installation_echec' && typeof d.message === 'string') morceaux.push(d.message);
+  if (l.action === 'wifi' && typeof d.ssid === 'string') morceaux.push(d.ssid);
   return morceaux.join(' · ');
 }
 

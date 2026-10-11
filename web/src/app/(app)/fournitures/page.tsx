@@ -121,7 +121,6 @@ function Inventaire() {
     secteur: valeursFiltre(lignes, filtres, 'secteur'),
     chef: valeursFiltre(lignes, filtres, 'chef'),
   }), [lignes, filtres]);
-  const description = useMemo(() => decrireFiltres(filtres, periode, libellesChoisis(lignes, filtres)), [filtres, periode, lignes]);
   const titrePeriode = libellePeriode(periode);
 
   // Excel : le tableau croisé affiché, puis le détail par pièce (en-tête du marché, logos compris).

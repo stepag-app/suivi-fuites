@@ -21,7 +21,6 @@ import {
   FILTRES_RAPPROCHEMENT_DEFAUT, colonnesExportRapprochement, famillesDe, filtrerRapprochement, totalRapprochement, trierRapprochement,
   type FiltresRapprochement, type LigneRapprochement,
 } from '@/lib/dolibarr/rapprochement';
-import { dateHeure } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { formaterQuantite, libelleFamille } from '@/lib/ui/fournitures';
 import { debutDeMois, finDeMois, jourCasa, libellePeriode } from '../inventaire';

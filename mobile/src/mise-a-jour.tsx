@@ -1,7 +1,9 @@
 // Mise à jour de l'APK sur les tablettes (X2). Chaque APK de main signée avec la clé de production est publiée par la
 // CI dans le compartiment privé R2 (workflow apk.yml) ; la fonction serveur version-apk donne la dernière version et
 // une URL signée. Quand elle est plus récente que celle installée, la liste propose « Nouvelle version » : téléchargement
-// dans le cache de l'appli, puis l'installateur d'Android (même signature : données et envois en attente gardés).
+// dans le cache de l'appli, puis l'installateur d'Android (même signature : données et envois en attente gardés) ; sur
+// une tablette dont Suivi fuites est propriétaire (lot TP), installation directe sans fenêtre d'Android : l'agent a
+// seulement touché « Installer », l'appli se ferme et se rouvre seule.
 // Contrôle à l'ouverture puis au retour sur l'appli, au plus toutes les 6 h ; jamais sans réseau. Une version trouvée
 // s'annonce d'abord par une fenêtre (sur la liste, jamais au milieu d'une saisie) ; « Plus tard » la referme jusqu'au
 // prochain démarrage et le bandeau de la liste reste.
@@ -10,6 +12,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Modal, Text, View } from 'react-native';
+import { estProprietaire, installerApk } from '../modules/tablette-proprietaire';
 import { t, useLangue } from './langue';
 import { versionPlusRecente } from './regles';
 import { useSession } from './session';
@@ -18,7 +21,7 @@ import { supabase } from './supabase';
 import { Icone } from './icones';
 import { Bouton, Carte, COULEURS, Message, s } from './ui';
 
-export interface Version { version_code: number; version: string; taille: number; url: string }
+export interface Version { version_code: number; version: string; taille: number; url: string; sha256?: string }
 const INTERVALLE_MS = 6 * 60 * 60 * 1000;
 const DOSSIER = `${FileSystem.cacheDirectory}mises-a-jour/`;
 
@@ -56,6 +59,7 @@ const mo = (octets: number) => (octets / 1024 / 1024).toLocaleString('fr-FR', { 
 
 function useInstallation(version: Version) {
   const [progression, setProgression] = useState<number | null>(null);
+  const [installation, setInstallation] = useState(false);
   const [erreur, setErreur] = useState('');
 
   async function installer() {
@@ -72,8 +76,20 @@ function useInstallation(version: Version) {
       if (!r || r.status !== 200 || !info.exists || (version.taille && info.size !== version.taille)) {
         throw new Error(t('fichier incomplet'));
       }
-      const uri = await FileSystem.getContentUriAsync(fichier);
       setProgression(null);
+      if (estProprietaire()) {
+        // Contrôles (empreinte, paquet, certificat) et installation par le module ; en cas de succès, Android ferme
+        // l'appli avant que la promesse ne se règle.
+        setInstallation(true);
+        try {
+          await installerApk(fichier, version.sha256 ?? '');
+        } catch (e) {
+          setInstallation(false);
+          setErreur(String((e as Error).message ?? e));
+        }
+        return;
+      }
+      const uri = await FileSystem.getContentUriAsync(fichier);
       await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
         data: uri, flags: 1, type: 'application/vnd.android.package-archive',
       });
@@ -83,13 +99,15 @@ function useInstallation(version: Version) {
     }
   }
 
-  const titreBouton = progression != null ? t('Téléchargement… {n} %', { n: Math.round(progression * 100) }) : null;
-  return { installer: () => void installer(), occupe: progression != null, titreBouton, erreur };
+  const titreBouton = installation
+    ? t('Installation…')
+    : progression != null ? t('Téléchargement… {n} %', { n: Math.round(progression * 100) }) : null;
+  return { installer: () => void installer(), occupe: progression != null || installation, titreBouton, erreur, installation };
 }
 
 export function BandeauMiseAJour({ version }: { version: Version }) {
   useLangue();
-  const { installer, occupe, titreBouton, erreur } = useInstallation(version);
+  const { installer, occupe, titreBouton, erreur, installation } = useInstallation(version);
   return (
     <Carte>
       <View style={[s.ligne, { alignItems: 'center', justifyContent: 'space-between' }]}>
@@ -101,6 +119,7 @@ export function BandeauMiseAJour({ version }: { version: Version }) {
         </View>
         <Bouton titre={titreBouton ?? t('Installer')} icone="download" primaire onPress={installer} occupe={occupe} />
       </View>
+      {installation && <Message ton="info">{t("L'application se ferme quelques secondes puis se rouvre seule.")}</Message>}
       {!!erreur && <Message ton="erreur">{erreur}</Message>}
     </Carte>
   );
@@ -109,7 +128,7 @@ export function BandeauMiseAJour({ version }: { version: Version }) {
 /** Annonce au démarrage : « Installer maintenant » ou « Plus tard » (le bandeau de la liste reste). */
 export function FenetreMiseAJour({ version, plusTard }: { version: Version; plusTard: () => void }) {
   useLangue();
-  const { installer, occupe, titreBouton, erreur } = useInstallation(version);
+  const { installer, occupe, titreBouton, erreur, installation } = useInstallation(version);
   return (
     <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={() => !occupe && plusTard()}>
       <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', padding: 20 }}>
@@ -122,6 +141,7 @@ export function FenetreMiseAJour({ version, plusTard }: { version: Version; plus
           <Text style={s.discret}>
             {t('{taille} Mo à télécharger ; vos saisies et envois en attente sont gardés.', { taille: mo(version.taille) })}
           </Text>
+          {installation && <Message ton="info">{t("L'application se ferme quelques secondes puis se rouvre seule.")}</Message>}
           {!!erreur && <Message ton="erreur">{erreur}</Message>}
           <View style={s.ligne}>
             <Bouton titre={t('Plus tard')} grand onPress={plusTard} desactive={occupe} style={{ flexGrow: 1, flexBasis: 160 }} />

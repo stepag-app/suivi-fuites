@@ -24,3 +24,7 @@ verify_jwt = true
 # Appelée par la base (pg_cron, pg_net) avec sa clé d'appel, ou par le panneau avec le jeton du compte : elle vérifie elle-même.
 [functions.dolibarr-mouvements]
 verify_jwt = false
+
+# QR code de préparation des tablettes (lot TP) : Android télécharge l'APK au premier démarrage, sans compte ni jeton.
+[functions.apk-enrolement]
+verify_jwt = false

@@ -16,13 +16,15 @@ import { enregistrerPush, retenirLangue } from './src/push';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { SuiviGpsEcran, useSuiviGps } from './src/suivi-gps-ecran';
+import { BandeauTablette, EcranTablette, useTablette } from './src/tablette';
 import { configurationManquante } from './src/supabase';
 import type { FicheFuite } from './src/types';
 import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
-  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'fiche'; id: string }
+  | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'tablette' }
+  | { nom: 'fiche'; id: string }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -42,6 +44,8 @@ function Racine() {
   const uid = session?.user.id;
   // Suivi GPS (X6) : pendant les heures de travail du marché, tant que la session est ouverte ; arrêté à « Quitter ».
   const [suivi, relireSuivi] = useSuiviGps(uid, marche);
+  // Tablette verrouillée par l'appli (lot TP) : politique réappliquée, journal envoyé avec une session valide.
+  const [tablette, relireTablette] = useTablette(!!session && !aRenouveler);
 
   // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
   // L'écran Balayage le prend lui-même (historique de la WebView d'abord).
@@ -126,6 +130,8 @@ function Racine() {
       return <AValiderEcran retour={retourListe} ouvrir={ouvrir} />;
     case 'mesures':
       return <MesuresNuit retour={retourListe} />;
+    case 'tablette':
+      return <EcranTablette etat={tablette} relire={relireTablette} retour={retourListe} />;
     case 'suivigps':
       return <SuiviGpsEcran retour={retourListe} etat={suivi} relire={relireSuivi} uid={session.user.id} marcheId={marche.id} />;
     case 'notifications':
@@ -151,6 +157,8 @@ function Racine() {
           notifications={() => setVue({ nom: 'notifications' })}
           suiviGps={() => setVue({ nom: 'suivigps' })}
           mesures={() => setVue({ nom: 'mesures' })}
+          tablette={tablette?.proprietaire ? () => setVue({ nom: 'tablette' }) : undefined}
+          bandeauTablette={<BandeauTablette etat={tablette} ouvrir={() => setVue({ nom: 'tablette' })} />}
           suivi={suivi}
           nonLues={nonLues}
           miseAJour={miseAJour ? (

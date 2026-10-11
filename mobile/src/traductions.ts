@@ -454,6 +454,32 @@ export const TRADUCTIONS = {
   "La version {version} de l'application est prête à être installée.": { ar: 'النسخة {version} من التطبيق جاهزة للتثبيت.' },
   'Installer maintenant': { ar: 'ثبّت الآن' },
   'Plus tard': { ar: 'لاحقًا' },
+  'Installation…': { ar: 'جارٍ التثبيت…' },
+  "L'application se ferme quelques secondes puis se rouvre seule.": { ar: 'يُغلَق التطبيق بضع ثوانٍ ثم يُفتح من جديد تلقائيًا.' },
+
+  // Tablette verrouillée par Suivi fuites (lot TP, 2026-10-11) : à relire par Issam
+  'Tablette': { ar: 'الجهاز اللوحي' },
+  'Tablette verrouillée': { ar: 'الجهاز اللوحي مقفل' },
+  "Cette tablette est réservée au travail. Pour installer une appli ou changer un réglage, demandez un code à l'administrateur.": {
+    ar: 'هذا الجهاز اللوحي مخصص للعمل. لتثبيت تطبيق أو تغيير إعداد، اطلب رمزًا من مسؤول النظام.',
+  },
+  'Code de déverrouillage': { ar: 'رمز فتح القفل' },
+  'Code à 8 chiffres': { ar: 'رمز من 8 أرقام' },
+  'Déverrouiller': { ar: 'فتح القفل' },
+  'Code inconnu, expiré ou déjà utilisé.': { ar: 'رمز غير معروف أو منتهي الصلاحية أو مستعمل من قبل.' },
+  'Trop de codes refusés : réessayez dans une heure.': { ar: 'رُفضت رموز كثيرة: أعد المحاولة بعد ساعة.' },
+  'Vérification impossible : vérifiez le réseau.': { ar: 'تعذّر التحقق: تحقّق من الاتصال بالإنترنت.' },
+  "Tablette déverrouillée jusqu'à {heure}. Touchez ici pour la reverrouiller.": { ar: 'الجهاز اللوحي مفتوح حتى {heure}. المس هنا لإعادة قفله.' },
+  "Tablette déverrouillée jusqu'à {heure}": { ar: 'الجهاز اللوحي مفتوح حتى {heure}' },
+  'Paramètres et Play Store sont visibles ; une appli installée maintenant restera sur la tablette. Elle se reverrouille seule à {heure}.': {
+    ar: 'الإعدادات ومتجر Play ظاهرة؛ التطبيق الذي يُثبَّت الآن يبقى على الجهاز اللوحي. يُقفَل الجهاز تلقائيًا عند {heure}.',
+  },
+  'Reverrouiller maintenant': { ar: 'إعادة القفل الآن' },
+  'Ouvrir les Paramètres': { ar: 'فتح الإعدادات' },
+  'Ouvrir le Play Store': { ar: 'فتح متجر Play' },
+  'Tablette libérée : toutes les applis et tous les réglages sont de nouveau accessibles.': {
+    ar: 'تم تحرير الجهاز اللوحي: كل التطبيقات والإعدادات متاحة من جديد.',
+  },
 
   'Voir et ajuster sur la carte': { ar: 'عرض الموقع وضبطه على الخريطة' },
   'Position ajustée sur la carte, à {n} m du GPS.': { ar: 'تم ضبط الموقع على الخريطة، على بُعد {n} م من GPS.' },

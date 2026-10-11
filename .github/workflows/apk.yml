@@ -2,8 +2,8 @@ name: Application Android (APK)
 
 # Depuis le 2026-10-11 (décision d'Issam) : plus de nouvelle version publiée aux tablettes à chaque fusion.
 #  * Pull request qui touche mobile/ : types (tsc) et essais sans pile, toujours ; compilation Gradle (APK en artefact,
-#    14 jours) seulement si un fichier natif change (app.json, app.config.js, plugins/, package.json, package-lock.json)
-#    ou ce workflow lui-même. Jamais de publication depuis une PR.
+#    14 jours) seulement si un fichier natif change (app.json, app.config.js, plugins/, modules/, package.json,
+#    package-lock.json) ou ce workflow lui-même. Jamais de publication depuis une PR.
 #  * Push sur main : types et essais seulement (ni compilation ni publication).
 #  * Publication pour les tablettes : à la main, Actions > Application Android (APK) > Run workflow, branche main,
 #    avec le nom de version (ex. 1.0.0) : APK signée avec la clé de production, déposée dans le compartiment privé R2
@@ -15,10 +15,12 @@ on:
     branches: [main]
     paths:
       - 'mobile/**'
+      - 'outils/tablettes/**'
       - '.github/workflows/apk.yml'
   pull_request:
     paths:
       - 'mobile/**'
+      - 'outils/tablettes/**'
       - '.github/workflows/apk.yml'
   workflow_dispatch:
     inputs:
@@ -63,13 +65,14 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       # Vrai code de la file d'attente et de la session, vrai client Supabase ; serveur et réseau simulés.
-      - name: Essais sans pile (file d'attente, session hors ligne, suivi GPS, mesures de nuit)
+      - name: Essais sans pile (file d'attente, session hors ligne, suivi GPS, mesures de nuit, listes des tablettes)
         run: |
           node --import ./essais/substituts.mjs essais/file-attente-hors-pile.test.mjs
           node --import ./essais/substituts.mjs essais/mesures-nuit.test.mjs
           node --import ./essais/substituts.mjs essais/session-hors-ligne.test.mjs
           node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
           node --import ./essais/substituts.mjs essais/suivi-gps.test.mjs
+          node essais/tablette-listes.test.mjs
       - name: Faut-il compiler l'APK ?
         id: natif
         working-directory: .
@@ -89,7 +92,7 @@ jobs:
             echo "compiler=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          if printf '%s\n' "$fichiers" | grep -Eq '^(mobile/(app\.json|app\.config\.js|package\.json|package-lock\.json|plugins/)|\.github/workflows/apk\.yml)'; then
+          if printf '%s\n' "$fichiers" | grep -Eq '^(mobile/(app\.json|app\.config\.js|package\.json|package-lock\.json|plugins/|modules/)|\.github/workflows/apk\.yml)'; then
             echo "Fichier natif (ou ce workflow) modifié par la PR : compilation de l'APK."
             echo "compiler=true" >> "$GITHUB_OUTPUT"
           else

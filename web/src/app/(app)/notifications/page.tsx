@@ -6,6 +6,7 @@ import { ChevronDown, RefreshCw } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { dateHeure, messageErreur } from "@/lib/format";
 import { useSession } from "@/lib/session";
@@ -27,6 +28,7 @@ export default function Notifications() {
   const [fin, setFin] = useState(false);
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(false);
+  const [marcheFiltre, setMarcheFiltre] = useState("");
   const derniere = useRef(0);
 
   const lire = useCallback(async (de: number) => {
@@ -34,7 +36,9 @@ export default function Notifications() {
     setChargement(true);
     setErreur("");
     const sb = getSupabase();
-    const { data, error } = await sb.from("notifications").select(COLONNES)
+    let requete = sb.from("notifications").select(COLONNES);
+    if (marcheFiltre) requete = requete.eq("marche_id", marcheFiltre);
+    const { data, error } = await requete
       .order("cree_le", { ascending: false }).order("id", { ascending: false }).range(de, de + PAGE - 1);
     if (demande !== derniere.current) return;
     setChargement(false);
@@ -46,14 +50,14 @@ export default function Notifications() {
     setListe((l) => (de === 0 ? lignes : [...(l ?? []), ...lignes.filter((n) => !l?.some((x) => x.id === n.id))]));
     setFin(lignes.length < PAGE);
     if (de === 0 && lignes.some((n) => !n.lue_le)) await sb.rpc("marquer_notifications_lues");
-  }, []);
+  }, [marcheFiltre]);
 
   useEffect(() => {
     lire(0);
   }, [lire]);
 
   const codeMarche = (id: string) => marches.find((m) => m.id === id)?.code ?? "";
-  const plusieursMarches = new Set((liste ?? []).map((n) => n.marche_id)).size > 1;
+  const plusieursMarches = marches.length > 1 && !marcheFiltre;
   const nonLues = (liste ?? []).filter((n) => !n.lue_le).length;
 
   // Regroupement par jour (heure du Maroc), dans l'ordre de la liste.
@@ -76,6 +80,13 @@ export default function Notifications() {
           </Button>
         } />
 
+      {marches.length > 1 && (
+        <NativeSelect value={marcheFiltre} onChange={(e) => setMarcheFiltre(e.target.value)} aria-label="Filtrer par marché">
+          <NativeSelectOption value="">Tous les marchés</NativeSelectOption>
+          {marches.map((m) => <NativeSelectOption key={m.id} value={m.id}>{m.code}</NativeSelectOption>)}
+        </NativeSelect>
+      )}
+
       {erreur && (
         <Alert variant="destructive">
           <AlertTitle>Lecture impossible</AlertTitle>
@@ -86,7 +97,7 @@ export default function Notifications() {
       {!liste ? (
         !erreur && <p className="flex items-center gap-2 text-muted-foreground text-sm"><Spinner />Chargement…</p>
       ) : liste.length === 0 ? (
-        <Vide>Aucune notification.</Vide>
+        <Vide>{marcheFiltre ? "Aucune notification pour ce marché." : "Aucune notification."}</Vide>
       ) : (
         <div className="flex flex-col gap-4">
           {jours.map((g) => (

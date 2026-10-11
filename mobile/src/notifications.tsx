@@ -16,7 +16,7 @@ import { texteNotification, type NotificationLigne } from './regles';
 import { useSession } from './session';
 import { jetonARenouveler } from './session-donnees';
 import { supabase } from './supabase';
-import { BarreApp, COULEURS, Message, s, useBas, Vide } from './ui';
+import { BarreApp, COULEURS, Message, s, Segments, useBas, Vide } from './ui';
 
 const enLigne = (aRenouveler: boolean) => !aRenouveler && !jetonARenouveler();
 
@@ -67,11 +67,12 @@ export function useToucherNotification(ouvrir: (fuiteId: string, marcheId?: stri
 
 /** Écran des notifications : les 30 dernières ; à l'ouverture, tout est marqué lu et le rideau est vidé. */
 export function EcranNotifications({ retour, ouvrir, lues }: { retour: () => void; ouvrir: (fuiteId: string) => void; lues: () => void }) {
-  const { aRenouveler } = useSession();
+  const { aRenouveler, marches } = useSession();
   const { t } = useLangue();
   const bas = useBas();
   const [liste, setListe] = useState<NotificationLigne[] | null>(null);
   const [horsLigne, setHorsLigne] = useState(false);
+  const [marcheFiltre, setMarcheFiltre] = useState('');
 
   useEffect(() => {
     if (!enLigne(aRenouveler)) {
@@ -82,7 +83,7 @@ export function EcranNotifications({ retour, ouvrir, lues }: { retour: () => voi
     let annule = false;
     (async () => {
       const { data, error } = await supabase.from('notifications')
-        .select('id, evenement, titre, corps, donnees, fuite_id, cree_le, lue_le').order('cree_le', { ascending: false }).limit(30);
+        .select('id, marche_id, evenement, titre, corps, donnees, fuite_id, cree_le, lue_le').order('cree_le', { ascending: false }).limit(30);
       if (annule) return;
       if (error) {
         setHorsLigne(true);
@@ -105,8 +106,15 @@ export function EcranNotifications({ retour, ouvrir, lues }: { retour: () => voi
       <BarreApp titre={t('Notifications')} retour={retour} />
       <View style={[s.contenu, { flex: 1, paddingBottom: 0 }]}>
         {horsLigne && <Message ton="attention" icone="wifi-off">{t('Les notifications ont besoin de la connexion.')}</Message>}
+        {marches.length > 1 && (
+          <Segments
+            options={[{ valeur: '', libelle: t('Tous') }, ...marches.map((m) => ({ valeur: m.id, libelle: m.code }))]}
+            valeur={marcheFiltre}
+            onChange={setMarcheFiltre}
+          />
+        )}
         <FlatList
-          data={liste ?? []}
+          data={(liste ?? []).filter((n) => !marcheFiltre || n.marche_id === marcheFiltre)}
           keyExtractor={(n) => String(n.id)}
           contentContainerStyle={{ paddingBottom: 24 + bas, width: '100%', maxWidth: 920, alignSelf: 'center' }}
           ItemSeparatorComponent={() => <View style={no.separation} />}
@@ -123,7 +131,9 @@ export function EcranNotifications({ retour, ouvrir, lues }: { retour: () => voi
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[item.lue_le ? s.texte : s.texteFort, item.lue_le && { color: COULEURS.discret }]}>{texte.titre}</Text>
                   {!!texte.corps && <Text style={s.discret}>{texte.corps}</Text>}
-                  <Text style={s.petit}>{dateHeure(item.cree_le)}</Text>
+                  <Text style={s.petit}>
+                    {dateHeure(item.cree_le)}{marches.length > 1 ? ` · ${marches.find((m) => m.id === item.marche_id)?.code ?? ''}` : ''}
+                  </Text>
                 </View>
               </Pressable>
             );

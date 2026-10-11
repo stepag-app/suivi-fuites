@@ -434,6 +434,7 @@ export const TRADUCTIONS = {
   'Notifications': { ar: 'الإشعارات' },
   'Les notifications ont besoin de la connexion.': { ar: 'الإشعارات تحتاج إلى الاتصال بالإنترنت.' },
   'Aucune notification.': { ar: 'لا توجد أي إشعارات.' },
+  'Tous': { ar: 'الكل' },
   'Nouvelle fuite N° {numero} détectée': { ar: 'تسرب جديد رقم {numero} تم كشفه' },
   'Réparation saisie : fuite N° {numero}': { ar: 'تم إدخال إصلاح: التسرب رقم {numero}' },
   'Fuite N° {numero} réparée et validée : réfection à faire': { ar: 'التسرب رقم {numero} تم إصلاحه والمصادقة عليه: إعادة الرصف متبقية', hyb: 'التسرب رقم {numero} تم إصلاحه والمصادقة عليه: الـ Réfection متبقية' },

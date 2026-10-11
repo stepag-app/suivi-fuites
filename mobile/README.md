@@ -284,15 +284,22 @@ déverrouillage) une fois celle-ci installée avec le module. À savoir : Androi
 propriétaire (pour relancer l'appli DEV : `adb shell run-as ma.stepag.suivifuites.dev kill <pid>`) ; le reverrouillage
 automatique passe par une alarme inexacte (quelques minutes de marge).
 
-**HyperOS (Xiaomi)** : trois autorisations propres au fabricant, que le propriétaire ne peut pas s'accorder lui-même, font
-partie de la préparation (mode d'emploi du panneau, pendant un déverrouillage, Paramètres › Applis › Gérer les applis ›
-Suivi des fuites) : **Démarrage automatique** (sans lui, HyperOS refuse de lancer l'appli pour une diffusion :
-« process is not permitted to auto start », donc ni relance après une mise à jour, ni alarme de reverrouillage si l'appli
-est fermée, ni réapplication au redémarrage), **Fenêtres contextuelles en arrière-plan** (relance au premier plan après
-une mise à jour) et **Économiseur de batterie : aucune restriction** (suivi GPS). Sur la Redmi d'essai, par adb :
-`adb shell appops set <paquet> 10008 allow` (démarrage automatique) et `… 10021 allow` (fenêtres en arrière-plan). Pour
-que ces pages restent accessibles, la « Sécurité » de Xiaomi (`com.miui.securitycenter`) est remontrée pendant un
-déverrouillage, avec Paramètres et Play Store.
+**HyperOS (Xiaomi)** : des autorisations propres au fabricant, que le propriétaire ne peut pas s'accorder lui-même.
+- **Démarrage automatique** (op MIUI 10008) : sans lui, HyperOS refuse de lancer l'appli fermée pour une diffusion
+  (« process is not permitted to auto start ») : ni alarme de reverrouillage si l'appli est fermée (le reverrouillage se
+  fait alors à l'ouverture suivante), ni diffusion « paquet remplacé ». Sur la Redmi Pad 2 (HyperOS 2.0, tablette), ce
+  réglage **n'est pas proposé** pour l'appli (ni sur sa page, ni dans la liste globale) ; par adb, `appops set <paquet>
+  10008 allow` tient jusqu'au prochain réglage fait dans l'interface. L'appli n'en dépend donc pas : la réouverture
+  après une mise à jour passe par le compte rendu d'installation (envoyé par le système, il atteint le nouveau processus).
+- **Fenêtres contextuelles en arrière-plan** (op 10021, Paramètres › Applis › Gérer les applis › Suivi des fuites ›
+  Autorisations de l'application › Autres autorisations › « Ouvrir de nouvelles fenêtres contextuelles pendant
+  l'exécution en arrière-plan », « Toujours autoriser ») : nécessaire pour revenir au premier plan après une mise à jour ;
+  réglé dans l'interface, il survit aux mises à jour (vérifié le 2026-10-11).
+- **Batterie** (page de l'appli › Batterie : aucune restriction) : suivi GPS.
+Pour que ces pages restent accessibles, la « Sécurité » de Xiaomi (`com.miui.securitycenter`) est remontrée pendant un
+déverrouillage, avec Paramètres et Play Store. Installation par câble (`adb install`) : refusée par HyperOS
+(« Install canceled by user », garde-fou « Installer via USB » lié au compte Xiaomi) : passer par la mise à jour de
+l'appli elle-même (APK copiée dans son cache par `run-as`, puis `installerApk`).
 
 ### Suivi GPS : à faire sur chaque tablette Samsung
 

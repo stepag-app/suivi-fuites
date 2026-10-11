@@ -259,9 +259,12 @@ commande de secours : Paramètres et Play Store réapparus, `no_install_apps` et
 `lastUpdateTime` changé, session de l'agent gardée, politique réappliquée par le nouveau processus. **Limite HyperOS** :
 sans « Démarrage automatique » (op MIUI 10008), HyperOS refuse de lancer l'appli pour la diffusion « paquet remplacé »
 (« process is not permitted to auto start ») ; sans « Fenêtres contextuelles en arrière-plan » (op 10021), la relance ne
-revient pas au premier plan. Ces deux réglages (et l'économiseur de batterie) font partie de la préparation de la tablette
-(mode d'emploi du panneau) ; sur la Redmi : `appops set … allow` par adb. La « Sécurité » de Xiaomi reste visible pendant
-un déverrouillage pour y accéder.
+revient pas au premier plan. Le réglage « fenêtres en arrière-plan » (et la batterie) fait partie de la préparation de la tablette (mode d'emploi du
+panneau) ; il survit aux mises à jour. Le « démarrage automatique » n'est **pas proposé** par HyperOS 2.0 tablette pour
+l'appli : la réouverture après mise à jour passe par le compte rendu d'installation (reçu par le nouveau processus) ; si
+l'appli est fermée, le reverrouillage se fait à l'ouverture suivante. La « Sécurité » de Xiaomi reste visible pendant un
+déverrouillage pour accéder à ces pages. `adb install` refusé par HyperOS (« Installer via USB ») : l'APK DEV s'installe
+par la mise à jour de l'appli elle-même.
 
 1. Propriétaire déclaré (`dumpsys device_policy`), profil essai.
 2. Écran d'accueil réduit aux applis gardées ; Paramètres, Play Store, Galerie, Thèmes introuvables ; volet rapide utilisable.

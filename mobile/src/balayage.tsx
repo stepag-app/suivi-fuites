@@ -180,7 +180,9 @@ export function Balayage({ retour }: { retour: () => void }) {
           }}
           onRenderProcessGone={() => setMessage("La carte s'est arrêtée. Réessayez.")}
           // Tronçon coché ou balayage enregistré sur la carte : une pause du suivi GPS en cours prend fin.
+          // Seule une page du panneau est écoutée (l'adresse de la page qui envoie le message est vérifiée).
           onMessage={(e) => {
+            if (!estPanneau(e.nativeEvent.url)) return;
             if (/"activite-balayage"/.test(e.nativeEvent.data)) void reprendreSuivi('balayage').catch(() => undefined);
           }}
         />

@@ -14,6 +14,7 @@ import type { Suggestions } from './types';
 import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
+const duPanneau = (url: string) => url === ORIGINE || url.startsWith(`${ORIGINE}/`);
 // Le panneau renouvelle sa copie de la session ~1,5 min avant l'échéance, avec le même jeton de rafraîchissement que la
 // tablette (rotation Supabase : un jeton réutilisé déconnecte les deux). La carte ne s'ouvre qu'avec un jeton encore
 // valable longtemps ; la tablette renouvelle le jeton la première (comme le Balayage).
@@ -113,8 +114,11 @@ export function MiniCarte({ visible, marcheId, gps, fermer, valider }: {
               domStorageEnabled
               setSupportMultipleWindows={false}
               applicationNameForUserAgent="SuiviFuitesAPK"
-              onShouldStartLoadWithRequest={(d) => d.url === ORIGINE || d.url.startsWith(`${ORIGINE}/`) || d.url.startsWith('about:')}
-              onMessage={(e) => recevoir(e.nativeEvent.data)}
+              onShouldStartLoadWithRequest={(d) => duPanneau(d.url) || d.url.startsWith('about:')}
+              // Position et suggestions acceptées seulement d'une page du panneau (adresse de l'expéditeur vérifiée).
+              onMessage={(e) => {
+                if (duPanneau(e.nativeEvent.url)) recevoir(e.nativeEvent.data);
+              }}
               onError={() => setEtat('hors_ligne')}
               onHttpError={(e) => e.nativeEvent.statusCode >= 500 && setEtat('erreur')}
               onRenderProcessGone={() => setEtat('erreur')}

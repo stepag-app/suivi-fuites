@@ -477,6 +477,13 @@ du propriétaire), bandeau « Hors ligne » de la liste cliquable ; PR [#118](ht
 **vérifié sur la Redmi le 2026-10-12 à 00:15** (tablette verrouillée, liste des réseaux, mot de passe tapé par Issam,
 connexion WPA2 obtenue, événement journalisé).
 
+**Wi-Fi avant la connexion** (2026-10-12) : la Redmi s'est retrouvée sans SIM ni Wi-Fi enregistré, session fermée ; la
+connexion exige le réseau et le bloc Wi-Fi n'était qu'après connexion : l'agent était bloqué. Sur une tablette
+verrouillée, l'écran Connexion montre un lien **Wi-Fi** discret (en haut à droite, à côté de la langue) tant qu'aucun
+Wi-Fi n'est connecté (lu toutes les 15 s) ou après un échec de connexion faute de réseau (message « vérifiez le réseau »
+alors touchable). Il ouvre le même bloc (`CarteWifi`, écran `EcranWifi`) et rien d'autre : code et déverrouillage restent
+derrière la session. tsc et 6 essais sans pile verts ; **à vérifier sur la Redmi** avec l'APK suivante (rien de publié).
+
 **Fuseau** (2026-10-12) : la Redmi affichait une heure d'avance (base des fuseaux d'HyperOS d'avant 2026d : Maroc encore
 UTC+1). Réglée à GMT par câble ; la politique de l'appli corrige désormais seule les tablettes dans ce cas (fuseau GMT,
 fuseau automatique coupé, heure toujours automatique), événement « fuseau » au journal (migration `20261016200000`, qui

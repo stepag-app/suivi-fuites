@@ -116,7 +116,7 @@ function Racine() {
       </View>
     );
   }
-  if (!session) return <Connexion />;
+  if (!session) return <Connexion proprietaire={tablette?.proprietaire === true} />;
   if (!marche) return <Avis texte={t("Aucun marché n'est affecté à votre compte. Contactez l'administrateur.")} />;
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {

@@ -24,6 +24,8 @@ export const TRADUCTIONS = {
   'Se connecter': { ar: 'دخول' },
   'Identifiant ou mot de passe incorrect.': { ar: 'اسم المستخدم أو كلمة المرور غير صحيحة.' },
   'Connexion impossible : vérifiez le réseau.': { ar: 'تعذّر الدخول: تحقّق من الاتصال بالإنترنت.' },
+  'Connexion impossible : vérifiez le réseau. Touchez ici pour choisir un Wi-Fi.': { ar: 'تعذّر الدخول: تحقّق من الاتصال بالإنترنت. المس هنا لاختيار شبكة Wi-Fi.' },
+  'Choisir un réseau Wi-Fi': { ar: 'اختيار شبكة Wi-Fi' },
   'Bonjour': { ar: 'مرحبًا' },
   'Connectez-vous pour continuer': { ar: 'سجّل الدخول للمتابعة' },
   "Entrez l'identifiant et le mot de passe remis par l'administrateur.": { ar: 'أدخل اسم المستخدم وكلمة المرور اللذين سلّمهما لك مسؤول النظام.' },

@@ -5,16 +5,15 @@
 import * as Application from 'expo-application';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, BackHandler, Pressable, ScrollView, Text, View } from 'react-native';
+import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
 import {
-  acquitterEvenements, activerWifi, appliquerPolitique, connecterWifi, deverrouiller, etatTablette, etatWifi, evenementsEnAttente,
-  liberer, oublierWifi, reverrouiller, transfererVers, type EtatTablette, type EtatWifi, type ReseauWifi,
+  acquitterEvenements, appliquerPolitique, deverrouiller, etatTablette, evenementsEnAttente, liberer, reverrouiller, transfererVers,
+  type EtatTablette,
 } from '../modules/tablette-proprietaire';
 import { t, useLangue } from './langue';
 import { hhmm, heureLocale } from './suivi-gps-regles';
 import { supabase } from './supabase';
-import { Icone } from './icones';
-import { BarreApp, Bouton, Carte, COULEURS, Message, Saisie, s, useBas } from './ui';
+import { BarreApp, Bouton, Carte, Message, Saisie, s, useBas } from './ui';
 
 const REAPPLIQUER_MS = 10 * 60 * 1000;
 const heure = (ms: number) => hhmm(heureLocale(ms).minutes);
@@ -95,180 +94,6 @@ export function BandeauTablette({ etat, ouvrir }: { etat: EtatTablette | null; o
 
 type Retour = { ton: 'erreur' | 'info'; texte: string } | null;
 
-const WIFI_RAFRAICHIR_MS = 5000;
-const signal = (niveau: number) => '▂▄▆█'.slice(0, Math.max(1, Math.min(4, niveau))).padEnd(4, '·');
-
-/**
- * Wi-Fi depuis l'appli (demande d'Issam du 2026-10-11) : la tablette verrouillée cache les Paramètres, mais l'agent doit
- * pouvoir rejoindre n'importe quel réseau (forfait 4G épuisé) pour envoyer ses fuites. Le propriétaire de l'appareil
- * garde ce droit ; la liste vient des balayages du système.
- */
-function CarteWifi() {
-  const [etat, setEtat] = useState<EtatWifi | null>(null);
-  const [choisi, setChoisi] = useState<ReseauWifi | null>(null);
-  const [motDePasse, setMotDePasse] = useState('');
-  const [occupe, setOccupe] = useState(false);
-  const [message, setMessage] = useState<Retour>(null);
-  const relire = useCallback(() => {
-    try {
-      setEtat(etatWifi());
-    } catch {
-      setEtat(null);
-    }
-  }, []);
-  useEffect(() => {
-    relire();
-    const minuteur = setInterval(relire, WIFI_RAFRAICHIR_MS);
-    return () => clearInterval(minuteur);
-  }, [relire]);
-
-  async function agir(action: () => Promise<unknown>, apres?: () => void) {
-    setOccupe(true);
-    setMessage(null);
-    try {
-      await action();
-      apres?.();
-    } catch (e) {
-      setMessage({ ton: 'erreur', texte: (e as { message?: string }).message ?? String(e) });
-    } finally {
-      relire();
-      setOccupe(false);
-    }
-  }
-  const choisir = (r: ReseauWifi) => {
-    setMessage(null);
-    if (r.connecte) return;
-    if (r.type === 'entreprise') {
-      setMessage({ ton: 'erreur', texte: t("Réseau d'entreprise, non pris en charge") });
-      return;
-    }
-    if (r.type === 'ouvert' || r.connu) {
-      void agir(() => connecterWifi(r.ssid, '', r.type));
-      return;
-    }
-    setChoisi(r);
-    setMotDePasse('');
-  };
-  const connecter = () => {
-    if (!choisi) return;
-    void agir(() => connecterWifi(choisi.ssid, motDePasse, choisi.type), () => {
-      setChoisi(null);
-      setMotDePasse('');
-      setMessage({ ton: 'info', texte: t('Connexion en cours…') });
-    });
-  };
-
-  return (
-    <Carte style={{ gap: 12 }}>
-      <View style={[s.ligne, { alignItems: 'center', flexWrap: 'nowrap' }]}>
-        <Icone nom={etat?.actif ? 'wifi' : 'wifi-off'} taille={24} couleur={COULEURS.principal} />
-        <Text style={[s.titreCarte, { flex: 1 }]}>{t('Wi-Fi')}</Text>
-        {etat?.actif && <Bouton titre={t('Actualiser')} icone="refresh-cw" fantome onPress={relire} />}
-      </View>
-      {!etat ? null : !etat.actif ? (
-        <>
-          <Text style={s.texte}>{t('Wi-Fi éteint.')}</Text>
-          <Bouton titre={t('Allumer le Wi-Fi')} icone="wifi" primaire onPress={() => void agir(() => activerWifi(true))} occupe={occupe} style={{ alignSelf: 'flex-start' }} />
-        </>
-      ) : (
-        <>
-          <Text style={s.texte}>
-            {etat.ssidConnecte ? t('Connecté à {ssid}', { ssid: etat.ssidConnecte }) : t('Aucun réseau Wi-Fi connecté.')}
-          </Text>
-          {!!message && <Message ton={message.ton}>{message.texte}</Message>}
-          {choisi && (
-            <View style={{ gap: 8 }}>
-              <Text style={s.texteFort}>{t('Mot de passe du réseau {ssid}', { ssid: choisi.ssid })}</Text>
-              <Saisie
-                value={motDePasse} onChangeText={setMotDePasse} secureTextEntry autoCapitalize="none" autoCorrect={false}
-                returnKeyType="go" onSubmitEditing={connecter} accessibilityLabel={t('Mot de passe du réseau {ssid}', { ssid: choisi.ssid })}
-              />
-              <View style={s.ligne}>
-                <Bouton titre={t('Annuler')} onPress={() => setChoisi(null)} desactive={occupe} />
-                <Bouton titre={t('Se connecter au réseau')} icone="wifi" primaire onPress={connecter} occupe={occupe} desactive={motDePasse.length < (choisi.type === 'wep' ? 5 : 8)} />
-              </View>
-            </View>
-          )}
-          <Text style={s.texteFort}>{t('Réseaux disponibles')}</Text>
-          {etat.reseaux.length === 0 && <Text style={s.discret}>{t('Aucun réseau trouvé pour le moment.')}</Text>}
-          {etat.reseaux.map((r) => (
-            <Pressable
-              key={r.ssid} onPress={() => choisir(r)} disabled={occupe} accessibilityRole="button"
-              style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', gap: 12, minHeight: 52, paddingVertical: 6 }, pressed && { opacity: 0.6 }]}
-            >
-              <Text style={[s.texteFort, { fontVariant: ['tabular-nums'], width: 56 }]}>{signal(r.niveau)}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={r.connecte ? s.texteFort : s.texte}>{r.ssid}</Text>
-                <Text style={s.discret}>
-                  {r.connecte ? t('Connecté à {ssid}', { ssid: r.ssid })
-                    : r.connu ? t('Réseau enregistré')
-                      : r.type === 'ouvert' ? t('Réseau ouvert')
-                        : r.type === 'entreprise' ? t("Réseau d'entreprise, non pris en charge") : ''}
-                </Text>
-              </View>
-              {r.connu && !r.connecte && (
-                <Bouton titre={t('Oublier ce réseau')} fantome onPress={() => void agir(() => oublierWifi(r.ssid))} desactive={occupe} />
-              )}
-              {!r.connecte && r.type !== 'entreprise' && <Icone nom={r.type === 'ouvert' ? 'wifi' : 'lock'} taille={18} couleur={COULEURS.discret} />}
-            </Pressable>
-          ))}
-        </>
-      )}
-    </Carte>
-  );
-}
-
-const WIFI_CONNEXION_MS = 15000;
-
-/**
- * Écran Connexion d'une tablette verrouillée (demande d'Issam du 2026-10-12 : Redmi sans SIM ni Wi-Fi enregistré,
- * l'agent ne pouvait plus se connecter). Lien Wi-Fi visible tant qu'aucun Wi-Fi n'est connecté, ou après un échec de
- * connexion faute de réseau (Wi-Fi sans internet).
- */
-export function useLienWifi(proprietaire: boolean, echecReseau: boolean): boolean {
-  const [sansWifi, setSansWifi] = useState(false);
-  useEffect(() => {
-    if (!proprietaire) return;
-    const lire = () => {
-      try {
-        setSansWifi(!etatWifi().ssidConnecte);
-      } catch {
-        setSansWifi(true);
-      }
-    };
-    lire();
-    const minuteur = setInterval(lire, WIFI_CONNEXION_MS);
-    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && lire());
-    return () => {
-      clearInterval(minuteur);
-      abonnement.remove();
-    };
-  }, [proprietaire]);
-  return proprietaire && (sansWifi || echecReseau);
-}
-
-/** Wi-Fi seul, avant la connexion : le code et le déverrouillage de l'écran Tablette restent derrière la session. */
-export function EcranWifi({ retour }: { retour: () => void }) {
-  useLangue();
-  const bas = useBas();
-  useEffect(() => {
-    const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
-      retour();
-      return true;
-    });
-    return () => abonnement.remove();
-  }, [retour]);
-  return (
-    <View style={s.ecran}>
-      <BarreApp titre={t('Wi-Fi')} retour={retour} />
-      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
-        <CarteWifi />
-        <Bouton titre={t('Retour')} icone="arrow-left" onPress={retour} />
-      </ScrollView>
-    </View>
-  );
-}
-
 export function EcranTablette({ etat, relire, retour }: { etat: EtatTablette | null; relire: () => void; retour: () => void }) {
   useLangue();
   const bas = useBas();
@@ -334,7 +159,6 @@ export function EcranTablette({ etat, relire, retour }: { etat: EtatTablette | n
     <View style={s.ecran}>
       <BarreApp titre={t('Tablette')} sousTitre={etat ? `${etat.modele} · ${etat.appareil.slice(-6)}` : undefined} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
-        {etat?.proprietaire && <CarteWifi />}
         {ouverte ? (
           <Carte style={{ gap: 14 }}>
             <Text style={s.titreCarte}>{t("Tablette déverrouillée jusqu'à {heure}", { heure: heure(ouverte) })}</Text>

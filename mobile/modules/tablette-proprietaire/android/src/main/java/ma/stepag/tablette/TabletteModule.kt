@@ -39,12 +39,6 @@ class TabletteModule : Module() {
 
     AsyncFunction("liberer") { garde { Politique.liberer(ctx) } }
 
-    // Wi-Fi depuis l'appli (tablette verrouillée : les Paramètres sont cachés)
-    Function("wifiEtat") { garde { Wifi.etat(ctx).toString() } }
-    AsyncFunction("wifiActiver") { actif: Boolean -> garde { Wifi.activer(ctx, actif) } }
-    AsyncFunction("wifiConnecter") { ssid: String, motDePasse: String, type: String -> garde { Wifi.connecter(ctx, ssid, motDePasse, type) } }
-    AsyncFunction("wifiOublier") { ssid: String -> garde { Wifi.oublier(ctx, ssid) } }
-
     Function("evenementsEnAttente") { Politique.evenements(ctx).toString() }
 
     Function("acquitterEvenements") { n: Int -> Politique.acquitterEvenements(ctx, n) }

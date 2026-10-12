@@ -15,7 +15,6 @@ import { useSession } from './session';
 import type { EtatSuivi } from './suivi-gps';
 import { heureLocale, hhmm } from './suivi-gps-regles';
 import { emailDepuisIdentifiant, supabase } from './supabase';
-import { EcranWifi, useLienWifi } from './tablette';
 import type { StatutFuite, VFuite } from './types';
 import {
   Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
@@ -27,9 +26,6 @@ export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) 
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
   const [echecReseau, setEchecReseau] = useState(false);
-  const [wifi, setWifi] = useState(false);
-  const lienWifi = useLienWifi(proprietaire, echecReseau);
-  const fermerWifi = useCallback(() => setWifi(false), []);
   const [occupe, setOccupe] = useState(false);
   const [voir, setVoir] = useState(false);
   const [clavier, setClavier] = useState(0);
@@ -70,8 +66,6 @@ export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) 
     setOccupe(false);
   }
 
-  if (wifi) return <EcranWifi retour={fermerWifi} />;
-
   // Écran de connexion du panneau : volet noir « Bonjour » à gauche sur tablette en paysage, formulaire à droite.
   return (
     <View style={[s.ecran, l.connexion, { paddingTop: haut }]}>
@@ -83,17 +77,6 @@ export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) 
         </View>
       )}
       <View style={[l.coinConnexion, { top: haut + 12 }]}>
-        {lienWifi && (
-          <Pressable
-            onPress={() => setWifi(true)}
-            style={({ pressed }) => [s.boutonLangue, l.lienWifi, pressed && s.appuye]}
-            accessibilityRole="button"
-            accessibilityLabel={t('Choisir un réseau Wi-Fi')}
-          >
-            <Icone nom="wifi" taille={18} couleur={COULEURS.discret} />
-            <Text style={s.texteLangue}>{t('Wi-Fi')}</Text>
-          </Pressable>
-        )}
         <BoutonLangue style={{ backgroundColor: COULEURS.fond }} />
       </View>
       <ScrollView
@@ -145,9 +128,7 @@ export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) 
               <Text style={s.petit}>{t("La session reste ouverte sur cette tablette jusqu'à « Quitter ».")}</Text>
             </View>
             {!!erreur && (echecReseau && proprietaire ? (
-              <Pressable onPress={() => setWifi(true)} accessibilityRole="button">
-                <Message ton="erreur" icone="wifi-off">{t('Connexion impossible : vérifiez le réseau. Touchez ici pour choisir un Wi-Fi.')}</Message>
-              </Pressable>
+              <Message ton="erreur" icone="wifi-off">{t('Connexion impossible : vérifiez le réseau. Tirez le volet du haut pour choisir un Wi-Fi.')}</Message>
             ) : <Message ton="erreur">{erreur}</Message>)}
             <Bouton
               titre={occupe ? t('Connexion…') : t('Se connecter')} primaire grand onPress={entrer} occupe={occupe}
@@ -328,10 +309,8 @@ export function Liste({
           </View>
         </View>
         {!!message && (tablette ? (
-          // Tablette verrouillée : Paramètres cachés, le Wi-Fi se choisit dans l'écran Tablette.
-          <Pressable onPress={tablette} accessibilityRole="button">
-            <Message ton="attention" icone="wifi-off">{t('Hors ligne : dernière liste connue. Touchez ici pour choisir un Wi-Fi.')}</Message>
-          </Pressable>
+          // Tablette verrouillée : le Wi-Fi se choisit dans le volet du haut (fenêtre Wi-Fi de l'appli, ActiviteWifi).
+          <Message ton="attention" icone="wifi-off">{t('Hors ligne : dernière liste connue. Tirez le volet du haut pour choisir un Wi-Fi.')}</Message>
         ) : (
           <Message ton="attention" icone="wifi-off">{message}</Message>
         ))}
@@ -614,7 +593,6 @@ export function EnAttente({ retour }: { retour: () => void }) {
 const l = StyleSheet.create({
   connexion: { flexDirection: 'row' },
   coinConnexion: { position: 'absolute', right: 16, zIndex: 1, flexDirection: 'row', gap: 8 },
-  lienWifi: { flexDirection: 'row', gap: 6, backgroundColor: COULEURS.fond },
   volet: { flex: 1, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 },
   bonjour: { fontFamily: POLICE, fontSize: 44, fontWeight: '400', color: COULEURS.principalTexte },
   sousBonjour: { fontFamily: POLICE, fontSize: 19, color: 'rgba(250, 250, 250, 0.8)', textAlign: 'center' },

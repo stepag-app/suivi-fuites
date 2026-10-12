@@ -45,6 +45,26 @@
       </intent-filter>
     </activity>
 
+    <!-- Wi-Fi du volet du haut, tablette verrouillée : répond à la place de la page Wi-Fi des Paramètres (cachés).
+         Désactivée par défaut ; la politique l'active pendant le verrouillage seulement (ActiviteWifi.activerRedirection). -->
+    <activity
+      android:name="ma.stepag.tablette.ActiviteWifi"
+      android:enabled="false"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:launchMode="singleTask"
+      android:taskAffinity=""
+      android:windowSoftInputMode="adjustResize"
+      android:theme="@android:style/Theme.Material.Light.Dialog.NoActionBar">
+      <intent-filter>
+        <action android:name="android.settings.WIFI_SETTINGS" />
+        <action android:name="android.settings.panel.action.WIFI" />
+        <action android:name="android.net.wifi.PICK_WIFI_NETWORK" />
+        <action android:name="com.android.settings.WIFI_DIALOG" />
+        <category android:name="android.intent.category.DEFAULT" />
+      </intent-filter>
+    </activity>
+
     <receiver android:name="ma.stepag.tablette.RecepteurDemarrage" android:exported="false">
       <intent-filter>
         <action android:name="android.intent.action.BOOT_COMPLETED" />

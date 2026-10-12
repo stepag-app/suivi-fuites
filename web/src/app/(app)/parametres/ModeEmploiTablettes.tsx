@@ -51,7 +51,7 @@ export function ModeEmploiTablettes() {
               </Etapes>
               <Note>Une appli installée pendant le déverrouillage reste visible ensuite sur cette tablette. Cinq codes faux dans l&apos;heure bloquent les essais du compte pendant une heure.</Note>
               <p className="font-medium">Wi-Fi sans code</p>
-              <p>L&apos;agent n&apos;a pas besoin de code pour rejoindre un Wi-Fi (forfait 4G épuisé) : Suivi fuites › bouton <strong>Tablette</strong> (cadenas) › bloc <strong>Wi-Fi</strong> : réseaux disponibles, mot de passe, connexion. Le bandeau « Hors ligne » de la liste y mène aussi d&apos;un toucher. <strong>Avant la connexion</strong> (session fermée, ni SIM ni Wi-Fi enregistré) : lien <strong>Wi-Fi</strong> en haut à droite de l&apos;écran Connexion, à côté de la langue, tant qu&apos;aucun Wi-Fi n&apos;est connecté ou après « Connexion impossible : vérifiez le réseau » (message touchable) ; il n&apos;ouvre que le bloc Wi-Fi, ni code ni déverrouillage sans session.</p>
+              <p>L&apos;agent n&apos;a pas besoin de code pour rejoindre un Wi-Fi (forfait 4G épuisé), même session fermée : il tire le <strong>volet du haut</strong> d&apos;Android. Un toucher sur la tuile Wi-Fi l&apos;allume ou l&apos;éteint ; un appui long montre les réseaux. Un réseau déjà enregistré se rejoint d&apos;un toucher ; pour un nouveau réseau, la fenêtre <strong>Wi-Fi</strong> de Suivi fuites s&apos;ouvre : mot de passe, <strong>Se connecter</strong>. Les données mobiles et le mode avion se règlent aussi dans le volet.</p>
             </TabsContent>
 
             <TabsContent value="premiere" className="flex flex-col gap-3">
@@ -95,7 +95,7 @@ export function ModeEmploiTablettes() {
                     <tr><td>« Code inconnu, expiré ou déjà utilisé »</td><td>Générer un nouveau code (24 h, une seule fois).</td></tr>
                     <tr><td>« Trop de codes refusés »</td><td>Attendre une heure, ou se connecter avec un autre compte dans Suivi fuites.</td></tr>
                     <tr><td>« Vérification impossible : vérifiez le réseau »</td><td>Aller là où il y a la 4G ou un Wi-Fi : le code est vérifié par le serveur.</td></tr>
-                    <tr><td>Pas de Wi-Fi, forfait 4G épuisé</td><td>Suivi fuites › Tablette › Wi-Fi (ou, déconnecté, lien <strong>Wi-Fi</strong> de l&apos;écran Connexion) : choisir le réseau, taper le mot de passe. Les envois en attente partent dès la connexion.</td></tr>
+                    <tr><td>Pas de Wi-Fi, forfait 4G épuisé</td><td>Volet du haut › appui long sur la tuile Wi-Fi : choisir le réseau, taper le mot de passe dans la fenêtre Wi-Fi de Suivi fuites. Les envois en attente partent dès la connexion.</td></tr>
                     <tr><td>Pas de bouton « Tablette » dans Suivi fuites</td><td>Cette tablette n&apos;est pas verrouillée par Suivi fuites : la préparer (« Première tablette »).</td></tr>
                     <tr><td>Suivi fuites plante dès son ouverture</td><td>Téléphone, Maps et WhatsApp marchent encore. Réinitialiser par les boutons (tablette éteinte : Volume + et Marche ensemble, puis « Wipe data ») ; Android demande le compte Google des tablettes ; puis « Première tablette ».</td></tr>
                     <tr><td>Tablette perdue ou volée</td><td>Désactiver le compte de l&apos;agent (Utilisateurs). Sans le compte Google des tablettes, elle est inutilisable après une réinitialisation.</td></tr>

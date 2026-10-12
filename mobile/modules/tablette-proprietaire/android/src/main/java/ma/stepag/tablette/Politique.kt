@@ -232,6 +232,8 @@ object Politique {
     val ouverte = estDeverrouillee(ctx)
     val gardees = gardees(ctx)
     bilan.put("proprietaire", true).put("profil", profil(ctx)).put("deverrouillee", ouverte)
+    // 0. Wi-Fi du volet : la fenêtre de l'appli remplace la page Wi-Fi des Paramètres, cachés pendant le verrouillage.
+    runCatching { ActiviteWifi.activerRedirection(ctx, !ouverte) }
 
     // 1. Applis. Déverrouillée, rien de nouveau n'est caché (une appli installée par l'administrateur doit rester).
     val dejaCachees = prefs(ctx).getStringSet("cachees", emptySet()) ?: emptySet()
@@ -439,6 +441,7 @@ object Politique {
       putStringArray("gardees", (prefs(ctx).getStringSet("gardees", emptySet()) ?: emptySet()).toTypedArray())
     }
     dpm(ctx).transferOwnership(admin(ctx), ComponentName(paquet, RecepteurAdmin::class.java.name), extras)
+    runCatching { ActiviteWifi.activerRedirection(ctx, false) }
     noterEvenement(ctx, "transfert", JSONObject().put("vers", paquet))
   }
 
@@ -461,6 +464,7 @@ object Politique {
       }
     }
     annulerFin(ctx)
+    runCatching { ActiviteWifi.activerRedirection(ctx, false) }
     prefs(ctx).edit().clear().apply()
     @Suppress("DEPRECATION") dpm.clearDeviceOwnerApp(ctx.packageName)
     Log.i(ETIQUETTE, "tablette libérée")

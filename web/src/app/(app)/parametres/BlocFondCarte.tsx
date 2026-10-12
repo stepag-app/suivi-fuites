@@ -5,7 +5,7 @@
 // dans le compartiment privé R2 (`fonds/<marché>/fond.pmtiles`). Les tablettes le copient à la prochaine ouverture de
 // la carte avec réseau et l'affichent ensuite, en ligne comme sans réseau. À refaire tous les trois mois environ.
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { messageErreur } from '@/lib/format';
+import { dateHeure, messageErreur } from '@/lib/format';
 import { deposerTuiles, etatFond, type EtatFond } from '@/lib/reseau/tuiles';
 
 const TAILLE_MAX = 100 * 1048576;
@@ -76,7 +76,7 @@ export function BlocFondCarte({ marcheId }: { marcheId: string }) {
       {etat?.disponible && !etat.existe && <p className="info">Aucun fond déposé : les tablettes gardent le fond en ligne (fond uni sans réseau).</p>}
       {etat?.existe && (
         <p className="info" role="status">
-          Déposé{etat.modifieLe ? ` le ${new Date(etat.modifieLe).toLocaleString('fr-FR')}` : ''}{etat.octets ? ` · ${enMo(etat.octets)}` : ''}
+          Déposé{etat.modifieLe ? ` le ${dateHeure(etat.modifieLe)}` : ''}{etat.octets ? ` · ${enMo(etat.octets)}` : ''}
         </p>
       )}
       <div className="actions">

@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+Dernière mise à jour : 2026-10-12 (**purge de mise en service** : SRM seul, 0 fuite, 0 balayage, § 14). Avant : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
@@ -120,7 +120,7 @@ certificat. **Sans ce fichier, plus de mise à jour de l'APK possible** : faire 
 **Tâches manuelles**
 1. Double authentification : GitHub, Google (`stepag.app@gmail.com`), 2ᵉ application pour Supabase, Cloudflare.
 2. **Vercel Pro** (environ 20 USD/mois) avant toute mise en production pour le client.
-3. **Désactiver le marché DEMO** avant la production (Paramètres > Marchés).
+3. ~~Désactiver le marché DEMO~~ : **supprimé** par la purge de mise en service du 2026-10-12 (§ 14).
 4. **Informer les agents du suivi GPS** avant son usage (réponse Q14 : pas de déclaration CNDP) ; exclure l'appli de l'optimisation de batterie Samsung sur chaque tablette.
 5. **Essai sur une vraie tablette Samsung** : installer l'APK de `main` (artefact `suivi-fuites-apk`, signée STEPAG), parcours complet, mode avion, trois langues, suivi GPS.
 6. **Relire l'arabe** : les listes paramétrées (natures dont carrelage, REVSOL, faïence, pavé ciment ; motifs ; ouvrages) et les 121 libellés ajoutés par S7 (artefact de relecture).
@@ -556,3 +556,29 @@ tsc web et APK, build du panneau, bundle Android.
    « Hors ligne · état du … » restait affiché jusqu'à la prochaine ouverture de la carte : corrigé dans le panneau
    (relecture de l'état et des fuites après l'envoi de la file), vérifié par `essayer-carte-hors-ligne.mjs` (16).
 4. Refaire le fond tous les trois mois environ.
+
+## 14. Purge de mise en service (S22, Z3, 2026-10-12)
+
+Demande d'Issam (2026-10-12, 01 h 45) : effacer toutes les fuites et tous les balayages d'essai, supprimer le marché
+DEMO, garder le SRM et ses comptes ; KASMI MOHAMMED commence la détection réelle le jour même. Réponses d'Issam : TAIBI
+ABDELALI (affecté à DEMO seulement) reçoit le même rôle sur le SRM, numérotation à 1, historique des saisies effacé du
+journal. PR [#124](https://github.com/stepag-app/suivi-fuites/pull/124) (outil sans migration : `outils/purge/`,
+workflow « Purge de mise en service », test pgTAP 51).
+
+**Exécutée le 2026-10-12 à 02:04 (heure du Maroc)**, exécution 38194053018, après une sauvegarde complète prise juste
+avant par le même workflow (base chiffrée, R2 et Drive : la sauvegarde contient toutes les données effacées).
+- Effacé : SRM 13 fuites, 5 réparations, 4 réfections, 8 pièces, 11 quantités, 18 photos (14 fichiers R2, 4 Storage),
+  4 lots vides, 16 notifications, 261 balayages (249 tronçons, du 9 au 12/10), 1 e-mail d'essai, 1 état GPS ; DEMO
+  entier (34 fuites, 339 balayages, sa copie du réseau, droits, journal, 10 photos, 2 logos, `reseau/` et `fonds/`
+  de DEMO dans R2). Résumé chiffré : ligne `purge_mise_en_service` du journal du SRM.
+- Vérifié (inventaire après, panneau) : un seul marché, 0 fuite, 0 balayage, 0 photo, compteur des fuites à zéro
+  (prochaine fuite N° 1), 34 secteurs « À balayer », réseau intact (44 044 tronçons, 30 820 nœuds), tuiles « À jour »,
+  fond d'Oujda présent, 3 comptes, KASMI et TAIBI affectés au SRM, articles et mouvements Dolibarr gardés.
+- Non vérifié : l'ouverture visuelle de la carte de balayage (volet du navigateur masqué, MapLibre bloqué) ; à voir
+  sur la Redmi.
+
+**Reste** :
+1. Sur la Redmi : ouvrir une fois la carte de balayage **avec du réseau** (l'état gardé sur l'appareil est relu,
+   tout redevient « À balayer »). Une saisie restée « en attente » sur une tablette serait renvoyée et recréerait
+   un essai : la supprimer dans le panneau si cela arrive.
+2. Les photos effacées restent dans les sauvegardes (R2 `sauvegardes/`, Drive `r2/`) : sans conséquence.

@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-12 soir (**APK 1.0.0-beta.4** : formulaires en étapes numérotées, Wi-Fi par le volet du haut, § 15). Avant : 2026-10-12 (**purge de mise en service** : SRM seul, 0 fuite, 0 balayage, § 14). Avant : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+Dernière mise à jour : 2026-10-12, 23 h 45 (**seconde purge** : essais de KASMI effacés, SRM à zéro pour le 13/10, § 16). Avant : 2026-10-12 soir (**APK 1.0.0-beta.4** : formulaires en étapes numérotées, Wi-Fi par le volet du haut, § 15). Avant : 2026-10-12 (**purge de mise en service** : SRM seul, 0 fuite, 0 balayage, § 14). Avant : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
@@ -618,5 +618,26 @@ l'écran Tablette de l'appli DEV ; profil essai, verrouillée, compte Google des
 accounts ») ; la Redmi est restée un moment sans propriétaire, Issam a supprimé puis remis le compte Google. Passer
 toujours par le **transfert** de propriété (écran Tablette, pendant un déverrouillage), jamais par la libération.
 
-**Reste** : sur la Redmi, ouvrir la carte de balayage avec du réseau (§ 14) ; les tablettes d'agents reçoivent la beta.4
-par la fenêtre « Mise à jour disponible ».
+**Reste** : ~~sur la Redmi, ouvrir la carte de balayage avec du réseau (§ 14)~~ (fait, § 16) ; les tablettes d'agents
+reçoivent la beta.4 par la fenêtre « Mise à jour disponible ».
+
+## 16. Seconde purge : essais de KASMI d'après la mise en service (2026-10-12, 23 h 41)
+
+**Constat** : en ouvrant la carte de balayage sur la Redmi (KASMI MOHAMMED connecté, beta.4), un groupe de tronçons
+était vert près de la RR602. Inventaire (run 38322502168) : depuis la purge de 02:04, le SRM contenait 49 balayages,
+2 fuites, 6 photos, 5 notifications, 1 tracé et 1 état GPS, tous des **essais de KASMI** (confirmé par Issam).
+Choix d'Issam : **tout effacer**, comme la première fois, pour repartir à zéro le 13/10.
+
+**Outil** : `outils/purge/purger.sql` exigeait le marché DEMO, déjà supprimé ; il accepte désormais DEMO absent (les
+étapes de DEMO sont sans effet) ; test pgTAP 51 étendu à une seconde passe (36/36 en local et en CI).
+PR [#129](https://github.com/stepag-app/suivi-fuites/pull/129), fusionnée par Claude (le workflow ne tourne que depuis
+`main`).
+
+**Exécutée** le 2026-10-12 à 23 h 41 (heure du Maroc), run 38322919762, après une sauvegarde complète du même workflow
+(base chiffrée, R2, Drive). Inventaire après : 0 fuite, 0 balayage, 0 photo, 0 notification, 0 tracé GPS, 34 secteurs
+« À balayer », réseau gardé (44 044 tronçons), réseau et fond d'Oujda gardés dans R2 ; 6 photos effacées de R2.
+Second résumé `purge_mise_en_service` au journal du SRM. **Vérifié sur la Redmi** : carte de balayage rouverte avec
+du réseau, plus aucun tronçon vert.
+
+**Reste** : le 13/10 au matin, ouvrir une fois avec du réseau toute autre tablette qui aurait servi aux essais ; une
+saisie restée « en attente » qui réapparaîtrait est à supprimer dans le panneau.

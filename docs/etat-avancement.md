@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-12 (**purge de mise en service** : SRM seul, 0 fuite, 0 balayage, § 14). Avant : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+Dernière mise à jour : 2026-10-12 soir (**APK 1.0.0-beta.4** : formulaires en étapes numérotées, Wi-Fi par le volet du haut, § 15). Avant : 2026-10-12 (**purge de mise en service** : SRM seul, 0 fuite, 0 balayage, § 14). Avant : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
@@ -493,10 +493,10 @@ admet aussi l'événement « wifi » de la PR #118).
 1. ~~Fusionner la PR~~ (fait le 2026-10-11, base déployée), puis, sur la Redmi, **le parcours complet du code** :
    Issam génère un code sur `fuites.stepag.ma` › Paramètres › Tablettes, le tape dans Suivi fuites DEV › Tablette ;
    journal à relire dans l'onglet.
-2. Publier une version de l'APK normale avec le module (à la demande d'Issam, `apk.yml`), l'installer sur la Redmi, puis
-   « Transférer la propriété à l'appli normale » (écran Tablette de l'appli DEV, pendant un déverrouillage).
-3. Issam : créer le **compte Google des tablettes** (jamais `stepag.app@gmail.com`), l'ajouter sur la Redmi pendant un
-   déverrouillage, installer WhatsApp et mettre WebView à jour par le Play Store.
+2. ~~Publier une version de l'APK normale avec le module, l'installer sur la Redmi, transférer la propriété~~ : fait
+   (beta.2 le 2026-10-12 à 00 h 50 ; de nouveau avec la beta.4 le 2026-10-12 vers 23 h 30, § 15).
+3. Issam : ~~créer le **compte Google des tablettes** et l'ajouter sur la Redmi~~ (fait le 2026-10-12, pour Maps) ;
+   installer WhatsApp et mettre WebView à jour par le Play Store.
 4. Première tablette d'agent par **QR code** (imprimé depuis le panneau) : réinitialisation d'une tablette à la date
    d'Issam ; vérifier la consommation 4G par appli au bout d'une semaine.
 5. Les tablettes Samsung déjà en service ne sont pas verrouillées tant qu'elles ne sont pas préparées par QR code.
@@ -582,3 +582,41 @@ avant par le même workflow (base chiffrée, R2 et Drive : la sauvegarde contien
    tout redevient « À balayer »). Une saisie restée « en attente » sur une tablette serait renvoyée et recréerait
    un essai : la supprimer dans le panneau si cela arrive.
 2. Les photos effacées restent dans les sauvegardes (R2 `sauvegardes/`, Drive `r2/`) : sans conséquence.
+
+## 15. APK 1.0.0-beta.4 : formulaires en étapes numérotées, Wi-Fi par le volet du haut (2026-10-12 soir)
+
+**Formulaires** (demande d'Issam : titres plus apparents, blocs mieux distingués des champs ; maquettes validées en
+conversation, variante « étapes numérotées »). PR [#126](https://github.com/stepag-app/suivi-fuites/pull/126) :
+- `TeteCarte` (`mobile/src/ui.tsx`) : pastille noire numérotée (`n`) ou icône, titre 20 px gras, trait sous l'en-tête ;
+  cartes gris très clair, champs, puces et cases blancs au bord plus marqué ; page blanche ;
+- étapes : Nouvelle fuite (Position, Identification, Conduite, Observation, Photos ; Suggestions et Doublons sans
+  numéro), Réparation (1 à 8, Date et heure, Ouvriers, Photos, Observation), Réfection (Résultat, Photos, Observation),
+  Mesures de nuit (Campagne, Nuit, Points, Point) ;
+- liste des fuites : le titre ne s'écrase plus en colonne en arabe quand les boutons occupent la ligne.
+
+**Wi-Fi par le volet du haut** (demande d'Issam : le volet natif est plus familier pour un non-initié ; plus de Wi-Fi
+dans l'appli). PR [#127](https://github.com/stepag-app/suivi-fuites/pull/127) :
+- constat : tablette verrouillée, le volet allume / éteint Wi-Fi, données mobiles et mode avion et rejoint un réseau
+  enregistré ; toucher un **nouveau** réseau lance la page Wi-Fi des Paramètres, cachés : rien ne s'ouvrait ;
+- `ActiviteWifi` (native, libellés français + arabe) répond à la place de cette page, **pendant le verrouillage
+  seulement** (composant activé par `Politique.appliquer`, désactivé au déverrouillage, au transfert, à la libération) ;
+  le volet HyperOS transmet le réseau touché (`wifi_start_connect_ssid`), qui s'ouvre présélectionné ;
+- retirés : lien Wi-Fi de l'écran Connexion, écran Wi-Fi et bloc Wi-Fi de l'écran Tablette ; messages hors ligne :
+  « Tirez le volet du haut pour choisir un Wi-Fi » (libellés arabes confirmés par Issam) ; mode d'emploi du panneau
+  (Paramètres › Tablettes) mis à jour.
+
+**Vérifié sur la Redmi** (appli DEV propriétaire, puis appli normale) : volet › appui long sur la tuile Wi-Fi › réseau
+non enregistré › fenêtre de l'appli › mot de passe tapé par Issam › connecté (Issam-RDC) ; déverrouillée, page Wi-Fi
+d'Android. Les tâches `pg_cron` de production sont confirmées par Issam (SQL Editor : `alertes-reparation`,
+`alertes-suivi-gps`, `envoi-push`, `lecture-dolibarr`).
+
+**Publication** : `1.0.0-beta.4`, libellé « 1.0 bêta 4 », versionCode 195, `main` `ea84776`, le 2026-10-12 à 23 h 06
+(run 38319569773). Redmi : beta.4 installée par adb pendant un déverrouillage, propriété rendue à l'appli normale par
+l'écran Tablette de l'appli DEV ; profil essai, verrouillée, compte Google des tablettes présent.
+
+**Piège** : `liberer` puis `dpm set-device-owner` est refusé dès qu'un compte existe sur la tablette (« already some
+accounts ») ; la Redmi est restée un moment sans propriétaire, Issam a supprimé puis remis le compte Google. Passer
+toujours par le **transfert** de propriété (écran Tablette, pendant un déverrouillage), jamais par la libération.
+
+**Reste** : sur la Redmi, ouvrir la carte de balayage avec du réseau (§ 14) ; les tablettes d'agents reçoivent la beta.4
+par la fenêtre « Mise à jour disponible ».

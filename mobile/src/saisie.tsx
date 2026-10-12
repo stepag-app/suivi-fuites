@@ -748,7 +748,7 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
 
 const e = StyleSheet.create({
   numero: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center',
+    width: 32, height: 32, borderRadius: 16, backgroundColor: COULEURS.marque, alignItems: 'center', justifyContent: 'center',
   },
   texteNumero: { fontFamily: POLICE, fontSize: 15, fontWeight: '600', color: COULEURS.principalTexte },
   proposition: {

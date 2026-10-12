@@ -612,7 +612,7 @@ export function EnAttente({ retour }: { retour: () => void }) {
 }
 
 const l = StyleSheet.create({
-  connexion: { flexDirection: 'row' },
+  connexion: { flexDirection: 'row', backgroundColor: COULEURS.fond },
   coinConnexion: { position: 'absolute', right: 16, zIndex: 1, flexDirection: 'row', gap: 8 },
   lienWifi: { flexDirection: 'row', gap: 6, backgroundColor: COULEURS.fond },
   volet: { flex: 1, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 },

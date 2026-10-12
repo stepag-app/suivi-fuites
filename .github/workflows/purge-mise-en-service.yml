@@ -1,0 +1,133 @@
+name: Purge de mise en service
+
+# Purge avant la mise en service réelle du marché SRM-4500004453 (S22, Z3 du chantier v3 ; demande d'Issam du
+# 2026-10-12) : toutes les fuites et tous les balayages d'essai, le marché DEMO entier, les photos et fichiers
+# correspondants. Le SRM garde son paramétrage, son réseau, ses tuiles, ses comptes et ses droits.
+# Détail : outils/purge/README.md.
+#
+# Actions (onglet Actions > Purge de mise en service > Run workflow) :
+#  * inventaire : nombre de lignes par table et par marché, fichiers de Storage ; lecture seule (aussi lancé
+#    sur une PR qui modifie la purge) ;
+#  * purger     : sauvegarde complète d'abord (« Sauvegarde de la base », copie Drive comprise), puis purge de la
+#    base en UNE transaction (outils/purge/purger.sql), puis effacement des fichiers ; exige la confirmation
+#    « PURGER DEMO ET ESSAIS » ;
+#  * fichiers   : effacement des fichiers seul (à relancer si cette étape a échoué après la purge ; même
+#    confirmation).
+# Aucune donnée affichée : seulement des noms de tables, de compartiments et des nombres.
+
+on:
+  pull_request:
+    paths:
+      - 'outils/purge/**'
+      - '.github/workflows/purge-mise-en-service.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'inventaire (lecture seule), purger (sauvegarde puis purge) ou fichiers (effacement des fichiers seul)'
+        type: choice
+        options: [inventaire, purger, fichiers]
+        default: inventaire
+      confirmation:
+        description: 'Pour purger ou fichiers : taper PURGER DEMO ET ESSAIS'
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+concurrency:
+  group: purge-mise-en-service
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_ID: osajiinsibwrsltntmsk
+  MARCHE_SRM: 125afaed-2f52-4329-8221-758056f172e0
+  MARCHE_DEMO: de000000-0000-4000-8000-000000000000
+  # Réglages validés par Issam (outils/purge/README.md) : oui ou non.
+  EFFACER_GPS: 'oui'
+  EFFACER_DEBITS: 'oui'
+  EFFACER_EVENEMENTS: 'oui'
+  EFFACER_ENVOIS_EMAIL: 'oui'
+  GARDER_NOTIFICATIONS_GENERALES: 'non'
+  AFFECTER_AGENTS_DEMO: 'oui'
+
+jobs:
+  inventaire:
+    name: Inventaire (lecture seule)
+    if: github.event_name == 'pull_request' || inputs.action == 'inventaire'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Lier le projet
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Inventaire
+        run: bash outils/purge/purge.sh inventaire
+
+  verifier:
+    name: Vérifier la confirmation
+    if: github.event_name == 'workflow_dispatch' && (inputs.action == 'purger' || inputs.action == 'fichiers')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    steps:
+      - name: Confirmation
+        env:
+          CONFIRMATION: ${{ inputs.confirmation }}
+          BRANCHE: ${{ github.ref }}
+        run: |
+          if [ "$BRANCHE" != "refs/heads/main" ]; then echo "::error::La purge se lance seulement depuis main."; exit 1; fi
+          if [ "$CONFIRMATION" != "PURGER DEMO ET ESSAIS" ]; then echo "::error::Confirmation absente ou inexacte : rien n'est fait."; exit 1; fi
+
+  sauvegarde:
+    name: Sauvegarde juste avant
+    needs: verifier
+    if: inputs.action == 'purger'
+    uses: ./.github/workflows/sauvegarde-base.yml
+    secrets: inherit
+
+  purger:
+    name: Purger la base puis les fichiers
+    needs: [verifier, sauvegarde]
+    if: ${{ !cancelled() && needs.verifier.result == 'success' && (inputs.action == 'fichiers' || needs.sauvegarde.result == 'success') }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      ACTION: ${{ inputs.action }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Vérifier la présence des secrets
+        run: |
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
+          done
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Lier le projet
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Inventaire avant
+        run: bash outils/purge/purge.sh inventaire
+      - name: Purger la base (une transaction)
+        if: env.ACTION == 'purger'
+        run: bash outils/purge/purge.sh base
+      - name: Effacer les fichiers (Supabase Storage et R2)
+        run: bash outils/purge/purge.sh fichiers
+      - name: Inventaire après
+        if: ${{ !cancelled() }}
+        run: bash outils/purge/purge.sh inventaire

@@ -186,6 +186,7 @@ backups/
 # Scripts de l'essai de charge (pas des exports de base)
 !outils/charge/*.sql
 !outils/sauvegarde/*.sql
+!outils/purge/*.sql
 
 # Supabase local
 supabase/.temp/

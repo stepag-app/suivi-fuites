@@ -1,9 +1,11 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { isAuthRetryableFetchError, type Session } from '@supabase/supabase-js';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
 import { langueCourante, t, tx, useLangue } from './langue';
+import { useSession } from './session';
 import { reprendreSuivi } from './suivi-gps';
 import { supabase } from './supabase';
 import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
@@ -22,6 +24,33 @@ const DELAI_SONDE_MS = 15000;
 // Supabase). La tablette renouvelle donc la première, 5 min avant, puis recharge la WebView avec les nouveaux jetons.
 const MARGE_RENOUVELLEMENT_MS = 5 * 60 * 1000;
 const HORS_LIGNE = 'La carte du réseau a besoin de la connexion.';
+const PAS_ENCORE_GARDEE = "La carte n'est pas encore sur cette tablette pour ce compte : ouvrez-la une fois avec du réseau (Wi-Fi ou 4G).";
+// Carte sans réseau (lot CH) : le panneau garde sur la tablette (WebView) tout ce qu'il faut et le signale ici, avec le
+// compte de sa session. Sans réseau, la carte s'ouvre directement, sans passer par /session (qui a besoin du serveur),
+// seulement pour ce compte : sinon les balayages partiraient au nom de l'agent précédent. La copie reste à la
+// déconnexion (tablette partagée entre agents du même marché).
+const CLE_CARTE_GARDEE = 'suivi-fuites:carte-hors-ligne';
+const carteDirecte = () => `${PANNEAU}${decodeURIComponent(suite())}`;
+
+async function carteGardeePour(uid: string | undefined): Promise<boolean> {
+  if (!uid) return false;
+  try {
+    const g = JSON.parse((await AsyncStorage.getItem(CLE_CARTE_GARDEE)) ?? 'null') as { pret?: boolean; utilisateur?: string } | null;
+    return g?.pret === true && g.utilisateur === uid;
+  } catch {
+    return false;
+  }
+}
+
+function noterCarteGardee(message: string) {
+  try {
+    const m = JSON.parse(message) as { type?: string; pret?: unknown; utilisateur?: unknown; marche?: unknown };
+    if (m.type !== 'carte-hors-ligne' || typeof m.utilisateur !== 'string') return;
+    void AsyncStorage.setItem(CLE_CARTE_GARDEE, JSON.stringify({ pret: m.pret === true, utilisateur: m.utilisateur, marche: m.marche })).catch(() => undefined);
+  } catch {
+    /* message illisible */
+  }
+}
 
 const adresse = (session: Session) =>
   `${PAGE_SESSION}#access_token=${encodeURIComponent(session.access_token)}` +
@@ -58,6 +87,7 @@ export function Balayage({ retour }: { retour: () => void }) {
   const web = useRef<WebView>(null);
   const bas = useBas();
   useLangue();
+  const uid = useSession().session?.user.id;
   const [uri, setUri] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [cle, setCle] = useState(0);
@@ -75,21 +105,33 @@ export function Balayage({ retour }: { retour: () => void }) {
     setUri(nouvelle);
   }, []);
 
+  // Sans réseau : la carte gardée sur la tablette, ouverte directement (session déjà gardée par le panneau).
+  const ouvrirSansReseau = useCallback(async () => {
+    if (!(await carteGardeePour(uid))) return false;
+    const directe = carteDirecte();
+    uriCourante.current = directe;
+    attenteSession.current = false;
+    setUri(directe);
+    setCle((c) => c + 1);
+    return true;
+  }, [uid]);
+
   const charger = useCallback(async () => {
     setMessage('');
     if (!(await panneauJoignable())) {
-      setMessage(HORS_LIGNE);
+      if (!(await ouvrirSansReseau())) setMessage(PAS_ENCORE_GARDEE);
       return;
     }
     const { data, error } = await supabase.auth.getSession();
     if (!data.session) {
       // Jeton expiré que le réseau n'a pas encore permis de renouveler : la session n'est pas perdue.
+      if (isAuthRetryableFetchError(error) && (await ouvrirSansReseau())) return;
       setMessage(isAuthRetryableFetchError(error) ? HORS_LIGNE : 'Session expirée : reconnectez-vous.');
       return;
     }
     appliquer(data.session);
     setCle((c) => c + 1);
-  }, [appliquer]);
+  }, [appliquer, ouvrirSansReseau]);
 
   useEffect(() => {
     // Position demandée avant la carte : le panneau la lit ensuite par navigator.geolocation.
@@ -147,7 +189,7 @@ export function Balayage({ retour }: { retour: () => void }) {
       {message ? (
         <View style={s.defile}>
           <Carte>
-            <Message ton="erreur" icone={message === HORS_LIGNE ? 'wifi-off' : undefined}>{tx(message)}</Message>
+            <Message ton="erreur" icone={message === HORS_LIGNE || message === PAS_ENCORE_GARDEE ? 'wifi-off' : undefined}>{tx(message)}</Message>
             <Bouton titre={t('Réessayer')} icone="refresh-cw" primaire grand onPress={() => void charger()} />
             <Bouton titre={t('Retour à la liste')} icone="arrow-left" onPress={retour} />
           </Carte>
@@ -184,6 +226,7 @@ export function Balayage({ retour }: { retour: () => void }) {
           onMessage={(e) => {
             if (!estPanneau(e.nativeEvent.url)) return;
             if (/"activite-balayage"/.test(e.nativeEvent.data)) void reprendreSuivi('balayage').catch(() => undefined);
+            if (/"carte-hors-ligne"/.test(e.nativeEvent.data)) noterCarteGardee(e.nativeEvent.data);
           }}
         />
       )}

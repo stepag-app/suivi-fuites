@@ -312,6 +312,9 @@ export const TRADUCTIONS = {
   // Balayage
   'Carte du réseau': { ar: 'خريطة الشبكة' },
   'La carte du réseau a besoin de la connexion.': { ar: 'خريطة الشبكة تحتاج إلى الاتصال بالإنترنت.' },
+  "La carte n'est pas encore sur cette tablette pour ce compte : ouvrez-la une fois avec du réseau (Wi-Fi ou 4G).": {
+    ar: 'الخريطة غير موجودة بعد على هذه اللوحة لهذا الحساب: افتحها مرة واحدة مع اتصال (Wi-Fi أو 4G).',
+  },
   'Chargement de la carte…': { ar: 'جارٍ تحميل الخريطة…' },
   'Session expirée : reconnectez-vous.': { ar: 'انتهت الجلسة: سجّل الدخول من جديد.' },
   'Réessayer': { ar: 'إعادة المحاولة' },

@@ -60,9 +60,14 @@ interface Props {
   bornesReseau?: [number, number, number, number] | null;
   /** Zoom courant, pour l'avertissement « satellite à partir du zoom 13 ». */
   surZoom?: (zoom: number) => void;
+  /**
+   * Fond de carte local (lot CH : tablette, ville copiée sur l'appareil), demandé une fois à la création de la carte ;
+   * null : fond en ligne habituel (OpenFreeMap).
+   */
+  fond?: () => Promise<StyleSpecification | null>;
 }
 
-export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau, satellite = false, bornesReseau = null, surZoom }, ref) {
+export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau, satellite = false, bornesReseau = null, surZoom, fond }, ref) {
   const conteneur = useRef<HTMLDivElement>(null);
   const carte = useRef<CarteMapLibre | null>(null);
   const gestion = useRef<GestionReseau | null>(null);
@@ -89,6 +94,8 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   routerRef.current = router;
   const surZoomRef = useRef(surZoom);
   surZoomRef.current = surZoom;
+  const fondRef = useRef(fond);
+  fondRef.current = fond;
 
   // Cadre : les fuites affichées ; sinon les contours dessinés (secteur choisi) ; sinon Oujda.
   const recentrer = () => {
@@ -164,19 +171,26 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       mlRef.current = ml;
       enregistrerProtocole(ml as never);
 
-      // Le fond n'est demandé qu'une fois ; sans réponse en 8 s, fond uni.
+      // Le fond n'est demandé qu'une fois : local s'il existe (tablette), sinon en ligne ; sans réponse en 8 s, fond uni.
       let style: StyleSpecification = STYLE_SECOURS;
       let avecTextes = false;
-      try {
-        const c = new AbortController();
-        const minuterie = setTimeout(() => c.abort(), 8000);
-        const r = await fetch(STYLE_FOND, { signal: c.signal });
-        clearTimeout(minuterie);
-        if (!r.ok) throw new Error(String(r.status));
-        style = (await r.json()) as StyleSpecification;
-        avecTextes = !!style.glyphs;
-      } catch {
-        if (!annule) setFondIndisponible(true);
+      const local = await fondRef.current?.().catch(() => null);
+      if (annule) return;
+      if (local) {
+        style = local;
+        avecTextes = true;
+      } else {
+        try {
+          const c = new AbortController();
+          const minuterie = setTimeout(() => c.abort(), 8000);
+          const r = await fetch(STYLE_FOND, { signal: c.signal });
+          clearTimeout(minuterie);
+          if (!r.ok) throw new Error(String(r.status));
+          style = (await r.json()) as StyleSpecification;
+          avecTextes = !!style.glyphs;
+        } catch {
+          if (!annule) setFondIndisponible(true);
+        }
       }
       // Copie intacte du style (MapLibre peut modifier l'objet qu'il reçoit).
       const styleImpression = structuredClone(style);

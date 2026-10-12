@@ -1,16 +1,19 @@
 'use client';
 
 // État du réseau sur la carte : interrupteur et choix mémorisés, zones et secteurs, état de balayage relu à part.
+// Sans réseau (lot CH) : dernières copies des zones, secteurs et de l'état de balayage, plus les balayages en attente.
 // Affichage par les tuiles vectorielles du réseau (X5) quand l'archive existe et porte l'empreinte du réseau en base ;
 // sinon chargement des tronçons par secteur (cache IndexedDB), nœuds à partir du zoom 15. En tuiles, la géométrie
 // n'est lue que si `besoinGeometries` (mode balayage : lasso et « Prolonger » travaillent sur les tronçons).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { construireArbre, tousLesSecteurs, type NoeudZone } from '@/lib/reseau/arbre';
+import { listerBalayagesEnAttente } from '@/lib/hors-ligne';
 import {
-  chargerContexteReseau, chargerEtatBalayage, chargerNoeudsSecteur, chargerNomsProfils, chargerTronconsSecteur,
-  messageReseau, type ContexteReseau,
+  avecCopie, chargerContexteReseau, chargerEtatBalayage, chargerNoeudsSecteur, chargerNomsProfils, chargerTronconsSecteur,
+  cleCopieReseau, estampilleSecteur, messageReseau, type ContexteReseau,
 } from '@/lib/reseau/donnees';
-import { etatsFeatures } from '@/lib/reseau/etat';
+import { ajouterEnAttente, etatsFeatures } from '@/lib/reseau/etat';
+import { useSession } from '@/lib/session';
 import { paletteSecteurs, type PaletteReseau } from '@/lib/reseau/palette';
 import { estampilleReseau } from '@/lib/reseau/tuiles-format';
 import { indexerTroncons, type TronconIndexe } from '@/lib/reseau/selection';
@@ -71,6 +74,8 @@ export interface EtatReseau {
   longueurs: Map<string, number>;
   /** Tronçons des secteurs cochés, avec leur diamètre et leur zone (légende, impression). */
   inventaire: { id: string; d: number | null; z: string | null }[];
+  /** Sans réseau : date ISO de la copie de l'état de balayage affichée ; null : lu en ligne. */
+  copieDu: string | null;
 }
 
 export function useReseau(marcheId: string | undefined, peutLireBalayage: boolean, forcerActif = false, besoinGeometries = false): EtatReseau {
@@ -85,6 +90,10 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   const [erreur, setErreur] = useState('');
   const [version, setVersion] = useState(0);
   const [zoom, setZoom] = useState(12);
+  const [copieDu, setCopieDu] = useState<string | null>(null);
+  const { profil } = useSession();
+  const agentId = profil?.id ?? null;
+  const agentNom = profil?.nom_complet ?? null;
 
   // Géométries chargées (hors état React : volumineuses) ; `version` force le rendu quand elles changent.
   const troncons = useRef(new Map<string, CollectionTroncons>());
@@ -133,14 +142,23 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   const rechargerEtats = useCallback(async () => {
     if (!marcheId || !peutLireBalayage) return;
     try {
-      const lignes = await chargerEtatBalayage(marcheId);
-      setLignesEtat(lignes);
-      const agents = await chargerNomsProfils(lignes.map((l) => l.agent_id).filter((x): x is string => !!x));
+      const lu = await avecCopie(cleCopieReseau('etat', marcheId), async () => {
+        const lignes = await chargerEtatBalayage(marcheId);
+        const agents = await chargerNomsProfils(lignes.map((l) => l.agent_id).filter((x): x is string => !!x));
+        return { lignes, agents: [...agents] };
+      });
+      const enAttente = (await listerBalayagesEnAttente()).filter((b) => b.marche_id === marcheId).map((b) => ({
+        troncon_id: String(b.ligne.troncon_id ?? ''), date_balayage: String(b.ligne.date_balayage ?? ''),
+      })).filter((b) => b.troncon_id && /^\d{4}-\d{2}-\d{2}$/.test(b.date_balayage));
+      setLignesEtat(ajouterEnAttente(lu.valeur.lignes, enAttente, agentId));
+      const agents = new Map(lu.valeur.agents);
+      if (agentId && agentNom && !agents.has(agentId)) agents.set(agentId, agentNom);
       setNoms({ agents });
+      setCopieDu(lu.copieDu);
     } catch (e) {
       setErreur(messageReseau(e));
     }
-  }, [marcheId, peutLireBalayage]);
+  }, [marcheId, peutLireBalayage, agentId, agentNom]);
 
   const recharger = useCallback(async () => {
     if (!marcheId || !actif) return;
@@ -148,7 +166,10 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     setErreur('');
     try {
       // Archive relue aussi (régénérée entre-temps ?) : même ETag, même objet, l'affichage ne bouge pas.
-      const [ctx, t] = await Promise.all([chargerContexteReseau(marcheId), ouvrirTuilesReseau(marcheId)]);
+      const [lu, t] = await Promise.all([
+        avecCopie(cleCopieReseau('contexte', marcheId), () => chargerContexteReseau(marcheId)), ouvrirTuilesReseau(marcheId),
+      ]);
+      const ctx = lu.valeur;
       setArchive(t);
       setArchiveLue(true);
       setContexte(ctx);
@@ -197,11 +218,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   }, [arbre]);
 
   // Estampille d'un secteur (invalidation du cache) : modifie_le de la vue ; non zonés : nombre et linéaire.
-  const estampille = useCallback((secteurId: string): string | null => {
-    if (!contexte) return null;
-    if (secteurId === SANS_SECTEUR) return contexte.sansSecteur ? `${contexte.sansSecteur.nb_troncons}:${contexte.sansSecteur.lineaire_m}` : '0';
-    return contexte.lignes.find((l) => l.secteur_id === secteurId)?.modifie_le ?? null;
-  }, [contexte]);
+  const estampille = useCallback((secteurId: string): string | null => (contexte ? estampilleSecteur(contexte, secteurId) : null), [contexte]);
   const estampilleCourante = useRef(estampille);
   estampilleCourante.current = estampille;
 
@@ -349,7 +366,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   return {
     actif, setActif, coloration, setColoration, choisis, setChoisis, contexte, arbre, palette, libelles,
     secteursAffiches, index: index.current, etats, chargement, nbEnChargement, erreur,
-    recharger, rechargerEtats, surZoom: setZoom, tuiles, etatTuiles, bornes, longueurs, inventaire,
+    recharger, rechargerEtats, surZoom: setZoom, tuiles, etatTuiles, bornes, longueurs, inventaire, copieDu,
   };
 }
 

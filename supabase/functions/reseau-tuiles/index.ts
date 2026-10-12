@@ -1,12 +1,14 @@
-// Fonction serveur reseau-tuiles : URL signées de courte durée pour l'archive PMTiles du réseau d'un marché, rangée
-// dans le compartiment privé Cloudflare R2 (`reseau/<marche_id>/reseau.pmtiles`). Le plan du réseau est une donnée
-// sensible : jamais d'accès public, l'archive se lit par plages d'octets avec une URL signée délivrée ici.
+// Fonction serveur reseau-tuiles : URL signées de courte durée pour les archives PMTiles d'un marché, rangées dans le
+// compartiment privé Cloudflare R2 : le réseau (`reseau/<marche_id>/reseau.pmtiles`) et le fond de carte hors ligne
+// de la ville (`fonds/<marche_id>/fond.pmtiles`, extrait OpenStreetMap de Protomaps, lot CH). Le plan du réseau est une
+// donnée sensible : jamais d'accès public, l'archive se lit par plages d'octets (ou entière) avec une URL signée.
 // Droits : ceux du compte appelant (JWT), lus avec sa propre session (RLS), jamais avec service_role.
 //
 // Actions (corps JSON, champ « action ») :
-//   lire     { marche_id } → { existe: false } | { existe: true, url, expire_s, etag, octets, modifie_le }
+// Champ « fichier » : 'reseau' (par défaut) ou 'fond' ; renvoyé tel quel dans la réponse de `lire`.
+//   lire     { marche_id } → { existe: false } | { existe: true, fichier, url, expire_s, etag, octets, modifie_le }
 //            compte affecté au marché (la RLS de `marches` ne lui montre que les siens ; administrateur : tous)
-//   deposer  { marche_id } → { url, chemin, expire_s } : dépôt PUT de l'archive régénérée
+//   deposer  { marche_id } → { url, chemin, expire_s } : dépôt PUT de l'archive régénérée (ou du fond)
 //            administrateur, ou droit « paramètres / modifier » sur ce marché (même règle que le zonage)
 // Sans secrets R2 : 503 { code: 'r2_non_configure' } ; le panneau garde alors la lecture par secteur.
 
@@ -71,7 +73,9 @@ Deno.serve(async (req) => {
   }
   const marcheId = String(corps.marche_id ?? '').toLowerCase();
   if (!UUID.test(marcheId)) return reponse(400, { erreur: 'marche_id (uuid) attendu' });
-  const chemin = `reseau/${marcheId}/reseau.pmtiles`;
+  const fichier = corps.fichier == null ? 'reseau' : String(corps.fichier);
+  if (fichier !== 'reseau' && fichier !== 'fond') return reponse(400, { erreur: 'fichier : reseau ou fond' });
+  const chemin = fichier === 'fond' ? `fonds/${marcheId}/fond.pmtiles` : `reseau/${marcheId}/reseau.pmtiles`;
 
   try {
     // Marché visible de l'appelant (RLS) : condition commune aux deux actions.
@@ -83,10 +87,11 @@ Deno.serve(async (req) => {
       case 'lire': {
         // Signature par en-tête seulement : une URL déjà présignée, re-signée par client.fetch, est refusée (403).
         const tete = await r2.client.fetch(`${r2.base}/${r2.compartiment}/${chemin}`, { method: 'HEAD' });
-        if (tete.status === 404) return reponse(200, { existe: false });
+        if (tete.status === 404) return reponse(200, { existe: false, fichier });
         if (!tete.ok) return reponse(502, { erreur: `Stockage injoignable (HTTP ${tete.status})` });
         return reponse(200, {
           existe: true,
+          fichier,
           url: await signer(r2, 'GET', chemin, DUREE_LECTURE_S),
           expire_s: DUREE_LECTURE_S,
           etag: tete.headers.get('ETag'),

@@ -49,6 +49,8 @@ export const STYLE_FOND = 'https://tiles.openfreemap.org/styles/positron';
 
 // MapLibre servi depuis public/maplibre/ (voir scripts/copier-maplibre.mjs), importé à la demande.
 export const MODULE_MAPLIBRE = '/maplibre/maplibre-gl.mjs';
+/** Les trois modules de MapLibre, gardés sur l'appareil pour la carte sans réseau (lot CH). */
+export const FICHIERS_MAPLIBRE = ['/maplibre/maplibre-gl.mjs', '/maplibre/maplibre-gl-shared.mjs', '/maplibre/maplibre-gl-worker.mjs'];
 
 // Contour d'une zone ou d'un secteur : GeoJSON (PostGIS 3 sérialise la géométrie ainsi) ou rien.
 export type Contour = { id: string; code: string; libelle: string; geom: Geometry | null };

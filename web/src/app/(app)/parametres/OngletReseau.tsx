@@ -11,6 +11,7 @@ import { construireArbre } from '@/lib/reseau/arbre';
 import { chargerContexteReseau, messageReseau, viderCacheReseau, type ContexteReseau } from '@/lib/reseau/donnees';
 import { paletteSecteurs } from '@/lib/reseau/palette';
 import { formaterLineaire } from '@/lib/reseau/selection';
+import { BlocFondCarte } from './BlocFondCarte';
 import { BlocTuilesReseau } from './BlocTuilesReseau';
 import { OngletReseauImport } from './OngletReseauImport';
 import styles from './Reseau.module.css';
@@ -103,6 +104,7 @@ export function OngletReseau({ marcheId, peutImporter }: { marcheId: string; peu
       </section>
 
       {!chargement && contexte?.disponible && <BlocTuilesReseau marcheId={marcheId} contexte={contexte} />}
+      {!chargement && contexte?.disponible && <BlocFondCarte marcheId={marcheId} />}
 
       {!chargement && vue === 'secteurs' && contexte?.disponible && (
         <section className="carte">

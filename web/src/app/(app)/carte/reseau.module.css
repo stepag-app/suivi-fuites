@@ -224,6 +224,31 @@
   margin: 0.3rem 0;
 }
 
+/* Carte sans réseau (lot CH) : état du paquet gardé sur l'appareil, en bas de l'onglet Balayage. */
+.horsLigne {
+  margin-top: 0.8rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--bord-doux);
+  font-size: 0.9rem;
+}
+
+.caseHorsLigne {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.4rem 0;
+}
+
+.caseHorsLigne input {
+  width: auto;
+}
+
+.horsLigneBarre {
+  color: #8a5300;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
 /* Barre du mode balayage : toujours visible sur la carte (compteur, outils, enregistrement). */
 .barreBalayage {
   position: absolute;

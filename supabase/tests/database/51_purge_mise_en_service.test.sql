@@ -8,7 +8,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(31);
+select plan(36);
 
 select id as srm from marches where code = 'SRM-4500004453' \gset
 \set demo de000000-0000-4000-8000-000000000000
@@ -122,6 +122,21 @@ select is((select (changements -> 'effacees_srm' ->> 'public.fuites')::int from 
   'résumé : une fuite du SRM effacée');
 select is((select (changements -> 'effacees_demo' ->> 'public.fuites')::int from journal where table_nom = 'purge_mise_en_service'), 25,
   'résumé : 25 fuites de DEMO effacées');
+
+-- Seconde passe, DEMO déjà supprimé (2026-10-12 soir) : nouveaux essais effacés de la même façon.
+insert into fuites (id, marche_id, reference_srm, secteur_id, zone_id, ouvrage, visibilite, nature_degradation_id,
+                    adresse, position, date_detection, auteur_terrain_id)
+values ('11111111-0000-0000-0000-000000000011', :'srm', '109-001-005', :'sect', :'zone', 'branchement', 'invisible',
+        :'nat', 'Rue essai 2', st_geogfromtext('POINT(-1.91 34.68)'), now(), '00000000-0000-0000-0000-0000000000a1');
+insert into balayages (marche_id, troncon_id, agent_id) values (:'srm', '22222222-0000-0000-0000-000000000001', '00000000-0000-0000-0000-0000000000a1');
+select ok((select statut_balayage from secteurs where id = :'sect') <> 'a_balayer', 'seconde passe, avant : secteur balayé en partie');
+-- Tables temporaires de la première passe (supprimées au commit en production, ici même transaction).
+drop table purge_avant, purge_agents_demo, purge_marches;
+\ir ../../../outils/purge/purger.sql
+select is((select count(*)::int from fuites) + (select count(*)::int from balayages), 0, 'seconde passe : aucune fuite ni balayage');
+select is((select count(*)::int from secteurs where marche_id = :'srm' and statut_balayage <> 'a_balayer'), 0, 'seconde passe : secteurs « À balayer »');
+select ok(not exists (select 1 from private.compteurs where marche_id = :'srm' and cle = 'fuite'), 'seconde passe : numérotation remise à zéro');
+select is((select count(*)::int from journal where table_nom = 'purge_mise_en_service'), 2, 'seconde passe : second résumé au journal');
 
 select * from finish();
 rollback;

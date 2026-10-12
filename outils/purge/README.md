@@ -43,5 +43,8 @@ touchées : les photos effacées y restent.
    puis purge de la base (une transaction : tout ou rien), puis fichiers, puis inventaire après.
 4. Si seule l'étape des fichiers a échoué : `fichiers` avec la même confirmation.
 
+**Seconde passe** (2026-10-12 soir) : DEMO déjà supprimé, la purge se relance telle quelle (mêmes réglages, même
+confirmation) ; les étapes de DEMO sont sans effet, un second résumé est ajouté au journal du SRM.
+
 Avant : aucune saisie en attente sur les tablettes (ouvrir l'appli avec du réseau). Après : ouvrir une fois la
 carte de balayage avec du réseau sur chaque tablette (l'état de balayage gardé sur l'appareil est relu).

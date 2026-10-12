@@ -307,7 +307,7 @@ export function Liste({
           <Segments options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={choisirMarche} />
         )}
         <View style={l.tetePage}>
-          <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, gap: 2 }}>
+          <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 240, gap: 2 }}>
             <Text style={s.h1}>{t('Fuites')}</Text>
             <Text style={s.discret}>
               {enChargement
@@ -612,7 +612,7 @@ export function EnAttente({ retour }: { retour: () => void }) {
 }
 
 const l = StyleSheet.create({
-  connexion: { flexDirection: 'row', backgroundColor: COULEURS.fond },
+  connexion: { flexDirection: 'row' },
   coinConnexion: { position: 'absolute', right: 16, zIndex: 1, flexDirection: 'row', gap: 8 },
   lienWifi: { flexDirection: 'row', gap: 6, backgroundColor: COULEURS.fond },
   volet: { flex: 1, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 },

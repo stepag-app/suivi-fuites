@@ -13,10 +13,9 @@ import { STATUTS, type StatutFuite } from './types';
 // convertis en hexadécimal ; couleurs des statuts et des alertes reprises de web/src/components/statut.tsx (Tailwind v4).
 export const COULEURS = {
   fond: '#ffffff',
-  // Variante B des formulaires : page gris clair, cartes blanches, champs à peine teintés.
-  page: '#f4f4f5',
-  bordCarte: '#e4e4e7',
-  champ: '#fafafa',
+  // Formulaires en étapes numérotées : cartes gris très clair, champs blancs au bord plus marqué.
+  carte: '#fafafa',
+  bordChamp: '#d4d4d4',
   texte: '#0a0a0a',
   discret: '#737373',
   sourdine: '#f5f5f5',
@@ -173,14 +172,19 @@ export const Carte = ({ children, style }: { children: ReactNode; style?: StyleP
   <View style={[s.carte, style]}>{children}</View>
 );
 
-/** En-tête d'une carte (CardHeader du panneau) : titre et compteur, description, action à droite. */
-export function TeteCarte({ titre, compteur, description, action }: {
-  titre: string; compteur?: number; description?: string; icone?: NomIcone; action?: ReactNode;
+/**
+ * En-tête d'une carte, séparé du contenu par un trait : pastille numérotée `n` (étape d'un formulaire) ou icône,
+ * titre et compteur, description, action à droite.
+ */
+export function TeteCarte({ titre, compteur, description, icone, action, n }: {
+  titre: string; compteur?: number; description?: string; icone?: NomIcone; action?: ReactNode; n?: number;
 }) {
   return (
     <View style={s.teteCarte}>
-      <View style={[s.ligneTitre, { flexGrow: 1, flexShrink: 1, flexBasis: 220, alignItems: 'stretch', gap: 12 }]}>
-        <View style={s.barreTitre} />
+      <View style={[s.ligneTitre, { flexGrow: 1, flexShrink: 1, flexBasis: 220, gap: 12 }]}>
+        {n != null ? (
+          <View style={s.numero}><Text style={s.texteNumero}>{n}</Text></View>
+        ) : icone ? <Icone nom={icone} taille={20} couleur={COULEURS.discret} /> : null}
         <View style={{ flex: 1, gap: 2 }}>
           <View style={s.ligneTitre}>
             <Text style={s.titreCarte}>{titre}</Text>
@@ -463,7 +467,7 @@ export function Vignettes({ photos, retirer }: {
 // Aucun espacement des lettres (letterSpacing) : Android le compte à la mesure d'un texte arabe mais pas au dessin
 // (écriture liée) ; un titre plus large que mesuré passait sur deux lignes (« بيانات / التعريف »).
 export const s = StyleSheet.create({
-  ecran: { flex: 1, backgroundColor: COULEURS.page },
+  ecran: { flex: 1, backgroundColor: COULEURS.fond },
   contenu: { padding: 20, gap: 14 },
   defile: { padding: 20, gap: 14, paddingBottom: 40, width: '100%', maxWidth: 920, alignSelf: 'center' },
   barre: {
@@ -479,11 +483,15 @@ export const s = StyleSheet.create({
   titreBarre: { fontFamily: POLICE, fontSize: 18, fontWeight: '600', color: COULEURS.texte },
   sousTitreBarre: { fontFamily: POLICE, fontSize: 14, color: COULEURS.discret },
   h1: { fontFamily: POLICE, fontSize: 28, lineHeight: 34, fontWeight: '600', color: COULEURS.texte },
-  carte: { backgroundColor: COULEURS.fond, borderColor: COULEURS.bordCarte, borderWidth: 1, borderRadius: 14, padding: 18, gap: 14 },
-  teteCarte: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  carte: { backgroundColor: COULEURS.carte, borderColor: COULEURS.bord, borderWidth: 1, borderRadius: 14, padding: 18, gap: 14 },
+  teteCarte: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+    marginHorizontal: -18, paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderColor: COULEURS.bord,
+  },
+  numero: { width: 32, height: 32, borderRadius: 16, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center' },
+  texteNumero: { fontFamily: POLICE, fontSize: 16, fontWeight: '700', color: COULEURS.principalTexte },
   ligneTitre: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   titreCarte: { fontFamily: POLICE, fontSize: 20, lineHeight: 26, fontWeight: '700', color: COULEURS.texte },
-  barreTitre: { width: 4, minHeight: 26, borderRadius: 2, backgroundColor: COULEURS.marque },
   sousTitre: { fontFamily: POLICE, fontSize: 18, fontWeight: '700', color: COULEURS.texte },
   texte: { fontFamily: POLICE, fontSize: 16, color: COULEURS.texte },
   texteFort: { fontFamily: POLICE, fontSize: 16, fontWeight: '600', color: COULEURS.texte },
@@ -495,11 +503,11 @@ export const s = StyleSheet.create({
     borderRadius: 5, paddingHorizontal: 7, paddingVertical: 1, overflow: 'hidden',
   },
   champ: {
-    minHeight: 52, borderWidth: 1, borderColor: COULEURS.bordCarte, borderRadius: 10, paddingHorizontal: 14,
-    fontFamily: POLICE, fontSize: 17, color: COULEURS.texte, backgroundColor: COULEURS.champ,
+    minHeight: 52, borderWidth: 1, borderColor: COULEURS.bordChamp, borderRadius: 10, paddingHorizontal: 14,
+    fontFamily: POLICE, fontSize: 17, color: COULEURS.texte, backgroundColor: COULEURS.fond,
   },
   // Halo du panneau rendu par une bordure de 2 dp : un `outline` sur un champ Android lui retire sa marge intérieure.
-  champActif: { borderColor: COULEURS.anneau, borderWidth: 2, paddingHorizontal: 13, backgroundColor: COULEURS.fond },
+  champActif: { borderColor: COULEURS.anneau, borderWidth: 2, paddingHorizontal: 13 },
   champInactif: { backgroundColor: COULEURS.sourdine, color: COULEURS.discret },
   texteChamp: { flex: 1, fontFamily: POLICE, fontSize: 17, color: COULEURS.texte },
   selecteur: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -526,17 +534,17 @@ export const s = StyleSheet.create({
   ligne: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   puce: {
     minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 10, borderWidth: 1,
-    borderColor: COULEURS.bordCarte, backgroundColor: COULEURS.champ,
+    borderColor: COULEURS.bordChamp, backgroundColor: COULEURS.fond,
   },
   puceActive: { backgroundColor: COULEURS.principal, borderColor: COULEURS.principal },
   textePuce: { fontFamily: POLICE, fontSize: 16, fontWeight: '500', color: COULEURS.texte },
-  segments: { flexDirection: 'row', backgroundColor: COULEURS.sourdine, borderRadius: 12, padding: 4, gap: 2 },
+  segments: { flexDirection: 'row', backgroundColor: COULEURS.bord, borderRadius: 12, padding: 4, gap: 2 },
   segment: { minHeight: 40, paddingHorizontal: 14, borderRadius: 9, justifyContent: 'center' },
   segmentActif: { backgroundColor: COULEURS.fond, boxShadow: '0px 1px 2px rgba(0, 0, 0, 0.12)' },
   texteSegment: { fontFamily: POLICE, fontSize: 15, fontWeight: '500', color: COULEURS.discret },
   case: {
     minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 14, borderRadius: 10,
-    borderWidth: 1, borderColor: COULEURS.bordCarte, backgroundColor: COULEURS.champ,
+    borderWidth: 1, borderColor: COULEURS.bordChamp, backgroundColor: COULEURS.fond,
   },
   coche: {
     width: 24, height: 24, borderRadius: 6, borderWidth: 1.5, borderColor: COULEURS.anneau,

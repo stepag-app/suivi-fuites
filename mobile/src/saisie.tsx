@@ -61,10 +61,12 @@ function usePhotos() {
 
 const libellePhoto = (tp: TypePhoto) => libelleListe('type_photo', tp, TYPES_PHOTO[tp]);
 
-function BlocPhotos({ ph, types, facultatives }: { ph: ReturnType<typeof usePhotos>; types: TypePhoto[]; facultatives?: string }) {
+function BlocPhotos({ ph, types, facultatives, n }: {
+  ph: ReturnType<typeof usePhotos>; types: TypePhoto[]; facultatives?: string; n?: number;
+}) {
   return (
     <Carte>
-      <TeteCarte titre={t('Photos')} compteur={ph.photos.length} description={facultatives} />
+      <TeteCarte n={n} titre={t('Photos')} compteur={ph.photos.length} description={facultatives} />
       <View style={s.ligne}>
         {types.map((tp) => (
           <Bouton
@@ -83,13 +85,7 @@ function BlocPhotos({ ph, types, facultatives }: { ph: ReturnType<typeof usePhot
 function Etape({ n, titre, aide, children }: { n: number; titre: string; aide?: string; children: ReactNode }) {
   return (
     <Carte>
-      <View style={[s.ligneTitre, { gap: 12 }]}>
-        <View style={e.numero}><Text style={e.texteNumero}>{n}</Text></View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text style={s.titreCarte}>{titre}</Text>
-          {!!aide && <Text style={s.discret}>{aide}</Text>}
-        </View>
-      </View>
+      <TeteCarte n={n} titre={titre} description={aide} />
       {children}
     </Carte>
   );
@@ -533,7 +529,8 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
         </Etape>
 
         <Carte>
-          <DateHeure d={quand} />
+          <TeteCarte n={9} titre={t('Date et heure des travaux')} />
+          <DateHeure d={quand} libelle="" />
           <View style={{ gap: 6 }}>
             <Text style={s.etiquette}>{t('Représentant {sigle} présent (facultatif)', { sigle })}</Text>
             {parametres.representants.length > 0 ? (
@@ -548,7 +545,7 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
 
         {parametres.ouvriers.length > 0 && (
           <Carte>
-            <Text style={s.sousTitre}>{t('Ouvriers (facultatif)')}</Text>
+            <TeteCarte n={10} titre={t('Ouvriers (facultatif)')} />
             <View style={s.ligne}>
               {parametres.ouvriers.map((o) => {
                 const actif = ouvriers.includes(o.id);
@@ -569,10 +566,16 @@ export function SaisieReparation({ contexte, retour }: { contexte: ContexteSaisi
           </Carte>
         )}
 
-        {peutPhotos && <BlocPhotos ph={ph} types={['avant', 'pendant', 'apres']} facultatives={t('Facultatives, mais attendues par le responsable.')} />}
+        {peutPhotos && (
+          <BlocPhotos
+            n={parametres.ouvriers.length > 0 ? 11 : 10} ph={ph} types={['avant', 'pendant', 'apres']}
+            facultatives={t('Facultatives, mais attendues par le responsable.')}
+          />
+        )}
 
         <Carte>
-          <Champ libelle={t('Observation')} valeur={observation} onChange={setObservation} multiligne />
+          <TeteCarte n={9 + (parametres.ouvriers.length > 0 ? 1 : 0) + (peutPhotos ? 1 : 0) + 1} titre={t('Observation')} />
+          <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
         </Carte>
 
         {!!erreur && <Message ton="erreur">{erreur}</Message>}
@@ -701,6 +704,7 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
       <BarreApp titre={m ? t('Modifier la réfection') : t('Nouvelle réfection')} sousTitre={contexte.libelle} retour={retour} />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
         <Carte>
+          <TeteCarte n={1} titre={t('Résultat')} />
           <Puces
             options={[{ valeur: 'faite' as const, libelle: t('Réfection faite') }, { valeur: 'non_faite' as const, libelle: t('Non faite (motif)') }]}
             valeur={resultat} onChange={setResultat}
@@ -730,9 +734,10 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
           )}
           <DateHeure d={quand} />
         </Carte>
-        <BlocPhotos ph={ph} types={['refection']} facultatives={t('Facultatives, mais attendues par le responsable.')} />
+        <BlocPhotos n={2} ph={ph} types={['refection']} facultatives={t('Facultatives, mais attendues par le responsable.')} />
         <Carte>
-          <Champ libelle={t('Observation')} valeur={observation} onChange={setObservation} multiligne />
+          <TeteCarte n={3} titre={t('Observation')} />
+          <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
         </Carte>
         {!!erreur && <Message ton="erreur">{erreur}</Message>}
         <Bouton titre={t('Vérifier et enregistrer')} icone="clipboard-check" primaire grand onPress={() => preparer() && setRecap(true)} />
@@ -747,10 +752,6 @@ export function SaisieRefection({ contexte, retour }: { contexte: ContexteSaisie
 }
 
 const e = StyleSheet.create({
-  numero: {
-    width: 32, height: 32, borderRadius: 16, backgroundColor: COULEURS.marque, alignItems: 'center', justifyContent: 'center',
-  },
-  texteNumero: { fontFamily: POLICE, fontSize: 15, fontWeight: '600', color: COULEURS.principalTexte },
   proposition: {
     minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, borderRadius: 10,
     borderWidth: 1, borderStyle: 'dashed', borderColor: COULEURS.marque, backgroundColor: 'rgba(0, 132, 209, 0.06)', alignSelf: 'flex-start',

@@ -355,7 +355,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         {!m && (
           <Carte>
             <TeteCarte
-              titre={t('Position')} icone="map-pin"
+              n={1} titre={t('Position')}
               action={<Bouton titre={t('Actualiser la position')} icone="locate-fixed" onPress={localiser} />}
             />
             {position ? (
@@ -463,7 +463,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         )}
 
         <Carte>
-          <TeteCarte titre={t('Identification')} description={t('* champ obligatoire')} />
+          <TeteCarte n={m ? 1 : 2} titre={t('Identification')} description={t('* champ obligatoire')} />
           <View style={{ gap: 6 }}>
             <Obligatoire libelle={libelleReference} exige={exiges.includes('reference_srm')} />
             <Saisie
@@ -502,7 +502,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         </Carte>
 
         <Carte>
-          <TeteCarte titre={t('Conduite')} description={t('Facultatif : matériau et diamètre, si vous les connaissez.')} />
+          <TeteCarte n={m ? 2 : 3} titre={t('Conduite')} description={t('Facultatif : matériau et diamètre, si vous les connaissez.')} />
           <Obligatoire libelle={t('Matériau')} exige={exiges.includes('materiau')} />
           <Puces
             facultatif options={optionsListe('materiau', MATERIAUX)} valeur={materiau}
@@ -516,16 +516,14 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         </Carte>
 
         <Carte>
-          <View style={{ gap: 6 }}>
-            <Text style={s.etiquette}>{t('Observation')}</Text>
-            <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
-          </View>
+          <TeteCarte n={m ? 3 : 4} titre={t('Observation')} />
+          <Saisie style={s.multiligne} value={observation} onChangeText={setObservation} multiline />
         </Carte>
 
         {!m && (
           <Carte>
             <TeteCarte
-              titre={t('Photos')} compteur={photos.length}
+              n={5} titre={t('Photos')} compteur={photos.length}
               action={<Bouton titre={t('Prendre une photo')} icone="camera" onPress={prendrePhoto} />}
             />
             {!photos.length && <Text style={s.discret}>{t('Facultatives, mais attendues par le responsable ; un appui sur une photo la retire.')}</Text>}

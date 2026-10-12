@@ -47,7 +47,7 @@ export function DateHeure({ d, libelle }: { d: DateHeureEtat; libelle?: string }
   });
   return (
     <View style={{ gap: 6 }}>
-      <Text style={s.etiquette}>{libelle ?? t('Date et heure des travaux')}</Text>
+      {libelle !== '' && <Text style={s.etiquette}>{libelle ?? t('Date et heure des travaux')}</Text>}
       <View style={s.ligne}>
         <Bouton titre={jourTexte(d.valeur)} icone="calendar" onPress={() => ouvrir('date')} style={{ flexGrow: 1, flexBasis: 170 }} />
         <Bouton titre={heureTexte(d.valeur)} icone="clock" onPress={() => ouvrir('time')} style={{ flexGrow: 1, flexBasis: 120 }} />

@@ -6,9 +6,11 @@
 -- (psql --single-transaction) : en cas d'erreur, rien n'est effacé. Testé par
 -- supabase/tests/database/51_purge_mise_en_service.test.sql. Ne contient ni begin ni commit.
 -- Les fichiers (photos R2 et Supabase Storage, tuiles de DEMO) sont effacés ensuite par le workflow.
+-- Relançable une fois DEMO supprimé (seconde passe du 2026-10-12 soir : essais de KASMI d'après la première purge) :
+-- toutes les étapes de DEMO sont alors sans effet.
 --
 -- Variables psql obligatoires :
---   srm, demo                      identifiants des deux marchés (vérifiés contre leurs codes)
+--   srm, demo                      identifiants des deux marchés (vérifiés contre leurs codes ; DEMO peut être déjà supprimé)
 --   effacer_gps                    oui : tracés, pauses et états du suivi GPS du SRM
 --   effacer_debits                 oui : campagnes et mesures de débit de nuit du SRM (points de mesure gardés)
 --   effacer_evenements             oui : événements particuliers du SRM et leurs pièces jointes
@@ -58,8 +60,8 @@ begin
   if not exists (select 1 from public.marches where id = _srm and code = 'SRM-4500004453') then
     raise exception 'Marché SRM-4500004453 introuvable sous l''identifiant %', _srm;
   end if;
-  if not exists (select 1 from public.marches where id = _demo and code = 'DEMO') then
-    raise exception 'Marché DEMO introuvable sous l''identifiant %', _demo;
+  if exists (select 1 from public.marches where id = _demo and code <> 'DEMO') then
+    raise exception 'L''identifiant % n''est pas celui du marché DEMO', _demo;
   end if;
   if exists (select 1 from public.marches where id not in (_srm, _demo)) then
     raise exception 'Un autre marché existe : purge arrêtée (elle ne prévoit que SRM et DEMO)';
@@ -221,4 +223,4 @@ select current_setting('purge.srm')::uuid, 'purge_mise_en_service', current_sett
          'agents_affectes_srm', (select count(*) from purge_agents_demo),
          'effacees_demo', (select jsonb_object_agg(a.nom, a.demo) from purge_avant a where a.demo > 0));
 
-\echo 'Purge terminée : DEMO supprimé, fuites et balayages effacés.'
+\echo 'Purge terminée : fuites et balayages effacés, DEMO supprimé (ou déjà absent).'

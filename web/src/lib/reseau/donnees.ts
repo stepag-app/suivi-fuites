@@ -1,10 +1,13 @@
 // Accès à la base pour le réseau (contrat § 3) : fonctions RPC, vues lues par pages, cache IndexedDB
 // des géométries par secteur (base `suivi-fuites-reseau`, clé `marche:secteur`, invalidée quand le
-// `modifie_le` de `v_lineaire_secteurs` change). L'état de balayage n'est jamais mis en cache : il est
-// relu à chaque ouverture et posé par `setFeatureState` (voir etat.ts et carte/reseau-carte.ts).
+// `modifie_le` de `v_lineaire_secteurs` change). L'état de balayage est relu à chaque ouverture et posé par
+// `setFeatureState` (voir etat.ts et carte/reseau-carte.ts) ; sa dernière copie, comme celle des zones et secteurs,
+// sert sans réseau (lot CH, `avecCopie`).
 import type { MultiPolygon, Polygon } from 'geojson';
 import { messageErreur, nombre } from '@/lib/format';
-import { listerBalayagesEnAttente, mettreBalayagesEnAttente, synchroniser } from '@/lib/hors-ligne';
+import {
+  estErreurReseau, lireCache, listerBalayagesEnAttente, mettreBalayagesEnAttente, mettreEnCache, synchroniser,
+} from '@/lib/hors-ligne';
 import { fonctionAbsente, getSupabase, lireTout } from '@/lib/supabase';
 import type {
   EtatBalayageTroncon, LigneBalayageJournalier, LigneLineaireSecteur, TronconsSansSecteur,
@@ -96,6 +99,40 @@ export async function viderCacheReseau() {
   }
 }
 
+// ---- Dernière copie lue en ligne, pour la carte sans réseau (lot CH) ---------------------------------------------
+
+/** Au-delà, une lecture qui a une copie est abandonnée au profit de la copie (réseau très lent). */
+const DELAI_AVEC_COPIE_MS = 12_000;
+
+export interface LuAvecCopie<T> {
+  valeur: T;
+  /** Date ISO de la copie servie faute de réseau ; null : lu en ligne. */
+  copieDu: string | null;
+}
+
+/**
+ * Lit en ligne et garde une copie (magasin « cache » de la file hors ligne) ; sans réseau, ou après 12 s sans réponse
+ * quand une copie existe, rend la copie. Les autres erreurs (droits, base) remontent telles quelles.
+ */
+export async function avecCopie<T>(cle: string, lire: () => Promise<T>): Promise<LuAvecCopie<T>> {
+  const copie = await lireCache<{ valeur: T; le: string }>(cle);
+  let minuteur: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const valeur = await (copie
+      ? Promise.race([lire(), new Promise<never>((_, ko) => { minuteur = setTimeout(() => ko(new Error('fetch : délai dépassé')), DELAI_AVEC_COPIE_MS); })])
+      : lire());
+    await mettreEnCache(cle, { valeur, le: new Date().toISOString() });
+    return { valeur, copieDu: null };
+  } catch (e) {
+    if (!copie || !estErreurReseau(e)) throw e;
+    return { valeur: copie.valeur, copieDu: copie.le };
+  } finally {
+    clearTimeout(minuteur);
+  }
+}
+
+export const cleCopieReseau = (quoi: 'contexte' | 'etat' | 'fuites', marcheId: string) => `carte:${quoi}:${marcheId}`;
+
 // ---- Contexte : zones, secteurs, linéaires -----------------------------------------------------------
 
 export interface ContexteReseau {
@@ -133,6 +170,12 @@ export async function chargerContexteReseau(marcheId: string): Promise<ContexteR
     secteurs: (s.data as SecteurReseau[] | null) ?? [],
     lignes, sansSecteur, disponible,
   };
+}
+
+/** Estampille d'un secteur (invalidation du cache des géométries) : `modifie_le` de la vue ; non zonés : nombre et linéaire. */
+export function estampilleSecteur(contexte: ContexteReseau, secteurId: string): string | null {
+  if (secteurId === SANS_SECTEUR) return contexte.sansSecteur ? `${contexte.sansSecteur.nb_troncons}:${contexte.sansSecteur.lineaire_m}` : '0';
+  return contexte.lignes.find((l) => l.secteur_id === secteurId)?.modifie_le ?? null;
 }
 
 // ---- Géométries par secteur -----------------------------------------------------------------------------

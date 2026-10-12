@@ -60,3 +60,29 @@ export function compterEtats(ids: Iterable<string>, etats: Map<string, EtatFeatu
   }
   return new Map([['balaye', balaye], ['repasse', repasse], ['non_balaye', non]]);
 }
+
+/**
+ * Balayages saisis sur l'appareil et pas encore envoyés (file d'attente) : un passage de plus chacun, tout de suite,
+ * au nom de l'agent connecté. Les lignes envoyées quittent la file et reviennent par l'état relu en ligne.
+ */
+export function ajouterEnAttente(
+  lignes: EtatBalayageTroncon[], enAttente: { troncon_id: string; date_balayage: string }[], agentId: string | null,
+): EtatBalayageTroncon[] {
+  if (!enAttente.length) return lignes;
+  const parTroncon = new Map(lignes.map((l) => [l.troncon_id, { ...l }]));
+  for (const b of enAttente) {
+    const quand = `${b.date_balayage}T12:00:00Z`;
+    const l = parTroncon.get(b.troncon_id);
+    if (!l) {
+      parTroncon.set(b.troncon_id, { troncon_id: b.troncon_id, premier_le: quand, dernier_le: quand, nb_passages: 1, agent_id: agentId });
+      continue;
+    }
+    l.nb_passages = (Number(l.nb_passages) || 0) + 1;
+    if (!l.premier_le || quand < l.premier_le) l.premier_le = quand;
+    if (!l.dernier_le || quand >= l.dernier_le) {
+      l.dernier_le = quand;
+      l.agent_id = agentId;
+    }
+  }
+  return [...parTroncon.values()];
+}

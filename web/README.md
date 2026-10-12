@@ -321,7 +321,8 @@ complet : `docs/lots/chantier-v3-email.md`.
   (151 + 147 + 6), 10 Ko gzip de CSS ; les autres pages ne changent pas.
 - Fuites lues dans `v_fuites` (RLS appliquée), par pages de 1 000 au-delà de 1 000 lignes.
 - **Sans réseau** : le module est en cache (service worker) mais les fuites ne le sont pas : message
-  « Pas de réseau », bouton Actualiser. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
+  « Pas de réseau », bouton Actualiser ; avec le paquet de la carte sans réseau (tablette, § Carte sans réseau), dernière
+  liste lue en ligne. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
   fond uni avec un bandeau (les nombres des groupes n'apparaissent alors pas).
 - Tablette : boutons de zoom de 44 px, rotation désactivée, un toucher à 14 px près sélectionne le point.
 - **Impression** (« Imprimer la carte », droit « exports / lire ») : format A4 / A3, portrait / paysage, titre,
@@ -391,6 +392,42 @@ complet : `docs/lots/chantier-v3-email.md`.
   avec `NEXT_PUBLIC_MESURE_CARTE=1` (expose la carte au script ; **jamais sur Vercel**) et une base d'essai locale.
   Vérification du format : `node scripts/verifier-tuiles.mjs [troncons.geojson noeuds.geojson]` (15 ; avec les deux
   fichiers, génère le vrai réseau et vérifie que chaque tronçon est dans les tuiles du zoom 16).
+
+### Carte sans réseau (lot CH)
+
+- **But** : sur la tablette, la carte de balayage (`/carte?mode=balayage`, WebView de l'APK) reste complète sans réseau :
+  conduites, secteurs, diamètres, matériaux, nœuds, rues et noms (français ou arabe), points d'intérêt, à tous les zooms ;
+  toucher, lasso, « Prolonger » ; balayages en file d'attente. Fiche : `docs/lots/lot-ch-carte-hors-ligne.md`.
+- **Paquet** (`src/lib/reseau/paquet-carte.ts`) : 6 s après l'ouverture de la carte avec réseau (Wi-Fi ou 4G), la tablette
+  garde ou met à jour : archive du réseau et **fond de la ville** entières (Cache Storage `suivi-fuites-carte`,
+  `copie-carte.ts`, une entrée par marché et par fichier, remplacée seulement quand la nouvelle est complète), page de la
+  carte, scripts, modules MapLibre, polices et icônes (service worker, message `garder-carte`), géométrie de tous les
+  secteurs (lasso, Prolonger : cache IndexedDB existant). Seul ce qui a changé repart (ETag, estampilles, page au plus une
+  fois par heure). Oujda : ≈ 10 Mo la première fois. Actif dans l'APK ; dans un navigateur, case « Garder la carte sur cet
+  appareil » (onglet Balayage du panneau Réseau), qui montre aussi l'état (« Prête : réseau du …, fond de carte du … »).
+- **Lecture** : `tuiles.ts` lit la copie de l'appareil quand elle a le même ETag que l'archive en ligne, ou quand la
+  fonction `reseau-tuiles` ne répond pas en 10 s ; sinon R2 par plages comme avant. Zones, secteurs, linéaires, état de
+  balayage (et noms des agents) et liste des fuites : dernière copie lue en ligne (`avecCopie`, magasin « cache » de la
+  file hors ligne), servie sans réseau ou après 12 s sans réponse ; bandeau « Hors ligne · état du … » dans la barre.
+  Les balayages en attente comptent tout de suite (`ajouterEnAttente`, au nom de l'agent connecté).
+- **Fond de la ville** : extrait OpenStreetMap de Protomaps (zooms 0 à 15, agrandi au-delà) déposé dans R2
+  (`fonds/<marché>/fond.pmtiles`, Paramètres › Réseau › « Fond de carte hors ligne » ; fabriqué par
+  `outils/fond-carte/fabriquer.sh`, à refaire tous les trois mois environ). Style « light » de `@protomaps/basemaps`
+  (`carte/fond-local.ts`), polices Noto Sans (latin et arabe ; « Noto Sans Bold » des couches du réseau = copie de Medium)
+  et icônes servies par `public/fond/v1/` (cache d'abord dans le service worker : changer de dossier pour les remplacer).
+  Noms : français s'il existe, nom local en seconde ligne ; tablette en arabe : arabe d'abord ; MapLibre 6 met l'arabe en
+  forme lui-même. Sur la tablette, ce fond sert **en ligne aussi** ; le panneau du bureau garde OpenFreeMap.
+- **Session hors ligne** : un jeton expiré ne peut pas être renouvelé sans réseau ; `session.tsx` relit alors la session
+  gardée sur l'appareil pour reconnaître l'agent (plus de renvoi vers `/connexion`).
+- **APK** (`mobile/src/balayage.tsx`) : la page signale `carte-hors-ligne` (prête, marché, compte) ; sans réseau, l'écran
+  Balayage ouvre directement `/carte?mode=balayage` si la carte est prête **pour le compte connecté** (sinon les balayages
+  partiraient au nom de l'agent précédent), sinon « ouvrez-la une fois avec du réseau ». La copie reste à la déconnexion
+  (tablette partagée entre agents du même marché).
+- Vérification : `node scripts/verifier-carte-hors-ligne.mjs [fond.pmtiles]` (14).
+  Essai de bout en bout (Chrome sans tête en profil APK, en ligne puis hors ligne avec jeton expiré, puis retour du
+  réseau) : `node scripts/essayer-carte-hors-ligne.mjs <relais> <dossier>` sur une base d'essai locale (PostgREST et un
+  relais qui imite l'authentification, la fonction `reseau-tuiles` et R2), panneau construit avec
+  `NEXT_PUBLIC_MESURE_CARTE=1` ; le script lance et arrête lui-même `next start`.
 
 ### Satellite (C5)
 

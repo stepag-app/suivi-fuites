@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import { isAuthRetryableFetchError, type Session, type SupabaseClient } from '@supabase/supabase-js';
 import { configurationManquante, getSupabase } from './supabase';
 import type { Action, Droit, Marche, Profil, TypeDonnee } from './types';
 // Règle d'affichage partagée avec la matrice des droits (calcul pur, vérifié par scripts/verifier-matrice-droits.mjs).
@@ -28,6 +28,21 @@ const CLE_MARCHE = 'suivi-fuites:marche';
 const COLONNES_MARCHE = 'id, code, intitule, client, ville, actif, taux_majoration, taux_tva, rayon_redetection_m';
 const COLONNES_MARCHE_CLIENT = 'client_sigle, libelle_reference, masque_reference, jalons_client, delai_alerte_reparation_h, devise';
 
+/**
+ * Sans réseau, un jeton expiré ne peut pas être renouvelé : auth-js répond « pas de session » mais garde la session
+ * sur l'appareil. On la relit pour reconnaître le dernier utilisateur (contexte gardé, carte et fiches hors ligne)
+ * jusqu'au retour du réseau, où les requêtes la renouvellent (dans l'APK : la tablette).
+ */
+function sessionGardee(sb: SupabaseClient): Session | null {
+  try {
+    const cle = (sb.auth as unknown as { storageKey?: string }).storageKey;
+    const s = cle ? (JSON.parse(window.localStorage.getItem(cle) ?? 'null') as Session | null) : null;
+    return s?.user?.id && s.access_token && s.refresh_token ? s : null;
+  } catch {
+    return null;
+  }
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [chargement, setChargement] = useState(true);
   const [session, setSession] = useState<Session | null>(null);
@@ -44,11 +59,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
     const sb = getSupabase();
-    sb.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      if (!data.session) setChargement(false);
+    sb.auth.getSession().then(({ data, error }) => {
+      const s = data.session ?? (isAuthRetryableFetchError(error) ? sessionGardee(sb) : null);
+      setSession(s);
+      if (!s) setChargement(false);
     });
-    const { data: abonnement } = sb.auth.onAuthStateChange((_evenement, s) => {
+    const { data: abonnement } = sb.auth.onAuthStateChange((evenement, s) => {
+      // La session de départ vient de getSession ci-dessus (avec le secours hors ligne).
+      if (evenement === 'INITIAL_SESSION') return;
       setSession(s);
       if (!s) {
         setProfil(null);

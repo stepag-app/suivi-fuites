@@ -3,7 +3,7 @@
 > À lire en début de chaque session, avec `CLAUDE.md` et `supabase/README.md`.
 > Mettre à jour en fin de session (fait, en attente, décisions).
 
-Dernière mise à jour : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
+Dernière mise à jour : 2026-10-12 (**lot CH, carte de balayage sans réseau**, § 13). Avant : 2026-10-11 (**lot TP, tablettes verrouillées**, § 12). Avant : 2026-10-09 (**fin du chantier v2, session S8** : audit, vérifications, passation, § 10). Tout le
 chantier v2 (PR [#59](https://github.com/stepag-app/suivi-fuites/pull/59) à [#70](https://github.com/stepag-app/suivi-fuites/pull/70))
 est fusionné dans `main` et déployé ; la PR #40 (photos R2) a été **fusionnée le 2026-10-07**. Audit tâche par tâche :
 `docs/lots/chantier-v2-audit-s8.md`. Les § 3 à 9 sont l'historique des sessions précédentes ; le § 2 est refait et fait foi.
@@ -501,3 +501,48 @@ admet aussi l'événement « wifi » de la PR #118).
    d'Issam ; vérifier la consommation 4G par appli au bout d'une semaine.
 5. Les tablettes Samsung déjà en service ne sont pas verrouillées tant qu'elles ne sont pas préparées par QR code.
 
+## 13. Lot CH (2026-10-12) : carte de balayage sans réseau
+
+Question d'Issam (2026-10-12) : la carte (balayage, zoom, types de conduites, secteurs) reste-t-elle utilisable sans
+réseau ? Constat : **non**. L'écran Balayage de l'APK refusait de s'ouvrir sans réseau, et le panneau ne dessinait aucun
+réseau sans la liste des secteurs, lue en ligne. Fiche et décisions d'Issam : `docs/lots/lot-ch-carte-hors-ligne.md`
+(toutes les recommandations, qualité supérieure, ville + 5 km, noms arabes ou français, 4G et Wi-Fi, copie gardée
+quand la tablette change de main). Fonctionnement : `web/README.md` § Carte sans réseau.
+PR [#121](https://github.com/stepag-app/suivi-fuites/pull/121).
+
+**Fait** : paquet par marché préparé quand la tablette a du réseau. Il contient :
+- l'archive du réseau et le **fond de la ville** (extrait OpenStreetMap de Protomaps, 3,3 Mo, `outils/fond-carte/`),
+  copiés entiers ;
+- la page de la carte, MapLibre, les polices latines et arabes et les icônes (service worker) ;
+- la géométrie de tous les secteurs, les zones et secteurs, l'état de balayage et les fuites (dernières copies).
+
+Ensuite, seul ce qui a changé est retéléchargé. Sur la tablette, le fond Protomaps sert en ligne aussi. Les balayages
+en attente comptent tout de suite. Le panneau ne renvoie plus vers `/connexion` quand le jeton expire sans réseau.
+Fonction `reseau-tuiles` : paramètre `fichier` (réseau ou fond). Paramètres › Réseau : bloc « Fond de carte hors
+ligne » (dépôt). APK : sans réseau, ouverture directe de la carte si elle est prête pour le compte connecté.
+
+**Vérifié** sur une base d'essai locale (réseau complet d'Oujda, relais qui imite l'authentification, la fonction et R2),
+en Chrome sans tête en profil APK (`web/scripts/essayer-carte-hors-ligne.mjs`) :
+- préparation du paquet en 6 s : réseau 6,2 Mo et fond 3,4 Mo reçus, plus la géométrie par l'API (14,5 Mo non
+  compressés par le relais local ; Supabase compresse) ;
+- rechargement en ligne lu dans l'appareil (0 octet d'archive) ;
+- **hors ligne** (navigateur hors ligne, panneau arrêté, jeton expiré), carte ouverte par le service worker ; au zoom 17,
+  rues et noms, bâtiments, points d'intérêt, conduites avec diamètre et matériau, nœuds ;
+- tronçon touché, enregistré, vert tout de suite ; envoyé au retour du réseau.
+
+Dans le navigateur intégré : dépôt du fond par le bloc des Paramètres, génération des tuiles, noms arabes liés et
+écrits de droite à gauche. `scripts/verifier-carte-hors-ligne.mjs` (14), `verifier-tuiles` (15), `verifier-reseau` (31),
+tsc web et APK, build du panneau, bundle Android.
+
+**Non vérifié** : la Redmi (beta.2 au premier plan, rien touché) et la vraie production.
+
+**Reste** (dans l'ordre) :
+1. Fusionner la PR #121 : déploie la fonction `reseau-tuiles` et le panneau (aucune migration). Dès la fusion, les
+   tablettes en beta.2 téléchargent le paquet en ouvrant la carte ; sans réseau, elles refusent encore d'ouvrir l'écran
+   Balayage (nouvelle APK nécessaire).
+2. Déposer le fond d'Oujda : Paramètres › Réseau › « Fond de carte hors ligne », fichier fabriqué par
+   `outils/fond-carte/fabriquer.sh oujda …` (déjà prêt sur le Mac : `data-private/fonds/oujda.pmtiles`, construction
+   Protomaps du 11 octobre).
+3. Publier l'APK suivante (à la demande d'Issam), l'installer sur la Redmi, ouvrir la carte une fois avec réseau, puis
+   l'essayer en mode avion : zoom, toucher, lasso, Prolonger, enregistrement, retour du réseau.
+4. Refaire le fond tous les trois mois environ.

@@ -2,15 +2,17 @@
 
 // Panneau « Réseau » de la carte, en trois onglets (C4 : le même panneau sur la tablette et dans le panneau web,
 // ouvert au besoin par-dessus la carte) : Secteurs (interrupteur mémorisé, coloration, arbre Zone → secteurs avec
-// cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente).
+// cases, linéaire et % balayé), Légende (traits, nœuds, étiquettes), Balayage (enregistrement, file d'attente, carte
+// sans réseau).
 import { useState } from 'react';
 import { basculerZone, etatCaseZone, totauxChoisis, tousLesSecteurs } from '@/lib/reseau/arbre';
 import { METHODES, MOTIFS_REPASSE, aujourdhuiMaroc, type ChoixBalayage, type MotifRepasse } from '@/lib/reseau/balayage';
 import { compterEtats } from '@/lib/reseau/etat';
 import { COULEUR_NON_ZONE, TYPES_NOEUD, classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
+import type { EtatPaquet } from '@/lib/reseau/paquet-carte';
 import { formaterLineaire } from '@/lib/reseau/selection';
 import { SANS_SECTEUR, type Coloration } from '@/lib/reseau/types';
-import { nombre } from '@/lib/format';
+import { dateSeule, nombre } from '@/lib/format';
 import { useLangueApk } from '@/lib/langue-apk';
 import type { MethodeBalayage } from '@/lib/types';
 import styles from './reseau.module.css';
@@ -33,6 +35,20 @@ export interface BalayagePanneau {
   enAttente: number;
   envoyer: () => void;
   peutAnnuler: boolean;
+  /** Carte sans réseau (lot CH) : état du paquet gardé sur l'appareil. */
+  horsLigne?: CarteHorsLigne;
+}
+
+export interface CarteHorsLigne {
+  /** Paquet préparé sur cet appareil (APK : toujours ; navigateur : au choix). */
+  actif: boolean;
+  /** Navigateur seulement : case « Garder la carte sur cet appareil ». */
+  choisir?: (actif: boolean) => void;
+  etat: EtatPaquet | null;
+  /** Avancement du téléchargement (vide : rien en cours). */
+  etape: string;
+  erreur: string;
+  preparer: () => void;
 }
 
 export type OngletReseau = 'secteurs' | 'legende' | 'balayage';
@@ -288,6 +304,43 @@ function BlocBalayage({ balayage }: { balayage: BalayagePanneau }) {
       {balayage.peutAnnuler && balayage.actif && (
         <p className={styles.vide}>{tb('Pour annuler un balayage : quittez le mode balayage, touchez le tronçon puis « Annuler le balayage ».')}</p>
       )}
+      {balayage.horsLigne && <BlocHorsLigne h={balayage.horsLigne} />}
     </section>
+  );
+}
+
+function BlocHorsLigne({ h }: { h: CarteHorsLigne }) {
+  const { tb, langue } = useLangueApk();
+  const e = h.etat;
+  const jour = (iso: string | null | undefined) => (iso ? dateSeule(iso) : '—');
+  return (
+    <div className={styles.horsLigne} role="status">
+      <strong>{tb('Carte sans réseau')}</strong>
+      {h.choisir && (
+        <label className={styles.caseHorsLigne}>
+          <input type="checkbox" checked={h.actif} onChange={(ev) => h.choisir!(ev.target.checked)} />
+          Garder la carte sur cet appareil (environ 12 Mo)
+        </label>
+      )}
+      {h.actif && (
+        <>
+          {h.etape ? (
+            <p className={styles.vide}>{langue === 'fr' ? h.etape : tb('Téléchargement de la carte…')}</p>
+          ) : e?.pret ? (
+            <p className={styles.vide}>
+              {e.fond
+                ? tb('Prête : réseau du {r}, fond de carte du {f}.', { r: jour(e.reseau?.gardeLe), f: jour(e.fond.gardeLe) })
+                : tb('Prête : réseau du {r} (pas de fond de carte déposé : fond uni sans réseau).', { r: jour(e.reseau?.gardeLe) })}
+            </p>
+          ) : (
+            <p className={styles.vide}>{tb('Pas encore téléchargée : ouvrez cette carte avec du réseau (Wi-Fi ou 4G).')}</p>
+          )}
+          {h.erreur && <p className="erreur">{tb('Échec du téléchargement : {e}', { e: h.erreur })}</p>}
+          {!h.etape && (
+            <button type="button" className="petit" onClick={h.preparer}>{tb('Mettre à jour maintenant')}</button>
+          )}
+        </>
+      )}
+    </div>
   );
 }

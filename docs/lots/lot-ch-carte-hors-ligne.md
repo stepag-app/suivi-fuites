@@ -1,7 +1,8 @@
 # Lot CH : carte de balayage utilisable sans réseau
 
-> Fiche de cadrage (2026-10-12). **Pas de code avant l'accord d'Issam** (règle du `CLAUDE.md`) : sept réponses
-> attendues au § 10. Mesures faites le 2026-10-12 sur le Mac (extrait réel du fond de carte d'Oujda, polices réelles).
+> Fiche de cadrage (2026-10-12), **version 2 après les réponses d'Issam** (§ 10, le 2026-10-12 vers 00 h 30).
+> Mesures faites le 2026-10-12 sur le Mac (extrait réel du fond de carte d'Oujda, polices réelles). Réalisation :
+> `web/README.md` § Carte sans réseau, `outils/fond-carte/`.
 
 ## 0. Objectif
 
@@ -30,15 +31,15 @@ Lecture du code (à confirmer à l'essai, mais sans ambiguïté) ; la réponse d
 | Élément | Source | Taille | Change quand |
 |---|---|---:|---|
 | Archive du réseau (conduites, nœuds, diamètres, matériaux, secteurs) | R2 privé, existant (X5) | **4,7 Mo** | « Régénérer les tuiles » (import, zonage) |
-| Fond de carte (rues, noms, bâtiments, eau, verdure), zooms 0 à 15, agrandi au-delà | **nouveau** : extrait Protomaps dans R2 privé (§ 3) | **2,8 Mo** (ville + 1 km, 199 tuiles) ; 3,3 Mo (ville + 5 km) | mise à jour du fond (§ 5) |
-| Polices des noms de rues (Noto Sans, lettres latines) | fichiers du panneau (`web/public/`) | 0,3 Mo (une graisse) à 0,6 Mo (deux) | jamais (ou presque) |
+| Fond de carte (rues, noms, bâtiments, eau, verdure, points d'intérêt), zooms 0 à 15, agrandi au-delà | **nouveau** : extrait Protomaps dans R2 privé (§ 3) | **3,3 Mo** (ville + 5 km, 534 tuiles, retenu) ; 2,8 Mo (ville + 1 km) | mise à jour du fond (§ 5) |
+| Polices des noms (Noto Sans, trois graisses, lettres latines **et arabes**) et icônes | fichiers du panneau (`web/public/fond/v1/`) | ≈ 3 Mo | jamais (ou presque) |
 | Style du fond (couleurs, couches) | code du panneau (`@protomaps/basemaps`, BSD-3) | ≈ 30 Ko | mise en ligne du panneau |
 | Géométrie pour le lasso et « Prolonger » | base, existant (cache IndexedDB par secteur) | ≈ 15 Mo sur la tablette, 1 à 4 Mo transférés (compressé) | zonage d'un secteur |
 | Zones, secteurs, linéaires | base, **gardé en plus** | < 0,3 Mo | à chaque ouverture en ligne |
 | État de balayage (dernière copie) | base, **gardé en plus** | < 1 Mo | à chaque ouverture en ligne |
 | Pages et scripts de la carte (MapLibre compris) | service worker, **gardés d'avance** | ≈ 1 Mo compressé | mise en ligne du panneau |
 
-**Premier téléchargement : ≈ 10 Mo par tablette et par marché. Place sur la tablette : ≈ 25 Mo.**
+**Premier téléchargement : ≈ 12 Mo par tablette et par marché. Place sur la tablette : ≈ 30 Mo.**
 
 ## 3. Fond de carte : source, licence, style
 
@@ -49,12 +50,12 @@ Lecture du code (à confirmer à l'essai, mais sans ambiguïté) ; la réponse d
 - **Licence** : données © OpenStreetMap (ODbL) : la mention « © OpenStreetMap » reste affichée (déjà le cas) ;
   basses échelles Natural Earth (domaine public) ; style `@protomaps/basemaps` (BSD-3) ; polices Noto (OFL). Usage
   interne, sans redistribution de la base : pas d'obligation de partage. Pas de compte, pas de clé, gratuit.
-- **Style** : variante claire de Protomaps, **épurée** : rues hiérarchisées, noms des rues et des quartiers,
-  bâtiments, eau, parcs ; **sans points d'intérêt ni icônes** (pas de fichiers d'icônes à garder). Proche du fond
-  « positron » actuel. Pas de satellite (inchangé : en ligne seulement, C5).
-- **Noms en arabe** : sur 1 626 noms de voies de l'extrait, **1 610 sont en lettres latines**, 16 seulement en arabe.
-  Proposition : polices latines seules ; ces 16 noms ne s'affichent pas. Les afficher correctement demanderait les
-  polices arabes (+ 0,8 Mo) et le module de mise en forme droite-à-gauche de MapLibre.
+- **Style** : variante claire de Protomaps (« light »), **complète** (Issam : « qualité supérieure et plus de
+  détail ») : rues hiérarchisées, noms des rues et des quartiers, bâtiments, eau, parcs, **points d'intérêt avec leurs
+  icônes** (feuilles simple et double densité). Pas de satellite (inchangé : en ligne seulement, C5).
+- **Noms** (Issam : « afficher noms de rues soit arabe ou français ») : sur 1 626 noms de voies de l'extrait, 1 610 sont
+  en lettres latines, 16 en arabe. Français s'il existe, nom local (souvent arabe) en seconde ligne ; tablette en arabe :
+  arabe d'abord. Polices arabes fournies ; MapLibre 6 met lui-même l'arabe en forme (aucun module à ajouter).
 - **Où** : `fonds/<marche_id>/fond.pmtiles` dans le compartiment R2 privé, à côté de l'archive du réseau, délivré par la
   même fonction `reseau-tuiles` (URL signée, paramètre `fichier : 'fond'`). R2 : 3 Mo, une lecture par tablette et par
   mise à jour : gratuit.
@@ -74,8 +75,8 @@ Lecture du code (à confirmer à l'essai, mais sans ambiguïté) ; la réponse d
    ou « téléchargement 45 % », ou « pas encore téléchargée ».
 3. **Lecture** : une fois la copie complète, les tuiles (réseau et fond) sont lues **dans la tablette**, jamais par le
    réseau, en ligne comme hors ligne : plus rapide, sans 4G.
-4. **Sans réseau** : l'APK ouvre directement la carte si le panneau lui a signalé « carte prête » (sinon le message
-   actuel). Le service worker sert la page et ses scripts ; zones, secteurs et géométrie viennent de la tablette ; état
+4. **Sans réseau** : l'APK ouvre directement la carte si le panneau lui a signalé « carte prête » **pour le compte
+   connecté** (sinon « ouvrez-la une fois avec du réseau » : les balayages partiraient au nom de l'agent précédent). Le service worker sert la page et ses scripts ; zones, secteurs et géométrie viennent de la tablette ; état
    de balayage = dernière copie **plus les balayages en attente** (affichés balayés tout de suite) ; bandeau « Hors
    ligne : état du balayage du 12/10 à 09:40 ». La session déjà gardée par le panneau suffit (pas de passage par
    `/session`, qui a besoin du réseau).
@@ -96,13 +97,13 @@ Lecture du code (à confirmer à l'essai, mais sans ambiguïté) ; la réponse d
 
 ## 6. Place sur la tablette
 
-≈ 25 Mo par marché (Redmi Pad 2 : 128 Go). Rangé dans le stockage de la WebView de Suivi fuites (Cache Storage et
+≈ 30 Mo par marché (Redmi Pad 2 : 128 Go). Rangé dans le stockage de la WebView de Suivi fuites (Cache Storage et
 IndexedDB, privés à l'appli) ; demande de stockage « persistant » au navigateur : s'il la refuse, Android ne vide ce
 stockage qu'en cas de mémoire saturée, et la carte se retélécharge alors à la prochaine ouverture en ligne.
 
 ## 7. Consommation 4G
 
-- **Une fois** : ≈ 10 Mo par tablette et par marché (réseau 4,7, fond 2,8, polices 0,3, géométrie 1 à 4 compressée).
+- **Une fois** : ≈ 12 Mo par tablette et par marché (réseau 4,7, fond 3,3, polices et icônes 3, géométrie 1 à 4 compressée).
 - **Ensuite** : rien pour le réseau ni le fond tant qu'ils ne changent pas ; à chaque ouverture en ligne, l'état de
   balayage et la liste des secteurs (quelques centaines de Ko, comme aujourd'hui).
 - **Aujourd'hui**, chaque déplacement de la carte redemande des tuiles OpenFreeMap et des plages du réseau : le paquet
@@ -136,7 +137,18 @@ réseau.
   (`mesurer-carte.mjs`) avec le fond local.
 - **Redmi Pad 2** (série nzxcijwchixklrij), avec l'accord d'Issam : appli DEV, mode avion, même parcours.
 
-## 10. Questions pour Issam
+## 10. Questions pour Issam et réponses (2026-10-12)
+
+Réponses : « d'accord pour toutes tes recommandations », avec ces précisions :
+- 1 : oui, en **qualité supérieure** (style complet, points d'intérêt, sur des sources gratuites) ;
+- 2 : **ville + 5 km** ;
+- 3 : noms **en arabe ou en français** (polices arabes ajoutées) ;
+- 4 : téléchargement **en 4G et en Wi-Fi** ;
+- 5 : **garder** la copie à la déconnexion : la tablette change de main, un autre agent se reconnecte, le paquet sert
+  aux deux (rangé par marché, pas par compte ; l'ouverture sans réseau reste liée au compte qui l'a préparée) ;
+- 6 et 7 : oui. Réseau : tout charger (conduites, diamètres, secteurs, zones, nœuds, noms des rues).
+
+Questions posées :
 
 1. **Fond Protomaps épuré** (rues et noms, bâtiments, eau, verdure, sans points d'intérêt), utilisé **sur la tablette
    en ligne aussi** ; panneau du bureau inchangé : d'accord ?

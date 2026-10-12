@@ -5,6 +5,9 @@
 //   par la page elle-même (IndexedDB). Rien n'est gardé par fuite ici : taille constante ;
 // - liste « Fiches disponibles hors ligne » (/fuites/hors-ligne) : gardée avec la coquille, pour s'ouvrir
 //   sans réseau même si elle n'a jamais été visitée ;
+// - carte (/carte, lot CH) : page gardée d'avance avec ses scripts, MapLibre, polices et icônes du fond quand la
+//   tablette prépare la carte sans réseau (message « garder-carte ») ; servie sans réseau quel que soit ?mode=… ;
+// - polices et icônes du fond (/fond/v1/, dossier versionné) : cache d'abord ;
 // - autres pages et données de navigation : réseau d'abord, dernière copie en secours.
 // Les appels à Supabase (autre domaine) ne passent jamais par ici.
 const CACHE = 'suivi-fuites-v1';
@@ -12,6 +15,7 @@ const FICHE = /^\/fuites\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const COQUILLE = '/__hors-ligne/fiche-fuite';
 const LISTE_HORS_LIGNE = '/fuites/hors-ligne';
+const COQUILLE_CARTE = '/__hors-ligne/carte';
 // La coquille suit les mises en ligne : relue au plus une fois par heure quand une fiche s'ouvre.
 const COQUILLE_FRAICHE_MS = 60 * 60 * 1000;
 
@@ -39,7 +43,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(requete.url);
   if (url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith('/_next/static/') || url.pathname === '/icone.svg') {
+  if (url.pathname.startsWith('/_next/static/') || url.pathname.startsWith('/fond/') || url.pathname === '/icone.svg') {
     event.respondWith(
       caches.match(requete).then(
         (copie) =>
@@ -64,6 +68,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const carte = url.pathname === '/carte' && requete.mode === 'navigate';
   event.respondWith(
     fetch(requete)
       .then((reponse) => {
@@ -73,7 +78,9 @@ self.addEventListener('fetch', (event) => {
         }
         return reponse;
       })
-      .catch(() => caches.match(requete).then((copie) => copie || pageHorsLigne())),
+      .catch(() => caches.match(requete)
+        .then((copie) => copie || (carte ? caches.match(COQUILLE_CARTE) : undefined))
+        .then((copie) => copie || pageHorsLigne())),
   );
 });
 
@@ -81,9 +88,51 @@ self.addEventListener('fetch', (event) => {
 // ouverte depuis la liste : la page complète n'a alors jamais été chargée).
 self.addEventListener('message', (event) => {
   const message = event.data;
+  if (message && message.type === 'garder-carte') {
+    const port = event.ports && event.ports[0];
+    event.waitUntil(garderCarte(message).then(
+      (r) => port && port.postMessage({ ok: true, ...r }),
+      (e) => port && port.postMessage({ ok: false, erreur: String((e && e.message) || e) }),
+    ));
+    return;
+  }
   if (!message || message.type !== 'coquille-fiche' || typeof message.id !== 'string' || !UUID.test(message.id)) return;
   event.waitUntil(rafraichirCoquille(message.id).catch(() => undefined));
 });
+
+// Carte sans réseau (lot CH) : la page (sans données : tout est lu par le navigateur), ses scripts et les fichiers
+// demandés (modules MapLibre, polices et icônes du fond), tous du même site. Les fichiers du fond (dossier versionné)
+// ne sont pas retéléchargés s'ils sont déjà là ; les autres le sont (mise en ligne du panneau).
+async function garderCarte(message) {
+  const page = typeof message.page === 'string' && message.page.startsWith('/carte') ? message.page : '/carte';
+  const reponse = await fetch(page, { credentials: 'same-origin', headers: { Accept: 'text/html' } });
+  if (!reponse.ok || !estHtml(reponse)) throw new Error(`page de la carte : HTTP ${reponse.status}`);
+  const html = await reponse.text();
+  const cache = await caches.open(CACHE);
+  await cache.put(COQUILLE_CARTE, new Response(html, { headers: { 'Content-Type': 'text/html; charset=utf-8' } }));
+  await garderFichiers(cache, html);
+  let gardes = 0;
+  let manquants = 0;
+  const fichiers = Array.isArray(message.fichiers) ? message.fichiers.filter((f) => typeof f === 'string' && f.startsWith('/') && !f.startsWith('//')) : [];
+  for (const f of fichiers) {
+    if (f.startsWith('/fond/') && (await cache.match(f))) {
+      gardes++;
+      continue;
+    }
+    try {
+      const r = await fetch(f, { credentials: 'same-origin' });
+      if (r.ok) {
+        await cache.put(f, r);
+        gardes++;
+      } else {
+        manquants++;
+      }
+    } catch {
+      manquants++;
+    }
+  }
+  return { gardes, manquants };
+}
 
 function pageHorsLigne() {
   return new Response('Hors ligne : cette page n\'a pas encore été ouverte avec du réseau.', {

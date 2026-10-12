@@ -125,6 +125,18 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
     ar: 'لإلغاء مسح: اخرج من وضع المسح، المس المقطع ثم «إلغاء المسح».',
   },
 
+  // Carte sans réseau (lot CH)
+  'Carte sans réseau': { ar: 'الخريطة دون اتصال' },
+  'Téléchargement de la carte…': { ar: 'جارٍ تنزيل الخريطة…' },
+  'Prête : réseau du {r}, fond de carte du {f}.': { ar: 'جاهزة: الشبكة بتاريخ {r}، خلفية الخريطة بتاريخ {f}.' },
+  'Prête : réseau du {r} (pas de fond de carte déposé : fond uni sans réseau).': {
+    ar: 'جاهزة: الشبكة بتاريخ {r} (لم تُرفع خلفية الخريطة: خلفية فارغة دون اتصال).',
+  },
+  'Pas encore téléchargée : ouvrez cette carte avec du réseau (Wi-Fi ou 4G).': { ar: 'لم تُنزَّل بعد: افتح هذه الخريطة مع اتصال (Wi-Fi أو 4G).' },
+  'Échec du téléchargement : {e}': { ar: 'فشل التنزيل: {e}' },
+  'Mettre à jour maintenant': { ar: 'تحديث الآن' },
+  'Hors ligne · état du {date}': { ar: 'دون اتصال · الحالة بتاريخ {date}' },
+
   // Bulle d'un tronçon
   'Balayé le {date}': { ar: 'مُسح في {date}' },
   ' par {qui}': { ar: ' بواسطة {qui}' },

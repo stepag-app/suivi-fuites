@@ -15,15 +15,21 @@ import { useSession } from './session';
 import type { EtatSuivi } from './suivi-gps';
 import { heureLocale, hhmm } from './suivi-gps-regles';
 import { emailDepuisIdentifiant, supabase } from './supabase';
+import { EcranWifi, useLienWifi } from './tablette';
 import type { StatutFuite, VFuite } from './types';
 import {
   Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
   POLICE, s, Saisie, Segments, Statut, STATUT_STYLE, useBas, Vide,
 } from './ui';
-export function Connexion() {
+/** `proprietaire` : tablette verrouillée par l'appli (lot TP), seul le Wi-Fi est proposé sans session. */
+export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) {
   const [identifiant, setIdentifiant] = useState('');
   const [motDePasse, setMotDePasse] = useState('');
   const [erreur, setErreur] = useState('');
+  const [echecReseau, setEchecReseau] = useState(false);
+  const [wifi, setWifi] = useState(false);
+  const lienWifi = useLienWifi(proprietaire, echecReseau);
+  const fermerWifi = useCallback(() => setWifi(false), []);
   const [occupe, setOccupe] = useState(false);
   const [voir, setVoir] = useState(false);
   const [clavier, setClavier] = useState(0);
@@ -51,13 +57,20 @@ export function Connexion() {
     Keyboard.dismiss();
     setOccupe(true);
     setErreur('');
+    setEchecReseau(false);
     const { error } = await supabase.auth.signInWithPassword({
       email: emailDepuisIdentifiant(identifiant),
       password: motDePasse,
     });
-    if (error) setErreur(/invalid login/i.test(error.message) ? t('Identifiant ou mot de passe incorrect.') : t('Connexion impossible : vérifiez le réseau.'));
+    if (error) {
+      const reseau = !/invalid login/i.test(error.message);
+      setEchecReseau(reseau);
+      setErreur(reseau ? t('Connexion impossible : vérifiez le réseau.') : t('Identifiant ou mot de passe incorrect.'));
+    }
     setOccupe(false);
   }
+
+  if (wifi) return <EcranWifi retour={fermerWifi} />;
 
   // Écran de connexion du panneau : volet noir « Bonjour » à gauche sur tablette en paysage, formulaire à droite.
   return (
@@ -69,7 +82,20 @@ export function Connexion() {
           <Text style={l.sousBonjour}>{t('Connectez-vous pour continuer')}</Text>
         </View>
       )}
-      <BoutonLangue style={[l.langueConnexion, { top: haut + 12 }]} />
+      <View style={[l.coinConnexion, { top: haut + 12 }]}>
+        {lienWifi && (
+          <Pressable
+            onPress={() => setWifi(true)}
+            style={({ pressed }) => [s.boutonLangue, l.lienWifi, pressed && s.appuye]}
+            accessibilityRole="button"
+            accessibilityLabel={t('Choisir un réseau Wi-Fi')}
+          >
+            <Icone nom="wifi" taille={18} couleur={COULEURS.discret} />
+            <Text style={s.texteLangue}>{t('Wi-Fi')}</Text>
+          </Pressable>
+        )}
+        <BoutonLangue style={{ backgroundColor: COULEURS.fond }} />
+      </View>
       <ScrollView
         ref={defilement}
         style={{ flex: 2 }}
@@ -118,7 +144,11 @@ export function Connexion() {
               </View>
               <Text style={s.petit}>{t("La session reste ouverte sur cette tablette jusqu'à « Quitter ».")}</Text>
             </View>
-            {!!erreur && <Message ton="erreur">{erreur}</Message>}
+            {!!erreur && (echecReseau && proprietaire ? (
+              <Pressable onPress={() => setWifi(true)} accessibilityRole="button">
+                <Message ton="erreur" icone="wifi-off">{t('Connexion impossible : vérifiez le réseau. Touchez ici pour choisir un Wi-Fi.')}</Message>
+              </Pressable>
+            ) : <Message ton="erreur">{erreur}</Message>)}
             <Bouton
               titre={occupe ? t('Connexion…') : t('Se connecter')} primaire grand onPress={entrer} occupe={occupe}
               desactive={!identifiant || !motDePasse}
@@ -583,7 +613,8 @@ export function EnAttente({ retour }: { retour: () => void }) {
 
 const l = StyleSheet.create({
   connexion: { flexDirection: 'row' },
-  langueConnexion: { position: 'absolute', right: 16, zIndex: 1, backgroundColor: COULEURS.fond },
+  coinConnexion: { position: 'absolute', right: 16, zIndex: 1, flexDirection: 'row', gap: 8 },
+  lienWifi: { flexDirection: 'row', gap: 6, backgroundColor: COULEURS.fond },
   volet: { flex: 1, backgroundColor: COULEURS.principal, alignItems: 'center', justifyContent: 'center', gap: 16, padding: 40 },
   bonjour: { fontFamily: POLICE, fontSize: 44, fontWeight: '400', color: COULEURS.principalTexte },
   sousBonjour: { fontFamily: POLICE, fontSize: 19, color: 'rgba(250, 250, 250, 0.8)', textAlign: 'center' },

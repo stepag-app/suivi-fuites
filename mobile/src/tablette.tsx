@@ -5,7 +5,7 @@
 import * as Application from 'expo-application';
 import * as IntentLauncher from 'expo-intent-launcher';
 import { useCallback, useEffect, useState } from 'react';
-import { AppState, Pressable, ScrollView, Text, View } from 'react-native';
+import { AppState, BackHandler, Pressable, ScrollView, Text, View } from 'react-native';
 import {
   acquitterEvenements, activerWifi, appliquerPolitique, connecterWifi, deverrouiller, etatTablette, etatWifi, evenementsEnAttente,
   liberer, oublierWifi, reverrouiller, transfererVers, type EtatTablette, type EtatWifi, type ReseauWifi,
@@ -215,6 +215,57 @@ function CarteWifi() {
         </>
       )}
     </Carte>
+  );
+}
+
+const WIFI_CONNEXION_MS = 15000;
+
+/**
+ * Écran Connexion d'une tablette verrouillée (demande d'Issam du 2026-10-12 : Redmi sans SIM ni Wi-Fi enregistré,
+ * l'agent ne pouvait plus se connecter). Lien Wi-Fi visible tant qu'aucun Wi-Fi n'est connecté, ou après un échec de
+ * connexion faute de réseau (Wi-Fi sans internet).
+ */
+export function useLienWifi(proprietaire: boolean, echecReseau: boolean): boolean {
+  const [sansWifi, setSansWifi] = useState(false);
+  useEffect(() => {
+    if (!proprietaire) return;
+    const lire = () => {
+      try {
+        setSansWifi(!etatWifi().ssidConnecte);
+      } catch {
+        setSansWifi(true);
+      }
+    };
+    lire();
+    const minuteur = setInterval(lire, WIFI_CONNEXION_MS);
+    const abonnement = AppState.addEventListener('change', (e) => e === 'active' && lire());
+    return () => {
+      clearInterval(minuteur);
+      abonnement.remove();
+    };
+  }, [proprietaire]);
+  return proprietaire && (sansWifi || echecReseau);
+}
+
+/** Wi-Fi seul, avant la connexion : le code et le déverrouillage de l'écran Tablette restent derrière la session. */
+export function EcranWifi({ retour }: { retour: () => void }) {
+  useLangue();
+  const bas = useBas();
+  useEffect(() => {
+    const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
+      retour();
+      return true;
+    });
+    return () => abonnement.remove();
+  }, [retour]);
+  return (
+    <View style={s.ecran}>
+      <BarreApp titre={t('Wi-Fi')} retour={retour} />
+      <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
+        <CarteWifi />
+        <Bouton titre={t('Retour')} icone="arrow-left" onPress={retour} />
+      </ScrollView>
+    </View>
   );
 }
 

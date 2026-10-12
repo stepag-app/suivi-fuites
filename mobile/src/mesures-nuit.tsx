@@ -181,7 +181,7 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
   const choix = (
     <View style={{ gap: 14, flex: large ? 1 : undefined }}>
       <Carte>
-        <TeteCarte titre={t('Campagne')} icone="calendar" description={t('Campagnes en cours, créées par le responsable sur le site.')} />
+        <TeteCarte n={1} titre={t('Campagne')} description={t('Campagnes en cours, créées par le responsable sur le site.')} />
         {donnees.campagnes.length ? (
           <View style={{ gap: 8 }}>
             {donnees.campagnes.map((c) => {
@@ -207,7 +207,7 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
 
       {!!campagne && (
         <Carte>
-          <TeteCarte titre={t('Nuit')} icone="clock" description={t('Jour des relevés de 0 h à 6 h.')} />
+          <TeteCarte n={2} titre={t('Nuit')} description={t('Jour des relevés de 0 h à 6 h.')} />
           {nuits.length
             ? <Puces options={nuits.map((n) => ({ valeur: n, libelle: jour(n) }))} valeur={nuitChoisie} onChange={(v) => v && setNuit(v)} />
             : <Vide texte={t("La première nuit de la campagne n'est pas encore passée.")} />}
@@ -217,7 +217,7 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
       {!!campagne && !!nuitChoisie && (
         <Carte style={{ paddingHorizontal: 0, paddingBottom: 0 }}>
           <View style={{ paddingHorizontal: 18 }}>
-            <TeteCarte titre={t('Points de mesure')} compteur={points.length} icone="gauge" />
+            <TeteCarte n={3} titre={t('Points de mesure')} compteur={points.length} />
           </View>
           {!points.length && <View style={{ padding: 18 }}><Vide texte={t('Aucun point de mesure actif dans cette zone.')} /></View>}
           {points.map((p) => {
@@ -249,7 +249,7 @@ export function MesuresNuit({ retour }: { retour: () => void }) {
   const formulaire = point && campagne && nuitChoisie ? (
     <Carte style={large ? { flex: 1, alignSelf: 'flex-start' } : undefined}>
       <TeteCarte
-        titre={t('Point {code} · nuit du {date}', { code: point.code, date: jour(nuitChoisie) })}
+        n={4} titre={t('Point {code} · nuit du {date}', { code: point.code, date: jour(nuitChoisie) })}
         description={point.libelle}
         action={etatMesure(mesure)}
       />

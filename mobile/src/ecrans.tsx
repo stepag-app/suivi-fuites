@@ -307,7 +307,7 @@ export function Liste({
           <Segments options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={choisirMarche} />
         )}
         <View style={l.tetePage}>
-          <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, gap: 2 }}>
+          <View style={{ flexGrow: 1, flexShrink: 1, flexBasis: 240, minWidth: 240, gap: 2 }}>
             <Text style={s.h1}>{t('Fuites')}</Text>
             <Text style={s.discret}>
               {enChargement

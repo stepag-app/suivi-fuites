@@ -69,7 +69,7 @@ class ActiviteWifi : Activity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     demande = ssidDemande()
-    Log.i(Politique.ETIQUETTE, "wifi depuis le volet : ${intent?.action} ${intent?.extras?.keySet()?.joinToString()} -> ${demande ?: "aucun réseau"}")
+    Log.i(Politique.ETIQUETTE, "wifi depuis le volet : ${intent?.action} -> ${demande ?: "aucun réseau"}")
     window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
     window.setLayout((resources.displayMetrics.widthPixels * 0.9).toInt().coerceAtMost(dp(560)), WRAP_CONTENT)
     window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
@@ -99,16 +99,15 @@ class ActiviteWifi : Activity() {
 
   /** Réseau touché dans le volet, si le système l'a passé : clé d'extra inconnue selon le fabricant, d'où la recherche. */
   @Suppress("DEPRECATION")
-  private fun ssidDemande(): String? {
-    val extras = intent?.extras ?: return null
+  private fun ssidDemande(): String? = runCatching {
+    // Extras du système : une classe inconnue de l'appli ferait échouer leur lecture, d'où le runCatching.
+    val extras = intent?.extras ?: return@runCatching null
     val valeurs = extras.keySet().mapNotNull { runCatching { extras.get(it)?.toString() }.getOrNull() }.filter { it.isNotBlank() }
-    val visibles = runCatching { Wifi.etat(this).getJSONArray("reseaux") }.getOrNull() ?: return null
-    for (i in 0 until visibles.length()) {
-      val ssid = visibles.getJSONObject(i).getString("ssid")
-      if (valeurs.any { it == ssid || it.contains("\"$ssid\"") }) return ssid
-    }
-    return null
-  }
+    Log.i(Politique.ETIQUETTE, "wifi depuis le volet, extras : ${extras.keySet().joinToString()}")
+    val visibles = Wifi.etat(this).getJSONArray("reseaux")
+    (0 until visibles.length()).map { visibles.getJSONObject(it).getString("ssid") }
+      .firstOrNull { ssid -> valeurs.any { it == ssid || it.contains("\"$ssid\"") } }
+  }.getOrNull()
 
   private fun relire() {
     val etat = runCatching { Wifi.etat(this) }.getOrElse {

@@ -290,13 +290,22 @@ function CarteDesFuites() {
   };
 
   const rafraichirAttente = useCallback(async () => setEnAttente(await compterBalayagesEnAttente()), []);
+  // Retour du réseau : la file part, puis l'état de balayage et les fuites affichés depuis la copie de l'appareil
+  // (lot CH) sont relus, ce qui retire le bandeau « Hors ligne · état du … ».
+  const horsLigne = useRef(false);
+  horsLigne.current = !!reseau.copieDu;
+  const relireApresCoupure = useRef<() => void>(() => undefined);
+  relireApresCoupure.current = () => { void reseau.rechargerEtats(); void charger(); };
   useEffect(() => {
     rafraichirAttente();
     const arreter = ecouterAttente(rafraichirAttente);
-    const enLigne = () => { synchroniser().then(rafraichirAttente).catch(() => undefined); };
+    const enLigne = () => {
+      synchroniser().then(rafraichirAttente).catch(() => undefined)
+        .finally(() => { if (horsLigne.current) relireApresCoupure.current(); });
+    };
     window.addEventListener("online", enLigne);
     const minuteur = setInterval(() => {
-      compterBalayagesEnAttente().then((n) => { if (n > 0 && navigator.onLine) enLigne(); });
+      compterBalayagesEnAttente().then((n) => { if (navigator.onLine && (n > 0 || horsLigne.current)) enLigne(); });
     }, 30000);
     return () => {
       arreter();

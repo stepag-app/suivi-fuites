@@ -545,6 +545,14 @@ tsc web et APK, build du panneau, bundle Android.
    SRM-4500004453 (`fonds/125afaed-…/fond.pmtiles`, 3 349 932 octets, construction Protomaps du 11 octobre ; lecture
    par plage vérifiée). Le navigateur intégré ne peut pas lire un fichier du Mac depuis le site public : l'adresse de
    dépôt (15 min) a été demandée par la page, avec la session d'Issam, puis le fichier envoyé depuis le Mac.
-3. Publier l'APK suivante (à la demande d'Issam), l'installer sur la Redmi, ouvrir la carte une fois avec réseau, puis
-   l'essayer en mode avion : zoom, toucher, lasso, Prolonger, enregistrement, retour du réseau.
+3. ~~APK suivante et essai en mode avion~~ : **1.0.0-beta.3** publiée le 2026-10-12 vers 01 h 25 (versionCode 188,
+   `a545f9f`, avec le Wi-Fi depuis l'écran Connexion de la PR #120). **Vérifié sur la Redmi** le 2026-10-12 vers 01 h 40
+   avec Issam, compte KASMI MOHAMMED, appli en arabe :
+   - mise à jour installée ; carte « Prête » (réseau et fond du 12/10) après une ouverture en Wi-Fi ;
+   - en mode avion, l'écran Balayage s'ouvre avec le fond Protomaps, le réseau, les nœuds et les noms de rues ;
+   - 96 tronçons balayés au lasso, gardés sur la tablette, verts tout de suite.
+
+   Ces balayages d'essai sont effacés par la purge d'avant la mise en service. Au retour du réseau, le bandeau
+   « Hors ligne · état du … » restait affiché jusqu'à la prochaine ouverture de la carte : corrigé dans le panneau
+   (relecture de l'état et des fuites après l'envoi de la file), vérifié par `essayer-carte-hors-ligne.mjs` (16).
 4. Refaire le fond tous les trois mois environ.

@@ -278,6 +278,13 @@ try {
     reste = await evaluer(`[...document.querySelectorAll('[role=status]')].map((e) => e.textContent).find((x) => /à envoyer/.test(x)) ?? ''`);
   }
   verifier(!reste, 'file d\'attente envoyée au retour du réseau');
+  let barreApres = '';
+  for (let i = 0; i < 60; i++) {
+    barreApres = await evaluer(`document.querySelector('[role=toolbar]')?.innerText ?? ''`);
+    if (!/Hors ligne/.test(barreApres)) break;
+    await attendre(1000);
+  }
+  verifier(!/Hors ligne/.test(barreApres), 'bandeau « Hors ligne » retiré au retour du réseau, sans recharger la page');
 } catch (e) {
   noter(`ÉCHEC - ${e.stack ?? e}`);
   process.exitCode = 1;

@@ -4,7 +4,7 @@
 // des tronçons et des nœuds de la base, puis déposée dans le compartiment privé R2 (fonction serveur reseau-tuiles).
 // À refaire après chaque import ou zonage : tant que l'archive est périmée, la carte lit le réseau secteur par secteur.
 import { useCallback, useEffect, useState } from 'react';
-import { messageErreur, nombre } from '@/lib/format';
+import { dateHeure, messageErreur, nombre } from '@/lib/format';
 import { chargerNoeudsComplet, chargerReseauComplet, type ContexteReseau } from '@/lib/reseau/donnees';
 import { estampilleReseau } from '@/lib/reseau/tuiles-format';
 import { deposerTuiles, etatTuiles, type TuilesReseau } from '@/lib/reseau/tuiles';
@@ -90,7 +90,7 @@ export function BlocTuilesReseau({ marcheId, contexte }: { marcheId: string; con
       {tuiles && (
         <p className={aJour ? 'info' : 'erreur'} role="status">
           {aJour ? 'À jour' : 'Périmées (le réseau a changé depuis : régénérez)'}
-          {tuiles.infos ? ` · générées le ${new Date(tuiles.infos.genere_le).toLocaleString('fr-FR')}, ${nombre(tuiles.infos.nb_troncons, 0)} tronçons, ${nombre(tuiles.infos.nb_noeuds, 0)} nœuds` : ''}
+          {tuiles.infos ? ` · générées le ${dateHeure(tuiles.infos.genere_le)}, ${nombre(tuiles.infos.nb_troncons, 0)} tronçons, ${nombre(tuiles.infos.nb_noeuds, 0)} nœuds` : ''}
           {tuiles.octets ? ` · ${(tuiles.octets / 1048576).toFixed(1).replace('.', ',')} Mo` : ''}
         </p>
       )}

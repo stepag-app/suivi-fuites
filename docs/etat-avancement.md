@@ -537,12 +537,14 @@ tsc web et APK, build du panneau, bundle Android.
 **Non vérifié** : la Redmi (beta.2 au premier plan, rien touché) et la vraie production.
 
 **Reste** (dans l'ordre) :
-1. Fusionner la PR #121 : déploie la fonction `reseau-tuiles` et le panneau (aucune migration). Dès la fusion, les
-   tablettes en beta.2 téléchargent le paquet en ouvrant la carte ; sans réseau, elles refusent encore d'ouvrir l'écran
-   Balayage (nouvelle APK nécessaire).
-2. Déposer le fond d'Oujda : Paramètres › Réseau › « Fond de carte hors ligne », fichier fabriqué par
-   `outils/fond-carte/fabriquer.sh oujda …` (déjà prêt sur le Mac : `data-private/fonds/oujda.pmtiles`, construction
-   Protomaps du 11 octobre).
+1. ~~Fusionner la PR #121~~ : fait le 2026-10-12 vers 01 h (`14b6b91`). Fonction `reseau-tuiles`, panneau et base
+   déployés ; polices, icônes et service worker servis par `fuites.stepag.ma`. Les tablettes en beta.2 téléchargent
+   désormais le paquet en ouvrant la carte ; sans réseau, elles refusent encore d'ouvrir l'écran Balayage (nouvelle APK
+   nécessaire).
+2. ~~Déposer le fond d'Oujda~~ : fait le 2026-10-12 à 01:08 (heure du Maroc), à la demande d'Issam, marché
+   SRM-4500004453 (`fonds/125afaed-…/fond.pmtiles`, 3 349 932 octets, construction Protomaps du 11 octobre ; lecture
+   par plage vérifiée). Le navigateur intégré ne peut pas lire un fichier du Mac depuis le site public : l'adresse de
+   dépôt (15 min) a été demandée par la page, avec la session d'Issam, puis le fichier envoyé depuis le Mac.
 3. Publier l'APK suivante (à la demande d'Issam), l'installer sur la Redmi, ouvrir la carte une fois avec réseau, puis
    l'essayer en mode avion : zoom, toucher, lasso, Prolonger, enregistrement, retour du réseau.
 4. Refaire le fond tous les trois mois environ.

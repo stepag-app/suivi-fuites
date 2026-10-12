@@ -17,17 +17,6 @@ export interface EtatTablette {
 
 export interface EvenementTablette { action: string; details: Record<string, unknown>; le: number }
 
-export interface ReseauWifi {
-  ssid: string;
-  /** Force du signal, 0 à 4. */
-  niveau: number;
-  type: 'ouvert' | 'wpa' | 'sae' | 'wep' | 'entreprise';
-  /** Déjà enregistré sur la tablette (pas de mot de passe à retaper). */
-  connu: boolean;
-  connecte: boolean;
-}
-export interface EtatWifi { actif: boolean; ssidConnecte: string | null; reseaux: ReseauWifi[] }
-
 interface ModuleNatif {
   etat(): string;
   appliquerPolitique(): Promise<string>;
@@ -38,10 +27,6 @@ interface ModuleNatif {
   liberer(): Promise<void>;
   evenementsEnAttente(): string;
   acquitterEvenements(n: number): void;
-  wifiEtat(): string;
-  wifiActiver(actif: boolean): Promise<void>;
-  wifiConnecter(ssid: string, motDePasse: string, type: string): Promise<void>;
-  wifiOublier(ssid: string): Promise<void>;
 }
 
 const natif = requireOptionalNativeModule<ModuleNatif>('TabletteProprietaire');
@@ -82,8 +67,3 @@ export function evenementsEnAttente(): EvenementTablette[] {
 
 export const acquitterEvenements = (n: number) => natif?.acquitterEvenements(n);
 
-/** Wi-Fi depuis l'appli (tablette verrouillée : Paramètres cachés) ; réseaux vus par le système, triés par signal. */
-export const etatWifi = (): EtatWifi => JSON.parse(requis().wifiEtat()) as EtatWifi;
-export const activerWifi = (actif: boolean) => requis().wifiActiver(actif);
-export const connecterWifi = (ssid: string, motDePasse: string, type: ReseauWifi['type']) => requis().wifiConnecter(ssid, motDePasse, type);
-export const oublierWifi = (ssid: string) => requis().wifiOublier(ssid);

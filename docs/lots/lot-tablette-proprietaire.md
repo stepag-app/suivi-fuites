@@ -21,7 +21,7 @@ OS2.0.203.0.VOWMIXM, Android 15), qui sert aussi de tablette d'essai.
 | Écran d'accueil | celui d'HyperOS, réduit aux applis gardées. Pas de kiosque |
 | Déverrouillage | **code temporaire** créé sur le panneau web par un compte administrateur, tapé dans Suivi fuites : Paramètres et Play Store remontrés, installations permises, puis reverrouillage automatique. Doit marcher sans Issam et sans Claude (son binôme, pendant ses congés, avec un compte administrateur) |
 | Préparation d'une tablette | **QR code** (seul moyen sans ordinateur, Android n'accepte le propriétaire qu'au premier démarrage) ; Redmi par câble |
-| Wi-Fi | **toujours joignable par l'agent, sans code** (Issam, 2026-10-11 soir : forfait 4G épuisé → Wi-Fi → les fuites partent) : écran Tablette › bloc Wi-Fi (réseaux disponibles, mot de passe), le bandeau « Hors ligne » de la liste y mène ; droits du propriétaire (`WifiManager.addNetwork`), Paramètres restent cachés |
+| Wi-Fi | **toujours joignable par l'agent, sans code** (Issam, 2026-10-11 soir : forfait 4G épuisé → Wi-Fi → les fuites partent) : volet du haut d'Android ; un nouveau réseau ouvre la fenêtre Wi-Fi de l'appli (`ActiviteWifi`, à la place de la page Wi-Fi des Paramètres, active pendant le verrouillage seulement) ; plus de Wi-Fi dans les écrans de l'appli (Issam, 2026-10-12) ; droits du propriétaire (`WifiManager.addNetwork`), Paramètres restent cachés |
 | Play Store | caché ; remontré seulement pendant un déverrouillage |
 | Compte Google | **un seul** compte dédié à toutes les tablettes, ajouté pendant un déverrouillage ; `stepag.app@gmail.com` jamais sur une tablette |
 | Point ouvert n° 7 du `CLAUDE.md` | réglé : l'appli propriétaire installe elle-même ses mises à jour |

@@ -9,10 +9,11 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Wi-Fi depuis l'appli (lot TP, demande d'Issam du 2026-10-11) : la tablette verrouillée cache les Paramètres, mais
- * l'agent doit pouvoir rejoindre n'importe quel réseau Wi-Fi (forfait 4G épuisé : il saisit, se connecte, les fuites
- * partent). Le propriétaire de l'appareil garde le droit d'allumer le Wi-Fi et d'ajouter des réseaux (WifiManager :
- * « Device Owner, Profile Owner and system apps »), ce qu'Android 10+ refuse aux applis ordinaires.
+ * Wi-Fi de la tablette verrouillée (lot TP, demandes d'Issam du 2026-10-11 et du 2026-10-12) : les Paramètres sont
+ * cachés, mais l'agent doit pouvoir rejoindre n'importe quel réseau Wi-Fi (forfait 4G épuisé : il saisit, se connecte,
+ * les fuites partent). Choix du réseau dans le volet du haut, mot de passe dans la fenêtre de l'appli (ActiviteWifi).
+ * Le propriétaire de l'appareil garde le droit d'allumer le Wi-Fi et d'ajouter des réseaux (WifiManager : « Device Owner,
+ * Profile Owner and system apps »), ce qu'Android 10+ refuse aux applis ordinaires.
  */
 object Wifi {
   private fun gestionnaire(ctx: Context) = ctx.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
@@ -108,14 +109,5 @@ object Wifi {
     if (!wm.enableNetwork(id, true)) throw IllegalStateException("Connexion refusée par Android.")
     wm.reconnect()
     Politique.noterEvenement(ctx, "wifi", JSONObject().put("ssid", ssid).put("type", type))
-  }
-
-  @Suppress("DEPRECATION")
-  fun oublier(ctx: Context, ssid: String) {
-    val wm = gestionnaire(ctx)
-    for (e in runCatching { wm.configuredNetworks }.getOrDefault(emptyList())) {
-      if (sansGuillemets(e.SSID) == ssid) wm.removeNetwork(e.networkId)
-    }
-    wm.saveConfiguration()
   }
 }

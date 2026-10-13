@@ -58,10 +58,9 @@ select is((select count(*)::int from (
             union all select 'visibilite', e::text from unnest(enum_range(null::visibilite_fuite)) e
             union all select 'statut_fuite', e::text from unnest(enum_range(null::statut_fuite)) e
             union all select 'type_photo', e::text from unnest(enum_range(null::type_photo)) e
-            union all select 'origine', e::text from unnest(enum_range(null::origine_fuite)) e
-            union all select 'type_equipe', e::text from unnest(enum_range(null::type_equipe)) e) x
+            union all select 'origine', e::text from unnest(enum_range(null::origine_fuite)) e) x
            where (x.l, x.c) not in (select liste, code from libelles_listes)), 0,
-  'listes : résultats, visibilité, statuts, types de photo, origines, équipes complets');
+  'listes : résultats, visibilité, statuts, types de photo, origines complets');
 select is((select count(*)::int from natures_refection n join marches m on m.id = n.marche_id
             where m.code in ('SRM-4500004453', 'DEMO') and nullif(btrim(n.libelle_ar), '') is null), 0,
   'natures SRM et DEMO : toutes avec l''arabe');

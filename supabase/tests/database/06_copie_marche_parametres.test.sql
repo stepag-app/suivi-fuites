@@ -88,14 +88,12 @@ select is((select actif from marches where code = 'DEMO'), false, 'marché DEMO 
 
 select results_eq($$ select (select count(*)::int from zones z where z.marche_id = t.id),
                             (select count(*)::int from secteurs s where s.marche_id = t.id),
-                            (select count(*)::int from equipes e where e.marche_id = t.id),
                             (select count(*)::int from natures_refection n where n.marche_id = t.id),
                             (select count(*)::int from motifs m where m.marche_id = t.id),
                             (select count(*)::int from suggestions_articles c where c.marche_id = t.id)
                        from t_ids t where t.cle = 'copie' $$,
   $$ select (select count(*)::int from zones z where z.marche_id = t.id),
             (select count(*)::int from secteurs s where s.marche_id = t.id),
-            0,   -- équipes : plus copiées (S12)
             (select count(*)::int from natures_refection n where n.marche_id = t.id),
             (select count(*)::int from motifs m where m.marche_id = t.id),
             (select count(*)::int from suggestions_articles c where c.marche_id = t.id)

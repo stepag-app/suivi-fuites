@@ -42,7 +42,7 @@ brew install libredwg
 ```
 
 Si Homebrew est occupé par une autre installation, la bouteille LibreDWG téléchargée peut être extraite à la
-main (voir l'historique de la session du 2026-10-06 dans `docs/etat-avancement.md`).
+main (voir l'historique de la session du 2026-10-06 dans `docs/archives/etat-avancement-historique-2026-10-13.md`).
 
 ## Étapes
 

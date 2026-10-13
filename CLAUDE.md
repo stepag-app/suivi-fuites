@@ -231,7 +231,8 @@ Règles pour Claude Code :
 
 ## 14. Passation entre sessions
 
-- **Lire en début de session** : `docs/etat-avancement.md` (fait, en attente, décisions, prochaines étapes, prompt de reprise) et `supabase/README.md` (schéma, déploiement, règles des migrations).
+- **Lire en début de session** : `docs/etat-avancement.md` (version courte qui fait foi : en service, reste à faire, décisions, pièges, prompt de reprise) et `supabase/README.md` (schéma, déploiement, règles des migrations). L'historique détaillé est dans `docs/archives/etat-avancement-historique-2026-10-13.md`.
+- **Exploitation courante** (ajouter un marché ou un agent, tablettes, APK, sauvegarde, clés, purge, dépannage) : `docs/manuel-exploitation.md`.
 - **Règles du marché 4500004453** : `references/regles-marche-4500004453.md` (source unique ; les documents originaux ne sont pas dans le dépôt).
 - **Plan du réseau `Reseau aep oujda.dwg`** : reçu (archives du marché), converti par `outils/reseau/` (lot S, `docs/lots/lot-s-reseau.md`) ; mesures de débit et pénalités de performance restent à faire.
 - **Fin de session** : mettre à jour `docs/etat-avancement.md`.

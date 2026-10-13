@@ -5,7 +5,7 @@
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
 Dernière mise à jour : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
-réécrit ; **E4 reporté**, § 2). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
+réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
 
 ## 1. En service
 
@@ -19,7 +19,7 @@ réécrit ; **E4 reporté**, § 2). Avant : 2026-10-12, 23 h 45 (seconde purge, 
 | **Réseau** | 44 044 tronçons, 30 820 nœuds, 34 secteurs, tuiles privées dans R2 (« À jour »), fond de carte d'Oujda (à refaire environ tous les trois mois) |
 | **Sauvegarde** | chaque nuit : base chiffrée (GitHub 30 j, R2 30 j, **Drive de `stepag.app`** 30 quotidiennes + 12 mensuelles), photos et APK sur le Drive ; test de restauration le lundi depuis le Drive. Dernière sauvegarde verte : 2026-10-13 |
 | **Dolibarr** | lecture seule de l'API REST toutes les 15 min (mouvements de l'entrepôt 76), sans prix ; import CSV en secours |
-| **Équipes** | supprimées partout (le chef d'équipe est le compte qui a fait le travail) ; colonnes de base gardées vides, voir E4 au § 2 |
+| **Équipes** | supprimées partout, **base comprise** (E4, migration `20261016300000`) : le chef d'équipe est le compte qui a fait le travail. Une APK d'avant S12 n'est plus acceptée |
 | **Audit S20** (Fable 5.1) | aucun constat critique ; 2 importants et 5 mineurs corrigés ; reste laissé et expliqué dans `docs/lots/chantier-v3-audit-s20.md` § 2 et § 4 |
 | **CI de `main`** | verte au 2026-10-13 : base de données (pgTAP), panneau, APK, sauvegarde |
 
@@ -29,27 +29,19 @@ réécrit ; **E4 reporté**, § 2). Avant : 2026-10-12, 23 h 45 (seconde purge, 
 |---|---|---|---|
 | 1 | **S23 : fermeture** : `gitleaks` sur tout l'historique, dépôt **privé**, rotation de tous les secrets et du coffre, APK finale avec la nouvelle clé anon (publier **avant** de révoquer l'ancienne), jeton Supabase du déploiement réduit au strict nécessaire, deux copies hors ligne du keystore (gardé), surveillance des minutes d'Actions | Claude avec Issam, pas à pas | `docs/feuille-de-route.md` § 5, `docs/lots/chantier-v3.md` § 1 (Z4, Z5) |
 | 2 | **S24 : Vercel Pro**, dernier geste ; puis rappels : bons de transfert Dolibarr 6804 et 6814 (rattachés au projet 30) et 6796 (brouillon), à régler avec le magasinier ; agents informés du suivi GPS ; batterie Samsung exclue sur chaque tablette ; relecture de l'arabe | Issam | `docs/lots/chantier-v3.md` § 1 (Z6) |
-| 3 | **E4 : retrait définitif des restes « équipe » en base** (voir ci-dessous) | Claude, après confirmation d'Issam | `supabase/README.md` § Équipes supprimées |
-| 4 | **Import de l'historique Excel** du responsable (sans GPS ni photos) : analyse, correspondance, essai local, import en production avec sauvegarde et lot annulable | session dédiée, Issam | fichier déposé dans `data-private/import-excel/` ; questions ouvertes : numérotation (détection réelle depuis le 12/10), réparations et pièces, champs obligatoires vides, alertes 48 h sur les anciennes fuites |
-| 5 | Préparer les **tablettes d'agents** par QR code (réinitialisation), vérifier la consommation 4G par appli au bout d'une semaine, mettre à jour WebView et WhatsApp par le Play Store | Issam, binôme | `docs/manuel-exploitation.md` § 3 |
-| 6 | Double authentification, compte par compte (liste de 14 comptes) ; seconde application d'authentification pour Supabase ; codes de secours hors ligne | Issam | `docs/lots/chantier-v3.md` § 6 |
-| 7 | Facultatifs : relire les pages publiques `/confidentialite` et `/conditions` ; longueur minimale de mot de passe à 8 dans Supabase Auth ; règle de cycle de vie R2 (`sauvegardes/base/`, 30 jours) ; `apk-dev.yml` en déclenchement manuel une fois le dépôt privé ; mises à jour majeures (Next 16, Expo SDK 58) après la mise en service ; conversion des 10 écrans encore habillés par `ancien.css` | Issam / Claude | `docs/lots/chantier-v3-audit-s20.md` § 4 |
-| 8 | **À confirmer avec la SRM** : assiette des pénalités de débit (par zone, points proportionnels : valeur par défaut appliquée), gabarit d'impression de la carte, rapport par fuite, linéaire par secteur (le marché ne le donne que par zone) | Issam | `docs/lots/chantier-v3-debits.md`, `references/regles-marche-4500004453.md` |
+| 3 | **Import de l'historique Excel** du responsable (sans GPS ni photos) : analyse, correspondance, essai local, import en production avec sauvegarde et lot annulable | session dédiée, Issam | fichier déposé dans `data-private/import-excel/` ; questions ouvertes : numérotation (détection réelle depuis le 12/10), réparations et pièces, champs obligatoires vides, alertes 48 h sur les anciennes fuites |
+| 4 | Préparer les **tablettes d'agents** par QR code (réinitialisation), vérifier la consommation 4G par appli au bout d'une semaine, mettre à jour WebView et WhatsApp par le Play Store | Issam, binôme | `docs/manuel-exploitation.md` § 3 |
+| 5 | Double authentification, compte par compte (liste de 14 comptes) ; seconde application d'authentification pour Supabase ; codes de secours hors ligne | Issam | `docs/lots/chantier-v3.md` § 6 |
+| 6 | Facultatifs : relire les pages publiques `/confidentialite` et `/conditions` ; longueur minimale de mot de passe à 8 dans Supabase Auth ; règle de cycle de vie R2 (`sauvegardes/base/`, 30 jours) ; `apk-dev.yml` en déclenchement manuel une fois le dépôt privé ; mises à jour majeures (Next 16, Expo SDK 58) après la mise en service ; conversion des 10 écrans encore habillés par `ancien.css` | Issam / Claude | `docs/lots/chantier-v3-audit-s20.md` § 4 |
+| 7 | **À confirmer avec la SRM** : assiette des pénalités de débit (par zone, points proportionnels : valeur par défaut appliquée), gabarit d'impression de la carte, rapport par fuite, linéaire par secteur (le marché ne le donne que par zone) | Issam | `docs/lots/chantier-v3-debits.md`, `references/regles-marche-4500004453.md` |
 
-**E4, reporté le 2026-10-13 (S21).** Raison : l'APK du chantier sans équipe (S12) est sur `main` depuis le 2026-10-10 et
-la beta.4 (195) en est la version publiée ; mais **rien en base ne dit quelle version tourne sur quelle tablette** :
-`journal_tablettes` note les mises à jour (`mise_a_jour`) sans le numéro de version, et les tables de saisie ont été
-purgées (aucune ligne récente pour y lire un `equipe_id`). Une APK plus ancienne enverrait encore `equipe_id` : ses
-saisies seraient refusées une fois la colonne retirée (même piège que les champs obligatoires de S8). À faire quand
-Issam confirme, tablette par tablette, que chacune porte la beta.4 ou plus : ouvrir l'appli avec du réseau, aucune
-fenêtre ni bandeau « Mise à jour disponible » (tant que la beta.4 est la dernière publiée), ou, pendant un
-déverrouillage, Paramètres › Applis › Suivi des fuites › version. Pour ne plus dépendre d'une vérification à la main,
-le plus propre est de faire écrire le numéro de version de l'APK dans le journal des tablettes (petit lot base + APK,
-à publier avec la prochaine version). Contenu de la migration, à numéroter après
-`20261016200000` : supprimer `equipe_id` de `fuites`, `reparations`, `refections` et `balayages` (avec leurs clés
-étrangères composites `(equipe_id, marche_id)`), la table `equipes`, le type `type_equipe` et la liste `type_equipe` de
-`libelles_listes` (valeur du contrôle de la table comprise) ; mettre à jour les tests pgTAP ; aucune vue ne lit plus ces
-colonnes (migration `20261013200000`).
+**E4, fait le 2026-10-13 (S21).** Condition remplie : Issam a confirmé qu'il n'y a qu'**une seule tablette** en
+service (Redmi Pad 2), en beta.4 (195), qui n'envoie plus `equipe_id`. Migration
+`20261016300000_equipes_retrait_definitif.sql` : colonnes `equipe_id` de `fuites`, `reparations`, `refections` et
+`balayages`, table `equipes`, type `type_equipe`, liste `type_equipe` des libellés ; `outils/purge/purger.sql` ne
+supprime plus d'équipes. **Conséquence** : ne pas réinstaller une APK d'avant S12. Aucune trace de la version d'APK par
+tablette en base (`journal_tablettes` note les mises à jour sans numéro) : avec d'autres tablettes à venir, faire écrire
+la version dans ce journal (petit lot base + APK) pour vérifier le parc.
 
 ## 3. Décisions à respecter
 
@@ -121,8 +113,7 @@ colonnes (migration `20261013200000`).
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, docs/manuel-exploitation.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : le chantier v3 est fusionné et déployé (S12 à S22) ; S21 (nettoyage, manuel, état) est faite, E4 est reporté
-faute de preuve que toutes les tablettes sont en beta.4 ou plus. Restent S23 (fermeture, rotation des secrets, APK
+Contexte : le chantier v3 est fusionné et déployé (S12 à S22) ; S21 (nettoyage, manuel, état, E4) est faite. Restent S23 (fermeture, rotation des secrets, APK
 finale, avec Issam) et S24 (Vercel Pro, rappels).
 Avant de commencer : gh pr list --state all --limit 20 et git worktree list (sessions parallèles), puis vérifie la CI de main.
 Objectif de cette session : [à préciser].

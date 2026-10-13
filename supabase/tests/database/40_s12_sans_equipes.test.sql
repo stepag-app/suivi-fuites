@@ -1,32 +1,25 @@
 -- =============================================================================
 -- Chantier v3, S12 (E1) : plus d'équipe dans les vues ni dans les fonctions. Le chef d'équipe
--- est le compte qui a saisi la réparation (auteur_terrain_id). La table equipes et les colonnes
--- equipe_id restent (E4), désactivées et inutilisées.
+-- est le compte qui a saisi la réparation (auteur_terrain_id). E4 (S21, migration 20261016300000) :
+-- la table equipes, le type type_equipe et les colonnes equipe_id n'existent plus.
 -- =============================================================================
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(14);
+select plan(15);
 
 -- -----------------------------------------------------------------------------
 -- 1. Structure : plus rien ne lit les équipes
 -- -----------------------------------------------------------------------------
-select is((select count(*)::int
-             from pg_depend d
-             join pg_rewrite r on r.oid = d.objid
-             join pg_class v on v.oid = r.ev_class and v.relkind in ('v', 'm')
-             join pg_attribute a on a.attrelid = d.refobjid and a.attnum = d.refobjsubid
-            where d.classid = 'pg_rewrite'::regclass and v.oid <> d.refobjid
-              and a.attname = 'equipe_id'), 0,
-  'aucune vue ne dépend d''une colonne equipe_id');
-select is((select count(*)::int
-             from pg_depend d
-             join pg_rewrite r on r.oid = d.objid
-             join pg_class v on v.oid = r.ev_class
-            where d.classid = 'pg_rewrite'::regclass and d.refobjid = 'public.equipes'::regclass
-              and v.oid <> d.refobjid), 0,
-  'aucune vue ne dépend de la table equipes');
+select is((select string_agg(c.relname || '.' || a.attname, ', ')
+             from pg_class c
+             join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+            where c.relnamespace = 'public'::regnamespace and c.relkind in ('r', 'p')
+              and a.attname = 'equipe_id'), null,
+  'aucune table n''a de colonne equipe_id');
+select hasnt_table('public', 'equipes', 'la table equipes n''existe plus');
+select hasnt_type('public', 'type_equipe', 'le type type_equipe n''existe plus');
 select is((select string_agg(c.relname || '.' || a.attname, ', ')
              from pg_class c
              join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
@@ -39,9 +32,10 @@ select is((select string_agg(n.nspname || '.' || p.proname, ', ')
             where n.nspname in ('public', 'private')
               and (p.prosrc ~ '\mequipes?\M|\mequipe_id\M' or pg_get_function_result(p.oid) ~ 'equipe')), null,
   'aucune fonction ne lit ni ne copie d''équipe');
-select is((select count(*)::int from equipes where actif), 0, 'équipes désactivées (APK installées : choix masqué)');
-select is((select count(*)::int from libelles_listes where liste = 'type_equipe' and actif), 0,
-  'liste « type d''équipe » désactivée');
+select is((select count(*)::int from libelles_listes where liste = 'type_equipe'), 0,
+  'liste « type d''équipe » retirée des libellés');
+select throws_ok($$ insert into libelles_listes (liste, code, libelle_fr, libelle_ar) values ('type_equipe', 'x', 'X', 'س') $$,
+  '23514', null, 'liste « type d''équipe » refusée par le contrôle de la table');
 
 -- -----------------------------------------------------------------------------
 -- 2. Regroupements : « par chef d'équipe » à la place de « par équipe »

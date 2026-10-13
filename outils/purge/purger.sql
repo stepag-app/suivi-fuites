@@ -156,7 +156,6 @@ delete from public.troncons where marche_id = current_setting('purge.demo')::uui
 delete from public.secteurs where marche_id = current_setting('purge.demo')::uuid;
 delete from public.zones where marche_id = current_setting('purge.demo')::uuid;
 delete from public.phases where marche_id = current_setting('purge.demo')::uuid;
-delete from public.equipes where marche_id = current_setting('purge.demo')::uuid;
 delete from public.ouvriers where marche_id = current_setting('purge.demo')::uuid;
 delete from public.motifs where marche_id = current_setting('purge.demo')::uuid;
 delete from public.affectations where marche_id = current_setting('purge.demo')::uuid;  -- droits en cascade

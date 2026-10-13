@@ -244,7 +244,7 @@ L'import dans Supabase (production) ne se fait **qu'avec l'accord d'Issam**, via
 
 ## 8. Résultat (fin de session 7)
 
-- S1 à S5 faits et réunis sur `claude/lot-s-integration` ; chiffres et vérifications : `docs/etat-avancement.md` § 7.
+- S1 à S5 faits et réunis sur `claude/lot-s-integration` ; chiffres et vérifications : `docs/archives/etat-avancement-historique-2026-10-13.md` § 7.
 - Écarts au contrat : migration `20261006130000` et test `15` (collision avec P3 / P4) ; `importer_*` renvoie aussi
   `inchanges` ; `reseau_geojson` : `p_secteurs = '{}'` = aucun secteur ; `etat_balayage` : équipe et agent du
   **dernier** passage ; le chef de réparation n'a **pas** le droit « balayage » (test `05_marche_demo` inchangé) ;

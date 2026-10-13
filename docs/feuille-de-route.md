@@ -124,7 +124,7 @@ règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF a
 6. **Tableaux journaliers et hebdomadaires** des distances parcourues (GPS) et des linéaires balayés
    (tronçons), par agent, équipe, secteur, zone.
 7. **Tableau de bord** : version 1 faite (lot I, PR #23) ; restent l'avancement du balayage et le contrôle tracé /
-   cochage (après la migration 2 et le suivi GPS), et les réponses d'Issam (voir `etat-avancement.md` § 2). Prévu : fuites par statut et par secteur, délais, alertes,
+   cochage (après la migration 2 et le suivi GPS), et les réponses d'Issam (voir `docs/archives/etat-avancement-historique-2026-10-13.md` § 2). Prévu : fuites par statut et par secteur, délais, alertes,
    avancement du balayage, quantités attachées / reste à attacher, contrôle tracking / cochage.
 8. **Google Maps intégré** : décision après avoir vu la carte du lot B.
 9. **Passe d'interface** : **faite pour le panneau web** (2026-10-05, PR #19) : style SAP Fiori en CSS

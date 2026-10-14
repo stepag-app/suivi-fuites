@@ -65,7 +65,7 @@ function vueCalculee(table: string): Ligne[] | null {
       etape, id: l.id, marche_id: l.marche_id, fuite_id: f.id, fuite_numero: f.numero, reference_srm: f.reference_srm, adresse: f.adresse,
       statut: f.statut, resultat: etape === "detection" ? null : l.resultat, date_etape: date, auteur_terrain_id: l.auteur_terrain_id,
       auteur: nomProfil(l.auteur_terrain_id), saisi_par: l.saisi_par, cree_le: l.cree_le, saisie_differee: f.saisie_differee ?? false,
-      fuite_validee_le: f.validee_le ?? null, nb_photos: nb,
+      fuite_validee_le: f.validee_le ?? null, nb_photos: nb, renvoyee_le: l.renvoyee_le ?? null, motif_renvoi: l.motif_renvoi ?? null,
     });
     return [
       ...(vFuites as unknown as Ligne[]).filter((f) => !f.validee_le && !f.supprime_le).map((f) => ligne("detection", f, f, f.date_detection,
@@ -389,6 +389,15 @@ export function creerClientDemo(): SupabaseClient {
           }
         }
         return { data: n, error: null };
+      }
+      if (nom === "renvoyer_etape") {
+        const tables: Record<string, string> = { detection: "fuites", reparation: "reparations", refection: "refections" };
+        const l = (TABLES[tables[params.p_etape as string]] ?? []).find((x) => x.id === params.p_id && !x.supprime_le);
+        const motif = String(params.p_motif ?? "").trim();
+        if (!l) return { data: null, error: { message: "Étape introuvable", code: "P0002" } };
+        if (!motif) return { data: null, error: { message: "Motif obligatoire : indiquez à l'agent ce qu'il doit corriger", code: "23514" } };
+        Object.assign(l, { validee_le: null, validee_par: null, renvoyee_le: new Date().toISOString(), renvoyee_par: ADMIN_ID, motif_renvoi: motif });
+        return { data: l.auteur_terrain_id && l.auteur_terrain_id !== ADMIN_ID ? 1 : 0, error: null };
       }
       if (nom === "suggestions_localisation") {
         // Suggestions fictives autour du point : deux rues, le secteur de la fuite la plus proche, un tronçon de 40 m.

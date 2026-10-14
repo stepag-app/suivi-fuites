@@ -11,7 +11,7 @@ import { nomsUtiles, type ContenuFiche, type LiensReparations } from './fiche-ho
 
 /** Colonnes de `fuites` du chantier v2 (validation, corrections, nouveaux champs), absentes de `v_fuites`. */
 export const COLONNES_FUITE_V2 = 'validee_le, validee_par, auteur_terrain_id, saisi_par, cree_le, saisie_differee, motif_correction, '
-  + 'corrigee_par, corrigee_le, nature_degradation_id, diametre_mm, materiau, troncon_id, precision_gps_m';
+  + 'corrigee_par, corrigee_le, nature_degradation_id, diametre_mm, materiau, troncon_id, precision_gps_m, renvoyee_le, renvoyee_par, motif_renvoi';
 const COLONNES_PHOTOS = 'id, type, chemin, prise_le, stockage, reparation_id, refection_id, auteur_terrain_id, saisi_par, cree_le';
 
 export interface ListesFormulaires {
@@ -108,8 +108,9 @@ export async function lireFicheEnLigne(id: string, marcheId: string, options: { 
   const profils = lignes<Profil>(pr);
   // Base pas encore à jour (colonnes absentes) : pas d'informations de validation, la fiche reste lisible.
   const v2 = f2.error ? null : ((f2.data as FuiteV2 | null) ?? null);
-  const autresNoms = [v2?.validee_par, v2?.corrigee_par, v2?.auteur_terrain_id, ...reparations.map((r) => r.validee_par),
-    ...refections.flatMap((r) => [r.validee_par, r.auteur_terrain_id])];
+  const autresNoms = [v2?.validee_par, v2?.corrigee_par, v2?.auteur_terrain_id, v2?.renvoyee_par,
+    ...reparations.flatMap((r) => [r.validee_par, r.renvoyee_par]),
+    ...refections.flatMap((r) => [r.validee_par, r.auteur_terrain_id, r.renvoyee_par])];
   return {
     reseau: !!f.error && estErreurReseau(f.error),
     complete: [...reponses, ...reponsesLiens].every((r) => !r.error || !estErreurReseau(r.error)),

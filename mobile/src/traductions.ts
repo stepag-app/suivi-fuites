@@ -448,6 +448,12 @@ export const TRADUCTIONS = {
   'Réfection saisie : fuite N° {numero}': { ar: 'تم إدخال إعادة الرصف: التسرب رقم {numero}', hyb: 'تم إدخال الـ Réfection: التسرب رقم {numero}' },
   'Clôture sans réfection : fuite N° {numero}': { ar: 'إغلاق بدون إعادة رصف: التسرب رقم {numero}', hyb: 'إغلاق بدون Réfection: التسرب رقم {numero}' },
   'Fuite N° {numero} non réparée depuis plus de {delai} h': { ar: 'التسرب رقم {numero} لم يُصلَح منذ أكثر من {delai} ساعة' },
+  // Renvoi d'une étape à l'agent pour correction (2026-10-14)
+  'À corriger': { ar: 'للتصحيح' },
+  'À corriger, demandé le {date} : {motif}': { ar: 'للتصحيح، طُلب في {date}: {motif}' },
+  'Détection à corriger : fuite N° {numero}': { ar: 'يجب تصحيح الكشف: التسرب رقم {numero}' },
+  'Réparation à corriger : fuite N° {numero}': { ar: 'يجب تصحيح الإصلاح: التسرب رقم {numero}' },
+  'Réfection à corriger : fuite N° {numero}': { ar: 'يجب تصحيح إعادة الرصف: التسرب رقم {numero}', hyb: 'يجب تصحيح الـ Réfection: التسرب رقم {numero}' },
   'Nouvelle version {version} disponible': { ar: 'نسخة جديدة {version} متوفرة' },
   '{taille} Mo à télécharger ; vos saisies et envois en attente sont gardés.': { ar: '{taille} ميغابايت للتحميل؛ إدخالاتك والإرسالات المنتظرة تبقى محفوظة.' },
   'Installer': { ar: 'تثبيت' },

@@ -4,14 +4,15 @@
 > Détail historique complet (lots, PR, vérifications, pièges, session par session) :
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
-Dernière mise à jour : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
+Dernière mise à jour : 2026-10-14 (troisième purge du SRM à 23 h 30 sur demande d'Issam, marché DEMO de formation, PR #134). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
 réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
 
 ## 1. En service
 
 | Élément | État |
 |---|---|
-| **Marché SRM-4500004453 (Oujda)** | seul marché, **à zéro** depuis la seconde purge du 2026-10-12 à 23 h 41 : 0 fuite, 0 balayage, 0 photo ; numérotation à 1 ; 34 secteurs « À balayer » ; paramétrage, bordereau, réseau et comptes gardés. Détection réelle à partir du 13/10 (deux comptes d'agents affectés) |
+| **Marché SRM-4500004453 (Oujda)** | **à zéro** depuis la troisième purge (2026-10-14, exécution 38648185254, sauvegarde complète juste avant) : 5 fuites, 4 réparations, 3 réfections, 18 photos, 2 lots, 125 balayages et 2 tracés GPS des 13 et 14/10 effacés à la demande d'Issam (essais) ; numérotation à 1 ; 34 secteurs « À balayer » ; paramétrage, bordereau, réseau et comptes gardés |
+| **Marché DEMO (formation)** | créé le 2026-10-14 par la migration `20261016400000` (PR #134), identifiant `de000002-…` : copie du SRM (fiche, paramétrage, réseau), 10 fuites fictives (3 détectées, 2 en réparation, 2 réparées, 2 achevées, 1 sans réparation). **Gestes d'Issam dans le panneau** : affecter TAIBI ABDELALI au DEMO (Détection, Réparation, Réfection) et le retirer du SRM ; Paramètres › Réseau du DEMO : Régénérer les tuiles, déposer le fond de carte. Tant que ce marché existe, la purge de mise en service refuse de tourner (« un autre marché existe ») |
 | **Base** | Supabase (projet `osajiinsibwrsltntmsk`, Paris, plan gratuit), RLS sur toutes les tables, migrations jusqu'à `20261016200000` ; déployée à chaque fusion dans `main` (« Déploiement de la base ») ; tâches `pg_cron` actives (`alertes-reparation`, `alertes-suivi-gps`, `envoi-push`, `lecture-dolibarr`) |
 | **Panneau web** | https://fuites.stepag.ma (Vercel, plan Hobby) : fuites, validation par étape, tableau de bord, carte et balayage, attachements, fournitures et rapprochement Dolibarr, débits de nuit, rapports, suivi GPS, envoi par e-mail (Resend, depuis `contact@stepag.ma`), utilisateurs et droits, paramètres, tablettes |
 | **APK Android** | **1.0.0-beta.4** (`versionCode` 195, « 1.0 bêta 4 »), signée avec le keystore de production, publiée à la demande d'Issam par une session Claude ; mise à jour par la fenêtre « Mise à jour disponible » ; interface en français, hybride et arabe ; hors ligne ; push (Firebase) ; satellite (Esri) ; carte de balayage sans réseau |

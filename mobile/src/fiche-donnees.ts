@@ -17,12 +17,12 @@ const COLONNES_FUITE = 'id, numero, reference_srm, statut, secteur, zone, adress
 const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, ouvrage, materiau, diametre_mm, representant_srm, '
   + 'representant_srm_id, tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, element_remplace, '
   + 'longueur_pe_m, fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, nature_revetement_id, observation, '
-  + 'auteur_terrain_id, saisi_par, validee_le, cree_le';
+  + 'auteur_terrain_id, saisi_par, validee_le, cree_le, renvoyee_le, motif_renvoi';
 const COLONNES_REFECTION = 'id, resultat, motif_id, realisee_le, nature_id, longueur_m, largeur_m, observation, '
-  + 'reparation_id, auteur_terrain_id, saisi_par, validee_le, cree_le';
+  + 'reparation_id, auteur_terrain_id, saisi_par, validee_le, cree_le, renvoyee_le, motif_renvoi';
 // Champs de la fuite absents de v_fuites : saisie du chantier v2, validation, auteur (V1, V2).
 const DETAILS_FUITE = 'visibilite, nature_degradation_id, diametre_mm, materiau, troncon_id, secteur_id, zone_id, validee_le, '
-  + 'saisi_par, auteur_terrain_id, cree_le';
+  + 'saisi_par, auteur_terrain_id, cree_le, renvoyee_le, motif_renvoi';
 
 /**
  * `bureau` (responsable, administrateur : droit « interventions / valider ») : pièces telles qu'elles sont, corrections du

@@ -313,6 +313,8 @@ export const estAuteur = (ligne: LigneEtape, moi: string | null | undefined) =>
 
 export interface DroitsEtape {
   valider: boolean;
+  /** Renvoyer à l'agent (dévalider) : droit « valider », sauf étape figée par un lot arrêté (l'agent ne pourrait rien corriger). */
+  renvoyer: boolean;
   /** Modifier la saisie (l'étape elle-même). */
   modifier: boolean;
   /** Raison du refus, à afficher en infobulle du bouton grisé. */
@@ -323,7 +325,7 @@ export interface DroitsEtape {
  * Ce que le compte peut faire sur une étape : valider (droit « valider », une seule fois) ; modifier tant
  * qu'elle n'est pas validée s'il en est l'auteur (droit « modifier siennes ») ; après validation, seul le
  * droit « valider » modifie (l'agent ajoute un nouvel élément). Fuite verrouillée : ce qui précède le
- * verrou est figé pour l'agent (V6 : il ajoute seulement).
+ * verrou est figé pour l'agent (V6 : il ajoute seulement), et ne se renvoie donc plus à l'agent.
  */
 export function droitsEtape(
   etape: Etape,
@@ -333,24 +335,26 @@ export function droitsEtape(
   const type = TYPE_ETAPE[etape];
   const peutValider = contexte.peut(type, 'valider');
   const valide = !!ligne.validee_le;
+  const verrou = contexte.verrouilleeLe;
+  const figee = !!verrou && (etape === 'detection' || !ligne.cree_le || ligne.cree_le <= verrou);
+  const renvoyer = peutValider && !figee;
   if (!contexte.peut(type, 'modifier')) {
-    return { valider: peutValider && !valide, modifier: false, raison: 'Modification non autorisée pour votre compte' };
+    return { valider: peutValider && !valide, renvoyer, modifier: false, raison: 'Modification non autorisée pour votre compte' };
   }
-  if (peutValider) return { valider: !valide, modifier: true, raison: null };
+  if (peutValider) return { valider: !valide, renvoyer, modifier: true, raison: null };
   if (!estAuteur(ligne, contexte.moi)) {
-    return { valider: false, modifier: false, raison: 'Saisie d\'un autre agent : modification réservée au responsable' };
+    return { valider: false, renvoyer: false, modifier: false, raison: 'Saisie d\'un autre agent : modification réservée au responsable' };
   }
   if (valide) {
-    return { valider: false, modifier: false, raison: 'Étape validée : ajoutez un nouvel élément, il sera à valider' };
+    return { valider: false, renvoyer: false, modifier: false, raison: 'Étape validée : ajoutez un nouvel élément, il sera à valider' };
   }
-  const verrou = contexte.verrouilleeLe;
-  if (verrou && etape !== 'detection' && (!ligne.cree_le || ligne.cree_le <= verrou)) {
-    return { valider: false, modifier: false, raison: 'Fuite verrouillée par un lot : ajoutez un nouvel élément' };
+  if (figee && etape !== 'detection') {
+    return { valider: false, renvoyer: false, modifier: false, raison: 'Fuite verrouillée par un lot : ajoutez un nouvel élément' };
   }
-  if (verrou && etape === 'detection') {
-    return { valider: false, modifier: false, raison: 'Fuite verrouillée : modification réservée au responsable' };
+  if (figee) {
+    return { valider: false, renvoyer: false, modifier: false, raison: 'Fuite verrouillée : modification réservée au responsable' };
   }
-  return { valider: false, modifier: true, raison: null };
+  return { valider: false, renvoyer: false, modifier: true, raison: null };
 }
 
 export interface PhotoEtape {

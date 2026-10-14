@@ -58,7 +58,7 @@ Contrats de base : `docs/lots/chantier-v2-base-s1.md` (validation, motifs, R7) e
 (champs obligatoires, suggestions, diamètres, représentants). La base reste juge ; l'écran grise et prévient.
 
 - **Règles pures** : `src/lib/saisie/regles.ts` (champs exigés, diamètres par matériau, gardes-fous, capsules, droits par
-  étape et sur les photos, motif, saisie différée, dates à l'heure du Maroc), vérifiées par `node scripts/verifier-saisie.mjs` (17).
+  étape et sur les photos, motif, saisie différée, dates à l'heure du Maroc), vérifiées par `node scripts/verifier-saisie.mjs` (18).
   Listes lues par `src/lib/saisie/referentiels.ts` (gardées sur l'appareil pour la nouvelle fuite hors ligne).
 - **Validation (V1)** : une fois, par le droit « valider » de l'étape ; « Valider » sur la fiche, « Valider (n) » sur `/a-valider`,
   case « valider en même temps » à la saisie. Photo facultative : sans photo, un dialogue prévient (« Ajouter une photo »
@@ -67,6 +67,11 @@ Contrats de base : `docs/lots/chantier-v2-base-s1.md` (validation, motifs, R7) e
 - **Modifier (V2, V6)** : l'auteur tant que l'étape n'est pas validée ; après, seul le responsable (l'agent ajoute un nouvel
   élément, à valider) ; fuite verrouillée par un lot : l'agent ajoute encore et modifie seulement ce qu'il a ajouté depuis.
   Pièces d'une réparation d'un autre agent : remplacement, retrait ou oubli avec motif (corrections du bureau).
+- **Renvoi à l'agent (dévalidation)** : « Dévalider » (étape validée) ou « Renvoyer » (pas encore validée) sur la fiche et
+  sur `/a-valider`, droit « valider » de l'étape ; dialogue avec motif obligatoire (`BoutonRenvoyer`, RPC `renvoyer_etape`).
+  L'étape repasse « à valider », badge **« À corriger »** et motif sur la fiche, dans `/a-valider` et l'historique ; l'agent
+  est prévenu (notification et push) et corrige sur sa tablette (champs, pièces oubliées, photos). Bouton absent quand
+  la fuite est verrouillée par un lot arrêté et que l'étape précède le verrou (l'agent ne pourrait rien corriger).
 - **Photos (V3)** : rattachées à une étape ; type modifiable et retrait avec motif (fichier gardé) ; déposées avant la
   validation de leur étape : responsable seulement.
 - **Corrections (V5)** : panneau « Corriger » / « Modifier » de la détection (`fuites/[id]/correction-detection.tsx`) ;

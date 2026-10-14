@@ -43,7 +43,7 @@ import { FormRefection } from "./form-refection";
 import { FormReparation } from "./form-reparation";
 import { lireFicheEnLigne, type LectureEnLigne } from "./donnees";
 import { Photos, cleEtapePhoto, type EtapePhoto } from "./photos";
-import { BoutonValider, EtatValidation, type ElementAValider } from "./validation";
+import { BoutonRenvoyer, BoutonValider, EtatValidation, MotifRenvoi, type ElementAValider } from "./validation";
 import {
   DELAI_RESEAU_MS, NOMS_VIDES, actionsFiche, choisirAffichage, type ContenuFiche, type LiensReparations, type NomsFiche,
 } from "./fiche-hors-ligne";
@@ -358,6 +358,9 @@ export default function DetailFuite() {
     [v2?.validee_le, `détection validée${nomProfil(v2?.validee_par) ? ` par ${nomProfil(v2?.validee_par)}` : ""}`],
     ...reparations.map((r) => [r.validee_le, `réparation du ${dateHeure(r.realisee_le)} validée${nomProfil(r.validee_par) ? ` par ${nomProfil(r.validee_par)}` : ""}`]),
     ...refections.map((r) => [r.validee_le, `réfection du ${dateHeure(r.realisee_le)} validée${nomProfil(r.validee_par) ? ` par ${nomProfil(r.validee_par)}` : ""}`]),
+    [v2?.renvoyee_le, `détection renvoyée à l'agent${nomProfil(v2?.renvoyee_par) ? ` par ${nomProfil(v2?.renvoyee_par)}` : ""} : « ${v2?.motif_renvoi ?? ""} »`],
+    ...reparations.map((r) => [r.renvoyee_le, `réparation du ${dateHeure(r.realisee_le)} renvoyée à l'agent${nomProfil(r.renvoyee_par) ? ` par ${nomProfil(r.renvoyee_par)}` : ""} : « ${r.motif_renvoi ?? ""} »`]),
+    ...refections.map((r) => [r.renvoyee_le, `réfection du ${dateHeure(r.realisee_le)} renvoyée à l'agent${nomProfil(r.renvoyee_par) ? ` par ${nomProfil(r.renvoyee_par)}` : ""} : « ${r.motif_renvoi ?? ""} »`]),
     // R7 : les corrections du bureau ne se montrent qu'au bureau
     ...(bureau ? [[v2?.corrigee_le, `détection corrigée${nomProfil(v2?.corrigee_par) ? ` par ${nomProfil(v2?.corrigee_par)}` : ""} : « ${v2?.motif_correction ?? ""} »`]] : []),
   ] as [string | null | undefined, string][])
@@ -410,7 +413,7 @@ export default function DetailFuite() {
             <div className="flex flex-wrap gap-2">
               <BadgeStatut statut={fuite.statut} className="rounded-sm" />
               {fuite.origine === "srm" && <Badge className="rounded-sm" variant="secondary">Signalée par {libelles.sigle}</Badge>}
-              {v2 && <EtatValidation valideeLe={v2.validee_le} par={nomProfil(v2.validee_par)} />}
+              {v2 && <EtatValidation valideeLe={v2.validee_le} par={nomProfil(v2.validee_par)} renvoyeeLe={v2.renvoyee_le} motif={v2.motif_renvoi} />}
               {v2?.saisie_differee && (
                 <Badge className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300" variant="outline"
                   title={`Détectée le ${dateHeure(fuite.date_detection)}, saisie le ${dateHeure(v2.cree_le)}`}>
@@ -525,6 +528,10 @@ export default function DetailFuite() {
                         <BoutonValider element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${fuite.numero}`, nbPhotos: photosDe("detection") }}
                           onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
                       )}
+                      {droitsDetection.renvoyer && (
+                        <BoutonRenvoyer element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${fuite.numero}` }}
+                          validee={!!v2?.validee_le} onRenvoye={charger} />
+                      )}
                       {droitsDetection.modifier ? (
                         <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "detection" })}>
                           {chargementSaisie ? <Spinner /> : <Pencil data-icon="inline-start" />}{peutValider ? "Corriger" : "Modifier"}
@@ -535,6 +542,7 @@ export default function DetailFuite() {
                     </div>
                   )}
                 </div>
+                {v2 && <MotifRenvoi valideeLe={v2.validee_le} renvoyeeLe={v2.renvoyee_le} motif={v2.motif_renvoi} par={nomProfil(v2.renvoyee_par)} />}
                 <div className="grid gap-x-8 gap-y-5 sm:grid-cols-2 xl:grid-cols-3">
                   <Info libelle="Origine" valeur={fuite.origine === "srm" ? `Signalée par ${libelles.sigle}` : "Détection de l'entreprise"} />
                   <Info libelle={libelles.reference} valeur={fuite.reference_srm} />
@@ -661,14 +669,18 @@ export default function DetailFuite() {
                     <CardTitle className="flex flex-wrap items-center gap-2">
                       <Wrench className="size-4 text-muted-foreground" />
                       {r.resultat === "reparee" ? "Réparée" : r.resultat === "en_cours" ? "En cours / reste à finir" : "Non réparée"}
-                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} />
+                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} renvoyeeLe={r.renvoyee_le} motif={r.motif_renvoi} />
                     </CardTitle>
                     <CardDescription>{dateHeure(r.realisee_le)}{nomProfil(r.auteur_terrain_id) ? ` · ${nomProfil(r.auteur_terrain_id)}` : ""}</CardDescription>
-                    {d && !formulaire && (d.valider || d.modifier) && (
+                    {d && !formulaire && (d.valider || d.renvoyer || d.modifier) && (
                       <CardAction className="flex flex-wrap gap-2">
                         {d.valider && (
                           <BoutonValider element={{ etape: "reparation", id: r.id, libelle: `Réparation du ${dateHeure(r.realisee_le)}`, nbPhotos: photosDe(`reparation:${r.id}`) }}
                             onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
+                        )}
+                        {d.renvoyer && (
+                          <BoutonRenvoyer element={{ etape: "reparation", id: r.id, libelle: `Réparation du ${dateHeure(r.realisee_le)}` }}
+                            validee={!!r.validee_le} onRenvoye={charger} />
                         )}
                         {d.modifier && (
                           <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "reparation", id: r.id })}>
@@ -679,6 +691,7 @@ export default function DetailFuite() {
                     )}
                   </CardHeader>
                   <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <MotifRenvoi valideeLe={r.validee_le} renvoyeeLe={r.renvoyee_le} motif={r.motif_renvoi} par={nomProfil(r.renvoyee_par)} className="sm:col-span-2 xl:col-span-4" />
                     <Info libelle="Chef d'équipe" valeur={nomProfil(r.auteur_terrain_id)} />
                     <Info libelle="Ouvriers" valeur={liens.ouvriers[r.id]?.join(", ") || null} />
                     <Info libelle="Matériau" valeur={[r.materiau ? MATERIAUX[r.materiau] : null, r.diametre_mm ? `Ø ${r.diametre_mm} mm` : null].filter(Boolean).join(" ") || null} />
@@ -740,14 +753,18 @@ export default function DetailFuite() {
                   <CardHeader>
                     <CardTitle className="flex flex-wrap items-center gap-2">
                       {r.resultat === "faite" ? "Réfection faite" : "Clôturée sans réfection"}
-                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} />
+                      <EtatValidation valideeLe={r.validee_le} par={nomProfil(r.validee_par)} renvoyeeLe={r.renvoyee_le} motif={r.motif_renvoi} />
                     </CardTitle>
                     <CardDescription>{dateHeure(r.realisee_le)}{nomProfil(r.auteur_terrain_id) ? ` · ${nomProfil(r.auteur_terrain_id)}` : ""}</CardDescription>
-                    {d && !formulaire && (d.valider || d.modifier) && (
+                    {d && !formulaire && (d.valider || d.renvoyer || d.modifier) && (
                       <CardAction className="flex flex-wrap gap-2">
                         {d.valider && (
                           <BoutonValider element={{ etape: "refection", id: r.id, libelle: `Réfection du ${dateHeure(r.realisee_le)}`, nbPhotos: photosDe(`refection:${r.id}`) }}
                             onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
+                        )}
+                        {d.renvoyer && (
+                          <BoutonRenvoyer element={{ etape: "refection", id: r.id, libelle: `Réfection du ${dateHeure(r.realisee_le)}` }}
+                            validee={!!r.validee_le} onRenvoye={charger} />
                         )}
                         {d.modifier && (
                           <Button size="sm" variant="outline" disabled={chargementSaisie} onClick={() => ouvrir({ type: "refection", id: r.id })}>
@@ -758,6 +775,7 @@ export default function DetailFuite() {
                     )}
                   </CardHeader>
                   <CardContent className="grid gap-x-8 gap-y-4 sm:grid-cols-2 xl:grid-cols-4">
+                    <MotifRenvoi valideeLe={r.validee_le} renvoyeeLe={r.renvoyee_le} motif={r.motif_renvoi} par={nomProfil(r.renvoyee_par)} className="sm:col-span-2 xl:col-span-4" />
                     {r.resultat === "faite" ? (
                       <>
                         <Info libelle="Nature" valeur={natureLibelle(r.nature_id)} />

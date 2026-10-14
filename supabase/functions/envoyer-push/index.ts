@@ -94,6 +94,14 @@ function texteArabe(n: Notification): { titre: string; corps: string | null } | 
       };
     case 'alerte_reparation':
       return { titre: `التسرب رقم ${numero} لم يُصلَح منذ أكثر من ${d.delai_h ?? 48} ساعة`, corps: adresse };
+    // Renvoi pour correction : le corps reste le motif du responsable, tel qu'il l'a écrit.
+    case 'etape_a_corriger':
+      return {
+        titre: d.etape === 'reparation' ? `يجب تصحيح الإصلاح: التسرب رقم ${numero}`
+          : d.etape === 'refection' ? `يجب تصحيح ${hyb ? 'الـ Réfection' : 'إعادة الرصف'}: التسرب رقم ${numero}`
+          : `يجب تصحيح الكشف: التسرب رقم ${numero}`,
+        corps: n.corps,
+      };
     // Suivi GPS coupé (sans fuite) : même phrase que mobile/src/traductions.ts.
     case 'suivi_coupe':
       return {

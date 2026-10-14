@@ -4,7 +4,7 @@
 > Détail historique complet (lots, PR, vérifications, pièges, session par session) :
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
-Dernière mise à jour : 2026-10-14 (troisième purge du SRM à 23 h 30 sur demande d'Issam, marché DEMO de formation, PR #134). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
+Dernière mise à jour : 2026-10-14 (troisième purge du SRM sur demande d'Issam, marché DEMO de formation, PR #134). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
 réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
 
 ## 1. En service

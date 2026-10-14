@@ -4,7 +4,7 @@
 > Détail historique complet (lots, PR, vérifications, pièges, session par session) :
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
-Dernière mise à jour : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
+Dernière mise à jour : 2026-10-14 (lot MR, matériel récupéré posé, ajouté au reste à faire). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
 réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
 
 ## 1. En service
@@ -34,6 +34,7 @@ réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 
 | 5 | Double authentification, compte par compte (liste de 14 comptes) ; seconde application d'authentification pour Supabase ; codes de secours hors ligne | Issam | `docs/lots/chantier-v3.md` § 6 |
 | 6 | Facultatifs : relire les pages publiques `/confidentialite` et `/conditions` ; longueur minimale de mot de passe à 8 dans Supabase Auth ; règle de cycle de vie R2 (`sauvegardes/base/`, 30 jours) ; `apk-dev.yml` en déclenchement manuel une fois le dépôt privé ; mises à jour majeures (Next 16, Expo SDK 58) après la mise en service ; conversion des 10 écrans encore habillés par `ancien.css` | Issam / Claude | `docs/lots/chantier-v3-audit-s20.md` § 4 |
 | 7 | **À confirmer avec la SRM** : assiette des pénalités de débit (par zone, points proportionnels : valeur par défaut appliquée), gabarit d'impression de la carte, rapport par fuite, linéaire par secteur (le marché ne le donne que par zone) | Issam | `docs/lots/chantier-v3-debits.md`, `references/regles-marche-4500004453.md` |
+| 8 | **Lot MR : matériel récupéré posé** (demande du 2026-10-14) : choix « Neuf » / « Récupéré » à la saisie d'une pièce (tablette et panneau), rapprochement Dolibarr sur le neuf seulement, mention sur la fiche et le rapport ; aucun effet sur le montant | Issam (questions), puis une session | `docs/lots/lot-materiel-recupere.md` (questions du § 4 à trancher avant de développer) ; `docs/feuille-de-route.md` § 4, point 11 |
 
 **E4, fait le 2026-10-13 (S21).** Condition remplie : Issam a confirmé qu'il n'y a qu'**une seule tablette** en
 service (Redmi Pad 2), en beta.4 (195), qui n'envoie plus `equipe_id`. Migration

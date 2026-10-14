@@ -145,6 +145,11 @@ règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF a
         API Gmail (secret GitHub) ; le fichier reste **chiffré** (la phrase secrète ne part jamais
         avec le fichier) ;
       - **procédure de restauration écrite et testée** (base + photos) sur une pile Supabase locale.
+11. **Lot MR : matériel récupéré posé** (demande d'Issam du 2026-10-14) : à la saisie d'une pièce posée, choix
+    « Neuf » (par défaut) ou « Récupéré », sur la tablette et le panneau ; le rapprochement Dolibarr ne compte que le
+    neuf (une pièce récupérée ne crée plus de faux écart) ; mention sur la fiche et le rapport par fuite ; aucun effet
+    sur le montant. **Bloqué par** les questions à trancher (sens de « récupéré », position de la SRM, suivi dans
+    Dolibarr) : `docs/lots/lot-materiel-recupere.md` § 4.
 
 ## 5. Étape ultime : dépôt fermé et rotation de tous les secrets (avant la mise en production)
 

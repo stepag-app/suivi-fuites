@@ -102,6 +102,7 @@ td.note textarea { margin-top: 0; font-size: .88rem }
       <li><b>10 octobre : toutes les propositions validées par Issam</b> (« je vous demande de tout valider ») : les 495 lignes sont cochées OK ; les corrections déjà faites restent. Les libellés du suivi GPS et de l'accessibilité, absents de ce tableau, sont validés de la même façon.</li>
       <li><b>Nouveau (10 octobre, chantier v3, S19) : 53 libellés de l'écran « Mesures de nuit »</b> (D01 à D53) : campagne de mesure, nuit, points de mesure, débit minimum ou relevés de 0 h à 6 h, photo de l'afficheur, messages d'envoi. En hybride, le titre de l'écran et les types de campagne (Qi, Qf, maintien, libre) restent en français, comme « Balayage » et « Suivi GPS » ; tout le reste est en arabe. Filtrez « v3 · Mesures de nuit » dans la liste des écrans. Termes proposés : débit de nuit « التدفق الليلي », campagne « حملة القياس », point de mesure « نقطة القياس », relevé « قراءة », afficheur « شاشة العداد ».</li>
       <li><b>Nouveau (10 octobre) : 34 libellés du suivi GPS</b> (T01 à T34) : le suivi ne tourne que pendant les heures de travail, la « Pause » remplace « Désactiver le suivi », motif du suivi (preuve du linéaire balayé pour la SRM, sécurité), notification, rappel du matin, jours de la semaine, alerte « suivi coupé » reçue par le responsable. En hybride, toutes ces phrases sont en arabe (seul le bouton « Suivi GPS » reste en français). Filtrez « v3 · Suivi GPS ». Termes proposés : pause « استراحة », heures de travail « ساعات العمل », tronçon coché « مقطع مؤشَّر عليه », linéaire balayé « طول الشبكة الممسوح ».</li>
+      <li><b>Nouveau (15 octobre) : 52 libellés de la carte terrain</b> (K01 à K52) : bouton « Carte » de la tablette, volet « Calques » (fuites prioritaires, statuts, réseau, zones balayées, limites des secteurs, satellite, ma position), légende, bulles d’une fuite et d’un tronçon. Ces phrases s’affichent dans la carte ouverte par l’application. Même règle hybride (seul « Réfection » reste en français dans une phrase arabe). Filtrez « v4 · Carte terrain ».</li>
     </ul>
   </div>
 
@@ -689,6 +690,60 @@ const LIBELLES = [
   ["T32", "v3 · Suivi GPS", "Suivi GPS interrompu : {agent}", null, "انقطع تتبع الموقع: {agent}"],
   ["T33", "v3 · Suivi GPS", "Autorisation de position refusée sur la tablette ; aucune position depuis {heure}.", null, "إذن الموقع مرفوض على الجهاز اللوحي؛ لا يوجد أي موقع منذ {heure}."],
   ["T34", "v3 · Suivi GPS", "Aucune position depuis {heure} : application fermée, autorisation retirée, tablette éteinte ou sans réseau.", null, "لا يوجد أي موقع منذ {heure}: التطبيق مغلق، أو الإذن مسحوب، أو الجهاز اللوحي مطفأ أو بدون شبكة."],
+
+  // Carte terrain (15 octobre) : bouton « Carte » de la tablette, calques, bulles ; libellés de la page de carte ouverte dans l'application, à relire
+  ["K01", "v4 · Carte terrain", "Carte", null, "الخريطة"],
+  ["K02", "v4 · Carte terrain", "Fuites, réseau et zones balayées", null, "التسربات والشبكة والمناطق الممسوحة"],
+  ["K03", "v4 · Carte terrain", "Conduite", null, "قناة"],
+  ["K04", "v4 · Carte terrain", "Branchement", null, "ربط"],
+  ["K05", "v4 · Carte terrain", "Adduction", null, "قناة جلب"],
+  ["K06", "v4 · Carte terrain", "Autre", null, "آخر"],
+  ["K07", "v4 · Carte terrain", "Tronçon", null, "مقطع"],
+  ["K08", "v4 · Carte terrain", "Longueur {l}", null, "الطول {l}"],
+  ["K09", "v4 · Carte terrain", " · diamètre inconnu", null, " · القطر غير معروف"],
+  ["K10", "v4 · Carte terrain", "Calques", null, "الطبقات"],
+  ["K11", "v4 · Carte terrain", "Afficher ou masquer les calques", null, "إظهار الطبقات أو إخفاؤها"],
+  ["K12", "v4 · Carte terrain", "Fuites", null, "التسربات"],
+  ["K13", "v4 · Carte terrain", "Fuites prioritaires", null, "التسربات ذات الأولوية"],
+  ["K14", "v4 · Carte terrain", "Non réparées au-delà du délai, réfection de chaussée hors délai", "لم تُصلَح بعد انقضاء الأجل، Réfection الطريق خارج الأجل", "لم تُصلَح بعد انقضاء الأجل، إعادة رصف الطريق خارج الأجل"],
+  ["K15", "v4 · Carte terrain", "Détectée, non réparée", null, "تم الكشف، لم يتم الإصلاح"],
+  ["K16", "v4 · Carte terrain", "Réparation en cours", null, "الإصلاح جارٍ"],
+  ["K17", "v4 · Carte terrain", "Réparée, réfection à faire", "تم الإصلاح، الـ Réfection متبقية", "تم الإصلاح، إعادة الرصف متبقية"],
+  ["K18", "v4 · Carte terrain", "Achevée", null, "مكتمل"],
+  ["K19", "v4 · Carte terrain", "Sans réparation", null, "بدون إصلاح"],
+  ["K20", "v4 · Carte terrain", "Réseau et balayage", null, "الشبكة والمسح"],
+  ["K21", "v4 · Carte terrain", "Conduites (couleur du diamètre)", null, "القنوات (لون القطر)"],
+  ["K22", "v4 · Carte terrain", "Zones balayées", null, "المناطق الممسوحة"],
+  ["K23", "v4 · Carte terrain", "Tronçons et secteurs déjà balayés", null, "المقاطع والقطاعات التي سبق مسحها"],
+  ["K24", "v4 · Carte terrain", "Limites des secteurs", null, "حدود القطاعات"],
+  ["K25", "v4 · Carte terrain", "Fond de carte", null, "خلفية الخريطة"],
+  ["K26", "v4 · Carte terrain", "Image satellite (à partir du zoom {z})", null, "صورة القمر الصناعي (ابتداءً من التكبير {z})"],
+  ["K27", "v4 · Carte terrain", "Image satellite à partir du zoom {z} : rapprochez-vous.", null, "صورة القمر الصناعي ابتداءً من التكبير {z}: اقترب أكثر."],
+  ["K28", "v4 · Carte terrain", "Ma position", null, "موقعي"],
+  ["K29", "v4 · Carte terrain", "Point bleu : votre position GPS actuelle", null, "النقطة الزرقاء: موقعك الحالي حسب GPS"],
+  ["K30", "v4 · Carte terrain", "Aller à ma position", null, "الانتقال إلى موقعي"],
+  ["K31", "v4 · Carte terrain", "Recherche de la position…", null, "جارٍ تحديد الموقع…"],
+  ["K32", "v4 · Carte terrain", "Position refusée : autorisez la localisation dans les réglages de la tablette.", null, "تم رفض تحديد الموقع: فعّل خاصية الموقع في إعدادات الجهاز اللوحي."],
+  ["K33", "v4 · Carte terrain", "Position introuvable. Sortez à l'air libre et réessayez.", null, "تعذّر تحديد الموقع. اخرج إلى مكان مكشوف وأعد المحاولة."],
+  ["K34", "v4 · Carte terrain", "Position ± {n} m", null, "الموقع ± {n} م"],
+  ["K35", "v4 · Carte terrain", "Secteur balayé", null, "قطاع ممسوح"],
+  ["K36", "v4 · Carte terrain", "Secteur en cours de balayage", null, "قطاع في طور المسح"],
+  ["K37", "v4 · Carte terrain", "Lecture seule : les balayages se saisissent par le bouton « Balayage ».", "للاطلاع فقط: يُسجَّل المسح من زر «Balayage».", "للاطلاع فقط: يُسجَّل المسح من زر «مسح الشبكة»."],
+  ["K38", "v4 · Carte terrain", "Chargement des fuites…", null, "جارٍ تحميل التسربات…"],
+  ["K39", "v4 · Carte terrain", "Pas de réseau : la carte des fuites s'affichera au retour de la connexion (bouton « Actualiser »).", null, "لا يوجد اتصال: ستظهر خريطة التسربات عند عودة الاتصال (زر «تحديث»)."],
+  ["K40", "v4 · Carte terrain", "Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.", null, "خلفية الخريطة غير متاحة (الاتصال): تظهر التسربات بدون مخطط الشوارع."],
+  ["K41", "v4 · Carte terrain", "N° {numero}", null, "رقم {numero}"],
+  ["K42", "v4 · Carte terrain", "{reference} : {valeur}", null, "{reference}: {valeur}"],
+  ["K43", "v4 · Carte terrain", "Secteur non renseigné", null, "القطاع غير محدد"],
+  ["K44", "v4 · Carte terrain", "Détectée le {date}", null, "تاريخ الكشف: {date}"],
+  ["K45", "v4 · Carte terrain", " · signalée {sigle}", null, " · بلاغ من {sigle}"],
+  ["K46", "v4 · Carte terrain", "Non réparée > {delai} h", null, "لم يُصلَح > {delai} ساعة"],
+  ["K47", "v4 · Carte terrain", "Non communiquée {sigle}", null, "لم تُبلَّغ إلى {sigle}"],
+  ["K48", "v4 · Carte terrain", "Réfection chaussée hors délai", "Réfection الطريق خارج الأجل", "إعادة رصف الطريق خارج الأجل"],
+  ["K49", "v4 · Carte terrain", "Réfection chaussée à faire", "Réfection الطريق متبقية", "إعادة رصف الطريق متبقية"],
+  ["K50", "v4 · Carte terrain", "Réfection trottoir à faire", "Réfection الرصيف متبقية", "إعادة رصف الرصيف متبقية"],
+  ["K51", "v4 · Carte terrain", "Ouvrir la fiche", null, "فتح البطاقة"],
+  ["K52", "v4 · Carte terrain", "Y aller", null, "الذهاب إلى الموقع"],
 ];
 
 const etat = {};          // id -> { hyb, ar, ok, note, garder }

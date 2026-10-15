@@ -4,6 +4,7 @@ import { ActivityIndicator, AppState, BackHandler, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AValiderEcran } from './src/a-valider';
 import { Balayage } from './src/balayage';
+import { CarteFuites } from './src/carte';
 import { Connexion, EnAttente, Liste } from './src/ecrans';
 import { Fiche, type ContexteSaisie } from './src/fiche';
 import { synchroniser } from './src/file-attente';
@@ -24,7 +25,9 @@ import { BarreApp, COULEURS, Message, s } from './src/ui';
 type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite; redetection?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
   | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'tablette' }
-  | { nom: 'fiche'; id: string }
+  | { nom: 'carte'; fuite?: string }
+  // `depuis` : fiche ouverte depuis la carte, qui la rouvre au retour (centrée sur la fuite).
+  | { nom: 'fiche'; id: string; depuis?: 'carte' }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -33,10 +36,12 @@ function Racine() {
   const { t, langue } = useLangue();
   const [vue, setVue] = useState<Vue>(LISTE);
   const retourListe = () => setVue(LISTE);
-  // Une saisie et la modification d'une fuite reviennent à leur fiche, le reste à la liste.
+  // Une saisie et la modification d'une fuite reviennent à leur fiche, une fiche ouverte de la carte à la carte, le
+  // reste à la liste.
   const precedente = (v: Vue): Vue => (v.nom === 'reparation' || v.nom === 'refection'
     ? { nom: 'fiche', id: v.contexte.fuiteId }
-    : v.nom === 'nouvelle' && (v.modification || v.redetection) ? { nom: 'fiche', id: (v.modification ?? v.redetection)!.id } : LISTE);
+    : v.nom === 'nouvelle' && (v.modification || v.redetection) ? { nom: 'fiche', id: (v.modification ?? v.redetection)!.id }
+      : v.nom === 'fiche' && v.depuis === 'carte' ? { nom: 'carte', fuite: v.id } : LISTE);
   const [nonLues, relireNonLues] = useNonLues();
   const miseAJour = useMiseAJour();
   // Fenêtre de mise à jour refermée (« Plus tard ») : numéro de la version, jusqu'au prochain démarrage.
@@ -48,10 +53,10 @@ function Racine() {
   const [tablette, relireTablette] = useTablette(!!session && !aRenouveler);
 
   // Bouton retour d'Android : revenir d'un écran au lieu de quitter l'application.
-  // L'écran Balayage le prend lui-même (historique de la WebView d'abord).
+  // Les écrans Balayage et Carte le prennent eux-mêmes (historique de la WebView d'abord).
   useEffect(() => {
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (vue.nom === 'liste' || vue.nom === 'balayage') return false;
+      if (vue.nom === 'liste' || vue.nom === 'balayage' || vue.nom === 'carte') return false;
       setVue(precedente(vue));
       return true;
     });
@@ -131,6 +136,8 @@ function Racine() {
       return <EnAttente retour={retourListe} />;
     case 'balayage':
       return <Balayage retour={retourListe} />;
+    case 'carte':
+      return <CarteFuites fuite={vue.fuite} retour={retourListe} ouvrirFiche={(id) => setVue({ nom: 'fiche', id, depuis: 'carte' })} />;
     case 'avalider':
       return <AValiderEcran retour={retourListe} ouvrir={ouvrir} />;
     case 'mesures':
@@ -144,7 +151,7 @@ function Racine() {
     case 'fiche':
       return (
         <Fiche
-          key={vue.id} id={vue.id} retour={retourListe} saisir={(nom, contexte) => setVue({ nom, contexte })}
+          key={vue.id} id={vue.id} retour={() => setVue(precedente(vue))} saisir={(nom, contexte) => setVue({ nom, contexte })}
           modifierFuite={(f) => setVue({ nom: 'nouvelle', modification: f })}
           redetecter={(f) => setVue({ nom: 'nouvelle', redetection: f })}
         />
@@ -159,6 +166,7 @@ function Racine() {
           nouvelle={() => setVue({ nom: 'nouvelle' })}
           attente={() => setVue({ nom: 'attente' })}
           balayage={() => setVue({ nom: 'balayage' })}
+          carte={() => setVue({ nom: 'carte' })}
           aValider={() => setVue({ nom: 'avalider' })}
           notifications={() => setVue({ nom: 'notifications' })}
           suiviGps={() => setVue({ nom: 'suivigps' })}

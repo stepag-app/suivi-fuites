@@ -27,6 +27,12 @@ export const ALERTES: { cle: keyof FuiteCarte; texte: (l: Libelles) => string }[
 
 export const aUneAlerte = (f: FuiteCarte) => ALERTES.some((a) => f[a.cle] === true);
 
+/**
+ * Fuite prioritaire pour le terrain (carte de l'APK) : même règle que « Urgent » de la page À faire, réparation en
+ * retard au-delà du délai du marché ou réfection de chaussée hors délai.
+ */
+export const estPrioritaire = (f: FuiteCarte) => f.alerte_non_reparee === true || f.refection_chaussee_hors_delai === true;
+
 // Couleurs des points : mêmes teintes que les badges de statut (src/components/statut.tsx).
 export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = {
   detectee: { fond: '#ef4444', contour: '#b91c1c' },
@@ -40,6 +46,12 @@ export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = 
 // Halo des fuites en alerte et contours des zones / secteurs (carte et légende du PDF).
 export const COULEUR_ALERTE = '#b3261e';
 export const COULEUR_CONTOURS = '#0b5d8a';
+// Carte terrain : point de l'agent, secteurs teintés selon leur état de balayage (vert des tronçons balayés).
+export const COULEUR_POSITION = '#2563eb';
+export const COULEURS_STATUT_SECTEUR = { balayee: '#256f3a', en_cours: '#f59e0b' } as const;
+
+/** Position GPS de l'agent (carte terrain) ; précision en mètres. */
+export interface PositionAgent { lon: number; lat: number; precision: number }
 
 // Oujda, quand aucune fuite n'est géolocalisée.
 export const CENTRE_DEFAUT: [number, number] = [-1.9086, 34.6814];
@@ -53,8 +65,9 @@ export const MODULE_MAPLIBRE = '/maplibre/maplibre-gl.mjs';
 /** Les trois modules de MapLibre, gardés sur l'appareil pour la carte sans réseau (lot CH). */
 export const FICHIERS_MAPLIBRE = ['/maplibre/maplibre-gl.mjs', '/maplibre/maplibre-gl-shared.mjs', '/maplibre/maplibre-gl-worker.mjs'];
 
-// Contour d'une zone ou d'un secteur : GeoJSON (PostGIS 3 sérialise la géométrie ainsi) ou rien.
-export type Contour = { id: string; code: string; libelle: string; geom: Geometry | null };
+// Contour d'une zone ou d'un secteur : GeoJSON (PostGIS 3 sérialise la géométrie ainsi) ou rien ; état de balayage
+// des secteurs (a_balayer, en_cours, balayee), lu pour la carte terrain.
+export type Contour = { id: string; code: string; libelle: string; geom: Geometry | null; statut_balayage?: string | null };
 
 export function geometrieValide(g: unknown): g is Polygon | MultiPolygon {
   return !!g && typeof g === 'object' && 'type' in g && 'coordinates' in g &&

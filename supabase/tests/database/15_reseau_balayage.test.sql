@@ -334,8 +334,8 @@ select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000
 select throws_ok($$ insert into balayages (marche_id, troncon_id) values
   ('aaaaaaaa-0000-0000-0000-000000000001', (select id from t_ids where cle = 'T2')) $$,
   '42501', null, 'chef de réparation : ne balaie pas');
-select is((select count(*)::int from balayages), 0,
-  'chef de réparation : son modèle n''a pas (encore) de droit balayage, il ne lit aucun balayage');
+select results_eq($$ select count(*)::int, count(*) filter (where marche_id <> 'aaaaaaaa-0000-0000-0000-000000000001')::int from balayages $$,
+  $$ values (6, 0) $$, 'chef de réparation : lit les balayages de son marché seulement (carte terrain, lecture seule, 20261016800000)');
 
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000d", "role": "authenticated"}', true);
 select lives_ok($$ update balayages set annule_le = now(), motif_annulation = 'Doublon'
@@ -378,8 +378,10 @@ select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-000000
 select is((select count(*)::int from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001')), 0,
   'etat_balayage : non affecté au marché → zéro ligne');
 reset role;
+-- Droit déjà donné par le modèle Réparation depuis 20261016800000 (carte terrain) : posé s'il manque.
 insert into droits (profil_id, marche_id, type_donnee, lire) values
-  ('00000000-0000-0000-0000-00000000000c', 'aaaaaaaa-0000-0000-0000-000000000001', 'balayage', true);
+  ('00000000-0000-0000-0000-00000000000c', 'aaaaaaaa-0000-0000-0000-000000000001', 'balayage', true)
+on conflict (profil_id, marche_id, type_donnee) do update set lire = true;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);
 select is((select count(*)::int from etat_balayage('aaaaaaaa-0000-0000-0000-000000000001')), 2,

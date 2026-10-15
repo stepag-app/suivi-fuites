@@ -1,9 +1,11 @@
 'use client';
 
-// Langue de la tablette pour la partie du panneau ouverte dans l'APK (bouton Balayage : carte, barre d'outils,
-// panneau Réseau, enregistrement, légende). L'APK passe `?langue=ar|hybride` dans l'adresse ; gardée pour l'onglet
-// (sessionStorage). Mêmes termes et même règle que le dictionnaire de l'APK (mobile/src/traductions.ts) : en hybride,
-// arabe complet, sauf les libellés entièrement en français (Balayage, Secteur, Diamètre, Lasso) et « Réfection ».
+// Langue de la tablette pour la partie du panneau ouverte dans l'APK (boutons Balayage et Carte : carte, barre
+// d'outils, panneau Réseau, calques, bulles, enregistrement, légende). L'APK passe `?langue=fr|ar|hybride` dans
+// l'adresse ; gardée pour l'onglet (sessionStorage). Changée sur la tablette pendant que la carte est ouverte : l'APK
+// envoie l'événement `langue-apk` à la page, qui se redessine sans recharger (sélection de balayage gardée).
+// Mêmes termes et même règle que le dictionnaire de l'APK (mobile/src/traductions.ts) : en hybride, arabe complet,
+// sauf les libellés entièrement en français (Balayage, Secteur, Diamètre, Lasso) et « Réfection ».
 // Le panneau web lui-même reste en français.
 import { useMemo, useSyncExternalStore } from 'react';
 import { dateMaroc } from '@/lib/heure-maroc';
@@ -145,6 +147,71 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   "Motif de l'annulation du dernier balayage de ce tronçon :": { ar: 'سبب إلغاء آخر مسح لهذا المقطع:' },
   'Balayage annulé.': { ar: 'تم إلغاء المسح.' },
   'Aucun balayage à annuler sur ce tronçon.': { ar: 'لا يوجد مسح لإلغائه في هذا المقطع.' },
+  'Conduite': { ar: 'قناة' },
+  'Branchement': { ar: 'ربط' },
+  'Adduction': { ar: 'قناة جلب' },
+  'Autre': { ar: 'آخر' },
+  'Tronçon': { ar: 'مقطع' },
+  'Longueur {l}': { ar: 'الطول {l}' },
+  ' · diamètre inconnu': { ar: ' · القطر غير معروف' },
+
+  // Carte terrain (bouton « Carte » de l'APK) : lecture seule, calques, position de l'agent
+  'Calques': { ar: 'الطبقات' },
+  'Afficher ou masquer les calques': { ar: 'إظهار الطبقات أو إخفاؤها' },
+  'Fuites': { ar: 'التسربات' },
+  'Fuites prioritaires': { ar: 'التسربات ذات الأولوية' },
+  'Non réparées au-delà du délai, réfection de chaussée hors délai': {
+    ar: 'لم تُصلَح بعد انقضاء الأجل، إعادة رصف الطريق خارج الأجل', hyb: 'لم تُصلَح بعد انقضاء الأجل، Réfection الطريق خارج الأجل',
+  },
+  'Détectée, non réparée': { ar: 'تم الكشف، لم يتم الإصلاح' },
+  'Réparation en cours': { ar: 'الإصلاح جارٍ' },
+  'Réparée, réfection à faire': { ar: 'تم الإصلاح، إعادة الرصف متبقية', hyb: 'تم الإصلاح، الـ Réfection متبقية' },
+  'Achevée': { ar: 'مكتمل' },
+  'Sans réparation': { ar: 'بدون إصلاح' },
+  'À re-détecter': { ar: 'في انتظار إعادة الكشف', hyb: 'À re-détecter' },
+  'Réseau et balayage': { ar: 'الشبكة والمسح' },
+  'Conduites (couleur du diamètre)': { ar: 'القنوات (لون القطر)' },
+  'Zones balayées': { ar: 'المناطق الممسوحة' },
+  'Tronçons et secteurs déjà balayés': { ar: 'المقاطع والقطاعات التي سبق مسحها' },
+  'Limites des secteurs': { ar: 'حدود القطاعات' },
+  'Fond de carte': { ar: 'خلفية الخريطة' },
+  'Image satellite (à partir du zoom {z})': { ar: 'صورة القمر الصناعي (ابتداءً من التكبير {z})' },
+  'Image satellite à partir du zoom {z} : rapprochez-vous.': { ar: 'صورة القمر الصناعي ابتداءً من التكبير {z}: اقترب أكثر.' },
+  'Ma position': { ar: 'موقعي' },
+  'Point bleu : votre position GPS actuelle': { ar: 'النقطة الزرقاء: موقعك الحالي حسب GPS' },
+  'Aller à ma position': { ar: 'الانتقال إلى موقعي' },
+  'Recherche de la position…': { ar: 'جارٍ تحديد الموقع…' },
+  'Position refusée : autorisez la localisation dans les réglages de la tablette.': {
+    ar: 'تم رفض تحديد الموقع: فعّل خاصية الموقع في إعدادات الجهاز اللوحي.',
+  },
+  "Position introuvable. Sortez à l'air libre et réessayez.": { ar: 'تعذّر تحديد الموقع. اخرج إلى مكان مكشوف وأعد المحاولة.' },
+  'Position ± {n} m': { ar: 'الموقع ± {n} م' },
+  'Secteur balayé': { ar: 'قطاع ممسوح' },
+  'Secteur en cours de balayage': { ar: 'قطاع في طور المسح' },
+  'Lecture seule : les balayages se saisissent par le bouton « Balayage ».': {
+    ar: 'للاطلاع فقط: يُسجَّل المسح من زر «مسح الشبكة».', hyb: 'للاطلاع فقط: يُسجَّل المسح من زر «Balayage».',
+  },
+  'Chargement des fuites…': { ar: 'جارٍ تحميل التسربات…' },
+  "Pas de réseau : la carte des fuites s'affichera au retour de la connexion (bouton « Actualiser »).": {
+    ar: 'لا يوجد اتصال: ستظهر خريطة التسربات عند عودة الاتصال (زر «تحديث»).',
+  },
+  'Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.': {
+    ar: 'خلفية الخريطة غير متاحة (الاتصال): تظهر التسربات بدون مخطط الشوارع.',
+  },
+
+  // Bulle d'une fuite
+  'N° {numero}': { ar: 'رقم {numero}' },
+  '{reference} : {valeur}': { ar: '{reference}: {valeur}' },
+  'Secteur non renseigné': { ar: 'القطاع غير محدد' },
+  'Détectée le {date}': { ar: 'تاريخ الكشف: {date}' },
+  ' · signalée {sigle}': { ar: ' · بلاغ من {sigle}' },
+  'Non réparée > {delai} h': { ar: 'لم يُصلَح > {delai} ساعة' },
+  'Non communiquée {sigle}': { ar: 'لم تُبلَّغ إلى {sigle}' },
+  'Réfection chaussée hors délai': { ar: 'إعادة رصف الطريق خارج الأجل', hyb: 'Réfection الطريق خارج الأجل' },
+  'Réfection chaussée à faire': { ar: 'إعادة رصف الطريق متبقية', hyb: 'Réfection الطريق متبقية' },
+  'Réfection trottoir à faire': { ar: 'إعادة رصف الرصيف متبقية', hyb: 'Réfection الرصيف متبقية' },
+  'Ouvrir la fiche': { ar: 'فتح البطاقة' },
+  'Y aller': { ar: 'الذهاب إلى الموقع' },
 };
 
 let courante: LangueApk | null = null;
@@ -196,7 +263,37 @@ export function traduire(langue: LangueApk, cle: string, valeurs?: Record<string
 /** Hors composant (bulles de la carte construites à la main) : langue lue dans l'adresse ou l'onglet. */
 export const langueApk = (): LangueApk => (typeof window === 'undefined' ? 'fr' : lire());
 
-const sAbonner = () => () => undefined;
+const abonnes = new Set<() => void>();
+
+/**
+ * Langue changée sur la tablette, carte ouverte : gardée pour l'onglet et dans l'adresse (un rechargement de la page
+ * la garde), puis les écrans abonnés se redessinent.
+ */
+export function changerLangueApk(l: string) {
+  if (!valide(l) || l === courante) return;
+  courante = l;
+  try {
+    window.sessionStorage.setItem(CLE, l);
+    const adresse = new URL(window.location.href);
+    adresse.searchParams.set('langue', l);
+    window.history.replaceState(window.history.state, '', adresse);
+  } catch {
+    /* stockage indisponible : la langue vaut pour cette page */
+  }
+  abonnes.forEach((f) => f());
+}
+
+// Envoyé par l'APK (injectJavaScript) quand l'agent change de langue, carte ouverte.
+if (typeof window !== 'undefined') {
+  window.addEventListener('langue-apk', (e) => changerLangueApk(String((e as CustomEvent).detail)));
+}
+
+function sAbonner(f: () => void) {
+  abonnes.add(f);
+  return () => {
+    abonnes.delete(f);
+  };
+}
 
 /** Langue de la tablette (français au rendu serveur, puis celle de l'adresse) et fonctions de traduction. */
 export function useLangueApk() {

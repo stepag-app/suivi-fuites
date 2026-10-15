@@ -47,7 +47,8 @@ insert into reparations (id, marche_id, fuite_id, fouille_longueur_m, fouille_la
 -- -----------------------------------------------------------------------------
 -- 1. R1 : rôle « refection » et type de donnée « refections »
 -- -----------------------------------------------------------------------------
-select is((select count(*)::int from modeles_droits where role = 'refection'), 4, 'modèle « refection » : 4 types de donnée');
+select is((select count(*)::int from modeles_droits where role = 'refection'), 5,
+  'modèle « refection » : 5 types de donnée (lecture des balayages depuis 20261016800000)');
 select is((select roles from affectations where profil_id = '00000000-0000-0000-0000-00000000000e'),
   array['refection'], 'rôle « refection » seul accepté');
 select throws_ok($$ insert into affectations (profil_id, marche_id, roles) values
@@ -108,8 +109,8 @@ select lives_ok($$ select modifier_roles('00000000-0000-0000-0000-00000000000c',
   'administrateur : retire le rôle Réparation');
 select results_eq($$ select type_donnee::text, lire, creer, modifier::text from droits
                       where profil_id = '00000000-0000-0000-0000-00000000000c' order by 1 $$,
-  $$ values ('exports', true, false, 'non'), ('fuites', true, false, 'non'), ('interventions', true, false, 'non'),
-            ('photos', true, true, 'siennes'), ('refections', true, true, 'siennes') $$,
+  $$ values ('balayage', true, false, 'non'), ('exports', true, false, 'non'), ('fuites', true, false, 'non'),
+            ('interventions', true, false, 'non'), ('photos', true, true, 'siennes'), ('refections', true, true, 'siennes') $$,
   'rôle retiré : ses droits redescendent au niveau du rôle restant ; le droit ajouté à la main reste');
 select is((select roles from affectations where profil_id = '00000000-0000-0000-0000-00000000000c'),
   array['refection'], 'rôle affiché : Réfection');

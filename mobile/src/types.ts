@@ -79,6 +79,8 @@ export interface FicheFuite {
   // Re-détection (absents d'une fiche gardée avant elle) : numéro affiché (« 22-bis »), rang (2 = bis), fuite d'origine et re-détection
   numero_affiche?: string | null; rang?: number | null; fuite_liee_numero?: string | null;
   redetection_numero?: string | null; redetection_id?: string | null;
+  // Renvoyée par le responsable pour correction (« à corriger » tant que validee_le est vide)
+  renvoyee_le?: string | null; motif_renvoi?: string | null;
 }
 export interface PhotoLigne {
   id: string; type: TypePhoto; chemin: string; stockage?: string | null; prise_le: string; reparation_id: string | null; refection_id: string | null;
@@ -94,12 +96,13 @@ export interface Reparation {
   // Portée « siennes » des droits (absents d'une fiche gardée avant le lot H)
   auteur_terrain_id?: string | null; saisi_par?: string | null;
   validee_le?: string | null; cree_le?: string | null; representant_srm_id?: string | null;
+  renvoyee_le?: string | null; motif_renvoi?: string | null;
 }
 export interface Refection {
   id: string; resultat: ResultatRefection; motif_id: string | null; realisee_le: string; nature_id: string | null;
   longueur_m: number | null; largeur_m: number | null; observation: string | null;
   validee_le?: string | null; cree_le?: string | null; auteur_terrain_id?: string | null; saisi_par?: string | null;
-  reparation_id?: string | null;
+  reparation_id?: string | null; renvoyee_le?: string | null; motif_renvoi?: string | null;
 }
 export interface PiecePosee {
   id: string; reparation_id: string; produit_id: number | null; designation_libre: string | null; quantite: number;

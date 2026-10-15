@@ -64,7 +64,7 @@ interface BlocRep {
   /** Auteur terrain et compte de saisie (portée « siennes ») ; absent : saisie faite sur cette tablette. */
   auteurs?: (string | null | undefined)[];
   saisiPar: Record<string, string | null>;
-  validee_le?: string | null; cree_le?: string | null;
+  validee_le?: string | null; cree_le?: string | null; renvoyee_le?: string | null; motif_renvoi?: string | null;
 }
 interface BlocRef { r: Refection; local?: EnvoiRefection; majs: EnvoiMaj[] }
 
@@ -178,7 +178,7 @@ export function Fiche({ id, retour, saisir, modifierFuite, redetecter }: {
       etat: siennes.reduce((etat, m) => appliquer(etat, m.changements), base),
       auteurs: creation ? undefined : [serveur?.auteur_terrain_id, serveur?.saisi_par],
       saisiPar: Object.fromEntries(piecesServeur.filter((p) => p.reparation_id === rid).map((p) => [p.id, p.saisi_par ?? null])),
-      validee_le: serveur?.validee_le, cree_le: serveur?.cree_le,
+      validee_le: serveur?.validee_le, cree_le: serveur?.cree_le, renvoyee_le: serveur?.renvoyee_le, motif_renvoi: serveur?.motif_renvoi,
     };
   };
   // Une réparation à moitié envoyée (photos en attente) est déjà au serveur : on l'affiche une fois,
@@ -353,7 +353,7 @@ export function Fiche({ id, retour, saisir, modifierFuite, redetecter }: {
               <View style={[s.ligne, { gap: 8, marginTop: 8 }]}>
                 <Statut statut={fuite.statut} carre />
                 {fuite.alerte_non_reparee && <Alerte texte={t('Non réparée > {delai} h', { delai: marche?.delai_alerte_reparation_h ?? 48 })} carre />}
-                {!envoiFuite && <EtatValidation validee={fuite.validee_le} />}
+                {!envoiFuite && <EtatValidation validee={fuite.validee_le} renvoyee={fuite.renvoyee_le} />}
               </View>
             </View>
           </View>
@@ -376,6 +376,7 @@ export function Fiche({ id, retour, saisir, modifierFuite, redetecter }: {
                 </View>
               )}
             />
+            {!envoiFuite && <MotifRenvoi validee={fuite.validee_le} renvoyee={fuite.renvoyee_le} motif={fuite.motif_renvoi} />}
             <View style={s.grille}>
               <Info libelle={libelleReference} valeur={fuite.reference_srm} />
               <Info libelle={t('Ouvrage')} valeur={fuite.ouvrage ? libelleListe('ouvrage', fuite.ouvrage, OUVRAGES[fuite.ouvrage]) : null} />
@@ -468,11 +469,21 @@ export function Fiche({ id, retour, saisir, modifierFuite, redetecter }: {
   );
 }
 
-/** Badge de validation d'une étape (V1). */
-function EtatValidation({ validee }: { validee?: string | null }) {
-  return validee
-    ? <Badge texte={t('Validée le {date}', { date: dateHeure(validee) })} icone="circle-check" carre />
-    : <Badge texte={t('À valider')} ton="orange" icone="clock" carre />;
+/** Badge de validation d'une étape (V1) ; renvoyée par le responsable pour correction : « À corriger ». */
+function EtatValidation({ validee, renvoyee }: { validee?: string | null; renvoyee?: string | null }) {
+  if (validee) return <Badge texte={t('Validée le {date}', { date: dateHeure(validee) })} icone="circle-check" carre />;
+  if (renvoyee) return <Badge texte={t('À corriger')} ton="rouge" icone="pencil" carre />;
+  return <Badge texte={t('À valider')} ton="orange" icone="clock" carre />;
+}
+
+/** Ce que le responsable demande de corriger (renvoi), tant que l'étape n'est pas revalidée. */
+function MotifRenvoi({ validee, renvoyee, motif }: { validee?: string | null; renvoyee?: string | null; motif?: string | null }) {
+  if (validee || !renvoyee) return null;
+  return (
+    <Message ton="attention" icone="pencil">
+      {t('À corriger, demandé le {date} : {motif}', { date: dateHeure(renvoyee), motif: motif ?? '' })}
+    </Message>
+  );
 }
 
 function EtatEnvoi({ local }: { local?: Envoi }) {
@@ -543,7 +554,8 @@ function BlocReparation({ b, parametres, chef, photo, photos, modifier, valider,
       sousTitre={`${dateHeure(r.realisee_le)}${chef ? ` · ${chef}` : ''}`}
       action={<Actions modifier={modifier} valider={valider} enValidation={enValidation} libelleModifier={t('Modifier la réparation')} />}
     >
-      {!b.creation && <EtatValidation validee={b.validee_le} />}
+      {!b.creation && <EtatValidation validee={b.validee_le} renvoyee={b.renvoyee_le} />}
+      {!b.creation && <MotifRenvoi validee={b.validee_le} renvoyee={b.renvoyee_le} motif={b.motif_renvoi} />}
       <View style={s.grille}>
         {!!motif && <Info libelle={t('Motif')} valeur={motif} />}
         <Info libelle={t('Ouvrage')} valeur={r.ouvrage ? libelleListe('ouvrage', r.ouvrage, OUVRAGES[r.ouvrage]) : null} />
@@ -602,7 +614,8 @@ function BlocRefection({ r, parametres, chef, local, majs, photo, photos, modifi
       icone="paint-roller" titre={r.resultat === 'faite' ? t('Réfection faite') : t('Clôturée sans réfection')} sousTitre={`${dateHeure(r.realisee_le)}${chef ? ` · ${chef}` : ''}`}
       action={<Actions modifier={modifier} valider={valider} enValidation={enValidation} libelleModifier={t('Modifier la réfection')} />}
     >
-      {!local && <EtatValidation validee={r.validee_le} />}
+      {!local && <EtatValidation validee={r.validee_le} renvoyee={r.renvoyee_le} />}
+      {!local && <MotifRenvoi validee={r.validee_le} renvoyee={r.renvoyee_le} motif={r.motif_renvoi} />}
       <View style={s.grille}>
         {r.resultat === 'faite' ? (
           <>

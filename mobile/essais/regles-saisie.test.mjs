@@ -102,6 +102,14 @@ const n = texteNotification({ evenement: 'reparation_validee', titre: 'x', corps
 verifier(n.titre === 'Fuite N° 12 non réparée, fouille validée : réfection à faire' && n.corps === 'Rue A', 'titre composé comme celui de la base (français)', n);
 const sansNumero = texteNotification({ evenement: 'fuite_detectee', titre: 'Titre de la base', corps: 'c', donnees: {} });
 verifier(sansNumero.titre === 'Titre de la base', 'sans données : titre de la base');
+const renvoi = texteNotification({ evenement: 'etape_a_corriger', titre: 'x', corps: 'Pièces oubliées', donnees: { numero: 7, etape: 'reparation' } });
+verifier(renvoi.titre === 'Réparation à corriger : fuite N° 7' && renvoi.corps === 'Pièces oubliées',
+  'renvoi pour correction : titre selon l\'étape, motif du responsable en corps', renvoi);
+verifier(texteNotification({ evenement: 'etape_a_corriger', titre: 'x', corps: 'm', donnees: { numero: 7, etape: 'detection' } }).titre
+  === 'Détection à corriger : fuite N° 7', 'renvoi de la détection');
+verifier(!peutModifierEtape({ validee_le: '2026-10-09T08:00:00Z', auteurs: ['moi'] }, { type: 'interventions', peut: chef })
+  && peutModifierEtape({ validee_le: null, auteurs: ['moi'] }, { type: 'interventions', peut: chef }),
+  'étape renvoyée (plus validée) : son auteur la modifie de nouveau');
 
 console.log('7. Re-détection : numéro affiché (22-bis), numéro suivant, notifications');
 verifier(numeroAffiche({ numero: 22, numero_affiche: '22-bis' }) === '22-bis' && numeroAffiche({ numero: 22 }) === '22'

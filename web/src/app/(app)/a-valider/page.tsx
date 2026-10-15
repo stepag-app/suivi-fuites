@@ -2,10 +2,11 @@
 
 // Écran « À valider » (V1) : étapes en attente du marché (détection, réparations, réfections), avec leurs photos
 // et l'essentiel, cases à cocher, « Valider (n) ». Lecture : v_a_valider (seulement les étapes que le compte peut
-// valider) ; validation : valider_etapes. Avertissement « aucune photo » avant de valider (V4).
+// valider) ; validation : valider_etapes. Avertissement « aucune photo » avant de valider (V4). « Renvoyer » : l'étape
+// part à l'agent pour correction (renvoyer_etape) et reste ici, marquée « À corriger », jusqu'à la nouvelle validation.
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Camera, CheckCheck, CircleAlert, Clock3, RefreshCw, TriangleAlert } from "lucide-react";
+import { Camera, CheckCheck, CircleAlert, Clock3, RefreshCw, TriangleAlert, Undo2 } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { BadgeStatut } from "@/components/statut";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -24,7 +25,7 @@ import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { cleEtapePhoto } from "../fuites/[id]/photos";
 import { RappelDebitsAValider } from "../debits/RappelAValider";
-import { DialogueSansPhoto, validerEtapes, type ElementAValider } from "../fuites/[id]/validation";
+import { BoutonRenvoyer, DialogueSansPhoto, validerEtapes, type ElementAValider } from "../fuites/[id]/validation";
 
 interface LigneAValider {
   etape: Etape;
@@ -44,6 +45,9 @@ interface LigneAValider {
   saisie_differee: boolean;
   fuite_validee_le: string | null;
   nb_photos: number;
+  /** Renvoyée à l'agent pour correction, pas encore revalidée (absent tant que la base n'est pas à jour). */
+  renvoyee_le?: string | null;
+  motif_renvoi?: string | null;
 }
 
 const RESULTATS: Record<string, string> = {
@@ -214,10 +218,16 @@ export default function AValider() {
                         <Badge variant="outline" className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300"><Clock3 data-icon="inline-start" />Saisie différée</Badge>
                       )}
                       {l.etape !== "detection" && !l.fuite_validee_le && <span className="text-muted-foreground text-xs">détection non validée</span>}
+                      {l.renvoyee_le && (
+                        <Badge variant="outline" className="rounded-sm border-orange-500/20 bg-orange-500/10 text-orange-700 dark:text-orange-300"><Undo2 data-icon="inline-start" />À corriger</Badge>
+                      )}
                     </div>
                     <p className="truncate text-muted-foreground text-sm">
                       {[l.reference_srm && `Réf. ${libelles.sigle} ${l.reference_srm}`, l.adresse].filter(Boolean).join(" · ") || "Sans référence ni adresse"}
                     </p>
+                    {l.renvoyee_le && (
+                      <p className="text-orange-700 text-xs dark:text-orange-300">Renvoyée à l&apos;agent le {dateHeure(l.renvoyee_le)} : « {l.motif_renvoi} »</p>
+                    )}
                   </div>
                   <div className="flex flex-col text-sm sm:col-start-2 lg:col-start-auto">
                     <span className="tabular-nums">{dateHeure(l.date_etape)}</span>
@@ -234,10 +244,12 @@ export default function AValider() {
                     )) : <span className="flex items-center gap-1 text-muted-foreground text-xs"><Camera className="size-3.5" />{l.nb_photos}</span>}
                     {l.nb_photos > photos.length && photos.length > 0 && <span className="text-muted-foreground text-xs">+{l.nb_photos - photos.length}</span>}
                   </div>
-                  <Button size="sm" variant="outline" disabled={occupe} className="sm:col-start-3 sm:row-start-1 lg:col-start-auto lg:row-start-auto"
-                    onClick={() => demander([element(l)])}>
-                    Valider
-                  </Button>
+                  <div className="flex flex-col items-stretch gap-1.5 sm:col-start-3 sm:row-start-1 lg:col-start-auto lg:row-start-auto">
+                    <BoutonRenvoyer element={element(l)} validee={false} variante="ghost" onRenvoye={charger} />
+                    <Button size="sm" variant="outline" disabled={occupe} onClick={() => demander([element(l)])}>
+                      Valider
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             );

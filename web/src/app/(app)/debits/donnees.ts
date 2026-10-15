@@ -44,7 +44,7 @@ export async function chargerDebits(marcheId: string, peutValider: boolean): Pro
   const sb = getSupabase();
   const tout = <T,>(requete: (de: number, a: number) => unknown) => lireTout<T>((de, a) => requete(de, a) as Reponse<T>);
   const [zones, secteurs, points, campagnes, nuits, camps, resultats, reglages, phases, aValider] = await Promise.all([
-    // Arrêt SRM : colonne de 20261016400100 (relue sans elle tant que la migration n'est pas déployée)
+    // Arrêt SRM : colonne de 20261016700100 (relue sans elle tant que la migration n'est pas déployée)
     lire<ZoneDebit>(sb.from("zones").select("id, numero, libelle, lineaire_m, q_exige_m3h, q_plus_bas_historique_m3h, q_actuel_m3h, balayage_acheve_le, arret_srm_le, actif")
       .eq("marche_id", marcheId).order("numero")).catch((e) => {
       if ((e as { code?: string } | null)?.code !== "42703") throw e;

@@ -1,13 +1,14 @@
 -- =============================================================================
--- Re-détection (20261016400000, 20261016400200) : statut « À re-détecter » sur un motif qui la demande,
+-- Re-détection (20261016700000, 20261016700200) : statut « À re-détecter » sur un motif qui la demande,
 -- notification du détecteur (ou de tous les agents de détection), re-détection numérotée 22-bis, 22-ter…,
--- fuite d'origine close, numéro affiché dans les vues et les notifications, numéro protégé, copie de marché.
+-- fuite d'origine close, numéro affiché dans les vues et les notifications (renvoi à l'agent compris), numéro
+-- protégé, copie de marché.
 -- =============================================================================
 begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(35);
+select plan(37);
 
 -- a admin, b détection (détecte), e détection, c réparation, d responsable
 insert into auth.users (id, email, raw_user_meta_data) values
@@ -222,6 +223,11 @@ select is((select distinct donnees ->> 'numero' from notifications
 select is((select distinct titre from notifications
             where evenement = 'reparation_saisie' and fuite_id = 'aaaaaaaa-1111-0000-0000-000000000006'), 'Réparation saisie : fuite N° 1-ter',
   'notifications : numéro affiché dans le titre');
+
+select is(renvoyer_etape('detection', 'aaaaaaaa-1111-0000-0000-000000000006', 'Photo du marquage floue'), 1,
+  'renvoi de la détection de la « 1-ter » à son agent');
+select is((select titre from notifications where evenement = 'etape_a_corriger' and fuite_id = 'aaaaaaaa-1111-0000-0000-000000000006'),
+  'Détection à corriger : fuite N° 1-ter', 'renvoi à l''agent : numéro affiché dans le titre');
 
 select lives_ok($$ select private.copier_parametres_marche('aaaaaaaa-0000-0000-0000-000000000001', 'bbbbbbbb-0000-0000-0000-000000000001') $$,
   'copie des paramètres du marché');

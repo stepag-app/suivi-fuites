@@ -273,8 +273,8 @@ ok('cohérence avec la migration : colonnes des pièces, des travaux hors border
   COLONNES_PIECES.split(', ').forEach((c) => assert.ok(c === 'produit_id' || new RegExp(`\\b${c}\\b`).test(table + ajouts), `colonne absente : ${c}`));
   const vueHb = sql.slice(sql.indexOf('create view public.v_hors_bordereau'), sql.indexOf('create or replace view public.v_quantites'));
   const selectHb = vueHb.slice(vueHb.lastIndexOf('select t.marche_id'));
-  // Numéro affiché (re-détection, 22-bis) : ajouté à la vue par 20261016400200
-  const redetection = fs.readFileSync(new URL('../../supabase/migrations/20261016400200_redetection.sql', import.meta.url), 'utf8');
+  // Numéro affiché (re-détection, 22-bis) : ajouté à la vue par 20261016700200
+  const redetection = fs.readFileSync(new URL('../../supabase/migrations/20261016700200_redetection.sql', import.meta.url), 'utf8');
   assert.match(redetection, /create or replace view public\.v_hors_bordereau[\s\S]*?f\.numero_affiche as fuite_numero_affiche/);
   COLONNES_HORS_BORDEREAU.split(', ').forEach((c) => assert.ok(c === 'fuite_numero_affiche' || new RegExp(`\\b${c}\\b`).test(selectHb), `colonne de v_hors_bordereau absente : ${c}`));
   assert.match(sql, /add column longueur_pe_max_m numeric\(5,2\) not null default 2\b/);

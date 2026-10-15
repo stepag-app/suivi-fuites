@@ -155,12 +155,12 @@ ok('« − / + » des capsules et différence avec la saisie d\'origine', () => 
 
 ok('droits par étape : auteur avant validation, ajout seulement après ; responsable toujours (V2)', () => {
   const ligne = { auteur_terrain_id: MOI, saisi_par: MOI, validee_le: null, cree_le: '2026-10-08T10:00:00Z' };
-  assert.deepEqual(droitsEtape('reparation', ligne, { moi: MOI, peut: AGENT_REP }), { valider: false, modifier: true, raison: null });
+  assert.deepEqual(droitsEtape('reparation', ligne, { moi: MOI, peut: AGENT_REP }), { valider: false, renvoyer: false, modifier: true, raison: null });
   const validee = droitsEtape('reparation', { ...ligne, validee_le: '2026-10-08T12:00:00Z' }, { moi: MOI, peut: AGENT_REP });
   assert.equal(validee.modifier, false);
   assert.match(validee.raison, /ajoutez un nouvel élément/);
   assert.match(droitsEtape('reparation', { ...ligne, auteur_terrain_id: AUTRE, saisi_par: AUTRE }, { moi: MOI, peut: AGENT_REP }).raison, /autre agent/);
-  assert.deepEqual(droitsEtape('reparation', { ...ligne, auteur_terrain_id: AUTRE }, { moi: MOI, peut: RESPONSABLE }), { valider: true, modifier: true, raison: null });
+  assert.deepEqual(droitsEtape('reparation', { ...ligne, auteur_terrain_id: AUTRE }, { moi: MOI, peut: RESPONSABLE }), { valider: true, renvoyer: true, modifier: true, raison: null });
   assert.equal(droitsEtape('reparation', { ...ligne, validee_le: '2026-10-08T12:00:00Z' }, { moi: MOI, peut: RESPONSABLE }).valider, false);
   // Réfection : droit « refections » (et non « interventions »)
   assert.equal(droitsEtape('refection', ligne, { moi: MOI, peut: AGENT_REP }).modifier, false);
@@ -173,6 +173,19 @@ ok('fuite verrouillée par un lot (V6) : l\'agent modifie seulement ce qu\'il a 
   assert.equal(droitsEtape('reparation', avant, { moi: MOI, peut: AGENT_REP, verrouilleeLe }).modifier, false);
   assert.equal(droitsEtape('reparation', apres, { moi: MOI, peut: AGENT_REP, verrouilleeLe }).modifier, true);
   assert.equal(droitsEtape('reparation', avant, { moi: MOI, peut: RESPONSABLE, verrouilleeLe }).modifier, true);
+});
+
+ok('renvoi à l\'agent (dévalidation) : responsable, sauf étape figée par un lot arrêté', () => {
+  const verrouilleeLe = '2026-10-05T17:30:00Z';
+  const validee = { auteur_terrain_id: AUTRE, validee_le: '2026-10-04T12:00:00Z', cree_le: '2026-10-04T10:00:00Z' };
+  assert.equal(droitsEtape('reparation', validee, { moi: MOI, peut: RESPONSABLE }).renvoyer, true);
+  assert.equal(droitsEtape('reparation', { ...validee, validee_le: null }, { moi: MOI, peut: RESPONSABLE }).renvoyer, true);
+  assert.equal(droitsEtape('reparation', { ...validee, auteur_terrain_id: MOI }, { moi: MOI, peut: AGENT_REP }).renvoyer, false);
+  assert.equal(droitsEtape('reparation', validee, { moi: MOI, peut: RESPONSABLE, verrouilleeLe }).renvoyer, false);
+  assert.equal(droitsEtape('reparation', { ...validee, cree_le: '2026-10-06T10:00:00Z' }, { moi: MOI, peut: RESPONSABLE, verrouilleeLe }).renvoyer, true);
+  assert.equal(droitsEtape('detection', { ...validee, cree_le: '2026-10-06T10:00:00Z' }, { moi: MOI, peut: RESPONSABLE, verrouilleeLe }).renvoyer, false);
+  // Après le renvoi, l'agent auteur modifie de nouveau son étape (plus validée)
+  assert.equal(droitsEtape('reparation', { ...validee, auteur_terrain_id: MOI, validee_le: null }, { moi: MOI, peut: AGENT_REP }).modifier, true);
 });
 
 ok('photos (V3) : avant la validation de l\'étape, réservées au responsable ; après, l\'auteur', () => {

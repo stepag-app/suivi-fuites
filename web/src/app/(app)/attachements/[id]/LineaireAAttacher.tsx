@@ -1,6 +1,6 @@
 "use client";
 
-// Linéaire des prix 1 (balayage) et 2 (maintien) à attacher dans un brouillon (migration 20261016400100).
+// Linéaire des prix 1 (balayage) et 2 (maintien) à attacher dans un brouillon (migration 20261016700100).
 // CPS art. I-32 : le balayage se paie à son achèvement (facture n° 1), le maintien à 40 % puis 60 % (factures 2 et 3) ;
 // les attachements se prennent au fur et à mesure : ajouter le linéaire chaque mois reste une option du responsable.
 import { useEffect, useState } from "react";

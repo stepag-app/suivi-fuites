@@ -1,5 +1,5 @@
 -- =============================================================================
--- Attachement du linéaire (20261016400100) : prix 1 (balayage) par zone, dès le premier mois, sur option,
+-- Attachement du linéaire (20261016700100) : prix 1 (balayage) par zone, dès le premier mois, sur option,
 -- plafonné à la quantité du marché ; prix 2 (maintien) en tranches 40 % / 60 % ; suivi en direct, arrêt,
 -- régularisation, réouverture, contrôles et droits. Tout est annulé à la fin.
 -- =============================================================================

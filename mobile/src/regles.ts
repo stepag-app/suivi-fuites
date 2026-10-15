@@ -300,6 +300,14 @@ export function texteNotification(n: Pick<NotificationLigne, 'evenement' | 'titr
       };
     case 'alerte_reparation':
       return { titre: t('Fuite N° {numero} non réparée depuis plus de {delai} h', { numero, delai: String(d.delai_h ?? 48) }), corps: lieu };
+    // Renvoi par le responsable : le corps est son motif, tel qu'il l'a écrit.
+    case 'etape_a_corriger':
+      return {
+        titre: d.etape === 'reparation' ? t('Réparation à corriger : fuite N° {numero}', { numero })
+          : d.etape === 'refection' ? t('Réfection à corriger : fuite N° {numero}', { numero })
+          : t('Détection à corriger : fuite N° {numero}', { numero }),
+        corps: n.corps,
+      };
     default:
       return { titre: n.titre, corps: n.corps };
   }

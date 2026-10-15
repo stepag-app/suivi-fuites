@@ -15,7 +15,7 @@
 --    attachable comme avant ; la repasse du tronçon n'est pas payée (CPS art. II-19, II-22).
 --  * Les vues qui portent un numéro de fuite gagnent fuite_numero_affiche (v_fuites, v_fuites_export :
 --    numero_affiche) ; les notifications écrivent le numéro affiché (donnees.numero devient un texte : les APK
---    installées l'affichent tel quel).
+--    installées l'affichent tel quel), renvoi d'une étape à l'agent compris (renvoyer_etape, 20261016600000).
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -267,7 +267,7 @@ $$;
 alter table public.notifications drop constraint notifications_evenement_check;
 alter table public.notifications add constraint notifications_evenement_check check (evenement in (
   'fuite_detectee', 'reparation_saisie', 'reparation_validee', 'refection_saisie', 'alerte_reparation', 'suivi_coupe',
-  'redetection_demandee'));
+  'etape_a_corriger', 'redetection_demandee'));
 alter table public.notifications_circuit drop constraint notifications_circuit_evenement_check;
 alter table public.notifications_circuit add constraint notifications_circuit_evenement_check check (evenement in (
   'fuite_detectee', 'reparation_saisie', 'reparation_validee', 'refection_saisie', 'alerte_reparation', 'suivi_coupe',
@@ -310,13 +310,13 @@ end
 $$;
 
 -- Réparation saisie → Responsable ; réparation (ou fouille non réparée) validée qui appelle une réfection →
--- Réfection (corps de 20261009200200, numéro affiché).
-create or replace function private.notifier_reparation()
-returns trigger
-language plpgsql
-security definer
-set search_path = ''
-as $$
+-- Réfection (corps de 20261016600000, numéro affiché).
+CREATE OR REPLACE FUNCTION private.notifier_reparation()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
 declare
   _numero text := (select coalesce(f.numero_affiche, f.numero::text) from public.fuites f where f.id = new.fuite_id);
   _donnees jsonb := private.donnees_fuite(new.fuite_id) || jsonb_build_object('resultat', new.resultat);
@@ -336,7 +336,9 @@ begin
               and old.supprime_le is null)
      and private.refection_attendue(new.id)
      and not exists (select 1 from public.refections rf
-                      where rf.fuite_id = new.fuite_id and rf.supprime_le is null and rf.cree_le >= new.cree_le) then
+                      where rf.fuite_id = new.fuite_id and rf.supprime_le is null and rf.cree_le >= new.cree_le)
+     and not exists (select 1 from public.notifications n
+                      where n.reparation_id = new.id and n.evenement = 'reparation_validee') then
     perform private.notifier('reparation_validee', new.marche_id, new.fuite_id, new.id, null,
       array[auth.uid()],
       case when new.resultat = 'reparee'
@@ -347,7 +349,101 @@ begin
   end if;
   return null;
 end
-$$;
+$function$;
+
+-- Étape renvoyée à l'agent pour correction (corps de 20261016600000) : numéro affiché dans le titre.
+CREATE OR REPLACE FUNCTION public.renvoyer_etape(p_etape text, p_id uuid, p_motif text)
+ RETURNS integer
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO ''
+AS $function$
+declare
+  _motif text := nullif(btrim(p_motif), '');
+  _type public.type_donnee;
+  _marche uuid;
+  _fuite uuid;
+  _cree timestamptz;
+  _supprime timestamptz;
+  _agent uuid;
+  _verrou timestamptz;
+  _numero text;
+  _titre text;
+  _n integer;
+begin
+  case p_etape
+    when 'detection' then
+      _type := 'fuites';
+      select f.marche_id, f.id, f.cree_le, f.supprime_le, coalesce(f.auteur_terrain_id, f.saisi_par)
+        into _marche, _fuite, _cree, _supprime, _agent
+        from public.fuites f where f.id = p_id for update;
+    when 'reparation' then
+      _type := 'interventions';
+      select r.marche_id, r.fuite_id, r.cree_le, r.supprime_le, coalesce(r.auteur_terrain_id, r.saisi_par)
+        into _marche, _fuite, _cree, _supprime, _agent
+        from public.reparations r where r.id = p_id for update;
+    when 'refection' then
+      _type := 'refections';
+      select r.marche_id, r.fuite_id, r.cree_le, r.supprime_le, coalesce(r.auteur_terrain_id, r.saisi_par)
+        into _marche, _fuite, _cree, _supprime, _agent
+        from public.refections r where r.id = p_id for update;
+    else
+      raise exception 'Étape inconnue : %', p_etape using errcode = 'invalid_parameter_value';
+  end case;
+  if _marche is null or _supprime is not null then
+    raise exception 'Étape introuvable' using errcode = 'no_data_found';
+  end if;
+  if not private.peut(_marche, _type, 'valider') then
+    raise exception 'Renvoi à l''agent réservé au responsable' using errcode = 'insufficient_privilege';
+  end if;
+  if _motif is null then
+    raise exception 'Motif obligatoire : indiquez à l''agent ce qu''il doit corriger' using errcode = 'check_violation';
+  end if;
+  if char_length(_motif) > 500 then
+    raise exception 'Motif trop long (500 caractères au plus)' using errcode = 'check_violation';
+  end if;
+
+  select f.verrouillee_le, coalesce(f.numero_affiche, f.numero::text) into _verrou, _numero
+    from public.fuites f where f.id = _fuite;
+  if _verrou is not null and (p_etape = 'detection' or _cree <= _verrou) then
+    raise exception 'Fuite verrouillée par un lot arrêté : l''agent ne pourrait pas corriger. Corrigez vous-même ou rouvrez le lot.'
+      using errcode = 'check_violation';
+  end if;
+
+  case p_etape
+    when 'detection' then
+      update public.fuites
+         set validee_le = null, validee_par = null, renvoyee_le = now(), renvoyee_par = auth.uid(), motif_renvoi = _motif
+       where id = p_id;
+    when 'reparation' then
+      update public.reparations
+         set validee_le = null, validee_par = null, renvoyee_le = now(), renvoyee_par = auth.uid(), motif_renvoi = _motif
+       where id = p_id;
+    else
+      update public.refections
+         set validee_le = null, validee_par = null, renvoyee_le = now(), renvoyee_par = auth.uid(), motif_renvoi = _motif
+       where id = p_id;
+  end case;
+
+  _titre := format(case p_etape
+    when 'detection' then 'Détection à corriger : fuite N° %s'
+    when 'reparation' then 'Réparation à corriger : fuite N° %s'
+    else 'Réfection à corriger : fuite N° %s' end, _numero);
+  insert into public.notifications
+    (destinataire_id, marche_id, evenement, fuite_id, reparation_id, refection_id, auteur_id, titre, corps, donnees)
+  select p.id, _marche, 'etape_a_corriger', _fuite,
+         case when p_etape = 'reparation' then p_id end, case when p_etape = 'refection' then p_id end,
+         auth.uid(), _titre, _motif,
+         private.donnees_fuite(_fuite) || jsonb_build_object('etape', p_etape, 'motif', _motif)
+    from public.profils p
+   where p.id = _agent
+     and p.id is distinct from auth.uid()
+     and p.actif
+     and exists (select 1 from public.affectations a where a.profil_id = p.id and a.marche_id = _marche and a.actif);
+  get diagnostics _n = row_count;
+  return _n;
+end
+$function$;
 
 -- Réfection saisie (faite ou clôture sans réfection) → Responsable (numéro affiché).
 create or replace function private.notifier_refection()
@@ -1274,7 +1370,9 @@ select v.*, f.numero_affiche as fuite_numero_affiche
         f.validee_le AS fuite_validee_le,
         ( SELECT count(*) AS count
                FROM public.photos p
-              WHERE p.fuite_id = f.id AND p.reparation_id IS NULL AND p.refection_id IS NULL AND p.supprime_le IS NULL) AS nb_photos
+              WHERE p.fuite_id = f.id AND p.reparation_id IS NULL AND p.refection_id IS NULL AND p.supprime_le IS NULL) AS nb_photos,
+        f.renvoyee_le,
+        f.motif_renvoi
        FROM public.fuites f
          LEFT JOIN public.profils pa ON pa.id = f.auteur_terrain_id
       WHERE f.validee_le IS NULL AND f.supprime_le IS NULL AND (f.marche_id = ANY ((( SELECT private.marches_autorises('fuites'::public.type_donnee, 'valider'::text) AS marches_autorises))::uuid[]))
@@ -1297,7 +1395,9 @@ select v.*, f.numero_affiche as fuite_numero_affiche
         f.validee_le AS fuite_validee_le,
         ( SELECT count(*) AS count
                FROM public.photos p
-              WHERE p.reparation_id = r.id AND p.refection_id IS NULL AND p.supprime_le IS NULL) AS nb_photos
+              WHERE p.reparation_id = r.id AND p.refection_id IS NULL AND p.supprime_le IS NULL) AS nb_photos,
+        r.renvoyee_le,
+        r.motif_renvoi
        FROM public.reparations r
          JOIN public.fuites f ON f.id = r.fuite_id AND f.supprime_le IS NULL
          LEFT JOIN public.profils pa ON pa.id = r.auteur_terrain_id
@@ -1321,7 +1421,9 @@ select v.*, f.numero_affiche as fuite_numero_affiche
         f.validee_le AS fuite_validee_le,
         ( SELECT count(*) AS count
                FROM public.photos p
-              WHERE p.refection_id = rf.id AND p.supprime_le IS NULL) AS nb_photos
+              WHERE p.refection_id = rf.id AND p.supprime_le IS NULL) AS nb_photos,
+        rf.renvoyee_le,
+        rf.motif_renvoi
        FROM public.refections rf
          JOIN public.fuites f ON f.id = rf.fuite_id AND f.supprime_le IS NULL
          LEFT JOIN public.profils pa ON pa.id = rf.auteur_terrain_id

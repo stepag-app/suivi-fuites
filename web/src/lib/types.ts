@@ -140,6 +140,10 @@ export interface Reparation {
   validee_par?: string | null;
   saisi_par?: string | null;
   cree_le?: string | null;
+  /** Renvoi à l'agent pour correction (dévalidation) : « à corriger » tant que validee_le est vide. */
+  renvoyee_le?: string | null;
+  renvoyee_par?: string | null;
+  motif_renvoi?: string | null;
 }
 
 export interface Refection {
@@ -159,6 +163,10 @@ export interface Refection {
   validee_le?: string | null;
   validee_par?: string | null;
   cree_le?: string | null;
+  /** Renvoi à l'agent pour correction (dévalidation) : « à corriger » tant que validee_le est vide. */
+  renvoyee_le?: string | null;
+  renvoyee_par?: string | null;
+  motif_renvoi?: string | null;
 }
 
 export interface PhotoLigne {
@@ -179,6 +187,10 @@ export interface PhotoLigne {
 export interface FuiteV2 {
   validee_le: string | null;
   validee_par: string | null;
+  /** Renvoi à l'agent pour correction (dévalidation) : « à corriger » tant que validee_le est vide. */
+  renvoyee_le?: string | null;
+  renvoyee_par?: string | null;
+  motif_renvoi?: string | null;
   auteur_terrain_id: string | null;
   saisi_par: string | null;
   cree_le: string | null;

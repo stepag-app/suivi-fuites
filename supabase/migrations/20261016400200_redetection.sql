@@ -606,7 +606,7 @@ grant execute on function public.rechercher_fuites_proches(uuid, double precisio
 
 -- -----------------------------------------------------------------------------
 -- 10. Vues : numéro affiché (définitions en vigueur recopiées telles quelles). v_fuites : rang, numéro affiché,
---     numéros de la fuite liée et de la re-détection ajoutés à la fin ; vues sans UNION : fuite_numero_affiche
+--     numéro de la fuite liée, numéro et identifiant de la re-détection ajoutés à la fin ; vues sans UNION : fuite_numero_affiche
 --     (v_fuites_export : numero_affiche) ajouté à la fin de la liste ; vues à UNION (v_a_valider, v_anomalies,
 --     v_controles_attachement, v_hors_bordereau) : enveloppées, jointure sur la fuite.
 -- -----------------------------------------------------------------------------
@@ -662,7 +662,12 @@ create or replace view public.v_fuites with (security_invoker = true) as
            FROM public.fuites c
           WHERE c.fuite_liee_id = f.id AND c.rang > 1 AND c.supprime_le IS NULL
           ORDER BY c.rang
-         LIMIT 1) AS redetection_numero
+         LIMIT 1) AS redetection_numero,
+    ( SELECT c.id
+           FROM public.fuites c
+          WHERE c.fuite_liee_id = f.id AND c.rang > 1 AND c.supprime_le IS NULL
+          ORDER BY c.rang
+         LIMIT 1) AS redetection_id
    FROM public.fuites f
      JOIN public.marches m ON m.id = f.marche_id
      LEFT JOIN public.zones z ON z.id = f.zone_id

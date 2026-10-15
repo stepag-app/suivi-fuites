@@ -56,7 +56,7 @@ const Aplat = ({ couleur }: { couleur: string }) => (
 function Groupe({ titre, children }: { titre: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-0.5">
-      <h3 className="px-2 pt-2 pb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">{titre}</h3>
+      <h3 className="px-2 pt-2 pb-1 font-medium text-muted-foreground text-xs">{titre}</h3>
       {children}
     </section>
   );
@@ -78,12 +78,13 @@ export function PanneauCalques({ calques, changer, nombres, nbPrioritaires, sate
   const seulementBalayes = calques.zones && !calques.reseau;
   return (
     <div
+      data-ui="calques"
       dir={rtl ? "rtl" : undefined}
-      className="absolute top-3 bottom-24 left-3 z-[5] flex w-[min(280px,92vw)] flex-col overflow-hidden rounded-xl border bg-background shadow-lg"
+      className="absolute top-3 bottom-24 left-3 z-[5] flex w-[min(280px,92vw)] flex-col overflow-hidden rounded-xl border bg-background shadow-md"
       role="dialog"
       aria-label={tb("Calques")}
     >
-      <div className="flex items-center gap-2 border-b px-3 py-2">
+      <div className="flex items-center gap-2 px-3 pt-2">
         <Layers className="size-4 text-muted-foreground" aria-hidden="true" />
         <h2 className="flex-1 font-medium text-sm">{tb("Calques")}</h2>
         <Button size="icon" variant="ghost" onClick={fermer} aria-label={tb("Fermer")} title={tb("Fermer")}><X /></Button>
@@ -124,7 +125,7 @@ export function PanneauCalques({ calques, changer, nombres, nbPrioritaires, sate
             <Ligne
               id="calque-satellite" titre={tb("Satellite")} detail={tb("Image satellite (à partir du zoom {z})", { z: ZOOM_MIN_SATELLITE })}
               actif={calques.satellite} changer={(v) => changer({ satellite: v })}
-              pastille={<span className="size-4 rounded-sm bg-gradient-to-br from-emerald-700 to-stone-500" />}
+              pastille={<span className="size-4 rounded-sm bg-[#5b6b4f]" />}
             />
           )}
           <Ligne

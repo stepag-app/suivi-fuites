@@ -168,6 +168,7 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   'Réparée, réfection à faire': { ar: 'تم الإصلاح، إعادة الرصف متبقية', hyb: 'تم الإصلاح، الـ Réfection متبقية' },
   'Achevée': { ar: 'مكتمل' },
   'Sans réparation': { ar: 'بدون إصلاح' },
+  'À re-détecter': { ar: 'في انتظار إعادة الكشف', hyb: 'À re-détecter' },
   'Réseau et balayage': { ar: 'الشبكة والمسح' },
   'Conduites (couleur du diamètre)': { ar: 'القنوات (لون القطر)' },
   'Zones balayées': { ar: 'المناطق الممسوحة' },

@@ -16,7 +16,7 @@ import { RESULTATS_REPARATION } from './types';
 import { Badge, BarreApp, Bouton, COULEURS, Message, s, useBas, Vide } from './ui';
 
 interface AValider {
-  etape: 'detection' | 'reparation' | 'refection'; id: string; fuite_id: string; fuite_numero: number | null;
+  etape: 'detection' | 'reparation' | 'refection'; id: string; fuite_id: string; fuite_numero: number | null; fuite_numero_affiche?: string | null;
   reference_srm: string | null; adresse: string | null; resultat: string | null; date_etape: string; auteur: string | null;
   saisie_differee: boolean; nb_photos: number;
 }
@@ -43,7 +43,7 @@ export function AValiderEcran({ retour, ouvrir }: { retour: () => void; ouvrir: 
   const charger = useCallback(async () => {
     if (!marche || horsLigne) return;
     const { data, error } = await supabase.from('v_a_valider')
-      .select('etape, id, fuite_id, fuite_numero, reference_srm, adresse, resultat, date_etape, auteur, saisie_differee, nb_photos')
+      .select('etape, id, fuite_id, fuite_numero, fuite_numero_affiche, reference_srm, adresse, resultat, date_etape, auteur, saisie_differee, nb_photos')
       .eq('marche_id', marche.id).order('date_etape');
     if (error) {
       setMessage({ texte: messageClair(error), ok: false });
@@ -128,7 +128,7 @@ export function AValiderEcran({ retour, ouvrir }: { retour: () => void; ouvrir: 
                   <View style={[s.ligne, { alignItems: 'center', gap: 8 }]}>
                     <Badge texte={t(ETAPES[item.etape])} carre />
                     <Text style={s.texteFort}>
-                      {item.fuite_numero != null ? t('Fuite N° {numero}', { numero: item.fuite_numero }) : t('Fuite à envoyer')}
+                      {item.fuite_numero != null ? t('Fuite N° {numero}', { numero: item.fuite_numero_affiche || item.fuite_numero }) : t('Fuite à envoyer')}
                     </Text>
                     {item.etape === 'reparation' && !!item.resultat && (
                       <Text style={s.discret}>{libelleListe('resultat_reparation', item.resultat, RESULTATS_REPARATION[item.resultat as 'reparee'])}</Text>

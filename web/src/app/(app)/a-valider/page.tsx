@@ -16,7 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
+import { dateHeure, libellesMarche, messageErreur, numeroFuiteLigne } from "@/lib/format";
 import { urlsPhotos } from "@/lib/photo";
 import { LIBELLE_ETAPE, type Etape } from "@/lib/saisie/regles";
 import { useSession } from "@/lib/session";
@@ -33,6 +33,8 @@ interface LigneAValider {
   marche_id: string;
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   statut: StatutFuite;
@@ -118,7 +120,7 @@ export default function AValider() {
 
   const element = (l: LigneAValider): ElementAValider => ({
     etape: l.etape, id: l.id, nbPhotos: l.nb_photos,
-    libelle: `${LIBELLE_ETAPE[l.etape]} de la fuite N° ${l.fuite_numero}${l.etape !== "detection" ? ` (${dateHeure(l.date_etape)})` : ""}`,
+    libelle: `${LIBELLE_ETAPE[l.etape]} de la fuite N° ${numeroFuiteLigne(l)}${l.etape !== "detection" ? ` (${dateHeure(l.date_etape)})` : ""}`,
   });
 
   function demander(elements: ElementAValider[]) {
@@ -209,11 +211,11 @@ export default function AValider() {
                   <div className="flex min-w-0 flex-col gap-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline" className={cn("rounded-sm", COULEUR_ETAPE[l.etape])}>{LIBELLE_ETAPE[l.etape]}</Badge>
-                      <Link href={`/fuites/${l.fuite_id}`} prefetch={false} className="font-medium underline-offset-4 hover:underline">Fuite N° {l.fuite_numero}</Link>
+                      <Link href={`/fuites/${l.fuite_id}`} prefetch={false} className="font-medium underline-offset-4 hover:underline">Fuite N° {numeroFuiteLigne(l)}</Link>
                       <BadgeStatut statut={l.statut} court />
                       {l.resultat && <span className="text-sm">{RESULTATS[l.resultat] ?? l.resultat}</span>}
                       {l.saisie_differee && l.etape === "detection" && (
-                        <Badge variant="outline" className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300"><Clock3 data-icon="inline-start" />Saisie différée</Badge>
+                        <Badge variant="secondary" className="rounded-sm"><Clock3 data-icon="inline-start" />Saisie différée</Badge>
                       )}
                       {l.etape !== "detection" && !l.fuite_validee_le && <span className="text-muted-foreground text-xs">détection non validée</span>}
                       {l.renvoyee_le && (

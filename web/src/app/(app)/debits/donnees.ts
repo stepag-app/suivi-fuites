@@ -6,7 +6,11 @@ import {
 import { getSupabase, lireTout } from "@/lib/supabase";
 
 export interface SecteurDebit { id: string; zone_id: string; code: string; libelle: string }
-export interface PhaseDebit { id: string; code: string; libelle: string; ordre: number; date_debut: string | null; date_fin: string | null }
+export interface PhaseDebit {
+  id: string; code: string; libelle: string; ordre: number; date_debut: string | null; date_fin: string | null;
+  /** Part du prix de maintien attachable à la fin de la phase (%), absente d'une base pas encore à jour. */
+  part_maintien_pct?: number | null;
+}
 
 export interface DonneesDebits {
   marcheId: string;
@@ -40,8 +44,13 @@ export async function chargerDebits(marcheId: string, peutValider: boolean): Pro
   const sb = getSupabase();
   const tout = <T,>(requete: (de: number, a: number) => unknown) => lireTout<T>((de, a) => requete(de, a) as Reponse<T>);
   const [zones, secteurs, points, campagnes, nuits, camps, resultats, reglages, phases, aValider] = await Promise.all([
-    lire<ZoneDebit>(sb.from("zones").select("id, numero, libelle, lineaire_m, q_exige_m3h, q_plus_bas_historique_m3h, q_actuel_m3h, balayage_acheve_le, actif")
-      .eq("marche_id", marcheId).order("numero")),
+    // Arrêt SRM : colonne de 20261016700100 (relue sans elle tant que la migration n'est pas déployée)
+    lire<ZoneDebit>(sb.from("zones").select("id, numero, libelle, lineaire_m, q_exige_m3h, q_plus_bas_historique_m3h, q_actuel_m3h, balayage_acheve_le, arret_srm_le, actif")
+      .eq("marche_id", marcheId).order("numero")).catch((e) => {
+      if ((e as { code?: string } | null)?.code !== "42703") throw e;
+      return lire<ZoneDebit>(sb.from("zones").select("id, numero, libelle, lineaire_m, q_exige_m3h, q_plus_bas_historique_m3h, q_actuel_m3h, balayage_acheve_le, actif")
+        .eq("marche_id", marcheId).order("numero"));
+    }),
     lire<SecteurDebit>(sb.from("secteurs").select("id, zone_id, code, libelle").eq("marche_id", marcheId).order("ordre").order("code")),
     lire<PointMesure>(sb.from("points_mesure").select("*").eq("marche_id", marcheId).order("ordre").order("code")),
     lire<Campagne>(sb.from("campagnes_debit").select("*").eq("marche_id", marcheId).is("supprime_le", null)
@@ -60,7 +69,7 @@ export async function chargerDebits(marcheId: string, peutValider: boolean): Pro
       if (error) throw error;
       return { ...REGLAGES_DEFAUT, ...((data as Partial<ReglagesDebits> | null) ?? {}) };
     })(),
-    lire<PhaseDebit>(sb.from("phases").select("id, code, libelle, ordre, date_debut, date_fin").eq("marche_id", marcheId).order("ordre")),
+    lire<PhaseDebit>(sb.from("phases").select("*").eq("marche_id", marcheId).order("ordre")),
     peutValider
       ? (async () => {
         const { count, error } = await sb.from("v_debits_a_valider").select("id", { count: "exact", head: true }).eq("marche_id", marcheId);

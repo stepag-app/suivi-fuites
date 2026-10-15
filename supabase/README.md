@@ -100,6 +100,11 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/52_marche_demo_formation.test.sql` | 16 tests : rien créé tant que l'ancien DEMO existe, création unique, statuts, numéros, champs obligatoires, aucune notification, paramétrage et réseau copiés, SRM intact, isolation |
 | `migrations/20261016600000_renvoi_etape.sql` | **renvoi d'une étape à l'agent (dévalidation)**, demande d'Issam du 2026-10-14 : `renvoyer_etape(etape, id, motif)` (droit « valider » de l'étape, SECURITY DEFINER, motif obligatoire de 500 caractères au plus) vide `validee_le` d'une détection, d'une réparation ou d'une réfection, validée ou non, et pose `renvoyee_le`, `renvoyee_par`, `motif_renvoi` (fuites, reparations, refections ; écrites par cette fonction seulement, déclencheur `a1_proteger_renvoi` ; gardées après la nouvelle validation, renvois précédents au journal) ; l'agent corrige de nouveau (champs, pièces, ouvriers, photos : règles V2 inchangées) ; refusé quand la fuite est verrouillée par un lot arrêté et que l'étape précède le verrou (V6) ; notification `etape_a_corriger` à l'agent de l'étape (auteur terrain), hors circuit, motif en corps, push compris (texte arabe dans `envoyer-push`) ; `v_a_valider` gagne `renvoyee_le`, `motif_renvoi` ; une réparation revalidée ne prévient pas une seconde fois l'équipe de réfection |
 | `tests/database/55_renvoi_etape.test.sql` | 46 tests : privilèges, refus (agent, autre marché, motif vide ou trop long, étape inconnue ou introuvable, supprimée, marché désactivé), renvoi d'une détection, d'une réparation, d'une réfection (validées ou non), notification au seul agent, journal, correction par l'agent (champs, pièce oubliée), colonnes protégées, revalidation, réfection prévenue une fois, saisie du responsable lui-même, administrateur, fuite verrouillée |
+| `migrations/20261016700000_statut_a_redetecter.sql` | valeur `a_redetecter` du type `statut_fuite` (seule dans son fichier : utilisable après la validation de la transaction) |
+| `migrations/20261016700100_attachement_lineaire.sql` | **linéaire des prix 1 et 2 à l'attachement** (demande d'Issam du 2026-10-14, CPS art. I-32, II-15, II-19, II-23) : nature de ligne `lineaire` (une ligne par zone, et par tranche pour le maintien ; quantité suivie en direct dans un brouillon, figée à l'arrêt, régularisée au lot suivant), `phases.part_maintien_pct` (40 / 60), `zones.arret_srm_le` ; `private.lineaire_balaye_zones`, `private.proposition_lineaire` (prix 1 : premiers passages jusqu'à la date du lot, branchements et tronçons sans zone exclus, plafond = quantité du marché du bordereau, pas de plafond par zone ; prix 2 : base = prix 1 attaché de la zone, tranche disponible à la fin de sa phase, zone arrêtée exclue) ; `lineaire_a_attacher`, `ajouter_lineaire_attachement` (panneau) ; `v_attachement_lignes`, `arreter_attachement`, `rouvrir_attachement`, contrôle des lignes repris |
+| `tests/database/56_attachement_lineaire.test.sql` | 42 tests : proposition par zone (repasse, branchement, sans zone, date du lot), option sans clic, ajout en un geste, contrôles (article, tranche, zone, un seul brouillon), droits, arrêt figé, novembre sans double compte, régularisation d'un balayage annulé, plafond du marché, tranches 40 / 60, réouverture, zone arrêtée |
+| `migrations/20261016700200_redetection.sql` | **re-détection** (demande d'Issam du 2026-10-14) : `motifs.redetection` (« À détecter de nouveau ») → statut « À re-détecter » (pas de clôture) ; notification `redetection_demandee` au détecteur (ou à tous les agents de détection s'il est injoignable), au responsable et à l'administrateur ; re-détection = nouvelle fuite liée qui garde le numéro avec un suffixe (`fuites.rang`, `fuites.numero_affiche` : 22-bis, 22-ter…), fuite d'origine close ; notifications au numéro affiché (`donnees.numero` en texte ; titre de `renvoyer_etape` compris) ; `rechercher_fuites_proches` rend `numero_affiche` ; vues : `v_fuites` (rang, numéro affiché, fuite liée, re-détection), `fuite_numero_affiche` (ou `numero_affiche`) ajouté aux 14 autres vues qui portent un numéro de fuite |
+| `tests/database/57_redetection.test.sql` | 37 tests : statut et motif, destinataires (jamais l'auteur), 1-bis puis 1-ter, numérotation sans trou, liens qui ne sont pas des re-détections, fuite d'origine close, numéro protégé, motif sans re-détection, reprise de la réparation, détecteur injoignable, statut posé à la main, vues, recherche, notifications (renvoi à l'agent compris), copie de marché |
 | `migrations/20261016800000_carte_terrain_balayage_lecture.sql` | **carte terrain** (bouton « Carte » de l'APK, demande d'Issam du 2026-10-15) : modèles « Réparation / balayage » et « Réfection / balayage » en **lecture seule** ; « balayage / lire » ajouté aux comptes déjà affectés avec l'un de ces rôles (rien d'autre, rien de retiré). Ces agents voient les tronçons balayés (`balayages`, `etat_balayage_compact`) sans pouvoir balayer ni annuler ; tronçons, nœuds et état des secteurs étaient déjà lisibles de tout affecté. Tests 05, 15 et 30 mis à jour (droits du chef d'équipe et du modèle Réfection) |
 | `tests/database/58_carte_terrain_balayage_lecture.test.sql` | 22 tests : modèles Réparation et Réfection, Détection inchangée, lecture des balayages et de l'état compact de son marché, état du secteur, saisie et annulation refusées, isolation entre marchés, rôles changés par l'administrateur (Réfection seule, Détection + Réparation, Détection retirée), rattrapage des comptes affectés avant la migration |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
@@ -468,8 +473,8 @@ passe. Prévoir une demi-journée ; compter davantage pour réinstaller l'APK su
   Ensuite seuls l'acceptation, la référence de facture et l'observation se modifient (suivi, aucun calcul).
 - **Natures de ligne** : `solde` ; `anticipation` (réfection attachée avant exécution, accord du maître
   d'ouvrage, si la règle du marché l'autorise ; la vraie réfection fait la différence) ; `libre` (sans
-  fuite : balayage, maintien en attendant le plan du réseau) ; `forcage` (administrateur, hors solde,
-  motif obligatoire).
+  fuite, désignation libre) ; `lineaire` (prix 1 et 2 par zone, suivi en direct puis figé : § « Linéaire des prix 1 et
+  2 ») ; `forcage` (administrateur, hors solde, motif obligatoire).
 - **Réouverture** : administrateur, dernier lot arrêté seulement, motif obligatoire.
 - **Récapitulatif** : quantité du marché, antérieur (lots arrêtés précédents), ce lot, cumul, %.
 - **Pièces posées : terrain et corrections (lot R)** : l'inventaire des fournitures posées reflète le réel du terrain.
@@ -493,6 +498,44 @@ passe. Prévoir une demi-journée ; compter davantage pour réinstaller l'APK su
   et 9, réparation sans article, pièces non couvertes de l'inventaire réel), à présenter à la SRM pour un prix nouveau.
   Réservées aux droits « attachements / lire » et « quantités / lire ». Seuil du polyéthylène :
   `marches.longueur_pe_max_m` (Paramètres > Marché, 2 m par défaut, copié avec le marché), aussi suivi par `v_anomalies`.
+
+## Linéaire des prix 1 et 2 à l'attachement (2026-10-14)
+
+Règles du CPS (art. I-32) : le balayage (prix 1) se facture à 100 % une fois le balayage achevé et les débits de nuit
+mesurés, diminué de la pénalité τ1 ; le maintien (prix 2) à 40 % après 4 mois de maintien, puis 60 % après 8 mois,
+diminué de τ2 ; les attachements se prennent au fur et à mesure (« constatations contradictoires »).
+
+- **Option, dès le premier mois** : dans un brouillon, « Ajouter le linéaire balayé » crée une ligne `lineaire` par zone ;
+  sans ce geste, rien n'entre (on peut attendre la fin du balayage et tout ajouter d'un coup).
+- **Quantité du prix 1** : premiers passages non annulés datés jusqu'à la date « travaux exécutés au » du lot (à défaut
+  aujourd'hui), tronçons actifs et zonés, branchements exclus ; moins ce qui est déjà attaché dans la zone (lots arrêtés,
+  toutes lignes du prix 1 portant la zone). **Plafond : la quantité du marché du bordereau (1 466 000 m)**, cumul du
+  marché, zones prises dans l'ordre de leur numéro ; le linéaire « approximatif » par zone du tableau n° 1 n'est qu'une
+  information. Un balayage annulé ou un tronçon passé dans une autre zone revient en régularisation négative.
+- **Prix 2** : une tranche par phase portant `part_maintien_pct` (SRM : `maintien_1` 40, `maintien_2` 60), base = prix 1
+  attaché de la zone, disponible quand la date du lot atteint la fin de la phase ; zone arrêtée par la SRM
+  (`zones.arret_srm_le`, τ1 < −25 %) : tranche ramenée à zéro.
+- **Pénalités τ1 / τ2** : jamais des quantités ; le panneau les rappelle sur un lot qui porte les prix 1 ou 2
+  (`debits_resultats`) pour les factures n° 1 et 3. L'application ne fait toujours pas de facture.
+- Lignes « libres » du prix 1 avec une zone : comptées dans le déjà attaché de la zone ; ne pas saisir le prix 2 en
+  ligne libre (la tranche ne le saurait pas).
+
+## Re-détection : « À re-détecter », 22-bis (2026-10-14)
+
+- Une réparation « non réparée » pour un motif `redetection` (Paramètres › Listes, case « demande une re-détection » ;
+  cochée pour « À détecter de nouveau ») met la fuite **« À re-détecter »** (ordre d'avancement : détectée < en
+  réparation < à re-détecter < réparée < achevée / sans réparation) et prévient le détecteur, le responsable et
+  l'administrateur.
+- Toute **nouvelle fuite liée** (`fuite_liee_id`) à une fuite « À re-détecter » est sa re-détection : même numéro, rang
+  suivant (`numero_affiche` : 22-bis, 22-ter… jusqu'à decies), aucun numéro consommé ; la fuite d'origine passe
+  « Sans réparation » (motif gardé), sa première fouille reste attachable. Un lien vers une fuite qui n'est pas « À
+  re-détecter » reste un simple lien (nouveau numéro).
+- `numero` et `rang` ne changent jamais par l'API ; `numero_affiche` est posé à la création (colonne simple : une colonne
+  générée apparaît nulle dans les déclencheurs BEFORE UPDATE et fausserait les contrôles `to_jsonb(new)`).
+- **Vues** : toute redéfinition d'une vue qui porte un numéro de fuite garde `fuite_numero_affiche` (ou `numero_affiche`)
+  en dernière colonne ; `v_a_valider`, `v_anomalies`, `v_controles_attachement` et `v_hors_bordereau` (UNION) sont
+  enveloppées (`select v.*, f.numero_affiche … from (…) v`). Ne pas envelopper une vue lue unité par unité ou jointe par
+  une autre (`v_a_attacher`) : les filtres n'y descendent plus (essai à 3 000 fuites : de 0,3 s à plus de 60 s).
 
 ## Articles Dolibarr (lot T, remplace le catalogue et le rapprochement du lot P1)
 

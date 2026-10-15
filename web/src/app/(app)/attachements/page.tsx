@@ -178,10 +178,10 @@ export default function Attachements() {
                   </CardContent>
                 </Card>
                 {aAttacher && aAttacher.unites > 0 && (
-                  <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+                  <Alert variant="attention">
                     <ReceiptText />
                     <AlertTitle>Travaux à attacher</AlertTitle>
-                    <AlertDescription className="text-amber-900/80 dark:text-amber-50/80">
+                    <AlertDescription>
                       {pluriel(aAttacher.unites, "unité")} de travaux sur {pluriel(aAttacher.fuites, "fuite")} attendent un lot.
                     </AlertDescription>
                   </Alert>

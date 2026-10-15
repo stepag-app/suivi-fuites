@@ -3,7 +3,7 @@
 import type { Contexte } from '@/lib/export/jeux';
 import type { FormatPapier, OrientationPapier } from '@/lib/export/carte-pdf';
 import type { ImageTexte } from '@/lib/export/arabe';
-import { STATUTS } from '@/lib/format';
+import { STATUTS, numeroFuite } from '@/lib/format';
 import { compterEtats } from '@/lib/reseau/etat';
 import { classeDiametre, entreesLegendeReseau } from '@/lib/reseau/palette';
 import type { StatutFuite } from '@/lib/types';
@@ -125,7 +125,7 @@ export async function fabriquerPdfCarte(
     nombreSurCarte: placees.length,
     sansPosition,
     liste: liste && liste.map((f) => ({
-      numero: f.numero, reference: f.reference_srm, statut: STATUTS[f.statut].libelle, couleur: COULEURS[f.statut],
+      numero: numeroFuite(f), reference: f.reference_srm, statut: STATUTS[f.statut].libelle, couleur: COULEURS[f.statut],
       secteur: f.secteur, adresse: f.adresse, latitude: f.latitude, longitude: f.longitude, detectee: f.date_detection,
     })),
     libelleReference: d.libelleReference,

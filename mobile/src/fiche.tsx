@@ -19,7 +19,7 @@ import { libelleDb, libelleListe } from './listes';
 import { appliquer, type EtatReparation } from './modification';
 import { useParametres, type Parametres } from './parametres';
 import { prendrePhoto, urlsPhotos } from './photos';
-import { peutChangerPhoto, peutModifierEtape, type Fouille } from './regles';
+import { numeroRedetection, peutChangerPhoto, peutModifierEtape, type Fouille } from './regles';
 import { useSession } from './session';
 import { supabase } from './supabase';
 import {
@@ -53,9 +53,9 @@ export interface ContexteSaisie {
   modificationRefection?: { refectionId: string; ligne: Record<string, unknown> };
 }
 
-export const libelleFuite = (f: Pick<FicheFuite, 'numero' | 'reference_srm'>) =>
+export const libelleFuite = (f: Pick<FicheFuite, 'numero' | 'reference_srm'> & Pick<Partial<FicheFuite>, 'numero_affiche'>) =>
   f.numero != null
-    ? t('Fuite N° {numero}', { numero: f.numero })
+    ? t('Fuite N° {numero}', { numero: f.numero_affiche || f.numero })
     : f.reference_srm ? t('Fuite à envoyer ({reference})', { reference: f.reference_srm }) : t('Fuite à envoyer');
 
 /** Réparation à afficher (serveur ou tablette), modifications encore sur la tablette appliquées. */
@@ -74,9 +74,11 @@ interface VignettePhoto { id: string; uri?: string; legende: string; toucher?: (
 /** Changements de la tablette pas encore envoyés, appliqués à la ligne affichée. */
 const avecMajs = <T extends object>(ligne: T, majs: EnvoiMaj[]): T => majs.reduce((l, m) => ({ ...l, ...m.champs }), ligne);
 
-export function Fiche({ id, retour, saisir, modifierFuite }: {
+export function Fiche({ id, retour, saisir, modifierFuite, redetecter }: {
   id: string; retour: () => void; saisir: (type: 'reparation' | 'refection', contexte: ContexteSaisie) => void;
   modifierFuite: (fuite: FicheFuite) => void;
+  /** Fuite « À re-détecter » : saisie de sa re-détection (nouvelle fuite liée, 22-bis). */
+  redetecter?: (fuite: FicheFuite) => void;
 }) {
   const { marche, peut, aRenouveler, profil } = useSession();
   useLangue();
@@ -328,6 +330,19 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
           </Message>
         )}
 
+        {/* Re-détection : fuite introuvable à l'ouverture (motif « À détecter de nouveau »), à re-localiser */}
+        {fuite.statut === 'a_redetecter' && (
+          <View style={{ gap: 10 }}>
+            <Message ton="attention" icone="scan-search">
+              {t('Fuite introuvable à l’ouverture : à re-détecter.')}{fuite.motif_sans_reparation ? ` (${fuite.motif_sans_reparation})` : ''}{'\n'}
+              {t('Allez sur place, relevez la nouvelle position et enregistrez la re-détection : elle prendra le N° {numero}.', { numero: numeroRedetection(fuite) })}
+            </Message>
+            {!envoiFuite && !!redetecter && peut('fuites', 'creer') && (
+              <Bouton titre={t('Re-détecter')} icone="scan-search" primaire grand onPress={() => redetecter(fuite)} />
+            )}
+          </View>
+        )}
+
         {/* En-tête du modèle « Profile » du panneau : anneau d'avancement, titre, badges, « Y aller ». */}
         <Carte style={f.profil}>
           <View style={f.identite}>
@@ -380,7 +395,10 @@ export function Fiche({ id, retour, saisir, modifierFuite }: {
                 libelle={t('Position')}
                 valeur={fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)}, ${fuite.longitude.toFixed(6)}` : null}
               />
-              {!!fuite.fuite_liee_id && <Info libelle={t('Re-détection')} valeur={t('liée à une fuite déjà signalée')} />}
+              {(fuite.rang ?? 1) > 1 && !!fuite.fuite_liee_numero
+                ? <Info libelle={t('Re-détection de')} valeur={t('la fuite N° {numero}', { numero: fuite.fuite_liee_numero })} />
+                : !!fuite.fuite_liee_id && <Info libelle={t('Re-détection')} valeur={t('liée à une fuite déjà signalée')} />}
+              {!!fuite.redetection_numero && <Info libelle={t('Re-détectée sous le')} valeur={t('N° {numero}', { numero: fuite.redetection_numero })} />}
               {!!fuite.motif_sans_reparation && <Info libelle={t('Motif')} valeur={fuite.motif_sans_reparation} large />}
               {!!fuite.observation && <Info libelle={t('Observation')} valeur={fuite.observation} large />}
             </View>

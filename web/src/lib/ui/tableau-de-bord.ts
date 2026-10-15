@@ -6,18 +6,18 @@ import { jourMaroc } from '../heure-maroc.ts';
 
 export type FuiteTdb = Pick<
   VFuite,
-  | 'id' | 'numero' | 'statut' | 'zone_id' | 'zone' | 'secteur_id' | 'secteur' | 'date_detection'
+  | 'id' | 'numero' | 'numero_affiche' | 'statut' | 'zone_id' | 'zone' | 'secteur_id' | 'secteur' | 'date_detection'
   | 'derniere_reparation_le' | 'derniere_refection_le' | 'emplacement_fouille' | 'nb_photos'
   | 'alerte_non_reparee' | 'alerte_communication_srm' | 'alerte_refection_chaussee'
   | 'refection_chaussee_hors_delai' | 'alerte_refection_trottoir' | 'alerte_sans_photo'
 >;
 
 export const COLONNES_TDB =
-  'id, numero, statut, zone_id, zone, secteur_id, secteur, date_detection, derniere_reparation_le, derniere_refection_le, ' +
+  'id, numero, numero_affiche, statut, zone_id, zone, secteur_id, secteur, date_detection, derniere_reparation_le, derniere_refection_le, ' +
   'emplacement_fouille, nb_photos, alerte_non_reparee, alerte_communication_srm, alerte_refection_chaussee, ' +
   'refection_chaussee_hors_delai, alerte_refection_trottoir, alerte_sans_photo';
 
-export const ORDRE_STATUTS: StatutFuite[] = ['detectee', 'en_reparation', 'reparee', 'achevee', 'sans_reparation'];
+export const ORDRE_STATUTS: StatutFuite[] = ['detectee', 'a_redetecter', 'en_reparation', 'reparee', 'achevee', 'sans_reparation'];
 
 // Mêmes alertes que le filtre « Alertes › Toutes les alertes » de la liste des fuites.
 const ALERTES = [

@@ -12,7 +12,7 @@ import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dateHeure, type libellesMarche } from "@/lib/format";
+import { dateHeure, type libellesMarche, numeroFuite } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
 import { cn } from "@/lib/utils";
 import type { FuiteCarte } from "./commun";
@@ -34,7 +34,7 @@ export function ApercuFuite({ fuite, libelles }: { fuite: FuiteCarte | null; lib
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm">
-          <h2 className="font-medium text-lg tabular-nums tracking-tight">Fuite N° {fuite.numero}</h2>
+          <h2 className="font-medium text-lg tabular-nums tracking-tight">Fuite N° {numeroFuite(fuite)}</h2>
           {fuite.origine === "srm" && <Badge variant="secondary">Signalée {libelles.sigle}</Badge>}
           <BadgeStatut statut={fuite.statut} />
           <span className="text-foreground tabular-nums">détectée le {dateHeure(fuite.date_detection)}</span>
@@ -51,7 +51,7 @@ export function ApercuFuite({ fuite, libelles }: { fuite: FuiteCarte | null; lib
         <div className="flex flex-col gap-1"><span className="text-muted-foreground text-xs leading-none">Adresse</span><span className="line-clamp-2 text-sm leading-snug" title={fuite.adresse ?? undefined}>{fuite.adresse ?? "—"}</span></div>
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs leading-none">Coordonnées GPS</span>
-          <span className="font-mono text-sm leading-snug tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
+          <span className="text-sm leading-snug tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
         </div>
       </div>
     </div>

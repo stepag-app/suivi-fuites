@@ -8,7 +8,7 @@ import type { Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, Popup, StyleSpecification } from 'maplibre-gl';
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { STATUTS, dateHeure, libellesMarche, nombre } from '@/lib/format';
+import { STATUTS, dateHeure, libellesMarche, nombre, numeroFuite } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
 import { langueApk, texteEtatTronconApk, traduire, useLangueApk } from '@/lib/langue-apk';
 import type { PaletteReseau } from '@/lib/reseau/palette';
@@ -470,7 +470,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center p-4 text-center text-muted-foreground text-sm">{tb('Chargement de la carte…')}</p>}
       {erreur && <p className="absolute inset-x-4 bottom-4 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       {fondIndisponible && pret && (
-        <p className="absolute top-3 right-14 left-3 m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+        <p className="absolute top-3 right-14 left-3 m-0 rounded-lg bg-background px-3 py-1.5 text-foreground text-xs shadow-sm">
           {tb('Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.')}
         </p>
       )}
@@ -499,7 +499,7 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string, id: string) =>
   const racine = el('div', 'bulle-fuite');
   if (langue !== 'fr') racine.dir = 'rtl';
   const tete = el('div', 'fuite-tete');
-  tete.append(el('strong', undefined, tr('N° {numero}', { numero: f.numero })), el('span', `badge ${STATUTS[f.statut].classe}`, tr(STATUTS[f.statut].libelle)));
+  tete.append(el('strong', undefined, tr('N° {numero}', { numero: numeroFuite(f) })), el('span', `badge ${STATUTS[f.statut].classe}`, tr(STATUTS[f.statut].libelle)));
   racine.append(tete);
   if (f.reference_srm) racine.append(el('div', undefined, tr('{reference} : {valeur}', { reference: l.reference, valeur: f.reference_srm })));
   racine.append(el('div', undefined, [f.zone, f.secteur ?? tr('Secteur non renseigné')].filter(Boolean).join(' · ')));

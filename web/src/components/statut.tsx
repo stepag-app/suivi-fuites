@@ -14,6 +14,11 @@ export const STATUT_STYLE: Record<
     badge: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
     point: "bg-red-500", texte: "text-red-600 dark:text-red-400", couleur: "#dc2626",
   },
+  a_redetecter: {
+    libelle: "À re-détecter", court: "À re-détecter", progression: 10,
+    badge: "border-orange-700/20 bg-orange-700/10 text-orange-800 dark:text-orange-300",
+    point: "bg-orange-700", texte: "text-orange-700 dark:text-orange-400", couleur: "#c2410c",
+  },
   en_reparation: {
     libelle: "Réparation en cours", court: "En cours", progression: 45,
     badge: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -36,7 +41,7 @@ export const STATUT_STYLE: Record<
   },
 };
 
-export const ORDRE_STATUTS: StatutFuite[] = ["detectee", "en_reparation", "reparee", "achevee", "sans_reparation"];
+export const ORDRE_STATUTS: StatutFuite[] = ["detectee", "a_redetecter", "en_reparation", "reparee", "achevee", "sans_reparation"];
 
 export function BadgeStatut({ statut, court = false, className }: { statut: StatutFuite; court?: boolean; className?: string }) {
   const s = STATUT_STYLE[statut];
@@ -108,7 +113,7 @@ export function BadgesAlertes({ fuite, libelles, verrouillee, sansPhoto = false,
 /** A1 : fuite attachée par anticipation dont l'exécution manque (prioritaire jusqu'à l'exécution réelle). */
 export function BadgeAnticipe({ className, lot }: { className?: string; lot?: number | null }) {
   return (
-    <Badge variant="outline" className={cn("border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300", className)}
+    <Badge variant="secondary" className={className}
       title={`Attaché par anticipation${lot ? ` (lot N° ${lot})` : ""} : travaux à exécuter en priorité`}>
       Anticipé
     </Badge>

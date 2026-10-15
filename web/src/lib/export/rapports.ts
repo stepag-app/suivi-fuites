@@ -6,7 +6,7 @@
 // sans migration ; ignorés par le panneau « Exporter » et par les rubriques des autres documents).
 // Fonctions pures, vérifiées par scripts/verifier-rapports.mjs ; chargement : rapports-donnees.ts.
 import { TYPES_CAMPAGNE, type TypeCampagne } from '@/lib/debits';
-import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/lib/format';
+import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche, numeroExport } from '@/lib/format';
 import type { Marche, StatutFuite } from '@/lib/types';
 import { construireEntete, type Contexte } from './jeux';
 import { construireSection, parcourir, texteCellule, type Colonne, type DocumentExport, type Ligne, type SectionDoc } from './modele';
@@ -203,7 +203,7 @@ export const RUBRIQUES_RAPPORT: readonly RubriqueRapport[] = [
     tableaux: (lm) => [{
       cle: 'reparations', titre: 'Réparations', colonnes: [
         c({ cle: 'realisee_le', titre: 'Le', groupe: 'Réparations', type: 'dateheure', largeur: 14, defaut: true }),
-        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réparations', type: 'nombre', largeur: 7, defaut: true }),
+        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réparations', type: 'nombre', largeur: 7, defaut: true, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) }),
         c({ cle: 'reference_srm', titre: lm.reference, groupe: 'Réparations', largeur: 13, defaut: true }),
         c({ cle: 'zone', titre: 'Zone', groupe: 'Réparations', largeur: 16 }),
         c({ cle: 'secteur', titre: 'Secteur', groupe: 'Réparations', largeur: 16, defaut: true }),
@@ -232,7 +232,7 @@ export const RUBRIQUES_RAPPORT: readonly RubriqueRapport[] = [
     tableaux: (lm) => [{
       cle: 'refections', titre: 'Réfections', colonnes: [
         c({ cle: 'realisee_le', titre: 'Le', groupe: 'Réfections', type: 'dateheure', largeur: 14, defaut: true }),
-        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réfections', type: 'nombre', largeur: 7, defaut: true }),
+        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réfections', type: 'nombre', largeur: 7, defaut: true, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) }),
         c({ cle: 'reference_srm', titre: lm.reference, groupe: 'Réfections', largeur: 13, defaut: true }),
         c({ cle: 'zone', titre: 'Zone', groupe: 'Réfections', largeur: 16 }),
         c({ cle: 'secteur', titre: 'Secteur', groupe: 'Réfections', largeur: 16, defaut: true }),
@@ -304,7 +304,7 @@ export const RUBRIQUES_RAPPORT: readonly RubriqueRapport[] = [
     tableaux: (lm) => [{
       cle: 'pieces', titre: 'Pièces posées', colonnes: [
         c({ cle: 'jour', titre: 'Posée le', groupe: 'Pièces', type: 'date', largeur: 10, defaut: true }),
-        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Pièces', type: 'nombre', largeur: 7, defaut: true }),
+        c({ cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Pièces', type: 'nombre', largeur: 7, defaut: true, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) }),
         c({ cle: 'reference_srm', titre: lm.reference, groupe: 'Pièces', largeur: 13 }),
         c({ cle: 'zone', titre: 'Zone', groupe: 'Pièces', largeur: 16 }),
         c({ cle: 'secteur', titre: 'Secteur', groupe: 'Pièces', largeur: 16, defaut: true }),

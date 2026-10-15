@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { startOfMonth, startOfToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import {
-  ArrowRight, CalendarDays, Clock3, Download, Droplets, ListChecks, MapPinned, Plus, ReceiptText, Siren, Timer, TrendingUp, Wrench,
+  ArrowRight, CalendarDays, Clock3, Download, Droplets, ListChecks, MapPinned, Plus, ReceiptText, ScanSearch, Siren, Timer, TrendingUp, Wrench,
 } from "lucide-react";
 import { AvertissementPlafond } from "@/components/avertissement-plafond";
 import { Vide } from "@/components/en-tete-page";
@@ -20,7 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Spinner } from "@/components/ui/spinner";
 import { useFuitesAnticipees } from "@/lib/anticipation";
-import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
+import { dateHeure, libellesMarche, messageErreur, numeroFuite } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { COLONNES_LISTE, type FuiteListe } from "@/lib/colonnes-fuites";
 import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
@@ -28,7 +28,7 @@ import { activite, jourCasa, lundiDe, ajouterJours } from "@/lib/ui/tableau-de-b
 import { cn, dureeDepuis, pluriel, pourcent } from "@/lib/utils";
 
 type Tache = {
-  fuite: FuiteListe; titre: string; type: "reparation" | "refection" | "communication" | "photo"; priorite: "haute" | "normale";
+  fuite: FuiteListe; titre: string; type: "reparation" | "redetection" | "refection" | "communication" | "photo"; priorite: "haute" | "normale";
   /** A1 : attachée par anticipation, exécution réelle attendue : en tête de liste */
   anticipe?: boolean;
 };
@@ -71,16 +71,18 @@ export default function AFaire() {
     const t: Tache[] = [];
     for (const f of fuites) {
       if (f.statut === "detectee" || f.statut === "en_reparation") {
-        t.push({ fuite: f, type: "reparation", priorite: f.alerte_non_reparee ? "haute" : "normale", titre: `${f.statut === "en_reparation" ? "Finir la réparation" : "Réparer la fuite"} N° ${f.numero}` });
+        t.push({ fuite: f, type: "reparation", priorite: f.alerte_non_reparee ? "haute" : "normale", titre: `${f.statut === "en_reparation" ? "Finir la réparation" : "Réparer la fuite"} N° ${numeroFuite(f)}` });
       }
-      if (f.statut === "reparee") t.push({ fuite: f, type: "refection", priorite: f.refection_chaussee_hors_delai ? "haute" : "normale", titre: `Réfection de la fuite N° ${f.numero}` });
-      if (f.alerte_communication_srm) t.push({ fuite: f, type: "communication", priorite: "normale", titre: `Communiquer la fuite N° ${f.numero} à ${libelles.sigle}` });
-      if (f.alerte_sans_photo && f.statut !== "achevee") t.push({ fuite: f, type: "photo", priorite: "normale", titre: `Photographier la fuite N° ${f.numero}` });
+      // Fuite introuvable à l'ouverture : l'agent de détection doit la re-localiser (motif « À détecter de nouveau »)
+      if (f.statut === "a_redetecter") t.push({ fuite: f, type: "redetection", priorite: "haute", titre: `Re-détecter la fuite N° ${numeroFuite(f)}` });
+      if (f.statut === "reparee") t.push({ fuite: f, type: "refection", priorite: f.refection_chaussee_hors_delai ? "haute" : "normale", titre: `Réfection de la fuite N° ${numeroFuite(f)}` });
+      if (f.alerte_communication_srm) t.push({ fuite: f, type: "communication", priorite: "normale", titre: `Communiquer la fuite N° ${numeroFuite(f)} à ${libelles.sigle}` });
+      if (f.alerte_sans_photo && f.statut !== "achevee") t.push({ fuite: f, type: "photo", priorite: "normale", titre: `Photographier la fuite N° ${numeroFuite(f)}` });
       // A1 : travaux déjà attachés par anticipation, exécution réelle attendue (réfection le plus souvent)
       if (anticipees.has(f.id)) {
         const travaux = t.filter((x) => x.fuite.id === f.id && (x.type === "reparation" || x.type === "refection"));
         if (travaux.length) travaux.forEach((x) => { x.anticipe = true; });
-        else t.push({ fuite: f, type: "refection", priorite: "haute", anticipe: true, titre: `Exécuter les travaux attachés par anticipation, fuite N° ${f.numero}` });
+        else t.push({ fuite: f, type: "refection", priorite: "haute", anticipe: true, titre: `Exécuter les travaux attachés par anticipation, fuite N° ${numeroFuite(f)}` });
       }
     }
     return t.sort((a, b) => Number(!!b.anticipe) - Number(!!a.anticipe) || Number(b.priorite === "haute") - Number(a.priorite === "haute")
@@ -117,8 +119,8 @@ export default function AFaire() {
   // « NOM Prénom » depuis le chantier v2 : le prénom saisi, sinon le premier mot du nom complet
   const prenom = profil?.prenom || (profil?.nom ? "" : profil?.nom_complet?.split(/\s+/)[0]) || "";
   const salut = maintenant.getHours() < 18 ? "Bonjour" : "Bonsoir";
-  const ICONES = { reparation: Wrench, refection: Droplets, communication: ReceiptText, photo: Siren } as const;
-  const TYPES: Record<Tache["type"], string> = { reparation: "Réparation", refection: "Réfection", communication: libelles.sigle, photo: "Photo" };
+  const ICONES = { reparation: Wrench, redetection: ScanSearch, refection: Droplets, communication: ReceiptText, photo: Siren } as const;
+  const TYPES: Record<Tache["type"], string> = { reparation: "Réparation", redetection: "Re-détection", refection: "Réfection", communication: libelles.sigle, photo: "Photo" };
   const raccourcis = [
     { libelle: "Nouvelle fuite", icone: Plus, href: "/fuites/nouvelle", actif: peut("fuites", "creer") },
     { libelle: "Carte", icone: MapPinned, href: "/carte", actif: true },
@@ -147,7 +149,7 @@ export default function AFaire() {
               { titre: "Cette semaine", valeur: `${pourcent(semaine.reparees, semaine.detectees || semaine.reparees)} %`, description: `${semaine.reparees} réparées pour ${semaine.detectees} détectées`, icone: TrendingUp, href: `/fuites?du=${lundi}&au=${ajouterJours(lundi, 6)}` },
               { titre: "En retard", valeur: String(enRetard), description: `non réparées > ${libelles.delaiReparationH} h`, icone: Siren, href: "/fuites?alertes=1" },
             ].map((item) => (
-              <Card key={item.titre} className="shadow-xs">
+              <Card key={item.titre}>
                 <CardHeader>
                   <CardTitle>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -180,6 +182,7 @@ export default function AFaire() {
                       <SelectItem value="toutes">Toutes</SelectItem>
                       {anticipees.size > 0 && <SelectItem value="anticipees">Attachées par anticipation</SelectItem>}
                       <SelectItem value="reparation">Réparations</SelectItem>
+                      <SelectItem value="redetection">Re-détections</SelectItem>
                       <SelectItem value="refection">Réfections</SelectItem>
                       <SelectItem value="communication">Communications {libelles.sigle}</SelectItem>
                       <SelectItem value="photo">Photos manquantes</SelectItem>
@@ -189,7 +192,7 @@ export default function AFaire() {
                 {peut("fuites", "creer") && <Button asChild><Link href="/fuites/nouvelle" prefetch={false}><Plus data-icon="inline-start" />Nouvelle fuite</Link></Button>}
               </div>
             </div>
-            <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
+            <div className="overflow-hidden rounded-xl border bg-background">
               {chargement && fuites.length === 0 ? <p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>
                 : visibles.length === 0 ? <p className="p-6 text-center text-muted-foreground text-sm">Rien à faire dans cette catégorie : tout est à jour.</p> : (
                   <div className="divide-y">
@@ -236,7 +239,7 @@ export default function AFaire() {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {secteurs.map((s) => (
-                <Card key={s.libelle} className="shadow-xs">
+                <Card key={s.libelle}>
                   <CardHeader>
                     <CardTitle><div className="flex items-center gap-2"><MapPinned className="size-4 text-muted-foreground" /><span className="truncate">{s.libelle}</span></div></CardTitle>
                     <CardAction><Badge variant="outline">{s.alertes ? `${s.alertes} alerte${s.alertes > 1 ? "s" : ""}` : "à jour"}</Badge></CardAction>
@@ -268,7 +271,7 @@ export default function AFaire() {
             </div>
           </section>
 
-          <Card className="bg-muted/40 shadow-none">
+          <Card className="bg-muted/40">
             <CardContent className="text-muted-foreground text-sm">
               « Une fuite réparée sous {libelles.delaiReparationH} h, c&apos;est une alerte en moins, de l&apos;eau économisée et un attachement sans régularisation. »
             </CardContent>
@@ -288,7 +291,7 @@ export default function AFaire() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader><CardTitle>Seuil d&apos;alerte</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col gap-2">
@@ -301,7 +304,7 @@ export default function AFaire() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader>
             <CardTitle>Dernières réparations</CardTitle>
             <CardAction><Button variant="ghost" size="sm" className="text-muted-foreground" asChild><Link href="/fuites?statut=reparee" prefetch={false}>Tout voir</Link></Button></CardAction>
@@ -310,14 +313,14 @@ export default function AFaire() {
             {dernieres.length === 0 && <p className="text-muted-foreground text-sm">Aucune réparation saisie.</p>}
             {dernieres.map((f) => (
               <Link key={f.id} href={`/fuites/${f.id}`} prefetch={false} className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0 hover:underline">
-                <span className="text-sm">N° {f.numero} · {f.secteur ?? "—"}</span>
+                <span className="text-sm">N° {numeroFuite(f)} · {f.secteur ?? "—"}</span>
                 <span className="text-muted-foreground text-xs tabular-nums">{dateHeure(f.derniere_reparation_le)}</span>
               </Link>
             ))}
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader>
             <CardTitle>Cette semaine</CardTitle>
             <CardAction><Button variant="ghost" size="sm" className="text-muted-foreground" asChild><Link href="/tableau-de-bord" prefetch={false}>Détail</Link></Button></CardAction>

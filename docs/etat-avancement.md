@@ -4,8 +4,9 @@
 > Détail historique complet (lots, PR, vérifications, pièges, session par session) :
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
-Dernière mise à jour : 2026-10-14, soir (renvoi d'une étape à l'agent, « Dévalider », branche `claude/devalider-etape`,
-en attente de fusion). Avant : 2026-10-14 (troisième purge du SRM sur demande d'Issam, marché DEMO de formation, PR #134). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
+Dernière mise à jour : 2026-10-15 (**prix 1 et 2 à l'attachement, re-détection 22-bis** : PR #138 ouverte, **pas en
+ligne** tant qu'elle n'est pas fusionnée ; APK bêta 5 à publier ensuite). Avant : 2026-10-14, soir (renvoi d'une étape
+à l'agent, « Dévalider », PR #136). Avant : 2026-10-14 (troisième purge du SRM sur demande d'Issam, marché DEMO de formation, PR #134). Avant : 2026-10-13 (S21 : nettoyage du dossier local et des branches, manuel d'exploitation, ce fichier
 réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 h 45 (seconde purge, SRM à zéro pour le 13/10).
 
 ## 1. En service
@@ -37,6 +38,8 @@ réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 
 | 6 | Facultatifs : relire les pages publiques `/confidentialite` et `/conditions` ; longueur minimale de mot de passe à 8 dans Supabase Auth ; règle de cycle de vie R2 (`sauvegardes/base/`, 30 jours) ; `apk-dev.yml` en déclenchement manuel une fois le dépôt privé ; mises à jour majeures (Next 16, Expo SDK 58) après la mise en service ; conversion des 10 écrans encore habillés par `ancien.css` | Issam / Claude | `docs/lots/chantier-v3-audit-s20.md` § 4 |
 | 7 | **Renvoi à l'agent (dévalidation)** : PR `claude/devalider-etape` (migration `20261016600000_renvoi_etape.sql`, 46 tests) ; à fusionner à la demande d'Issam, puis vérifier « Déploiement de la base » (fonction `envoyer-push` redéployée). Le badge « À corriger » sur la tablette arrive avec la prochaine APK publiée ; la beta.4 reçoit déjà la notification et laisse modifier | Claude, à la demande d'Issam | `docs/manuel-exploitation.md` § 9 |
 | 8 | **À confirmer avec la SRM** : assiette des pénalités de débit (par zone, points proportionnels : valeur par défaut appliquée), gabarit d'impression de la carte, rapport par fuite, linéaire par secteur (le marché ne le donne que par zone) | Issam | `docs/lots/chantier-v3-debits.md`, `references/regles-marche-4500004453.md` |
+| 9 | **PR #138 (prix 1 et 2 à l'attachement, re-détection 22-bis)** : fusion à la demande d'Issam, CI verte, de préférence hors des heures de travail (le panneau lit des colonnes nouvelles : 2 à 3 minutes d'erreur possibles sur certaines listes avant la fin de « Déploiement de la base ») ; puis **APK bêta 5** (bouton « Re-détecter », 22-bis, badge « À corriger » du renvoi) publiée à sa demande ; relire l'arabe des nouvelles phrases (statut « À re-détecter », `mobile/src/traductions.ts`, `envoyer-push`) ; cocher sur la carte le linéaire balayé du 2 au 12 octobre (date réelle) avant le premier attachement du prix 1 ; **à confirmer avec la SRM** : attachement mensuel du prix 1 (le CPS ne le paie qu'à l'achèvement du balayage) et plafond au marché | Claude avec Issam | `docs/manuel-exploitation.md` § 10 et 11, `supabase/README.md` |
+| 10 | **PR #139 (interface épurée, modales sans débordement)**, empilée sur #138 : à fusionner après elle (base à repasser sur `main`) ; « À re-détecter » en orange brûlé dans le panneau et l'APK (prochaine APK publiée) | Claude, à la demande d'Issam | `web/README.md` § Style de l'interface |
 
 **E4, fait le 2026-10-13 (S21).** Condition remplie : Issam a confirmé qu'il n'y a qu'**une seule tablette** en
 service (Redmi Pad 2), en beta.4 (195), qui n'envoie plus `equipe_id`. Migration
@@ -70,6 +73,15 @@ réfection de chaussée hors délai, comme « Urgent » de À faire). Détail : 
   lot suivant ; refacturation forcée et réouverture réservées à l'administrateur. L'application s'arrête aux métrés :
   pas de facture. Bordereau : un article ne change que par nouvelle version. Polyéthylène au-delà du seuil (2 m par
   défaut, par marché) : listé « hors bordereau », jamais facturé automatiquement.
+- **Prix 1 et 2 à l'attachement** (2026-10-14, PR #138) : lignes « linéaire » par zone, calculées sur le balayage
+  (premiers passages, branchements exclus). Prix 1 **sur option dès le premier mois** (rien sans le clic du
+  responsable ; le CPS ne le paie qu'à l'achèvement du balayage) ; **plafond au marché** (1 466 000 m, quantité du
+  bordereau ; le tableau n° 1 ne donne qu'un linéaire approximatif par zone). Prix 2 : **deux tranches du CPS** (40 %
+  puis 60 % du prix 1 attaché de la zone, à la fin des phases). Pénalités τ1 / τ2 : **rappelées** sur le lot, jamais
+  des quantités ; toujours pas de facture dans l'application.
+- **Re-détection** (2026-10-14, PR #138) : motif « À détecter de nouveau » → fuite **« À re-détecter »** (pas close),
+  le détecteur est prévenu ; la re-détection garde le numéro avec un suffixe (**22-bis**, 22-ter : choix d'Issam), la
+  fuite d'origine est close. Autres motifs : bouton « Demander une re-détection » (Paramètres › Listes).
 - **Dolibarr** : lecture seule, jamais de prix. **Photos** facultatives avec avertissement « aucune photo ».
 - **Suivi GPS** : un tracé par agent et par jour, heures de travail et pauses (jamais le lieu d'une pause), agents
   informés par écrit (`docs/suivi-gps-information-agents.md`) ; pas de déclaration CNDP (réponse Q14).
@@ -105,6 +117,13 @@ réfection de chaussée hors délai, comme « Urgent » de À faire). Détail : 
 - **Une APK compilée avec l'ancienne clé anon** ne joint plus Supabase, même pas la fenêtre de mise à jour : voir S23.
 - **Saisie restée « en attente » sur une tablette** d'avant une purge : elle serait renvoyée et recréerait un essai ;
   la supprimer dans le panneau.
+- **Numéro affiché (22-bis)** : `fuites.numero_affiche` est une colonne simple posée à la création ; une colonne
+  générée est nulle dans les déclencheurs BEFORE UPDATE et ferait refuser des modifications (`to_jsonb(new)`). Toute
+  vue redéfinie qui porte un numéro de fuite garde `fuite_numero_affiche` en dernière colonne ; ne jamais envelopper
+  `v_a_attacher` (lue unité par unité à l'arrêt d'un lot : de 0,3 s à plus de 60 s à 3 000 fuites).
+- **Migration écrite sur une branche pendant qu'une autre est fusionnée** : `supabase db push` refuse une migration
+  plus ancienne que la dernière appliquée en production ; renuméroter après celle de `main` et régénérer toute
+  fonction ou vue redéfinie des deux côtés (PR #138 après #136).
 
 ## 5. Où lire
 
@@ -126,7 +145,8 @@ réfection de chaussée hors délai, comme « Urgent » de À faire). Détail : 
 
 ```text
 Lis CLAUDE.md, docs/etat-avancement.md, docs/manuel-exploitation.md, supabase/README.md, web/README.md et mobile/README.md.
-Contexte : le chantier v3 est fusionné et déployé (S12 à S22) ; S21 (nettoyage, manuel, état, E4) est faite. Restent S23 (fermeture, rotation des secrets, APK
+Contexte : le chantier v3 est fusionné et déployé (S12 à S22) ; S21 (nettoyage, manuel, état, E4) est faite. PR #138 (linéaire des prix 1 et 2 à
+l'attachement, re-détection 22-bis) en attente de fusion, puis APK bêta 5. Restent S23 (fermeture, rotation des secrets, APK
 finale, avec Issam) et S24 (Vercel Pro, rappels).
 Avant de commencer : gh pr list --state all --limit 20 et git worktree list (sessions parallèles), puis vérifie la CI de main.
 Objectif de cette session : [à préciser].

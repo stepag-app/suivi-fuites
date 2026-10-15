@@ -119,7 +119,7 @@ ok('situation à ce jour', () => {
 });
 
 ok('répartition par statut', () => {
-  assert.deepEqual(repartitionStatuts(FUITES), { detectee: 1, en_reparation: 1, reparee: 3, achevee: 1, sans_reparation: 1 });
+  assert.deepEqual(repartitionStatuts(FUITES), { detectee: 1, a_redetecter: 0, en_reparation: 1, reparee: 3, achevee: 1, sans_reparation: 1 });
 });
 
 ok('par secteur et par zone, tri', () => {

@@ -136,8 +136,6 @@
   margin: 0 0 0.35rem;
   font-size: 0.9rem;
   color: var(--discret);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
 .modes {

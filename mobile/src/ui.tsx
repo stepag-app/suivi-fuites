@@ -41,6 +41,10 @@ export const STATUT_STYLE: Record<StatutFuite, {
     court: 'Détectée', point: '#fb2c36', texte: '#c10007', fond: 'rgba(251, 44, 54, 0.1)', bord: 'rgba(251, 44, 54, 0.2)',
     anneau: '#dc2626', icone: '#e7000b', progression: 15,
   },
+  a_redetecter: {
+    court: 'À re-détecter', point: '#c2410c', texte: '#9a3412', fond: 'rgba(194, 65, 12, 0.1)', bord: 'rgba(194, 65, 12, 0.2)',
+    anneau: '#c2410c', icone: '#c2410c', progression: 10,
+  },
   en_reparation: {
     court: 'En cours', point: '#fe9a00', texte: '#bb4d00', fond: 'rgba(254, 154, 0, 0.1)', bord: 'rgba(254, 154, 0, 0.2)',
     anneau: '#d97706', icone: '#e17100', progression: 45,
@@ -59,7 +63,7 @@ export const STATUT_STYLE: Record<StatutFuite, {
   },
 };
 
-export const ORDRE_STATUTS: StatutFuite[] = ['detectee', 'en_reparation', 'reparee', 'achevee', 'sans_reparation'];
+export const ORDRE_STATUTS: StatutFuite[] = ['detectee', 'a_redetecter', 'en_reparation', 'reparee', 'achevee', 'sans_reparation'];
 
 /** Largeur (dp) à partir de laquelle les écrans passent sur plusieurs colonnes (tablette en paysage). */
 export const LARGEUR_LARGE = 900;

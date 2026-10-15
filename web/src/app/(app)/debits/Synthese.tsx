@@ -62,7 +62,7 @@ function LigneZone({ r, montants }: { r: ResultatDebits; montants: boolean }) {
   );
 }
 
-const COULEURS = { avant: "var(--color-sky-500)", apres: "var(--color-emerald-600)", maintien: "var(--color-violet-500)", libre: "var(--color-amber-500)" } as const;
+const COULEURS = { avant: "var(--color-sky-500)", apres: "var(--color-emerald-600)", maintien: "var(--color-slate-600)", libre: "var(--color-amber-500)" } as const;
 const configCourbe = {
   avant: { label: "Avant (Qi)", color: COULEURS.avant },
   apres: { label: "Après balayage (Qf)", color: COULEURS.apres },

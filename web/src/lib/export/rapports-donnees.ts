@@ -56,9 +56,9 @@ function interventions(table: 'reparations' | 'refections', marcheId: string, du
     }));
 }
 
-const COLONNES_FUITE = 'id, numero, reference_srm, adresse, zone_id, zone, secteur_id, secteur, statut';
+const COLONNES_FUITE = 'id, numero, numero_affiche, reference_srm, adresse, zone_id, zone, secteur_id, secteur, statut';
 const infosFuite = (f: Ligne | undefined) => ({
-  fuite_numero: f?.numero ?? null, reference_srm: f?.reference_srm ?? null, adresse: f?.adresse ?? null,
+  fuite_numero: f?.numero ?? null, fuite_numero_affiche: f?.numero_affiche ?? null, reference_srm: f?.reference_srm ?? null, adresse: f?.adresse ?? null,
   zone_id: f?.zone_id ?? null, zone: f?.zone ?? null, secteur_id: f?.secteur_id ?? null, secteur: f?.secteur ?? null, statut: f?.statut ?? null,
 });
 

@@ -19,7 +19,7 @@
 /* Cadre défilant : les en-têtes restent visibles (position: sticky dans ce cadre) */
 .cadre {
   overflow: auto; max-height: calc(100vh - 16rem); min-height: 20rem;
-  background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon); box-shadow: var(--ombre);
+  background: var(--carte); border: 1px solid var(--bord); border-radius: var(--rayon);
 }
 .matrice { width: max-content; border-collapse: separate; border-spacing: 0; font-size: 0.84rem; }
 .matrice th, .matrice td { border-bottom: 1px solid var(--bord-doux); height: auto; }

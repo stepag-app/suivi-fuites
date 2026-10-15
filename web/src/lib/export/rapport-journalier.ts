@@ -147,6 +147,8 @@ export interface SyntheseJournee extends JourneeBalayage {
 // Une fuite détectée ce jour (colonnes de v_fuites_export).
 export interface FuiteJour {
   numero: number | null;
+  /** « 22-bis » pour une re-détection (absent d'une base pas encore à jour). */
+  numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   zone?: string | null;
@@ -519,7 +521,7 @@ export function contenuRapportJournalier(
   const lignes: LigneFuiteRapport[] = triees.map((f) => {
     const d = f.diametre_mm == null || f.diametre_mm === '' ? null : nombre(f.diametre_mm) || null;
     return {
-      numero: f.numero == null ? '—' : String(f.numero),
+      numero: f.numero == null ? '—' : f.numero_affiche || String(f.numero),
       detectee: f.jour_detection ? jourCourt(f.jour_detection) : '',
       secteur: f.secteur?.trim() || '',
       adresse: [f.reference_srm?.trim(), f.adresse?.trim()].filter(Boolean).join('\n'),
@@ -1295,7 +1297,9 @@ export async function genererRapportJournalierXlsx(
     const entier = (v: number | null, extra: Record<string, unknown> = {}): CelluleXlsx => (v ? { value: v, type: Number, format: '0', align: 'center', ...BORDURE, ...extra } : { ...BORDURE, ...extra });
     for (const f of c.fuites) {
       lignes.push([
-        f.fuite.numero == null ? texte('—', { align: 'center' }) : entier(f.fuite.numero),
+        f.fuite.numero == null ? texte('—', { align: 'center' })
+          : f.fuite.numero_affiche && f.fuite.numero_affiche !== String(f.fuite.numero) ? texte(f.fuite.numero_affiche, { align: 'center' })
+          : entier(f.fuite.numero),
         ...(c.avecDate ? [texte(f.detectee, { align: 'center' })] : []),
         ...(c.avecSecteur ? [texte(f.secteur)] : []),
         texte(f.adresse), entier(f.calibre), texte(f.nature), entier(f.visible), entier(f.invisible), texte(f.degradation),

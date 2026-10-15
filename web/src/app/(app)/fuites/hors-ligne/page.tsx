@@ -8,7 +8,7 @@ import { PointStatut, STATUT_STYLE } from "@/components/statut";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import { dateHeure } from "@/lib/format";
+import { dateHeure, numeroFuite } from "@/lib/format";
 import { listerFichesGardees, oublierFiche } from "@/lib/hors-ligne";
 import { useSession } from "@/lib/session";
 import { LIMITES_HORS_LIGNE } from "../[id]/fiche-hors-ligne";
@@ -54,8 +54,8 @@ export default function FichesHorsLigne() {
         description={`Fiches déjà ouvertes avec du réseau sur cet appareil : elles s'ouvrent sans réseau, en lecture seule, dans leur dernière version vue. Les ${LIMITES_HORS_LIGNE.fiches} dernières ouvertes sont gardées.`} />
 
       {!enLigne && (
-        <p role="status" className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <CloudOff className="size-4 shrink-0" />Hors ligne : seules les fiches ci-dessous peuvent s&apos;ouvrir.
+        <p role="status" className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground text-sm">
+          <CloudOff className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />Hors ligne : seules les fiches ci-dessous peuvent s&apos;ouvrir.
         </p>
       )}
 
@@ -83,7 +83,7 @@ export default function FichesHorsLigne() {
                     <PointStatut statut={f.statut} className="mt-1.5" />
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-sm">
-                        N° {f.numero}
+                        N° {numeroFuite(f)}
                         <span className="ml-2 font-normal text-muted-foreground">{STATUT_STYLE[f.statut].libelle}</span>
                         {plusieursMarches && codeMarche(f.marche_id) && <span className="ml-2 font-normal text-muted-foreground text-xs">{codeMarche(f.marche_id)}</span>}
                       </span>
@@ -96,7 +96,7 @@ export default function FichesHorsLigne() {
                       <span className="mt-0.5 flex items-center justify-end gap-1"><Camera className="size-3" />{f.nb_photos}</span>
                     </span>
                   </Link>
-                  <Button variant="ghost" size="icon" aria-label={`Retirer la fiche N° ${f.numero} de l'appareil`} onClick={() => retirer(f.id)}>
+                  <Button variant="ghost" size="icon" aria-label={`Retirer la fiche N° ${numeroFuite(f)} de l'appareil`} onClick={() => retirer(f.id)}>
                     <Trash2 />
                   </Button>
                 </li>

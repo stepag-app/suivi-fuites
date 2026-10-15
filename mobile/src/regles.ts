@@ -222,6 +222,29 @@ export function peutChangerPhoto(p: { cree_le?: string | null; saisi_par?: strin
 // X2 : version publiée plus récente que celle installée
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Re-détection : numéro affiché (« 22-bis », « 22-ter »), même règle que la base (private.numero_affiche)
+// ---------------------------------------------------------------------------
+
+const SUFFIXES_RANG = ['', 'bis', 'ter', 'quater', 'quinquies', 'sexies', 'septies', 'octies', 'nonies', 'decies'];
+
+/** Numéro à afficher : « 22 », ou « 22-bis » pour une re-détection ; vide tant qu'une fuite n'est pas envoyée. */
+export const numeroAffiche = (f: { numero?: number | null; numero_affiche?: string | null }) =>
+  f.numero_affiche || (f.numero != null ? String(f.numero) : '');
+
+/** Numéro que prendra la re-détection d'une fuite « À re-détecter » : 22 → « 22-bis », 22-bis → « 22-ter ». */
+export function numeroRedetection(f: { numero?: number | null; rang?: number | null }): string {
+  const rang = (f.rang ?? 1) + 1;
+  return `${f.numero ?? '?'}-${SUFFIXES_RANG[rang - 1] ?? rang}`;
+}
+
+/** Rang d'après le numéro affiché : « 22 » → 1, « 22-bis » → 2 (fuites proches : la recherche ne rend pas le rang). */
+export function rangDepuisAffiche(numero: number | null | undefined, affiche: string | null | undefined): number {
+  if (!affiche || affiche === String(numero ?? '')) return 1;
+  const i = SUFFIXES_RANG.indexOf(affiche.slice(String(numero ?? '').length + 1));
+  return i > 0 ? i + 1 : 1;
+}
+
 export const versionPlusRecente = (installee: number | null | undefined, publiee: number | null | undefined) =>
   Number.isInteger(publiee) && Number.isInteger(installee) && (publiee as number) > (installee as number);
 
@@ -253,7 +276,12 @@ export function texteNotification(n: Pick<NotificationLigne, 'evenement' | 'titr
   const lieu = (d.adresse as string | null) ?? (d.reference_srm as string | null) ?? n.corps;
   switch (n.evenement) {
     case 'fuite_detectee':
-      return { titre: t('Nouvelle fuite N° {numero} détectée', { numero }), corps: lieu };
+      return {
+        titre: Number(d.rang ?? 1) > 1 ? t('Fuite N° {numero} re-détectée', { numero }) : t('Nouvelle fuite N° {numero} détectée', { numero }),
+        corps: lieu,
+      };
+    case 'redetection_demandee':
+      return { titre: t('Fuite N° {numero} à re-détecter', { numero }), corps: lieu };
     case 'reparation_saisie':
       return { titre: t('Réparation saisie : fuite N° {numero}', { numero }), corps: RESULTATS[String(d.resultat)] ? tx(RESULTATS[String(d.resultat)]) : n.corps };
     case 'reparation_validee':

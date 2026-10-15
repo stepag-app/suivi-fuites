@@ -233,7 +233,7 @@ export function pointsFuites(fuites: FuiteCarte[], alerte: (f: FuiteCarte) => bo
       .map((f): Feature<Point> => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.longitude as number, f.latitude as number] },
-        properties: { id: f.id, numero: f.numero, statut: f.statut, alerte: alerte(f) },
+        properties: { id: f.id, numero: f.numero_affiche ?? String(f.numero), statut: f.statut, alerte: alerte(f) },
       })),
   };
 }

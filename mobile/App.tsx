@@ -23,7 +23,7 @@ import type { FicheFuite } from './src/types';
 import { BarreApp, COULEURS, Message, s } from './src/ui';
 
 type Vue =
-  | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
+  | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite; redetection?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
   | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'tablette' }
   | { nom: 'carte'; fuite?: string }
   // `depuis` : fiche ouverte depuis la carte, qui la rouvre au retour (centrée sur la fuite).
@@ -40,7 +40,7 @@ function Racine() {
   // reste à la liste.
   const precedente = (v: Vue): Vue => (v.nom === 'reparation' || v.nom === 'refection'
     ? { nom: 'fiche', id: v.contexte.fuiteId }
-    : v.nom === 'nouvelle' && v.modification ? { nom: 'fiche', id: v.modification.id }
+    : v.nom === 'nouvelle' && (v.modification || v.redetection) ? { nom: 'fiche', id: (v.modification ?? v.redetection)!.id }
       : v.nom === 'fiche' && v.depuis === 'carte' ? { nom: 'carte', fuite: v.id } : LISTE);
   const [nonLues, relireNonLues] = useNonLues();
   const miseAJour = useMiseAJour();
@@ -126,7 +126,12 @@ function Racine() {
   const ouvrir = (id: string) => setVue({ nom: 'fiche', id });
   switch (vue.nom) {
     case 'nouvelle':
-      return <NouvelleFuite key={vue.modification?.id ?? 'nouvelle'} retour={() => setVue(precedente(vue))} ouvrirFiche={ouvrir} modification={vue.modification} />;
+      return (
+        <NouvelleFuite
+          key={vue.modification?.id ?? (vue.redetection ? `redetection:${vue.redetection.id}` : 'nouvelle')} retour={() => setVue(precedente(vue))}
+          ouvrirFiche={ouvrir} modification={vue.modification} redetection={vue.redetection}
+        />
+      );
     case 'attente':
       return <EnAttente retour={retourListe} />;
     case 'balayage':
@@ -148,6 +153,7 @@ function Racine() {
         <Fiche
           key={vue.id} id={vue.id} retour={() => setVue(precedente(vue))} saisir={(nom, contexte) => setVue({ nom, contexte })}
           modifierFuite={(f) => setVue({ nom: 'nouvelle', modification: f })}
+          redetecter={(f) => setVue({ nom: 'nouvelle', redetection: f })}
         />
       );
     case 'reparation':

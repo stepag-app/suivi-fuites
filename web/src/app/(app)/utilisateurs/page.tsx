@@ -44,7 +44,7 @@ interface EtatSuppression { supprimable: boolean; raison: string | null }
 const TONS = [
   "[&_[data-slot=avatar-fallback]]:bg-amber-100 [&_[data-slot=avatar-fallback]]:text-amber-700 dark:[&_[data-slot=avatar-fallback]]:bg-amber-500/15 dark:[&_[data-slot=avatar-fallback]]:text-amber-300",
   "[&_[data-slot=avatar-fallback]]:bg-rose-100 [&_[data-slot=avatar-fallback]]:text-rose-700 dark:[&_[data-slot=avatar-fallback]]:bg-rose-500/15 dark:[&_[data-slot=avatar-fallback]]:text-rose-300",
-  "[&_[data-slot=avatar-fallback]]:bg-violet-100 [&_[data-slot=avatar-fallback]]:text-violet-700 dark:[&_[data-slot=avatar-fallback]]:bg-violet-500/15 dark:[&_[data-slot=avatar-fallback]]:text-violet-300",
+  "[&_[data-slot=avatar-fallback]]:bg-stone-200 [&_[data-slot=avatar-fallback]]:text-stone-700 dark:[&_[data-slot=avatar-fallback]]:bg-stone-500/20 dark:[&_[data-slot=avatar-fallback]]:text-stone-300",
   "[&_[data-slot=avatar-fallback]]:bg-sky-100 [&_[data-slot=avatar-fallback]]:text-sky-700 dark:[&_[data-slot=avatar-fallback]]:bg-sky-500/15 dark:[&_[data-slot=avatar-fallback]]:text-sky-300",
   "[&_[data-slot=avatar-fallback]]:bg-emerald-100 [&_[data-slot=avatar-fallback]]:text-emerald-700 dark:[&_[data-slot=avatar-fallback]]:bg-emerald-500/15 dark:[&_[data-slot=avatar-fallback]]:text-emerald-300",
   "[&_[data-slot=avatar-fallback]]:bg-orange-100 [&_[data-slot=avatar-fallback]]:text-orange-700 dark:[&_[data-slot=avatar-fallback]]:bg-orange-500/15 dark:[&_[data-slot=avatar-fallback]]:text-orange-300",
@@ -230,7 +230,7 @@ function Utilisateurs() {
         actions={<Button size="sm" onClick={() => setCreation(true)}><Plus data-icon="inline-start" />Nouvel agent</Button>} />
 
       {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
-      {info && <Alert className="border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-50"><Check /><AlertTitle>Fait</AlertTitle><AlertDescription className="text-green-900/80 dark:text-green-50/80">{info}</AlertDescription></Alert>}
+      {info && <Alert variant="succes"><Check /><AlertTitle>Fait</AlertTitle><AlertDescription>{info}</AlertDescription></Alert>}
 
       <Tabs value={onglet} onValueChange={(v) => aller(v as OngletUtilisateurs, marcheDroits)} className="gap-4">
         <TabsList variant="line" className="w-full justify-start gap-2 border-b ps-0 *:data-[slot=tabs-trigger]:flex-none">

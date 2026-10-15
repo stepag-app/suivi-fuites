@@ -13,7 +13,8 @@ export interface Donnees {
 }
 export const cleFiche = (id: string) => `suivi-fuites:fiche:${id}`;
 const COLONNES_FUITE = 'id, numero, reference_srm, statut, secteur, zone, adresse, ouvrage, latitude, longitude, date_detection, '
-  + 'detectee_par, motif_sans_reparation, fuite_liee_id, verrouillee_le, observation, nb_photos, alerte_non_reparee';
+  + 'detectee_par, motif_sans_reparation, fuite_liee_id, verrouillee_le, observation, nb_photos, alerte_non_reparee, '
+  + 'numero_affiche, rang, fuite_liee_numero, redetection_numero, redetection_id';
 const COLONNES_REPARATION = 'id, resultat, motif_id, realisee_le, ouvrage, materiau, diametre_mm, representant_srm, '
   + 'representant_srm_id, tuyau_repare, robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, element_remplace, '
   + 'longueur_pe_m, fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m, emplacement, nature_revetement_id, observation, '

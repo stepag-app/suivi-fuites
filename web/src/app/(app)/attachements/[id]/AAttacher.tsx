@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import type { FuiteAnticipee } from '@/lib/anticipation';
 import { quantite, type ReglesAttachement, type Unite } from '@/lib/attachements';
-import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
+import { STATUTS, dateSeule, messageErreur, numeroCorrespond, numeroFuiteLigne } from '@/lib/format';
 import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 import { BadgeControles } from '../BadgeControles';
@@ -16,7 +16,7 @@ const AFFICHAGE_MAX = 150;
 
 // N° de fuite cliquable : la fiche (photos, réparations, réfections) s'ouvre dans un nouvel onglet,
 // la sélection en cours du lot reste en place.
-export function LienFuite({ id, numero }: { id: string; numero: number | null }) {
+export function LienFuite({ id, numero }: { id: string; numero: number | string | null }) {
   return (
     <Link href={`/fuites/${id}`} target="_blank" rel="noopener" className="lien-fuite" title="Ouvrir la fiche de la fuite dans un nouvel onglet">
       N° {numero} ↗
@@ -83,7 +83,7 @@ export function AAttacher({
         && (!chef || u.chef_equipe_id === chef) && (!article || u.prix_id === article)
         && (etat === 'toutes' || (etat === 'verrouillees' ? u.verrouillee : u.statut === 'achevee'))
         && (!enDefaut || controles.has(u.fuite_id))
-        && (!t || String(u.fuite_numero) === t || (u.reference_srm ?? '').toLowerCase().includes(t)
+        && (!t || numeroCorrespond({ numero: u.fuite_numero, numero_affiche: u.fuite_numero_affiche }, t) || (u.reference_srm ?? '').toLowerCase().includes(t)
           || (u.adresse ?? '').toLowerCase().includes(t));
     });
   }, [disponibles, du, au, zone, secteur, chef, article, etat, texte, enDefaut, controles]);
@@ -198,11 +198,11 @@ export function AAttacher({
                   <Fragment key={t.fuite_id}>
                     <tr className={zebre}>
                       <td>
-                        <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${t.fuite_numero}`}
+                        <input type="checkbox" checked={toutes} disabled={cles.length === 0} aria-label={`Toute la fuite N° ${numeroFuiteLigne(t)}`}
                           onChange={(e) => basculer(cles, e.target.checked)} />
                       </td>
                       <td className="nowrap">
-                        <LienFuite id={t.fuite_id} numero={t.fuite_numero} />
+                        <LienFuite id={t.fuite_id} numero={numeroFuiteLigne(t)} />
                         {anticipees?.has(t.fuite_id) && <span className="etiquette etiquette-anticipe" title="Attachée par anticipation : solde à régulariser après l'exécution">Anticipé</span>}
                       </td>
                       <td className="nowrap">{t.reference_srm ?? '—'}</td>
@@ -248,7 +248,7 @@ export function AAttacher({
                       <tr className={zebre}>
                         <td colSpan={11}>
                           <CorrectionsFuite
-                            marcheId={marcheId} fuiteId={t.fuite_id} fuiteNumero={t.fuite_numero}
+                            marcheId={marcheId} fuiteId={t.fuite_id} fuiteNumero={numeroFuiteLigne(t)}
                             controles={controles.get(t.fuite_id) ?? []} articles={bordereau}
                             fermer={() => setCorrection(null)} corrige={ajoute}
                           />

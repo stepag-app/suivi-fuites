@@ -173,7 +173,8 @@ export function CarteTerrain() {
   const nbActifs = [calques.prioritaires, calques.reseau, calques.zones, calques.limites, satellite, calques.position].filter(Boolean).length;
 
   return (
-    <div className={cn("h-full", styles.pleinEcran)}>
+    // data-ui : contrôles posés sur la carte (ombre légère autorisée, README § Interface épurée).
+    <div data-ui="carte-terrain" className={cn("h-full", styles.pleinEcran)}>
       <div className="relative h-full overflow-hidden">
         {hl.paquet !== null && (!hl.paquet || marcheId) && (
           <Carte ref={carte} fuites={visibles} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} reseau={reseauCarte}
@@ -182,13 +183,13 @@ export function CarteTerrain() {
 
         {!panneau && (
           <div className="absolute top-3 left-3 z-[3] flex flex-wrap items-center gap-2" dir={rtl ? "rtl" : undefined}>
-            <Button size="lg" variant="outline" className="h-12 bg-background px-4 text-base shadow-md" onClick={() => setPanneau(true)}
+            <Button size="lg" variant="outline" className="h-12 bg-background px-4 text-base shadow-sm" onClick={() => setPanneau(true)}
               aria-label={tb("Afficher ou masquer les calques")}>
               <Layers data-icon="inline-start" />{tb("Calques")}
               <span className="rounded-full bg-muted px-1.5 text-muted-foreground text-xs tabular-nums">{nbActifs}</span>
             </Button>
             {reseau.copieDu && (
-              <span className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs shadow-sm">
+              <span className="rounded-lg bg-background px-3 py-1.5 text-foreground text-xs shadow-sm">
                 {tb("Hors ligne · état du {date}", { date: dateHeure(reseau.copieDu) })}
               </span>
             )}
@@ -212,7 +213,7 @@ export function CarteTerrain() {
               {tb("Position ± {n} m", { n: Math.round(position.precision) })}
             </p>
           )}
-          <Button size="icon-lg" variant="outline" className="size-14 rounded-full bg-background shadow-md"
+          <Button size="icon-lg" variant="outline" className="size-14 rounded-full bg-background shadow-sm"
             onClick={() => { if (!position) allerDesQuePossible.current = true; allerAMaPosition(); }}
             aria-label={tb("Aller à ma position")} title={tb("Aller à ma position")}>
             <LocateFixed className="size-6" style={{ color: position ? "#2563eb" : undefined }} />

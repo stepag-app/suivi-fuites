@@ -20,7 +20,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   NATURES_LIGNE, intituleMensuel, quantite, titreLot, type LigneLot, type Lot, type Recap, type ReglesAttachement,
 } from "@/lib/attachements";
-import { dateSeule, messageErreur } from "@/lib/format";
+import { dateSeule, messageErreur, numeroFuiteLigne } from "@/lib/format";
 import { PanneauExport } from "@/lib/export/PanneauExport";
 import { useSession } from "@/lib/session";
 import { getSupabase, lireTout } from "@/lib/supabase";
@@ -29,6 +29,8 @@ import { BadgeControles } from "../BadgeControles";
 import { useControles } from "../useControles";
 import { AAttacher, LienFuite } from "./AAttacher";
 import { CorrectionsFuite } from "./CorrectionsFuite";
+import { LineaireAAttacher } from "./LineaireAAttacher";
+import { PerformancesLot } from "./PerformancesLot";
 import { FormAnticipation, FormForcage, FormLigneLibre, type ArticleChoix } from "./FormsLignes";
 import { PropositionsAnticipees } from "./PropositionsAnticipees";
 import { useFuitesAnticipees } from "@/lib/anticipation";
@@ -64,7 +66,7 @@ export default function DetailLot() {
     if (!marcheId) return;
     const sb = getSupabase();
     const lignesLot = lireTout<LigneLot>((de, a) =>
-      sb.from("v_attachement_lignes").select("*").eq("attachement_id", id).order("fuite_numero", { nullsFirst: false }).order("prix_ordre").order("id").range(de, a))
+      sb.from("v_attachement_lignes").select("*").eq("attachement_id", id).order("fuite_numero", { nullsFirst: false }).order("prix_ordre").order("designation", { nullsFirst: true }).order("id").range(de, a))
       .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error }));
     const [l, li, rc, rg, o, z, p, n, dn] = await Promise.all([
       sb.from("attachements").select("*").eq("id", id).maybeSingle(),
@@ -130,6 +132,9 @@ export default function DetailLot() {
   const unitesLot = new Set(lignes.filter((l) => l.fuite_id && (l.nature === "solde" || l.nature === "anticipation"))
     .map((l) => `${l.fuite_id}|${l.prix_id}`));
   const negatives = lignes.filter((l) => l.quantite < 0).length;
+  // Prix 1 et 2 (balayage, maintien) : rappel des pénalités de performance pour la facture
+  const prixLineaire = new Set(articles.filter((a) => a.famille === "balayage" || a.famille === "maintien").map((a) => a.id));
+  const avecLineaire = lignes.some((l) => prixLineaire.has(l.prix_id));
   const lotAffiche = { ...lot, ...(brouillon && apercu ? apercu : {}), numero_prevu: lot.numero == null ? (dernierNumero ?? 0) + 1 : null };
   const enTeteModifie = brouillon && !!apercu && (Object.keys(apercu) as (keyof EnTete)[]).some((k) => (apercu[k] ?? null) !== (lot[k] ?? null));
   const titre = titreLot(regles?.titre, lotAffiche);
@@ -157,7 +162,7 @@ export default function DetailLot() {
       setErreur("Enregistrez d'abord l'en-tête : le lot est arrêté avec les mentions enregistrées.");
       return;
     }
-    const zeros = lignes.filter((l) => l.nature === "solde" && l.quantite === 0).length;
+    const zeros = lignes.filter((l) => (l.nature === "solde" || l.nature === "lineaire") && l.quantite === 0).length;
     const texte = [
       `Arrêter définitivement ce lot (${lignes.length - zeros} ligne${lignes.length - zeros > 1 ? "s" : ""}) ?`,
       "Les quantités seront figées et ne pourront plus être attachées une seconde fois.",
@@ -226,14 +231,14 @@ export default function DetailLot() {
       </div>
 
       {enTeteModifie && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+        <Alert variant="attention">
           <CircleAlert />
           <AlertTitle>En-tête modifié, pas encore enregistré</AlertTitle>
-          <AlertDescription className="text-amber-900/80 dark:text-amber-50/80">Le titre montre la saisie en cours.</AlertDescription>
+          <AlertDescription>Le titre montre la saisie en cours.</AlertDescription>
         </Alert>
       )}
       {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
-      {info && <Alert className="border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-50"><AlertDescription className="text-green-900 dark:text-green-50">{info}</AlertDescription></Alert>}
+      {info && <Alert variant="succes"><AlertDescription>{info}</AlertDescription></Alert>}
 
       <PanneauExport ouvert={exportOuvert} fermer={() => setExportOuvert(false)}
         attachement={{ lot: lotAffiche, lignes, recap, zone: zones.find((z) => z.id === lotAffiche.zone_id)?.libelle ?? null }} />
@@ -289,7 +294,7 @@ export default function DetailLot() {
           <CardTitle className="font-normal">Travaux du lot</CardTitle>
           <CardDescription>
             {fuitesDuLot.size} fuite{fuitesDuLot.size > 1 ? "s" : ""}, {lignes.length} ligne{lignes.length > 1 ? "s" : ""}.
-            {brouillon ? " Quantités « au solde » suivies en direct jusqu'à l'arrêt. N° de fuite : fiche complète dans un nouvel onglet." : ""}
+            {brouillon ? " Quantités « au solde » et linéaire suivis en direct jusqu'à l'arrêt. N° de fuite : fiche complète dans un nouvel onglet." : ""}
           </CardDescription>
           {modifiable && (
             <CardAction className="flex flex-wrap gap-2">
@@ -336,7 +341,7 @@ export default function DetailLot() {
                           {t.fuite_id ? (
                             <>
                               <td className="nowrap">
-                                <LienFuite id={t.fuite_id} numero={t.fuite_numero} />
+                                <LienFuite id={t.fuite_id} numero={numeroFuiteLigne(t)} />
                                 {anticipees.has(t.fuite_id) && <span className="etiquette etiquette-anticipe" title={`Attachée par anticipation (lot N° ${anticipees.get(t.fuite_id)?.premier_lot ?? "?"}), exécution attendue`}>Anticipé</span>}
                               </td>
                               <td><BadgeControles liste={controles.get(t.fuite_id)} /></td>
@@ -384,7 +389,7 @@ export default function DetailLot() {
                           <tr className={zebre}>
                             <td colSpan={modifiable ? 9 : 8}>
                               <CorrectionsFuite
-                                marcheId={marcheId!} fuiteId={t.fuite_id} fuiteNumero={t.fuite_numero}
+                                marcheId={marcheId!} fuiteId={t.fuite_id} fuiteNumero={numeroFuiteLigne(t)}
                                 controles={controles.get(t.fuite_id) ?? []} articles={articles}
                                 lot={{ id: lot.id, unites: unitesLot }}
                                 fermer={() => setCorrection(null)} corrige={rafraichir}
@@ -413,6 +418,12 @@ export default function DetailLot() {
           )}
         </CardContent>
       </Card>
+
+      {brouillon && (
+        <LineaireAAttacher lotId={lot.id} version={version} modifiable={modifiable} ajoute={rafraichir} onErreur={setErreur} />
+      )}
+
+      {avecLineaire && marcheId && <PerformancesLot marcheId={marcheId} version={version} />}
 
       {modifiable && regles?.refection_anticipee && (
         <div className="ancien">

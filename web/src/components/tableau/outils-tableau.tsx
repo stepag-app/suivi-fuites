@@ -81,7 +81,7 @@ export function FiltreFacettes({ valeurs, changer, options, titre, icone: Icone 
               onSelect={(e) => e.preventDefault()}>
               {o.icone && <o.icone className="text-muted-foreground" />}
               <span className="flex-1 truncate">{o.libelle}</span>
-              {o.nombre != null && <span className="ml-auto font-mono text-xs text-muted-foreground tabular-nums">{o.nombre}</span>}
+              {o.nombre != null && <span className="ml-auto text-xs text-muted-foreground tabular-nums">{o.nombre}</span>}
             </DropdownMenuCheckboxItem>
           ))}
         </DropdownMenuGroup>

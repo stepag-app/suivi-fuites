@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { TrendingDown, TrendingUp } from "lucide-react";
 import type { ReactNode } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -36,12 +35,12 @@ export function MiniCourbe({ serie, ton = "normal", titre, className }: { serie:
   );
 }
 
-/** Grille de cartes d'indicateurs (dégradé léger du modèle « Default »). */
+/** Grille de cartes d'indicateurs. */
 export function GrilleIndicateurs({ children, colonnes = 4, className }: { children: ReactNode; colonnes?: 3 | 4 | 5; className?: string }) {
   return (
     <div
       className={cn(
-        "grid grid-cols-1 gap-4 *:data-[slot=card]:bg-linear-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs dark:*:data-[slot=card]:bg-card",
+        "grid grid-cols-1 gap-4",
         colonnes === 3 && "md:grid-cols-3",
         colonnes === 4 && "md:grid-cols-2 xl:grid-cols-4",
         colonnes === 5 && "md:grid-cols-2 xl:grid-cols-5",
@@ -111,19 +110,18 @@ export function CarteIndicateur({
             </Link>
           ) : chiffre}
           {tendance && (
-            <Badge
-              variant="outline"
+            <span
               className={cn(
-                "border",
-                tendance.bon === true && "border-green-200 bg-green-500/10 text-green-700 dark:border-green-900/40 dark:bg-green-500/15 dark:text-green-300",
-                tendance.bon === false && "border-destructive/20 bg-destructive/10 text-destructive",
+                "inline-flex items-center gap-1 font-medium text-xs",
+                tendance.bon === true && "text-green-700 dark:text-green-400",
+                tendance.bon === false && "text-destructive",
                 tendance.bon == null && "text-muted-foreground",
               )}
             >
-              {tendance.sens === "haut" && <TrendingUp className="size-3" />}
-              {tendance.sens === "bas" && <TrendingDown className="size-3" />}
+              {tendance.sens === "haut" && <TrendingUp className="size-3.5" />}
+              {tendance.sens === "bas" && <TrendingDown className="size-3.5" />}
               {tendance.texte}
-            </Badge>
+            </span>
           )}
         </div>
         {commentaire && <p className="text-muted-foreground text-sm">{commentaire}</p>}
@@ -138,7 +136,7 @@ export function BandeKpi({ cellules, colonnes = 5 }: {
   colonnes?: 3 | 4 | 5;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl bg-card shadow-xs ring-1 ring-foreground/10">
+    <div className="overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10">
       <div
         className={cn(
           "grid divide-y *:data-[slot=card]:rounded-none *:data-[slot=card]:ring-0 md:grid-cols-2 md:divide-x md:divide-y-0",

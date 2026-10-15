@@ -66,7 +66,7 @@
 
 /* Rapprochement Dolibarr (lot P4) */
 
-.alerte td:first-child { box-shadow: inset 3px 0 0 var(--danger); }
+.alerte td:first-child { color: var(--danger); font-weight: 600; }
 .negatif { color: var(--danger); font-weight: 600; }
 .badgeSeuil { display: inline-block; padding: 0 0.45rem; border-radius: 999px; background: var(--danger); color: var(--carte); font-size: 0.78rem; font-weight: 600; }
 .reglages { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.5rem 1rem; }
@@ -115,8 +115,7 @@
 .confidentiel {
   margin: 0.4rem 0 0;
   padding: 0.5rem 0.7rem;
-  border-left: 3px solid var(--principal);
-  background: var(--principal-clair);
+  background: var(--survol);
   border-radius: var(--rayon-petit);
   font-size: 0.9rem;
 }
@@ -151,7 +150,7 @@
 .envoi dt { color: var(--discret); }
 .envoi dd { margin: 0; }
 .alerteEnvoi { color: var(--attention); }
-.erreursEnvoi { margin-top: 0.7rem; padding: 0.5rem 0.7rem; border-left: 3px solid var(--danger); border-radius: var(--rayon-petit); }
+.erreursEnvoi { margin-top: 0.7rem; padding: 0.5rem 0.7rem; background: var(--survol); color: var(--danger); border-radius: var(--rayon-petit); }
 .erreursEnvoi ul { margin: 0.3rem 0; padding-left: 1.2rem; }
 .journalEnvoi { margin-top: 0.7rem; }
 .journalEnvoi summary { cursor: pointer; color: var(--discret); }

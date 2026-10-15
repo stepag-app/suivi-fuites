@@ -371,7 +371,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       {!pret && !erreur && <p className="absolute inset-0 m-0 grid place-items-center p-4 text-center text-muted-foreground text-sm">{tb('Chargement de la carte…')}</p>}
       {erreur && <p className="absolute inset-x-4 bottom-4 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       {fondIndisponible && pret && (
-        <p className="absolute top-3 right-14 left-3 m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+        <p className="absolute top-3 right-14 left-3 m-0 rounded-lg bg-background px-3 py-1.5 text-foreground text-xs shadow-sm">
           Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.
         </p>
       )}

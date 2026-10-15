@@ -42,8 +42,8 @@ export const STATUT_STYLE: Record<StatutFuite, {
     anneau: '#dc2626', icone: '#e7000b', progression: 15,
   },
   a_redetecter: {
-    court: 'À re-détecter', point: '#8e51ff', texte: '#7008e7', fond: 'rgba(142, 81, 255, 0.1)', bord: 'rgba(142, 81, 255, 0.2)',
-    anneau: '#7c3aed', icone: '#7f22fe', progression: 10,
+    court: 'À re-détecter', point: '#c2410c', texte: '#9a3412', fond: 'rgba(194, 65, 12, 0.1)', bord: 'rgba(194, 65, 12, 0.2)',
+    anneau: '#c2410c', icone: '#c2410c', progression: 10,
   },
   en_reparation: {
     court: 'En cours', point: '#fe9a00', texte: '#bb4d00', fond: 'rgba(254, 154, 0, 0.1)', bord: 'rgba(254, 154, 0, 0.2)',

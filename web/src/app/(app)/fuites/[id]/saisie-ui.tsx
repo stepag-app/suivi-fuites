@@ -3,7 +3,7 @@
 // Briques des formulaires de saisie de la fiche (réparation, réfection, correction de la détection) :
 // étapes numérotées (ordre P1), choix en boutons, nombres, avertissements, capsules de pièces (P3),
 // récapitulatif avant confirmation (P4).
-import { Minus, Plus, Search, TriangleAlert } from 'lucide-react';
+import { Check, Minus, Plus, Search, TriangleAlert } from 'lucide-react';
 import { useMemo, useState, type ReactNode } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
@@ -59,7 +59,7 @@ export function Choix<T extends string>({
 export function Bascule({ actif, onChange, children }: { actif: boolean; onChange: (v: boolean) => void; children: ReactNode }) {
   return (
     <Button type="button" role="checkbox" aria-checked={actif} variant={actif ? 'default' : 'outline'} onClick={() => onChange(!actif)} className="justify-start">
-      <span className={cn('grid size-4 place-items-center rounded-sm border text-[0.65rem]', actif ? 'border-primary-foreground' : 'border-muted-foreground/50')}>{actif ? '✓' : ''}</span>
+      <span className={cn('grid size-4 place-items-center rounded-sm border', actif ? 'border-primary-foreground' : 'border-muted-foreground/50')}>{actif && <Check className="size-3" />}</span>
       {children}
     </Button>
   );
@@ -82,10 +82,10 @@ export function ChampMetres({ id, libelle, valeur, onChange, unite = 'm', invali
 export function Avertissements({ liste, titre = 'À vérifier' }: { liste: Avertissement[]; titre?: string }) {
   if (!liste.length) return null;
   return (
-    <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50" role="status">
+    <Alert variant="attention" role="status">
       <TriangleAlert />
       <AlertTitle>{titre}</AlertTitle>
-      <AlertDescription className="text-amber-900/90 dark:text-amber-50/90">
+      <AlertDescription>
         <ul className="list-disc pl-4">{liste.map((a, i) => <li key={i}>{a.message}</li>)}</ul>
       </AlertDescription>
     </Alert>

@@ -54,8 +54,8 @@ export default function FichesHorsLigne() {
         description={`Fiches déjà ouvertes avec du réseau sur cet appareil : elles s'ouvrent sans réseau, en lecture seule, dans leur dernière version vue. Les ${LIMITES_HORS_LIGNE.fiches} dernières ouvertes sont gardées.`} />
 
       {!enLigne && (
-        <p role="status" className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900 text-sm dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
-          <CloudOff className="size-4 shrink-0" />Hors ligne : seules les fiches ci-dessous peuvent s&apos;ouvrir.
+        <p role="status" className="flex items-center gap-2 rounded-lg bg-muted px-3 py-2 text-foreground text-sm">
+          <CloudOff className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />Hors ligne : seules les fiches ci-dessous peuvent s&apos;ouvrir.
         </p>
       )}
 

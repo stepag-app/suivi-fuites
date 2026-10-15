@@ -231,14 +231,14 @@ export default function DetailLot() {
       </div>
 
       {enTeteModifie && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+        <Alert variant="attention">
           <CircleAlert />
           <AlertTitle>En-tête modifié, pas encore enregistré</AlertTitle>
-          <AlertDescription className="text-amber-900/80 dark:text-amber-50/80">Le titre montre la saisie en cours.</AlertDescription>
+          <AlertDescription>Le titre montre la saisie en cours.</AlertDescription>
         </Alert>
       )}
       {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
-      {info && <Alert className="border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-50"><AlertDescription className="text-green-900 dark:text-green-50">{info}</AlertDescription></Alert>}
+      {info && <Alert variant="succes"><AlertDescription>{info}</AlertDescription></Alert>}
 
       <PanneauExport ouvert={exportOuvert} fermer={() => setExportOuvert(false)}
         attachement={{ lot: lotAffiche, lignes, recap, zone: zones.find((z) => z.id === lotAffiche.zone_id)?.libelle ?? null }} />

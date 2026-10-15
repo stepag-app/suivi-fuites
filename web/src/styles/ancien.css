@@ -51,9 +51,12 @@
   .ancien .carte {
     @apply block rounded-xl bg-card text-card-foreground ring-1 ring-foreground/10 p-4 mb-4;
   }
-  .ancien .carte.attention {
-    @apply bg-amber-50 ring-amber-200 text-amber-900 dark:bg-amber-950 dark:ring-amber-900 dark:text-amber-50;
+  /* Encadrés d'avertissement et de confirmation : fond gris d'un ton, texte à l'encre, point coloré seulement */
+  .ancien .carte.attention, .ancien .carte.succes { @apply bg-muted text-foreground ring-0; }
+  .ancien p.carte.attention::before, .ancien p.carte.succes::before {
+    @apply mr-2 inline-block size-2 rounded-full bg-amber-500 align-[0.05em] content-[''];
   }
+  .ancien p.carte.succes::before { @apply bg-green-600; }
   .ancien .carte.fuite { @apply text-inherit no-underline hover:ring-primary/40; }
   .ancien .fuite-tete { @apply flex flex-wrap items-center justify-between gap-2; }
   .ancien .barre { @apply flex flex-wrap items-center justify-between gap-2; }
@@ -77,7 +80,6 @@
     @apply rounded-lg bg-green-500/10 px-3 py-2 text-green-700 dark:text-green-300;
   }
   .ancien span.erreur, .ancien span.info, .ancien td.erreur { @apply bg-transparent p-0; }
-  .ancien .carte.succes { @apply bg-green-500/10 text-green-700 ring-green-500/20 dark:text-green-300; }
   .ancien .sous-titre { @apply ml-2 text-base font-normal text-muted-foreground; }
   .ancien .actions.en-tete { @apply mt-0; }
   .ancien .carte-tableau td, .ancien .carte-tableau th { @apply px-2; }
@@ -92,13 +94,8 @@
   }
   .ancien .etiquette-alerte { @apply bg-destructive/10 text-destructive; }
   .ancien .etiquette.symbole { @apply ml-0 min-w-9 justify-center; }
-  /* Attachement par anticipation (A1) : couleur propre, distincte des régularisations et des alertes */
-  .ancien .etiquette-anticipe { @apply bg-violet-500/10 text-violet-700 dark:text-violet-300; }
-  .ancien .carte.propositions-anticipees {
-    @apply border-l-4 border-violet-500 bg-violet-50 ring-violet-200 dark:border-violet-400 dark:bg-violet-950/50 dark:ring-violet-900;
-  }
-  .ancien .propositions-anticipees h2 { @apply text-violet-800 dark:text-violet-200; }
-  .ancien .propositions-anticipees tbody tr:hover { @apply bg-violet-100/70 dark:bg-violet-900/30; }
+  /* Attachement par anticipation (A1) : neutre, l'information est portée par le libellé « Anticipé » */
+  .ancien .carte.propositions-anticipees { @apply bg-muted/60 ring-0; }
   /* Même chaîne de :not() que la règle générale des champs, pour la surcharger */
   .ancien .propositions-anticipees input.quantite:not([data-slot]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]) {
     @apply mt-0 inline-block w-24 text-right tabular-nums;
@@ -113,13 +110,13 @@
     content: ""; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: currentColor; flex: none;
   }
   .st-detectee { --st: oklch(0.577 0.245 27.325); }
-  .st-redetecter { --st: oklch(0.541 0.281 293.009); }
+  .st-redetecter { --st: oklch(0.553 0.195 38.402); }
   .st-encours { --st: oklch(0.666 0.179 58.318); }
   .st-reparee { --st: oklch(0.588 0.158 241.966); }
   .st-achevee { --st: oklch(0.627 0.194 149.214); }
   .st-sans { --st: oklch(0.554 0.046 257.417); }
   .dark .st-detectee { --st: oklch(0.704 0.191 22.216); }
-  .dark .st-redetecter { --st: oklch(0.702 0.183 293.541); }
+  .dark .st-redetecter { --st: oklch(0.75 0.183 55.934); }
   .dark .st-encours { --st: oklch(0.769 0.188 70.08); }
   .dark .st-reparee { --st: oklch(0.746 0.16 232.661); }
   .dark .st-achevee { --st: oklch(0.792 0.209 151.711); }
@@ -163,7 +160,7 @@
   .ancien .ligne-pieces select:not([data-slot]) { @apply mt-0 w-24 flex-none; }
   .ancien .cases-materiaux { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: 0 0.75rem; }
   .ancien .cases-materiaux label { @apply mb-1.5; }
-  .ancien .secteurs-zone { @apply ml-4 mt-2 border-l-2 pl-3; }
+  .ancien .secteurs-zone { @apply ml-4 mt-2 pl-3; }
   .ancien .ligne-secteur { @apply border-b border-dashed py-1; }
   .ancien .secteurs-zone > button { @apply mt-2; }
   .ancien .regles-prix { @apply block text-xs mt-0.5; }

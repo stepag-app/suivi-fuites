@@ -85,7 +85,7 @@ export function Coque({ children, defaultOpen, variant, collapsible }: {
           </div>
         </header>
         {MODE_DEMO && (
-          <div className="flex items-center justify-center gap-2 border-b border-violet-200 bg-violet-50 px-4 py-1.5 text-violet-900 text-xs dark:border-violet-900 dark:bg-violet-950 dark:text-violet-100" role="status">
+          <div className="flex items-center justify-center gap-2 bg-muted px-4 py-1.5 text-muted-foreground text-xs" role="status">
             <FlaskConical className="size-3.5" />
             Mode démonstration : données fictives en mémoire, rien n&apos;est enregistré.
           </div>

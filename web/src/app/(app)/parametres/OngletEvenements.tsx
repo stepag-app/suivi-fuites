@@ -1,5 +1,6 @@
 'use client';
 
+import { Paperclip } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import { dateSeule, messageErreur } from '@/lib/format';
 import { JEU_EVENEMENTS } from '@/lib/export/jeux';
@@ -193,7 +194,7 @@ export function OngletEvenements({ marcheId }: { marcheId: string }) {
               </p>
               {pieces.filter((p) => p.evenement_id === e.id).map((p) => (
                 <div key={p.id} className="ligne-pieces">
-                  <button type="button" onClick={() => ouvrirPiece(p)}>📎 {p.nom_fichier}</button>
+                  <button type="button" onClick={() => ouvrirPiece(p)}><Paperclip className="inline size-3.5 align-[-0.1em]" aria-hidden="true" /> {p.nom_fichier}</button>
                   {peutSupprimer && <button type="button" className="danger" onClick={() => supprimerPiece(p)}>Retirer</button>}
                 </div>
               ))}

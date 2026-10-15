@@ -30,7 +30,7 @@ export const aUneAlerte = (f: FuiteCarte) => ALERTES.some((a) => f[a.cle] === tr
 // Couleurs des points : mêmes teintes que les badges de statut (src/components/statut.tsx).
 export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = {
   detectee: { fond: '#ef4444', contour: '#b91c1c' },
-  a_redetecter: { fond: '#8b5cf6', contour: '#6d28d9' },
+  a_redetecter: { fond: '#c2410c', contour: '#9a3412' },
   en_reparation: { fond: '#f59e0b', contour: '#b45309' },
   reparee: { fond: '#0ea5e9', contour: '#0369a1' },
   achevee: { fond: '#22c55e', contour: '#15803d' },

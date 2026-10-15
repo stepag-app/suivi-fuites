@@ -31,7 +31,7 @@ export function VueKanban({ fuites, libelles }: { fuites: FuiteListe[]; libelles
             <div className="flex max-h-[62vh] min-h-24 flex-col gap-2 overflow-y-auto px-2 pb-2">
               {liste.map((f) => (
                 <Link key={f.id} href={`/fuites/${f.id}`} prefetch={false}
-                  className="flex min-w-0 flex-col gap-2 rounded-lg border bg-card p-2.5 text-card-foreground shadow-xs transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+                  className="flex min-w-0 flex-col gap-2 rounded-lg border bg-card p-2.5 text-card-foreground transition-colors hover:border-primary/40 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="min-w-0 truncate font-medium text-sm leading-tight" title={f.reference_srm ?? undefined}>

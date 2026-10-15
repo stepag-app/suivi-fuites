@@ -5,6 +5,7 @@
 // postMessage. Page hors de la mise en page de l'application (aucun menu). Contrat : docs/lots/chantier-v2-mini-carte.md.
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
+import { Check } from 'lucide-react';
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { lireMessageGps, lireParametresMiniCarte, texte, type MessageMiniCarte } from '@/lib/reseau/mini-carte';
@@ -95,7 +96,7 @@ function Contenu() {
           {texte('annuler', p.langue)}
         </Button>
         <Button size="lg" className="h-12 flex-[2] text-base" disabled={!pretAValider} onClick={valider}>
-          {envoye ? '✓ ' : ''}{texte('valider', p.langue)}
+          {envoye && <Check data-icon="inline-start" />}{texte('valider', p.langue)}
         </Button>
       </div>
     </main>

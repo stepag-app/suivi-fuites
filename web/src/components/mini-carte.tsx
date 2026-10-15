@@ -134,7 +134,7 @@ export function MiniCarte({
           Glissez l&apos;épingle ou touchez la carte
         </p>
       )}
-      {fondIndisponible && <p className="absolute top-2 left-2 rounded-sm bg-amber-100 px-2 py-1 text-amber-900 text-xs">Fond de carte indisponible</p>}
+      {fondIndisponible && <p className="absolute top-2 left-2 rounded-sm bg-background px-2 py-1 text-foreground text-xs shadow-sm">Fond de carte indisponible</p>}
       {erreur && <p className="absolute inset-0 grid place-items-center text-muted-foreground text-sm">{erreur}</p>}
     </div>
   );

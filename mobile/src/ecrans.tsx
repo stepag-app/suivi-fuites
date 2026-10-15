@@ -12,14 +12,16 @@ import { Icone } from './icones';
 import { t, tx, useLangue } from './langue';
 import { chargerListe } from './liste-donnees';
 import { useSession } from './session';
+import { chargerActions, resumeActions } from './tableau-donnees';
+import { useRoles } from './tableau';
 import type { EtatSuivi } from './suivi-gps';
 import { heureLocale, hhmm } from './suivi-gps-regles';
 import { numeroAffiche } from './regles';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { StatutFuite, VFuite } from './types';
 import {
-  Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS, pluriel,
-  POLICE, s, Saisie, Segments, Statut, STATUT_STYLE, useBas, Vide,
+  Alerte, Badge, BarreApp, Bouton, BoutonBarre, BoutonLangue, BoutonTuile, BoutonYAller, Carte, COULEURS, LARGEUR_LARGE, Message, ORDRE_STATUTS,
+  pluriel, POLICE, RangeeTuiles, s, Saisie, Segments, Statut, STATUT_STYLE, useBas, Vide,
 } from './ui';
 /** `proprietaire` : tablette verrouillée par l'appli (lot TP), seul le Wi-Fi est proposé sans session. */
 export function Connexion({ proprietaire = false }: { proprietaire?: boolean }) {
@@ -157,15 +159,18 @@ const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function Liste({
-  nouvelle, attente, balayage, carte, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi, mesures, tablette, bandeauTablette,
+  nouvelle, attente, balayage, carte, chiffres, aFaire, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi, mesures, tablette,
+  bandeauTablette,
 }: {
   nouvelle: () => void; attente: () => void; balayage: () => void; carte: () => void; ouvrir: (id: string) => void;
+  /** « Mes chiffres » et « À faire » de l'agent (demande d'Issam du 2026-10-15). */
+  chiffres: () => void; aFaire: () => void;
   aValider: () => void; notifications: () => void; nonLues: number; miseAJour: ReactNode;
   suiviGps: () => void; suivi: EtatSuivi | null; mesures: () => void;
   /** Tablette verrouillée par l'appli (lot TP) : écran du code de déverrouillage ; absent sinon. */
   tablette?: () => void; bandeauTablette?: ReactNode;
 }) {
-  const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler } = useSession();
+  const { marche, marches, choisirMarche, peut, profil, deconnecter, aRenouveler, session } = useSession();
   const [fuites, setFuites] = useState<VFuite[]>([]);
   const [envois, setEnvois] = useState<Envoi[]>([]);
   const [message, setMessage] = useState('');
@@ -181,6 +186,13 @@ export function Liste({
   // V1 : « À valider (n) » pour qui peut valider au moins une étape (responsable, administrateur).
   const valideur = peut('fuites', 'valider') || peut('interventions', 'valider') || peut('refections', 'valider');
   const [nbAValider, setNbAValider] = useState<number | null>(null);
+  // « À faire » : pastille du nombre d'actions du compte, rouge s'il y en a une urgente (copie, puis serveur).
+  const { terrain } = useRoles();
+  const uid = session?.user.id;
+  const [aFaireResume, setAFaireResume] = useState<{ total: number; urgentes: number } | null>(null);
+  // Réponse arrivée après un changement de marché : ignorée.
+  const marcheCourant = useRef(marcheId);
+  marcheCourant.current = marcheId;
 
   // `discret` : rechargement de fond, sans le rond de rafraîchissement (réservé à l'arrivée sur la liste et au geste
   // de l'agent). À l'ouverture et au changement de marché, la copie de la tablette s'affiche d'abord (liste-donnees.ts).
@@ -196,15 +208,20 @@ export function Liste({
     try {
       const attente = await lireAttente();
       setEnvois((avant) => (memes(avant, attente) ? avant : attente));
-      const repondu = await chargerListe(marcheId, {
-        copie: derniere.current.marche !== marcheId, aRenouveler, delaiMs: DELAI_LISTE_MS, afficher,
-      });
+      const copie = derniere.current.marche !== marcheId;
+      if (uid && terrain) {
+        void chargerActions(uid, marcheId, {
+          copie, aRenouveler, delaiMs: DELAI_LISTE_MS,
+          afficher: (a) => marcheCourant.current === marcheId && setAFaireResume(resumeActions(a.liste)),
+        }).catch(() => undefined);
+      }
+      const repondu = await chargerListe(marcheId, { copie, aRenouveler, delaiMs: DELAI_LISTE_MS, afficher });
       setMessage(repondu ? '' : t('Hors ligne : dernière liste connue.'));
       if (repondu && valideur) setNbAValider(await compterAValider(marcheId).catch(() => null));
     } finally {
       setRafraichit(false);
     }
-  }, [marcheId, aRenouveler, valideur]);
+  }, [marcheId, aRenouveler, valideur, uid, terrain]);
 
   useEffect(() => {
     charger();
@@ -224,6 +241,7 @@ export function Liste({
   useEffect(() => {
     setOnglet('toutes');
     setTexte('');
+    setAFaireResume(null);
   }, [marche?.id]);
 
   // Fuites saisies sur la tablette et pas encore arrivées au serveur : en tête, ouvrables.
@@ -273,6 +291,8 @@ export function Liste({
             {large && marches.length > 1 && (
               <Segments options={marches.map((m) => ({ valeur: m.id, libelle: m.code }))} valeur={marche?.id ?? ''} onChange={choisirMarche} />
             )}
+            {/* Envois en attente : icône et compteur dans la barre, la rangée de boutons tient sur une ligne (2026-10-15) */}
+            {nbAttente > 0 && <Bouton titre="" icone="cloud-upload" fantome compteur={nbAttente} onPress={attente} />}
             <Bouton
               titre={large ? t('Notifications') : ''} icone="bell" fantome onPress={notifications}
               compteur={nonLues > 0 ? (nonLues > 9 ? '9+' : nonLues) : undefined}
@@ -301,15 +321,22 @@ export function Liste({
               {marche ? ` · ${marche.code}` : ''}
             </Text>
           </View>
-          <View style={[s.ligne, { alignItems: 'center' }]}>
-            {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
-            {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
-            {/* Carte : tout compte qui lit les fuites (lecture seule) ; Balayage : qui peut saisir un balayage. */}
-            {peut('fuites', 'lire') && <Bouton titre={t('Carte')} icone="map-pin" onPress={carte} />}
-            {peut('balayage', 'creer') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
-            {peut('mesures_debit', 'creer') && <Bouton titre={t('Mesures de nuit')} icone="gauge" onPress={mesures} />}
-            {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
-          </View>
+          {/* Une seule ligne de boutons, selon les rôles sur le marché choisi (demande d'Issam du 2026-10-15). Carte : tout
+              compte qui lit les fuites ; Mes chiffres et À faire : un rôle de terrain ; Balayage : qui peut balayer. */}
+          <RangeeTuiles large={large}>
+            {valideur && <BoutonTuile titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
+            {terrain && <BoutonTuile titre={t('Mes chiffres')} icone="chart-column" onPress={chiffres} />}
+            {terrain && (
+              <BoutonTuile
+                titre={t('À faire')} icone="list-todo" onPress={aFaire} urgent={!!aFaireResume?.urgentes}
+                compteur={aFaireResume?.total ? (aFaireResume.total > 99 ? '99+' : aFaireResume.total) : undefined}
+              />
+            )}
+            {peut('fuites', 'lire') && <BoutonTuile titre={t('Carte')} icone="map-pin" onPress={carte} />}
+            {peut('balayage', 'creer') && <BoutonTuile titre={t('Balayage')} icone="map" onPress={balayage} />}
+            {peut('mesures_debit', 'creer') && <BoutonTuile titre={t('Mesures de nuit')} icone="gauge" onPress={mesures} />}
+            {peut('fuites', 'creer') && <BoutonTuile titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
+          </RangeeTuiles>
         </View>
         {!!message && (tablette ? (
           // Tablette verrouillée : le Wi-Fi se choisit dans le volet du haut (fenêtre Wi-Fi de l'appli, ActiviteWifi).

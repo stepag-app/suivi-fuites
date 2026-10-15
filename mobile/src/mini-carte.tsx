@@ -3,10 +3,10 @@
 // Balayage (jetons dans le fragment « # », jamais journalisés). Épingle déplaçable, conduite la plus proche en
 // surbrillance ; « Valider la position » renvoie la position et les suggestions, qui restent à accepter d'un toucher.
 // Sans réseau, la carte ne s'ouvre pas : la fuite se saisit avec la seule position GPS.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, StyleSheet, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { panneauJoignable, PANNEAU } from './balayage';
+import { panneauJoignable, PANNEAU, scriptLangue } from './balayage';
 import { t, useLangue } from './langue';
 import { useSession } from './session';
 import { jetonARenouveler } from './session-donnees';
@@ -41,22 +41,39 @@ export function MiniCarte({ visible, marcheId, gps, fermer, valider }: {
   const bas = useBas();
   const [etat, setEtat] = useState<'sonde' | 'chargement' | 'prete' | 'hors_ligne' | 'erreur'>('sonde');
   const [essai, setEssai] = useState(0);
+  const web = useRef<WebView>(null);
+  // Adresse figée à l'ouverture (et à chaque « Réessayer ») : un changement de langue part par l'événement
+  // `langue-apk`, sans recharger la page ni perdre l'épingle déplacée.
+  const [uri, setUri] = useState<string | null>(null);
+  const langueEnvoyee = useRef(langue);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!visible || !session) {
+      setUri(null);
+      return;
+    }
     let annule = false;
     setEtat('sonde');
+    const suite = `/mini-carte?marche=${marcheId}${gps ? `&lat=${gps.lat.toFixed(6)}&lng=${gps.lon.toFixed(6)}&precision=${Math.round(gps.precision)}` : ''}`
+      + `&langue=${langue}`;
+    setUri(`${PANNEAU}/session#access_token=${encodeURIComponent(session.access_token)}`
+      + `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${encodeURIComponent(suite)}`);
+    langueEnvoyee.current = langue;
     panneauJoignable().then((ok) => !annule && setEtat(ok ? 'chargement' : 'hors_ligne'));
     return () => {
       annule = true;
     };
+    // Ouverture et « Réessayer » seulement : jeton, position et langue lus à ce moment-là.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visible, essai]);
 
+  useEffect(() => {
+    if (langueEnvoyee.current === langue) return;
+    langueEnvoyee.current = langue;
+    web.current?.injectJavaScript(scriptLangue(langue));
+  }, [langue]);
+
   if (!visible || !session) return null;
-  const suite = `/mini-carte?marche=${marcheId}${gps ? `&lat=${gps.lat.toFixed(6)}&lng=${gps.lon.toFixed(6)}&precision=${Math.round(gps.precision)}` : ''}`
-    + `&langue=${langue}`;
-  const uri = `${PANNEAU}/session#access_token=${encodeURIComponent(session.access_token)}`
-    + `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${encodeURIComponent(suite)}`;
 
   const recevoir = (donnees: string) => {
     let m: Record<string, unknown>;
@@ -103,11 +120,12 @@ export function MiniCarte({ visible, marcheId, gps, fermer, valider }: {
               <Bouton titre={t('Retour au formulaire')} icone="arrow-left" onPress={fermer} />
             </Carte>
           </View>
-        ) : etat === 'sonde' ? (
+        ) : etat === 'sonde' || !uri ? (
           <View style={m.attente}><ActivityIndicator size="large" color={COULEURS.principal} /></View>
         ) : (
           <View style={{ flex: 1 }}>
             <WebView
+              ref={web}
               source={{ uri }}
               style={{ flex: 1, backgroundColor: COULEURS.sourdine }}
               javaScriptEnabled

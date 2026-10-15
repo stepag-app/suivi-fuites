@@ -2,7 +2,7 @@
 // à l'écran et pour la carte imprimée (capture.ts), afin que le PDF montre exactement les mêmes couleurs.
 import type { Feature, FeatureCollection, Geometry, Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, StyleSpecification } from 'maplibre-gl';
-import type { FilterSpecification, LayerSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification, LayerSpecification } from 'maplibre-gl';
 import {
   COULEUR_SELECTION, expressionCouleurNoeud, expressionCouleurReseau, expressionEtiquetteTroncon, expressionLargeur,
   expressionRayonNoeud, expressionSigleNoeud, type PaletteReseau,
@@ -11,7 +11,10 @@ import { COUCHE_NOEUDS, COUCHE_TRONCONS } from '@/lib/reseau/tuiles-format';
 import { SANS_SECTEUR } from '@/lib/reseau/types';
 import type { CollectionNoeuds, CollectionTroncons, Coloration } from '@/lib/reseau/types';
 import type { StatutFuite } from '@/lib/types';
-import { COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, aUneAlerte, geometrieValide, type Contour, type FuiteCarte } from './commun';
+import {
+  COULEURS, COULEUR_ALERTE, COULEUR_CONTOURS, COULEUR_POSITION, COULEURS_STATUT_SECTEUR, aUneAlerte, geometrieValide,
+  type Contour, type FuiteCarte, type PositionAgent,
+} from './commun';
 
 // Fond de secours (hors ligne, fournisseur injoignable) : les fuites restent visibles sur fond uni.
 export const STYLE_SECOURS: StyleSpecification = {
@@ -221,7 +224,8 @@ export function ajouterSourceNoeuds(m: CarteMapLibre, secteurId: string, data: C
   ajouterAvant(m, couchesNoeuds(source, source, { impression, avecTextes }));
 }
 
-export function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {
+/** `alerte` : fuites entourées du halo rouge (par défaut, toute alerte ; carte terrain : les prioritaires). */
+export function pointsFuites(fuites: FuiteCarte[], alerte: (f: FuiteCarte) => boolean = aUneAlerte): FeatureCollection<Point> {
   return {
     type: 'FeatureCollection',
     features: fuites
@@ -229,7 +233,7 @@ export function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {
       .map((f): Feature<Point> => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.longitude as number, f.latitude as number] },
-        properties: { id: f.id, numero: f.numero, statut: f.statut, alerte: aUneAlerte(f) },
+        properties: { id: f.id, numero: f.numero, statut: f.statut, alerte: alerte(f) },
       })),
   };
 }
@@ -239,7 +243,10 @@ export function contours(liste: Contour[]): FeatureCollection {
     type: 'FeatureCollection',
     features: liste
       .filter((c) => geometrieValide(c.geom))
-      .map((c) => ({ type: 'Feature', geometry: c.geom!, properties: { id: c.id, libelle: c.libelle || c.code } })),
+      .map((c) => ({
+        type: 'Feature', geometry: c.geom!,
+        properties: { id: c.id, libelle: c.libelle || c.code, statut: c.statut_balayage ?? 'a_balayer' },
+      })),
   };
 }
 
@@ -259,6 +266,17 @@ export function ajouterCouches(m: CarteMapLibre, { avecTextes, impression = fals
   m.addSource('zones', { type: 'geojson', data: vide() });
   m.addSource('secteurs', { type: 'geojson', data: vide() });
   m.addLayer({ id: 'zones-fond', type: 'fill', source: 'zones', paint: { 'fill-color': COULEUR_CONTOURS, 'fill-opacity': 0.06 } });
+  // Carte terrain : secteur teinté selon son état de balayage (calque « Zones balayées »), masqué ailleurs.
+  if (!impression) {
+    m.addLayer({
+      id: 'secteurs-statut', type: 'fill', source: 'secteurs', layout: { visibility: 'none' },
+      paint: {
+        'fill-color': ['match', ['get', 'statut'],
+          'balayee', COULEURS_STATUT_SECTEUR.balayee, 'en_cours', COULEURS_STATUT_SECTEUR.en_cours, 'rgba(0,0,0,0)'],
+        'fill-opacity': ['match', ['get', 'statut'], 'balayee', 0.2, 'en_cours', 0.16, 0],
+      },
+    });
+  }
   m.addLayer({ id: 'zones-trait', type: 'line', source: 'zones', paint: { 'line-color': COULEUR_CONTOURS, 'line-width': 2.5 } });
   m.addLayer({
     id: 'secteurs-trait', type: 'line', source: 'secteurs',
@@ -311,4 +329,71 @@ export function ajouterCouches(m: CarteMapLibre, { avecTextes, impression = fals
       paint: { 'text-color': '#1d2d3e', 'text-halo-color': '#ffffff', 'text-halo-width': 1.6 },
     });
   }
+}
+
+// ---- Carte terrain (APK, bouton « Carte ») : calques en lecture seule et position de l'agent ----------------------
+
+const regler = (m: CarteMapLibre, id: string, visible: boolean) => {
+  if (m.getLayer(id)) m.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+};
+
+/** Limites des zones et des secteurs (traits et léger aplat des zones). */
+export function afficherLimites(m: CarteMapLibre, visible: boolean) {
+  for (const id of ['zones-fond', 'zones-trait', 'secteurs-trait']) regler(m, id, visible);
+}
+
+/** Secteurs teintés selon leur état de balayage (balayé, en cours ; à balayer : rien). */
+export function afficherStatutSecteurs(m: CarteMapLibre, visible: boolean) {
+  regler(m, 'secteurs-statut', visible);
+}
+
+/**
+ * Réseau masqué, zones balayées affichées : seuls les tronçons balayés (ou repassés) restent visibles, par leur
+ * état de balayage (feature-state) ; nœuds et diamètres écrits masqués. Réappliqué après l'ajout d'une source.
+ */
+export function afficherSeulementBalayes(m: CarteMapLibre, actif: boolean) {
+  const balaye: ExpressionSpecification = ['case', ['boolean', ['feature-state', 'balaye'], false], 1, 0];
+  for (const l of m.getStyle()?.layers ?? []) {
+    const id = l.id;
+    if (id.startsWith('reseau-') && id.endsWith('-trait')) m.setPaintProperty(id, 'line-opacity', actif ? ['*', 0.95, balaye] : 0.95);
+    else if (id.startsWith('reseau-') && id.endsWith('-halo')) m.setPaintProperty(id, 'line-opacity', actif ? ['*', 0.85, balaye] : 0.85);
+    else if ((id.startsWith('reseau-') && id.endsWith('-etiquettes')) || id.startsWith('noeuds-')) regler(m, id, !actif);
+  }
+}
+
+const SOURCE_POSITION = 'ma-position';
+
+/** Disque de précision (mètres) autour d'une position, en polygone de 48 côtés. */
+function cercle(lon: number, lat: number, rayon: number): number[][] {
+  const dLat = rayon / 111320;
+  const dLon = rayon / (111320 * Math.cos((lat * Math.PI) / 180));
+  return Array.from({ length: 49 }, (_, i) => {
+    const a = (i / 48) * 2 * Math.PI;
+    return [lon + dLon * Math.cos(a), lat + dLat * Math.sin(a)];
+  });
+}
+
+/** Point bleu de l'agent et disque de précision, au-dessus de tout ; null : retirés de la vue. */
+export function afficherPosition(m: CarteMapLibre, p: PositionAgent | null) {
+  const data: FeatureCollection = {
+    type: 'FeatureCollection',
+    features: p ? [
+      { type: 'Feature', geometry: { type: 'Polygon', coordinates: [cercle(p.lon, p.lat, Math.max(p.precision, 1))] }, properties: { role: 'precision' } },
+      { type: 'Feature', geometry: { type: 'Point', coordinates: [p.lon, p.lat] }, properties: { role: 'point' } },
+    ] : [],
+  };
+  const source = m.getSource(SOURCE_POSITION) as GeoJSONSource | undefined;
+  if (source) {
+    source.setData(data);
+    return;
+  }
+  m.addSource(SOURCE_POSITION, { type: 'geojson', data });
+  m.addLayer({
+    id: 'ma-position-precision', type: 'fill', source: SOURCE_POSITION, filter: ['==', ['get', 'role'], 'precision'],
+    paint: { 'fill-color': COULEUR_POSITION, 'fill-opacity': 0.12, 'fill-outline-color': COULEUR_POSITION },
+  });
+  m.addLayer({
+    id: 'ma-position-point', type: 'circle', source: SOURCE_POSITION, filter: ['==', ['get', 'role'], 'point'],
+    paint: { 'circle-radius': 8, 'circle-color': COULEUR_POSITION, 'circle-stroke-width': 3, 'circle-stroke-color': '#ffffff' },
+  });
 }

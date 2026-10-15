@@ -8,25 +8,24 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { STATUT_STYLE } from "@/components/statut";
-import { dateHeure, libellesMarche, messageErreur, nombre } from "@/lib/format";
+import { dateHeure, libellesMarche, nombre } from "@/lib/format";
 import { compterBalayagesEnAttente, ecouterAttente, synchroniser } from "@/lib/hors-ligne";
 import { preparerBalayages, type ChoixBalayage } from "@/lib/reseau/balayage";
-import { annulerDernierBalayage, avecCopie, cleCopieReseau, enregistrerBalayages, messageReseau } from "@/lib/reseau/donnees";
-import { choisirPaquet, lireEtatPaquet, paquetActif, preparerPaquet, type EtatPaquet } from "@/lib/reseau/paquet-carte";
-import { ouvrirFondCarte } from "@/lib/reseau/tuiles";
+import { annulerDernierBalayage, enregistrerBalayages, messageReseau } from "@/lib/reseau/donnees";
 import {
   appliquerSelection, construireAdjacence, formaterLineaire, idsIndexDansAnneau, lineaireSelection, prolongerSelection, type ModeSelection,
 } from "@/lib/reseau/selection";
 import { SANS_SECTEUR } from "@/lib/reseau/types";
 import { useSession } from "@/lib/session";
-import { estContexteApk, getSupabase, lireTout } from "@/lib/supabase";
+import { estContexteApk } from "@/lib/supabase";
 import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { Carte, type CarteRef, type ReseauCarteProps } from "./Carte";
-import { CENTRE_DEFAUT, COLONNES_CARTE, FICHIERS_MAPLIBRE, aUneAlerte, geometrieValide, jourMaroc, type Contour, type FuiteCarte } from "./commun";
+import { CENTRE_DEFAUT, aUneAlerte, geometrieValide, jourMaroc, type FuiteCarte } from "./commun";
+import { CarteTerrain } from "./CarteTerrain";
+import { signalerApk, useDonneesCarte, useMarcheDemande, usePaquetCarte } from "./donnees-carte";
 import { ApercuFuite, CommandesCarte, FiltresCarteForm, OngletsCarte, TabsContent, type FiltresCarte } from "./details-carte";
 import type { ChoixImpression, DonneesImpression } from "./impression";
-import { fichiersFond, styleFondLocal } from "./fond-local";
 import { ListeCarte } from "./liste-carte";
 import { PanneauImpression } from "./PanneauImpression";
 import { PanneauReseau, type BalayagePanneau, type OngletReseau } from "./PanneauReseau";
@@ -34,8 +33,6 @@ import styles from "./reseau.module.css";
 import { ZOOM_MIN_SATELLITE, satelliteDisponible } from "./satellite";
 import { VignetteFond } from "./VignetteFond";
 import { useReseau } from "./useReseau";
-
-type SecteurCarte = Contour & { zone_id: string | null };
 
 const jourFr = (jour: string) => new Date(`${jour}T12:00:00`).toLocaleDateString("fr-FR");
 const FILTRES_VIDES: FiltresCarte = { secteur: "", du: "", au: "", alertes: false };
@@ -46,22 +43,17 @@ const CLE_LISTE = "suivi-fuites:carte:liste-masquee";
 // Messages du mode balayage composés hors rendu : dans la langue de la tablette (APK), sinon en français.
 const tr = (cle: string, valeurs?: Record<string, string | number>, fr?: string) => traduire(langueApk(), cle, valeurs, fr);
 
-/** Message à l'APK quand la carte est ouverte dans sa WebView (rien dans un navigateur). */
-function signalerApk(type: string, donnees: Record<string, unknown> = {}) {
-  const w = window as Window & { ReactNativeWebView?: { postMessage: (m: string) => void } };
-  try {
-    w.ReactNativeWebView?.postMessage(JSON.stringify({ ...donnees, type }));
-  } catch {
-    /* WebView fermée */
-  }
-}
-
 export default function PageCarte() {
   return (
     <Suspense fallback={<p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>}>
-      <CarteDesFuites />
+      <ChoixCarte />
     </Suspense>
   );
+}
+
+// « ?mode=terrain » : carte terrain du bouton « Carte » de l'APK (lecture seule, calques) ; sinon carte des fuites.
+function ChoixCarte() {
+  return useSearchParams().get("mode") === "terrain" ? <CarteTerrain /> : <CarteDesFuites />;
 }
 
 function CarteDesFuites() {
@@ -71,17 +63,12 @@ function CarteDesFuites() {
   const fuiteDemandee = parametres.get("fuite");
   // « ?mode=balayage » : ouverture par l'APK (WebView), réseau affiché et mode balayage actif.
   const ouvertureBalayage = parametres.get("mode") === "balayage";
-  const [fuites, setFuites] = useState<FuiteCarte[]>([]);
-  const [secteurs, setSecteurs] = useState<SecteurCarte[]>([]);
-  const [zones, setZones] = useState<Contour[]>([]);
-  const [erreur, setErreur] = useState("");
-  const [chargement, setChargement] = useState(true);
   const [statut, setStatut] = useState<StatutFuite | "">("");
   const [texte, setTexte] = useState("");
   const [filtres, setFiltres] = useState<FiltresCarte>(FILTRES_VIDES);
   const [selection, setSelection] = useState<string | null>(null);
   const [onglet, setOnglet] = useState("fuite");
-  const { tb, rtl } = useLangueApk();
+  const { tb, rtl, langue } = useLangueApk();
   // Liste des fuites repliable (bureau) : la carte prend toute la largeur ; choix mémorisé.
   const [listeMasquee, setListeMasquee] = useState(false);
   useEffect(() => {
@@ -104,7 +91,8 @@ function CarteDesFuites() {
   const [reseauOuvert, setReseauOuvert] = useState(false);
   const carte = useRef<CarteRef>(null);
 
-  const marcheId = marche?.id;
+  // APK : marché de la liste de la tablette (?marche=).
+  const marcheId = useMarcheDemande(parametres.get("marche"));
   const peutBalayer = peut("balayage", "creer");
   const peutAnnuler = peut("balayage", "supprimer") || peut("balayage", "valider");
   // Mode balayage : la géométrie des tronçons est lue (lasso, « Prolonger ») même quand le réseau s'affiche en tuiles.
@@ -143,56 +131,10 @@ function CarteDesFuites() {
       /* stockage indisponible */
     }
   };
-  // ---- Carte sans réseau (lot CH) : paquet gardé sur l'appareil (APK : toujours ; navigateur : au choix) ----------
-  const [paquet, setPaquet] = useState<boolean | null>(null);
-  useEffect(() => setPaquet(paquetActif()), []);
-  const [etatPaquet, setEtatPaquet] = useState<EtatPaquet | null>(null);
-  const [etapePaquet, setEtapePaquet] = useState("");
-  const [erreurPaquet, setErreurPaquet] = useState("");
-
-  const derniereDemande = useRef(0);
-  const charger = useCallback(async () => {
-    if (!marcheId || paquet === null) return;
-    const demande = ++derniereDemande.current;
-    setErreur("");
-    if (!paquet && !navigator.onLine) {
-      setErreur("Pas de réseau : la carte des fuites s'affichera au retour de la connexion (bouton « Actualiser »).");
-      setChargement(false);
-      return;
-    }
-    setChargement(true);
-    const sb = getSupabase();
-    const lire = async () => {
-      const [f, s, z] = await Promise.all([
-        lireTout<FuiteCarte>((de, a) => sb.from("v_fuites").select(COLONNES_CARTE).eq("marche_id", marcheId)
-          .order("numero", { ascending: false }).range(de, a) as unknown as PromiseLike<{ data: FuiteCarte[] | null; error: { message: string } | null }>),
-        sb.from("secteurs").select("id, zone_id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("libelle"),
-        sb.from("zones").select("id, code, libelle, geom").eq("marche_id", marcheId).eq("actif", true).order("numero"),
-      ]);
-      if (s.error) throw s.error;
-      if (z.error) throw z.error;
-      return { fuites: [...f], tronque: !!f.tronque, secteurs: (s.data as SecteurCarte[] | null) ?? [], zones: (z.data as Contour[] | null) ?? [] };
-    };
-    try {
-      // Avec le paquet, la dernière liste lue est gardée : les fuites restent sur la carte sans réseau.
-      const lu = paquet ? await avecCopie(cleCopieReseau("fuites", marcheId), lire) : { valeur: await lire(), copieDu: null };
-      if (demande !== derniereDemande.current) return;
-      const v = lu.valeur;
-      setFuites(v.fuites);
-      // Copie servie sans réseau : la barre du balayage le dit déjà (« Hors ligne · état du … »).
-      if (!lu.copieDu && v.tronque) setErreur(`Carte incomplète : seules les ${v.fuites.length.toLocaleString("fr-FR")} fuites les plus récentes sont chargées.`);
-      setSecteurs(v.secteurs);
-      setZones(v.zones);
-    } catch (e) {
-      if (demande !== derniereDemande.current) return;
-      setErreur(messageErreur(e));
-    }
-    setChargement(false);
-  }, [marcheId, paquet]);
-
-  useEffect(() => {
-    charger();
-  }, [charger]);
+  // ---- Carte sans réseau (lot CH) et données : donnees-carte.ts ------------------------------------------------
+  const hl = usePaquetCarte(marcheId, reseau.contexte, profil?.id);
+  const { paquet } = hl;
+  const { fuites, secteurs, zones, erreur, chargement, charger } = useDonneesCarte(marcheId, paquet);
 
   const filtrees = useMemo(() => {
     const t = texte.trim().toLowerCase();
@@ -225,6 +167,8 @@ function CarteDesFuites() {
   const [troncons, setTronconsEtat] = useState<Set<string>>(new Set());
   const [occupe, setOccupe] = useState(false);
   const [messageBalayage, setMessageBalayage] = useState("");
+  // Message composé dans l'ancienne langue : effacé quand la tablette change de langue.
+  useEffect(() => setMessageBalayage(""), [langue]);
   const [enAttente, setEnAttente] = useState(0);
 
   useEffect(() => {
@@ -366,56 +310,12 @@ function CarteDesFuites() {
     setModeBalayage((v) => !v);
   };
 
-  // Paquet : préparé ou mis à jour 6 s après l'ouverture avec réseau (l'affichage passe d'abord), une fois par marché
-  // et par ouverture ; l'APK apprend s'il est prêt, et pour quel compte (seul ce compte ouvrira la carte sans réseau).
-  const contexteReseau = reseau.contexte;
-  const preparerCarte = useCallback(async (forcerPages = false) => {
-    if (!marcheId || !contexteReseau || !navigator.onLine) return;
-    setErreurPaquet("");
-    try {
-      setEtatPaquet(await preparerPaquet({
-        marcheId, contexte: contexteReseau, page: "/carte?mode=balayage", fichiers: [...FICHIERS_MAPLIBRE, ...fichiersFond()],
-        etape: setEtapePaquet, forcerPages,
-      }));
-    } catch (e) {
-      setErreurPaquet(messageErreur(e));
-      setEtapePaquet("");
-    }
-  }, [marcheId, contexteReseau]);
-  useEffect(() => {
-    if (!paquet || !marcheId) return;
-    let annule = false;
-    lireEtatPaquet(marcheId).then((e) => { if (!annule) setEtatPaquet(e); });
-    return () => { annule = true; };
-  }, [paquet, marcheId]);
-  const preparationLancee = useRef<string | null>(null);
-  useEffect(() => {
-    if (!paquet || !marcheId || !contexteReseau || preparationLancee.current === marcheId) return;
-    preparationLancee.current = marcheId;
-    const minuteur = setTimeout(() => void preparerCarte(), 6000);
-    return () => clearTimeout(minuteur);
-  }, [paquet, marcheId, contexteReseau, preparerCarte]);
-  const utilisateurId = profil?.id;
-  useEffect(() => {
-    if (paquet && marcheId && utilisateurId) signalerApk("carte-hors-ligne", { pret: !!etatPaquet?.pret, marche: marcheId, utilisateur: utilisateurId });
-  }, [paquet, marcheId, utilisateurId, etatPaquet]);
-  // Fond de la ville (copie de l'appareil, sinon R2) ; sans fond déposé : fond en ligne habituel.
-  const fondLocal = useCallback(async () => {
-    if (!paquet || !marcheId) return null;
-    const f = await ouvrirFondCarte(marcheId);
-    return f ? styleFondLocal(f.url, langueApk() === "fr" ? "fr" : "ar", window.location.origin) : null;
-  }, [paquet, marcheId]);
-
   const balayage: BalayagePanneau = {
     peut: peutBalayer, actif: modeBalayage, basculer: basculerBalayage, selection: troncons, lineaire, dejaBalayes,
     vider: () => setTroncons(new Set()), enregistrer, occupe, message: messageBalayage, enAttente, envoyer, peutAnnuler,
     horsLigne: paquet === null ? undefined : {
-      actif: paquet, etat: etatPaquet, etape: etapePaquet, erreur: erreurPaquet, preparer: () => void preparerCarte(true),
-      choisir: estContexteApk() ? undefined : (v) => {
-        choisirPaquet(v);
-        setPaquet(v);
-        if (v) void preparerCarte(true);
-      },
+      actif: paquet, etat: hl.etat, etape: hl.etape, erreur: hl.erreur, preparer: () => void hl.preparer(true),
+      choisir: estContexteApk() ? undefined : hl.choisir,
     },
   };
 
@@ -564,7 +464,7 @@ function CarteDesFuites() {
               {/* Avec le paquet, la carte attend le marché : son fond (local) est choisi une fois, à la création. */}
               {paquet !== null && (!paquet || marcheId) && (
                 <Carte ref={carte} fuites={placees} zones={zonesAffichees} secteurs={secteursAffiches} libelles={libelles} reseau={reseauCarte}
-                  satellite={satellite} bornesReseau={reseau.bornes} surZoom={setZoom} fond={fondLocal} />
+                  satellite={satellite} bornesReseau={reseau.bornes} surZoom={setZoom} fond={hl.fondLocal} />
               )}
               {/* Réseau d'eau et mode balayage (lot S) : commandes posées sur la carte, visibles aussi sur la tablette */}
               {!reseauOuvert && !modeBalayage && (

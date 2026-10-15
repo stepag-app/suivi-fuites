@@ -324,6 +324,7 @@ const distanceM = (lat1: number, lon1: number, lat2: number, lon2: number) => {
 };
 
 export function creerClientDemo(): SupabaseClient {
+  contoursDemo();
   let session: Session | null = (() => {
     try {
       return typeof window !== "undefined" && window.localStorage.getItem("suivi-fuites:demo:session") === "non" ? null : sessionDemo();
@@ -370,6 +371,22 @@ export function creerClientDemo(): SupabaseClient {
           return voulus == null ? true : p.s ? voulus.includes(p.s) : !!params.p_sans_secteur;
         });
         return { data: { type: "FeatureCollection", features: lignes }, error: null };
+      }
+      // État de balayage fictif (carte terrain, calque « Zones balayées ») : tronçons des secteurs balayés, la moitié
+      // de ceux en cours, un non zoné sur quatre ; un sur cinq repassé.
+      if (nom === "etat_balayage_compact") {
+        const etat = new Map(secteurs.map((x) => [x.id, (x as Ligne).statut_balayage as string | undefined]));
+        const balayes = reseauDemo().filter((t, k) => t.properties.marche === params.p_marche && (t.properties.s
+          ? etat.get(t.properties.s) === "balayee" || (etat.get(t.properties.s) === "en_cours" && k % 2 === 0)
+          : k % 4 === 0));
+        const jour = (k: number) => new Date(Date.now() - (k % 9) * 86400000).toISOString().slice(0, 10);
+        return {
+          data: {
+            t: balayes.map((t) => t.properties.id), p: balayes.map((_, k) => jour(k + 3)), d: balayes.map((_, k) => jour(k)),
+            n: balayes.map((_, k) => (k % 5 === 0 ? 2 : 1)), a: balayes.map(() => 0), agents: [ADMIN_ID],
+          },
+          error: null,
+        };
       }
       if (nom === "affecter_troncons_secteur") {
         const ids = new Set(params.p_troncons as string[]);
@@ -553,6 +570,23 @@ export function creerClientDemo(): SupabaseClient {
     },
   };
   return client as unknown as SupabaseClient;
+}
+
+// Contours des huit secteurs SRM qui portent la grille du réseau fictif (3 × 5 mailles chacun) et leur état de
+// balayage : balayé, en cours, à balayer à tour de rôle.
+let contoursPoses = false;
+function contoursDemo() {
+  if (contoursPoses) return;
+  contoursPoses = true;
+  const [x0, y0, pas] = [-1.925, 34.67, 0.0025];
+  secteurs.filter((x) => x.marche_id === MARCHE_SRM).slice(0, 8).forEach((x, k) => {
+    const [a, b] = [k % 4, Math.floor(k / 4)];
+    const [o, su, e, n] = [x0 + 3 * a * pas, y0 + 5 * b * pas, x0 + (3 * a + 3) * pas, y0 + (5 * b + 5) * pas];
+    Object.assign(x, {
+      geom: { type: "MultiPolygon", coordinates: [[[[o, su], [e, su], [e, n], [o, n], [o, su]]]] },
+      statut_balayage: ["balayee", "en_cours", "a_balayer"][k % 3],
+    });
+  });
 }
 
 interface TronconDemo { type: "Feature"; properties: { id: string; marche: string; s: string | null; z: null; c: string; d: number; m: null; l: number }; geometry: { type: "LineString"; coordinates: number[][] } }

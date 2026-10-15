@@ -35,6 +35,8 @@ export const TRADUCTIONS = {
   // Liste des fuites
   'Fuites · {code}': { ar: 'التسربات · {code}' },
   'Balayage': { ar: 'مسح الشبكة', hyb: 'Balayage' },
+  'Carte': { ar: 'الخريطة' },
+  'Fuites, réseau et zones balayées': { ar: 'التسربات والشبكة والمناطق الممسوحة' },
   'Hors ligne : dernière liste connue.': { ar: 'دون اتصال: آخر قائمة محفوظة.' },
   'Aucune fuite.': { ar: 'لا يوجد أي تسرب.' },
   'Gardée sur la tablette': { ar: 'محفوظة على الجهاز اللوحي' },

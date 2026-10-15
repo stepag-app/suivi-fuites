@@ -156,9 +156,9 @@ const DELAI_LISTE_MS = 20000;
 const memes = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
 export function Liste({
-  nouvelle, attente, balayage, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi, mesures, tablette, bandeauTablette,
+  nouvelle, attente, balayage, carte, ouvrir, aValider, notifications, nonLues, miseAJour, suiviGps, suivi, mesures, tablette, bandeauTablette,
 }: {
-  nouvelle: () => void; attente: () => void; balayage: () => void; ouvrir: (id: string) => void;
+  nouvelle: () => void; attente: () => void; balayage: () => void; carte: () => void; ouvrir: (id: string) => void;
   aValider: () => void; notifications: () => void; nonLues: number; miseAJour: ReactNode;
   suiviGps: () => void; suivi: EtatSuivi | null; mesures: () => void;
   /** Tablette verrouillée par l'appli (lot TP) : écran du code de déverrouillage ; absent sinon. */
@@ -303,7 +303,9 @@ export function Liste({
           <View style={[s.ligne, { alignItems: 'center' }]}>
             {nbAttente > 0 && <Bouton titre={t('Envois en attente')} icone="cloud-upload" compteur={nbAttente} onPress={attente} />}
             {valideur && <Bouton titre={t('À valider')} icone="clipboard-check" compteur={nbAValider ?? undefined} onPress={aValider} />}
-            {peut('balayage', 'lire') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
+            {/* Carte : tout compte qui lit les fuites (lecture seule) ; Balayage : qui peut saisir un balayage. */}
+            {peut('fuites', 'lire') && <Bouton titre={t('Carte')} icone="map-pin" onPress={carte} />}
+            {peut('balayage', 'creer') && <Bouton titre={t('Balayage')} icone="map" onPress={balayage} />}
             {peut('mesures_debit', 'creer') && <Bouton titre={t('Mesures de nuit')} icone="gauge" onPress={mesures} />}
             {peut('fuites', 'creer') && <Bouton titre={t('Nouvelle fuite')} icone="plus" primaire onPress={nouvelle} />}
           </View>

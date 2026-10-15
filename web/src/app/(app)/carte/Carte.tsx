@@ -5,7 +5,7 @@
 // pas le poids et le « worker » de MapLibre se trouve à côté de son module.
 import 'maplibre-gl/dist/maplibre-gl.css';
 import type { Point } from 'geojson';
-import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, StyleSpecification } from 'maplibre-gl';
+import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, Popup, StyleSpecification } from 'maplibre-gl';
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { STATUTS, dateHeure, libellesMarche, nombre } from '@/lib/format';
@@ -18,16 +18,24 @@ import type { Coloration, EtatFeature, ProprietesTroncon } from '@/lib/reseau/ty
 import type { EtatCarte } from './capture';
 import {
   ALERTES, CENTRE_DEFAUT, MODULE_MAPLIBRE, STYLE_FOND, ZOOM_DEFAUT, geometrieValide,
-  type Contour, type FuiteCarte,
+  type Contour, type FuiteCarte, type PositionAgent,
 } from './commun';
-import { STYLE_SECOURS, ajouterCouches, contours, couchesTraitReseau, pointsFuites, sommets } from './couches';
+import {
+  STYLE_SECOURS, afficherLimites, afficherPosition, afficherSeulementBalayes, afficherStatutSecteurs, ajouterCouches, contours,
+  couchesTraitReseau, pointsFuites, sommets,
+} from './couches';
+import { textesFondLocal } from './fond-local';
 import { installerTrace } from './lasso';
 import { creerGestionReseau, creerGestionTuiles, type GestionReseau, type SecteurAffiche } from './reseau-carte';
 import styles from './reseau.module.css';
 import { afficherSatellite } from './satellite';
 
 type Libelles = ReturnType<typeof libellesMarche>;
-export type CarteRef = { recentrer: () => void; centrerSur: (f: FuiteCarte) => void; etatImpression: () => EtatCarte | null };
+export type CarteRef = {
+  recentrer: () => void; centrerSur: (f: FuiteCarte) => void; etatImpression: () => EtatCarte | null;
+  /** Carte terrain : amène la vue sur un point (position de l'agent), sans dézoomer. */
+  allerA: (lon: number, lat: number) => void;
+};
 
 /** Réseau d'eau affiché sur la carte (lot S) ; absent : aucune couche du réseau. */
 export interface ReseauCarteProps {
@@ -47,6 +55,20 @@ export interface ReseauCarteProps {
   surZoom: (zoom: number) => void;
   /** Archive de tuiles à jour : tout le réseau en une source ; null : lecture par secteur. */
   tuiles: TuilesReseau | null;
+  /** Carte terrain, réseau masqué et zones balayées affichées : seuls les tronçons balayés restent visibles. */
+  seulementBalayes?: boolean;
+}
+
+/** Carte terrain de l'APK (bouton « Carte ») : lecture seule, calques, position de l'agent. */
+export interface OptionsTerrain {
+  /** « Ouvrir la fiche » d'une bulle : la fiche s'ouvre dans l'application de la tablette. */
+  ouvrirFiche: (id: string) => void;
+  /** Fuites entourées du halo rouge (calque « Fuites prioritaires »). */
+  alerte: (f: FuiteCarte) => boolean;
+  limites: boolean;
+  /** Secteurs teintés selon leur état de balayage (calque « Zones balayées »). */
+  statutSecteurs: boolean;
+  position: PositionAgent | null;
 }
 
 interface Props {
@@ -65,16 +87,17 @@ interface Props {
    * null : fond en ligne habituel (OpenFreeMap).
    */
   fond?: () => Promise<StyleSpecification | null>;
+  terrain?: OptionsTerrain;
 }
 
-export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau, satellite = false, bornesReseau = null, surZoom, fond }, ref) {
+export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones, secteurs, libelles, reseau, satellite = false, bornesReseau = null, surZoom, fond, terrain }, ref) {
   const conteneur = useRef<HTMLDivElement>(null);
   const carte = useRef<CarteMapLibre | null>(null);
   const gestion = useRef<GestionReseau | null>(null);
   const avecTextesRef = useRef(false);
   const [versionGestion, setVersionGestion] = useState(0);
   const [pret, setPret] = useState(false);
-  const { tb } = useLangueApk();
+  const { tb, langue } = useLangueApk();
   const [fondIndisponible, setFondIndisponible] = useState(false);
   const [erreur, setErreur] = useState('');
   const router = useRouter();
@@ -96,6 +119,12 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   surZoomRef.current = surZoom;
   const fondRef = useRef(fond);
   fondRef.current = fond;
+  const terrainRef = useRef(terrain);
+  terrainRef.current = terrain;
+  // Fond local (lot CH) en service : ses noms de rues suivent la langue de la tablette.
+  const fondLocalActif = useRef(false);
+  // Dernière bulle ouverte (texte composé dans la langue du moment) : refermée quand la langue change.
+  const bulleOuverte = useRef<Popup | null>(null);
 
   // Cadre : les fuites affichées ; sinon les contours dessinés (secteur choisi) ; sinon Oujda.
   const recentrer = () => {
@@ -146,14 +175,30 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     if (!m || !ml || f.latitude == null || f.longitude == null) return;
     const position: [number, number] = [f.longitude, f.latitude];
     m.easeTo({ center: position, zoom: Math.max(m.getZoom(), 15), offset: [0, m.getContainer().clientHeight * 0.2], duration: 500 });
-    new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
+    bulleOuverte.current = new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
       .setLngLat(position)
-      .setDOMContent(bulle(f, libellesRef.current, (href) => routerRef.current.push(href)))
+      .setDOMContent(bulle(f, libellesRef.current, ouvrirFiche))
       .addTo(m);
   };
   const centrerSurRef = useRef(centrerSur);
   centrerSurRef.current = centrerSur;
-  useImperativeHandle(ref, () => ({ recentrer: () => recentrerRef.current(), centrerSur: (f) => centrerSurRef.current(f), etatImpression }), []);
+  const allerA = (lon: number, lat: number) => {
+    const m = carte.current;
+    if (m) m.easeTo({ center: [lon, lat], zoom: Math.max(m.getZoom(), 16), duration: 600 });
+  };
+  const allerARef = useRef(allerA);
+  allerARef.current = allerA;
+  useImperativeHandle(ref, () => ({
+    recentrer: () => recentrerRef.current(), centrerSur: (f) => centrerSurRef.current(f), etatImpression,
+    allerA: (lon, lat) => allerARef.current(lon, lat),
+  }), []);
+  // Carte terrain : la fiche s'ouvre dans l'APK ; panneau : page de la fiche.
+  const ouvrirFiche = (href: string, id: string) => {
+    if (terrainRef.current) terrainRef.current.ouvrirFiche(id);
+    else routerRef.current.push(href);
+  };
+  const ouvrirFicheRef = useRef(ouvrirFiche);
+  ouvrirFicheRef.current = ouvrirFiche;
 
   // Création de la carte (une fois).
   useEffect(() => {
@@ -179,6 +224,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       if (local) {
         style = local;
         avecTextes = true;
+        fondLocalActif.current = true;
       } else {
         try {
           const c = new AbortController();
@@ -253,6 +299,9 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
           if (id) r.surSelection([id], 'basculer');
           return;
         }
+        // Tronçons masqués (« seulement les balayés ») : ils restent sous le doigt pour MapLibre, pas pour l'agent.
+        const visibles = (liste: MapGeoJSONFeature[]) => (r?.seulementBalayes
+          ? liste.filter((t) => r.etats.get(gestion.current?.proprietes(t)?.id ?? '')?.balaye) : liste);
         const groupe = autour(e.point.x, e.point.y, ['groupes'])[0];
         if (groupe) {
           const source = m.getSource('fuites') as GeoJSONSource;
@@ -263,11 +312,11 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         const point = autour(e.point.x, e.point.y, ['fuites-points'])[0];
         if (!point) {
           // Pas de fuite sous le doigt : un tronçon du réseau ?
-          const troncon = r ? autour(e.point.x, e.point.y, couchesTraitReseau(m))[0] : undefined;
+          const troncon = r ? visibles(autour(e.point.x, e.point.y, couchesTraitReseau(m)))[0] : undefined;
           const p: ProprietesTroncon | null | undefined = troncon ? gestion.current?.proprietes(troncon) : null;
           if (!p || !r) return;
           // Sans ancre imposée : MapLibre place la bulle du côté où elle tient entière (tronçon au bord de la carte).
-          new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, offset: 10 })
+          bulleOuverte.current = new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, offset: 10 })
             .setLngLat(e.lngLat)
             .setDOMContent(bulleTroncon(p, r.libelles.get(p.s ?? ''), r.etats.get(p.id), r.peutAnnuler ? () => r.annuler(p.id) : null))
             .addTo(m);
@@ -278,9 +327,9 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
         // Bulle au-dessus du point, placé dans le quart bas de la carte : elle reste entière à l'écran.
         const position: [number, number] = [f.longitude as number, f.latitude as number];
         m.easeTo({ center: position, offset: [0, m.getContainer().clientHeight * 0.28], duration: 300 });
-        new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
+        bulleOuverte.current = new ml.Popup({ maxWidth: '320px', focusAfterOpen: false, anchor: 'bottom', offset: 14, className: 'ancien' })
           .setLngLat(position)
-          .setDOMContent(bulle(f, libellesRef.current, (href) => routerRef.current.push(href)))
+          .setDOMContent(bulle(f, libellesRef.current, ouvrirFicheRef.current))
           .addTo(m);
       });
       // Curseur « main » au survol (souris).
@@ -297,10 +346,11 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
   }, []);
 
   // Données : mises à jour à chaque changement de filtre.
+  const alerte = terrain?.alerte;
   useEffect(() => {
     if (!pret || !carte.current) return;
-    (carte.current.getSource('fuites') as GeoJSONSource | undefined)?.setData(pointsFuites(fuites));
-  }, [pret, fuites]);
+    (carte.current.getSource('fuites') as GeoJSONSource | undefined)?.setData(pointsFuites(fuites, alerte));
+  }, [pret, fuites, alerte]);
   useEffect(() => {
     if (!pret || !carte.current) return;
     (carte.current.getSource('zones') as GeoJSONSource | undefined)?.setData(contours(zones));
@@ -365,6 +415,55 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     m.getCanvas().style.cursor = modeBalayage ? 'crosshair' : '';
   }, [pret, modeBalayage]);
 
+  // Carte terrain : calques (limites, secteurs teintés, tronçons balayés seuls) et position de l'agent.
+  const limites = terrain?.limites ?? true;
+  const statutSecteurs = terrain?.statutSecteurs ?? false;
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m) return;
+    afficherLimites(m, limites);
+    afficherStatutSecteurs(m, statutSecteurs);
+  }, [pret, limites, statutSecteurs]);
+  const seulementBalayes = reseau?.seulementBalayes ?? false;
+  const balayesSeulsPoses = useRef(false);
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m || (!seulementBalayes && !balayesSeulsPoses.current)) return;
+    balayesSeulsPoses.current = seulementBalayes;
+    afficherSeulementBalayes(m, seulementBalayes);
+  }, [pret, seulementBalayes, secteursReseau, versionGestion]);
+  const position = terrain?.position ?? null;
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m || (!position && !m.getSource('ma-position'))) return;
+    afficherPosition(m, position);
+  }, [pret, position]);
+
+  // Langue de la tablette changée, carte ouverte : bulle ouverte refermée, noms des rues du fond local dans la nouvelle
+  // langue.
+  const langueVue = useRef(langue);
+  useEffect(() => {
+    if (langueVue.current === langue) return;
+    langueVue.current = langue;
+    bulleOuverte.current?.remove();
+    bulleOuverte.current = null;
+  }, [langue]);
+  const langueFond = langue === 'fr' ? 'fr' : 'ar';
+  const langueFondAppliquee = useRef<'fr' | 'ar' | null>(null);
+  useEffect(() => {
+    const m = carte.current;
+    if (!pret || !m || !fondLocalActif.current) return;
+    if (langueFondAppliquee.current === null) {
+      langueFondAppliquee.current = langueFond;
+      return;
+    }
+    if (langueFondAppliquee.current === langueFond) return;
+    langueFondAppliquee.current = langueFond;
+    for (const [id, texte] of textesFondLocal(langueFond)) {
+      if (m.getLayer(id)) m.setLayoutProperty(id, 'text-field', texte as never);
+    }
+  }, [pret, langueFond]);
+
   return (
     <div className="relative h-full min-h-72 w-full overflow-hidden bg-muted">
       <div ref={conteneur} className="carte-maplibre absolute inset-0" aria-label="Carte des fuites" />
@@ -372,15 +471,25 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       {erreur && <p className="absolute inset-x-4 bottom-4 m-0 rounded-lg bg-destructive/10 p-3 text-center text-destructive text-sm">{erreur}</p>}
       {fondIndisponible && pret && (
         <p className="absolute top-3 right-14 left-3 m-0 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-amber-900 text-xs dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
-          Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.
+          {tb('Fond de carte indisponible (réseau) : les fuites sont affichées sans le plan des rues.')}
         </p>
       )}
     </div>
   );
 });
 
-// Contenu de la bulle, construit en DOM (aucun HTML injecté depuis les données).
-function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTMLElement {
+// Texte d'une alerte dans la langue de la tablette (français dans le panneau).
+function texteAlerte(cle: keyof FuiteCarte, l: Libelles, tr: (cle: string, v?: Record<string, string | number>) => string): string {
+  if (cle === 'alerte_non_reparee') return tr('Non réparée > {delai} h', { delai: l.delaiReparationH });
+  if (cle === 'alerte_communication_srm') return tr('Non communiquée {sigle}', { sigle: l.sigle });
+  return tr(ALERTES.find((a) => a.cle === cle)?.texte(l) ?? '');
+}
+
+// Contenu de la bulle, construit en DOM (aucun HTML injecté depuis les données). Dans l'APK, dans la langue de la
+// tablette, de droite à gauche en arabe.
+function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string, id: string) => void): HTMLElement {
+  const langue = langueApk();
+  const tr = (cle: string, v?: Record<string, string | number>) => traduire(langue, cle, v);
   const el = (tag: string, classe?: string, texte?: string) => {
     const n = document.createElement(tag);
     if (classe) n.className = classe;
@@ -388,32 +497,34 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTML
     return n;
   };
   const racine = el('div', 'bulle-fuite');
+  if (langue !== 'fr') racine.dir = 'rtl';
   const tete = el('div', 'fuite-tete');
-  tete.append(el('strong', undefined, `N° ${f.numero}`), el('span', `badge ${STATUTS[f.statut].classe}`, STATUTS[f.statut].libelle));
+  tete.append(el('strong', undefined, tr('N° {numero}', { numero: f.numero })), el('span', `badge ${STATUTS[f.statut].classe}`, tr(STATUTS[f.statut].libelle)));
   racine.append(tete);
-  if (f.reference_srm) racine.append(el('div', undefined, `${l.reference} : ${f.reference_srm}`));
-  racine.append(el('div', undefined, [f.zone, f.secteur ?? 'Secteur non renseigné'].filter(Boolean).join(' · ')));
+  if (f.reference_srm) racine.append(el('div', undefined, tr('{reference} : {valeur}', { reference: l.reference, valeur: f.reference_srm })));
+  racine.append(el('div', undefined, [f.zone, f.secteur ?? tr('Secteur non renseigné')].filter(Boolean).join(' · ')));
   if (f.adresse) racine.append(el('div', 'discret', f.adresse));
-  racine.append(el('div', 'discret', `Détectée le ${dateHeure(f.date_detection)}${f.origine === 'srm' ? ` · signalée ${l.sigle}` : ''}`));
+  racine.append(el('div', 'discret', tr('Détectée le {date}', { date: dateHeure(f.date_detection) })
+    + (f.origine === 'srm' ? tr(' · signalée {sigle}', { sigle: l.sigle }).replace(/^\u200f/, '') : '')));
   const alertes = ALERTES.filter((a) => f[a.cle] === true);
   if (alertes.length) {
     const bloc = el('div', 'alertes');
-    alertes.forEach((a) => bloc.append(el('span', 'alerte', a.texte(l))));
+    alertes.forEach((a) => bloc.append(el('span', 'alerte', texteAlerte(a.cle, l, tr))));
     racine.append(bloc);
   }
-  const lien = el('a', 'bouton primaire', 'Ouvrir la fiche') as HTMLAnchorElement;
+  const lien = el('a', 'bouton primaire', tr('Ouvrir la fiche')) as HTMLAnchorElement;
   lien.href = `/fuites/${f.id}`;
   lien.addEventListener('click', (e) => {
     if (e.ctrlKey || e.metaKey || e.shiftKey || e.button !== 0) return;
     e.preventDefault();
-    ouvrir(`/fuites/${f.id}`);
+    ouvrir(`/fuites/${f.id}`, f.id);
   });
   // « Y aller » : itinéraire dans l'appli de cartes de l'appareil (Google Maps sur Android), vers la fuite.
   const boutons = el('div', 'bulle-boutons');
   boutons.append(lien);
   const itineraire = lienItineraire(f.latitude, f.longitude);
   if (itineraire) {
-    const aller = el('a', 'bouton', 'Y aller') as HTMLAnchorElement;
+    const aller = el('a', 'bouton', tr('Y aller')) as HTMLAnchorElement;
     aller.href = itineraire;
     aller.target = '_blank';
     aller.rel = 'noreferrer';
@@ -435,10 +546,13 @@ function bulleTroncon(
     if (texte != null) n.textContent = texte;
     return n;
   };
+  const langue = langueApk();
+  const tr = (cle: string, v?: Record<string, string | number>) => traduire(langue, cle, v).replace(/^\u200f/, '');
   const racine = el('div', styles.bulleTroncon);
-  racine.append(el('strong', undefined, `${CATEGORIES_TRONCON[p.c] ?? 'Tronçon'}${p.d ? ` DN ${nombre(p.d, 0)}` : ''}${p.m ? ` · ${p.m}` : ''}`));
-  racine.append(el('div', undefined, noms ? `${noms.zone} · ${noms.secteur}` : 'Non zoné'));
-  racine.append(el('div', 'discret', `Longueur ${formaterLineaire(p.l)}${p.d ? '' : ' · diamètre inconnu'}`));
+  if (langue !== 'fr') racine.dir = 'rtl';
+  racine.append(el('strong', undefined, `${tr(CATEGORIES_TRONCON[p.c] ?? 'Tronçon')}${p.d ? ` DN ${nombre(p.d, 0)}` : ''}${p.m ? ` · ${p.m}` : ''}`));
+  racine.append(el('div', undefined, noms ? `${noms.zone} · ${noms.secteur}` : tr('Non zoné')));
+  racine.append(el('div', 'discret', `${tr('Longueur {l}', { l: formaterLineaire(p.l) })}${p.d ? '' : tr(' · diamètre inconnu')}`));
   racine.append(el('div', `${styles.etat} ${etat?.balaye ? styles.balaye : styles.non}`, texteEtatTronconApk(etat)));
   if (annuler && etat?.balaye) {
     const b = el('button', 'danger', traduire(langueApk(), 'Annuler le balayage')) as HTMLButtonElement;

@@ -38,7 +38,7 @@ technique : `MAQUETTE-SHADCN.md`.
 | `/suivi-gps` | responsable du marché et administrateur (RLS de `traces_gps`) ; entrée de menu si « fuites / valider » ou administrateur | **suivi GPS (X6)** : tracé d'un jour (calendrier, jour précédent / suivant, jamais dans le futur) des agents du marché, un par agent, sur le fond OpenFreeMap minimal avec le réseau en tuiles privées (S10) et le satellite activable ; liste des agents avec heures de début et de fin, distance, nombre de points, temps réellement suivi et interruptions (trou de plus de 10 min : le trait est coupé), cases pour afficher ou masquer un agent, une couleur par agent ; début en vert, fin en rouge, points visibles de près (toucher : agent et heure). Lecture par `v_traces_gps` et `trace_gps` ; **Marchés > menu d'un marché désactivé > « Effacer les tracés GPS »** (administrateur, `purger_traces_marche`, confirmation) pour la fin du marché. Compromis du 2026-10-10 : heures de travail du marché dans le titre, **pauses** de chaque agent (début, fin, durée, motif de reprise ; jamais le lieu : encart « Pauses (sans lieu) » sur la carte, et dans la fiche de l'agent ; un trou couvert par une pause n'est pas une interruption), **état de la tablette** le jour même (`v_suivi_gps_etats` : actif, en pause jusqu'à…, hors des heures, autorisation refusée, session fermée, dernier signe) et bandeau rouge **« Suivi coupé »** ; réglages dans **Paramètres › Marché › Suivi GPS : heures de travail et pauses** (`ReglagesSuiviGps.tsx`, `regler_suivi_gps`, responsable et administrateur). Code : `src/app/(app)/suivi-gps/`, calculs dans `src/lib/trace-gps.ts` (`node scripts/verifier-trace-gps.mjs`) |
 | `/debits` | droit « mesures_debit / lire » (responsable ; Détection et Réparation si la matrice l'ouvre) | **débits de nuit (S15, D7)** : onglet **Synthèse** (τ1 du marché, pénalités estimées au prix du bordereau si « quantités / lire », zones en alerte, dernier contrôle ; tableau par zone et marché : Q exigé, Qi, Qf, ΔQ, τ1, pénalité de balayage, contrôles, moyenne, τ2, pénalité de maintien, dégradation, alertes ; courbe des nuits complètes face au Q exigé et au Q à maintenir) ; **Campagnes et saisie** (`?onglet=campagnes&campagne=<id>` : nouvelle campagne et suppression avec « valider » ; grille point × nuit au minimum, relevés de 0 h à 6 h dans un dialogue avec collage d'une colonne, import CSV ou Excel (`point, date, heure, débit`), aperçu du débit des zones, PV signé joint au compartiment `debits`, **procès-verbal** A4 PDF ou Excel avec visas) ; **À valider** (saisies du terrain, `valider_etapes` étape « debit ») ; export Excel de la synthèse. Paramètres › **Débits de nuit** : points de mesure, tableau n° 1, réglages, phases. Widget au tableau de bord, rappel sur `/a-valider`. Calculs : `src/lib/debits.ts` (`node scripts/verifier-debits.mjs`) ; contrat : `docs/lots/chantier-v3-debits.md` |
 | `/rapports` | responsable et administrateur (« exports / lire » et « fuites / valider », ou administrateur) | **états journaliers et hebdomadaires (chantier v3, J1, J2)** : période (jour, semaine du lundi au dimanche, dates libres), rubriques et colonnes à cocher, filtres, A4 portrait ou paysage, PDF ou Excel, aperçu à l'écran et **aperçu avant tirage** (le PDF lui-même) ; second modèle : le rapport de recherche de fuites (gabarit STEPAG 2026) de la page Balayage, inchangé. Voir § Rapports |
-| `/session` | APK | ouvre la session de la tablette dans la WebView de l'écran Balayage (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` |
+| `/session` | APK | ouvre la session de la tablette dans la WebView des écrans Balayage et Carte (jetons dans le fragment `#`, jamais envoyés au serveur), puis `/carte?mode=balayage` ou `/carte?mode=terrain` (§ Carte terrain) |
 | `/fuites/nouvelle` | droit « fuites / créer » | GPS ou **épingle sur une mini-carte** (zoom rapproché, tronçon suggéré en surbrillance), champs obligatoires **F1** (référence, secteur, ouvrage, visibilité, **nature de dégradation**, plus ceux que le marché coche), adresse facultative, matériau et diamètre de la conduite, **suggestions à valider d'un clic** (rue, secteur, conduite du tronçon le plus proche ; jamais pré-remplies), photos facultatives avec avertissement, détection des doublons ; responsable : **« Détectée par »**, date et heure réelles, source, « valider en même temps » ; voir § Validation et saisie |
 | `/fuites/[id]` | selon droits | détail, photos par étape, suivi SRM, **validation par étape** (détection, chaque réparation, chaque réfection : badge, bouton « Valider », avertissement « aucune photo »), **modifier** la détection, une réparation ou une réfection selon la validation et les droits, **corrections du responsable** (position à l'épingle, date au calendrier, référence, adresse… motif obligatoire pour date, référence et position), badge **« saisie différée »**, réparations (fouille, pièces posées : corrections du bureau avec leur nature et leur motif, saisie d'origine barrée « remplacée » ou « retirée », **visibles du bureau seulement**), réfections ou clôture sans réfection, quantités et prix, verrouillage, statut, suppression logique ; motif des lignes de prix corrigées (corriger une quantité demande un motif) |
 | `/a-valider` | droit « valider » (fuites, interventions ou réfections) : responsable, administrateur | étapes en attente du marché (`v_a_valider`) : étape, fuite, résultat, date, auteur, saisie différée, 3 vignettes ou « Aucune photo » ; onglets par étape, cases à cocher, « Tout cocher », **« Valider (n) »** (`valider_etapes`), avertissement « aucune photo » avec la liste avant de valider |
@@ -433,6 +433,37 @@ complet : `docs/lots/chantier-v3-email.md`.
   réseau) : `node scripts/essayer-carte-hors-ligne.mjs <relais> <dossier>` sur une base d'essai locale (PostgREST et un
   relais qui imite l'authentification, la fonction `reseau-tuiles` et R2), panneau construit avec
   `NEXT_PUBLIC_MESURE_CARTE=1` ; le script lance et arrête lui-même `next start`.
+
+### Carte terrain (APK, bouton « Carte »)
+
+- **But** : tout agent qui lit les fuites (détection, réparation, réfection, rôles cumulés) voit sur la tablette, en plein
+  écran et **en lecture seule**, le nuage des fuites, le réseau, les zones déjà balayées et sa propre position, pour s'y
+  rendre (« Y aller ») en plus de la liste. Page `/carte?mode=terrain&marche=<id>&langue=fr|hybride|ar[&fuite=<id>]`
+  (`carte/CarteTerrain.tsx`), ouverte par `mobile/src/carte.tsx` comme le Balayage (WebView, session de la tablette).
+- **Calques** (`carte/PanneauCalques.tsx`, choix gardés sur l'appareil, `suivi-fuites:carte-terrain:calques`) :
+  **Fuites prioritaires** (halo rouge ; même règle que « Urgent » de À faire : non réparée au-delà du délai du marché,
+  réfection de chaussée hors délai ; une prioritaire reste visible même si son statut est masqué), une ligne par
+  **statut** (couleur et nombre), **Réseau d'eau** (couleur du diamètre), **Zones balayées** (tronçons balayés et
+  repassés, secteurs teintés selon `secteurs.statut_balayage` : balayé, en cours ; réseau masqué : seuls les tronçons
+  balayés restent, nœuds et diamètres écrits masqués), **Limites des secteurs**, **Satellite** (si la clé Esri est
+  posée), **Ma position** (point bleu et disque de précision, `navigator.geolocation.watchPosition`, arrêté quand la page
+  est cachée ; bouton rond « Aller à ma position »). Légende du réseau ou du balayage sous les calques.
+- **Lecture seule** : ni sélection ni enregistrement de balayage, ni « Annuler le balayage » dans la bulle d'un tronçon.
+  Les rôles Réparation et Réfection lisent les balayages depuis la migration `20261016800000` (« balayage / lire »).
+- **Bulle d'une fuite** dans la langue de la tablette ; « Ouvrir la fiche » envoie `carte:ouvrir-fuite` à l'APK, qui
+  ouvre sa fiche et, au retour, rouvre la carte avec `&fuite=<id>` (centrée sur la fuite, bulle ouverte).
+- **Sans réseau** : même paquet que la carte du balayage (§ Carte sans réseau) ; la carte terrain le prépare aussi
+  (`usePaquetCarte`, `carte/donnees-carte.ts`, commun aux deux modes) et l'APK l'ouvre directement pour le même compte.
+  Tous les secteurs et les tronçons non zonés sont affichés, sans toucher aux choix mémorisés du panneau Réseau
+  (`useReseau(…, terrain)`).
+- **Marché** (`useMarcheDemande`) : celui de la liste de la tablette (`?marche=`), pour la carte terrain comme pour le
+  Balayage (un agent affecté à deux marchés ne balaie plus dans celui que le panneau avait gardé).
+- **Langue** : changée sur la tablette carte ouverte, l'APK envoie l'événement `langue-apk` ; la page se redessine sans
+  recharger (`changerLangueApk`, `src/lib/langue-apk.ts`) : sélection de balayage et épingle de la mini-carte gardées,
+  noms des rues du fond local suivis. Libellés dans `TRADUCTIONS_BALAYAGE` (section « Carte terrain »).
+- Vérification : `node scripts/verifier-langue-carte.mjs` (18 : chaque libellé des cartes de l'APK a son arabe, statuts
+  et classes de diamètre compris ; règle des prioritaires). Mode démo : secteurs SRM dessinés et état de balayage
+  fictif (`src/lib/demo/client.ts`) pour voir le calque « Zones balayées » sans base.
 
 ### Satellite (C5)
 

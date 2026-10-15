@@ -148,7 +148,7 @@ export const TRADUCTIONS_BALAYAGE: Record<string, Entree> = {
   'Balayage annulé.': { ar: 'تم إلغاء المسح.' },
   'Aucun balayage à annuler sur ce tronçon.': { ar: 'لا يوجد مسح لإلغائه في هذا المقطع.' },
   'Conduite': { ar: 'قناة' },
-  'Branchement': { ar: 'ربط فرعي' },
+  'Branchement': { ar: 'ربط' },
   'Adduction': { ar: 'قناة جلب' },
   'Autre': { ar: 'آخر' },
   'Tronçon': { ar: 'مقطع' },

@@ -5,7 +5,8 @@
 // une tablette dont Suivi fuites est propriétaire (lot TP), installation directe sans fenêtre d'Android : l'agent a
 // seulement touché « Installer », l'appli se ferme et se rouvre seule (sauf sur Xiaomi / HyperOS, qui empêche tout réveil
 // de l'appli après la mise à jour : l'agent la rouvre d'un toucher).
-// Contrôle à l'ouverture puis au retour sur l'appli, au plus toutes les 6 h ; jamais sans réseau. Une version trouvée
+// Contrôle à l'ouverture puis au retour sur l'appli, au plus une fois par heure (Issam, 2026-10-15 : 6 h retardaient trop
+// une version publiée) ; jamais sans réseau. Une version trouvée
 // s'annonce d'abord par une fenêtre (sur la liste, jamais au milieu d'une saisie) ; « Plus tard » la referme jusqu'au
 // prochain démarrage et le bandeau de la liste reste.
 import * as Application from 'expo-application';
@@ -23,7 +24,7 @@ import { Icone } from './icones';
 import { Bouton, Carte, COULEURS, Message, s } from './ui';
 
 export interface Version { version_code: number; version: string; taille: number; url: string; sha256?: string }
-const INTERVALLE_MS = 6 * 60 * 60 * 1000;
+const INTERVALLE_MS = 60 * 60 * 1000;
 const DOSSIER = `${FileSystem.cacheDirectory}mises-a-jour/`;
 
 export const versionInstallee = () => {

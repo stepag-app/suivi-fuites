@@ -109,7 +109,7 @@ règle de cycle de vie R2 (purge après 6 à 7 mois) une fois les rapports PDF a
    (à fournir par Issam).
 3. **Suivi GPS en arrière-plan** (M4) : tracé de chaque agent, **un tracé par agent et par jour**
    (pas un point par ligne), distance réellement parcourue, notification permanente Android, fréquence
-   réglable (15-20 m ou 30 s en mouvement), exclusion de l'optimisation batterie Samsung. Questions :
+   réglable (15-20 m ou 30 s en mouvement), exclusion de l'optimisation batterie (HyperOS). Questions :
    heures de suivi (journée de travail seulement ?), information des agents et déclaration à la
    **CNDP** (loi 09-08 sur les données personnelles : la géolocalisation des salariés est encadrée, à
    vérifier avec un conseil).

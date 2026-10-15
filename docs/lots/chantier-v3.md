@@ -21,7 +21,7 @@
 | Petits restes du panneau | traités en parallèle | S16 |
 | Facturation GitHub | sans objet tant que le dépôt est public ; il redevient privé à la fermeture | S23 |
 | Keystore Android | ~~régénéré à la fermeture~~ **gardé jusqu'à nouvel ordre** (décision du 2026-10-11 : un nouveau keystore oblige à réinstaller l'appli sur chaque tablette et casse les mises à jour) ; deux copies hors ligne | S23 (copies seulement) |
-| Tablette Samsung | branchée au Mac, essais en cours | — |
+| Tablette d'essai (Redmi Pad 2, seule tablette ; jamais de Samsung) | essais terminés, appli DEV retirée le 2026-10-15 | — |
 | Vercel Pro | **dernier geste du projet** | S24 |
 | Arabe | vérifié (ci-dessous) ; relecture d'Issam à finir | S19 pour les nouveaux libellés |
 | Bons de transfert Dolibarr (6804, 6814, 6796) | rappel en fin de projet | S24 |
@@ -120,7 +120,7 @@ Les **ouvriers sans compte** (Paramètres › Ouvriers, rattachés aux réparati
 | Z3 | **Purge** : marché DEMO supprimé (fuites, photos et fichiers, lots, notifications, tracés GPS, balayages, comptes d'essai rattachés à DEMO seulement) ; **SRM à zéro** (aucune fuite ni saisie d'essai, numérotation qui repart à 1) ; gardés : paramètres, bordereau, zones et secteurs, **réseau et zonage**, articles, comptes et droits. Si le réseau n'est pas dans SRM, **le transférer depuis DEMO avant** (ou le réimporter depuis `data-private/IMPORT-RESEAU/`), puis régénérer les tuiles. Sauvegarde vérifiée juste avant ; liste cochée par Issam ; exécution confirmée par lui |
 | Z4 | **Fermeture et rotation** (`docs/feuille-de-route.md` § 5) : `gitleaks` sur tout l'historique, dépôt **privé**, rotation de tous les comptes et secrets, coffre unique, keystore **gardé** (rangé au coffre, deux copies hors ligne ; décision du 2026-10-11), nouvelle clé anon compilée dans l'APK : publier d'abord l'APK avec la nouvelle clé pendant que l'ancienne reste valide, révoquer l'ancienne ensuite (sinon les tablettes ne joignent plus Supabase, ni même la fenêtre de mise à jour). Dépôt privé : les 2 000 minutes gratuites d'Actions par mois doivent couvrir la sauvegarde nocturne, le test de restauration hebdomadaire et les compilations, sinon la sauvegarde s'arrête (à surveiller) |
 | Z5 | **APK finale** (décisions du 2026-10-11) : version **bêta** (`1.0.0-beta.1`, « 1.0 bêta », essayée sur les tablettes le 2026-10-12), puis `beta.2`… selon les retours du chantier. Plus de version publiée à chaque fusion : essais et réglages sur la tablette d'Issam (appli DEV), puis, **à sa demande**, une session Claude publie la version (`gh workflow run apk.yml`, nom de version en entrée ; mode d'emploi dans `mobile/README.md`) ; les tablettes la reçoivent par la fenêtre « Mise à jour disponible », sans réinstallation (keystore gardé). Copie sur le Drive (X9) |
-| Z6 | **Vercel Pro**, dernier geste. Rappels : bons de transfert Dolibarr (6804 et 6814 rattachés au projet 30, 6796 en brouillon, pose non saisie, à régler avec le magasinier) ; agents informés du suivi GPS ; optimisation de batterie Samsung exclue sur chaque tablette ; relecture arabe faite |
+| Z6 | **Vercel Pro**, dernier geste. Rappels : bons de transfert Dolibarr (6804 et 6814 rattachés au projet 30, 6796 en brouillon, pose non saisie, à régler avec le magasinier) ; agents informés du suivi GPS ; batterie de l'appli « Aucune restriction » sur chaque tablette (HyperOS) ; relecture arabe faite |
 
 ## 2. Vagues et sessions
 

@@ -29,7 +29,7 @@
 - **Agents de suivi de la SRM** : destinataires des états journaliers et hebdomadaires
 - Utilisateurs peu à l'aise avec la technique → connexion simple, comptes créés et paramétrés par l'administrateur.
 - Chaque agent est **affecté à un ou plusieurs marchés** ; il ne voit que les données de ses marchés. Un administrateur STEPAG voit tous les marchés.
-- Matériel : tablettes **Android Samsung** avec carte SIM (5G/4G, travail en ville, coupures rares).
+- Matériel : tablettes **Android** avec carte SIM (5G/4G, travail en ville, coupures rares). Modèle retenu : **Redmi Pad 2** (Xiaomi, HyperOS) ; une seule tablette en service à ce jour, il n'y a jamais eu de tablette Samsung.
 
 ## 4. Fonctionnalités attendues
 
@@ -118,7 +118,7 @@
 - [x] **Vercel** : équipe `STEPAG` (plan **Hobby**) créée, `vercel.com/stepag`, connectée via GitHub `stepag-app` ; **décision d'Issam** : rester en gratuit maintenant, puis passer à **Vercel Pro** (mise à niveau sur place, sans migration) dès que la carte bancaire est récupérée et **avant toute mise en production pour le client** (le plan Hobby est réservé à un usage non commercial) ; aucun projet importé pour l'instant
 - [ ] Claude Code connecté au dépôt GitHub
 - [ ] Crédit cloud Claude réclamé (à vérifier avant le 7 octobre)
-- Prévoir une **tablette Samsung de test** pour le développement
+- [x] Tablette de test : **Redmi Pad 2** (sert aussi de modèle pour les agents)
 
 ## 7. Gestion des photos (règles)
 
@@ -134,7 +134,7 @@ Volume estimé : 30 à 48 photos/jour, lundi à samedi, ≈ 302 jours ouvrés �
 
 - Android impose une **notification permanente** pendant le suivi en arrière-plan
 - Fréquence réglable (ex. un point tous les 15-20 m ou toutes les 30 s en mouvement) pour limiter la batterie
-- **Optimisation batterie Samsung** : exclure l'appli sur chaque tablette (sinon elle est endormie)
+- **Optimisation batterie (HyperOS)** : batterie de l'appli « Aucune restriction » sur chaque tablette (sinon elle est endormie)
 - Stocker **un tracé par agent et par jour**, pas un point par ligne : un point toutes les 15 s pour 10 agents (hypothèse) donnerait ≈ 5,8 millions de lignes sur l'année, ce qui dépasserait les 500 Mo du Supabase gratuit
 
 ## 9. Budget

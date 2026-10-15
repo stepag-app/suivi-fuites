@@ -1,6 +1,6 @@
 # Application Android (Expo, React Native, TypeScript)
 
-Socle de l'APK pour les tablettes Samsung. Même base Supabase et mêmes règles (RLS) que le panneau web :
+Socle de l'APK pour les tablettes des agents (modèle : Redmi Pad 2, Xiaomi / HyperOS). Même base Supabase et mêmes règles (RLS) que le panneau web :
 aucun secret dans l'application, uniquement l'adresse du projet et la clé « anon » (publique).
 
 ## Ce que fait ce socle
@@ -235,7 +235,7 @@ retire les jetons périmés.
 
 **Architectures** (depuis le 2026-10-07) : bibliothèques natives compilées pour **ARM seulement**, `armeabi-v7a` et
 `arm64-v8a` (`buildArchs` d'`expo-build-properties` dans `app.json`, repris dans `reactNativeArchitectures` de
-`android/gradle.properties`) : les tablettes Samsung et l'émulateur du Mac sont ARM. Sans x86 ni x86_64, l'APK passe
+`android/gradle.properties`) : la Redmi Pad 2 et l'émulateur du Mac sont ARM. Sans x86 ni x86_64, l'APK passe
 de 79,0 à 42,6 Mo (bibliothèques ARM inchangées : 17,2 Mo en `arm64-v8a`, 11,9 Mo en `armeabi-v7a`) et la compilation
 d'environ 20 à 13 min. Un émulateur x86_64 (PC Windows, Mac Intel) ne la lance que par traduction ARM (images
 Android 11 et plus, plus lent) et la refuse sur les images plus anciennes (`INSTALL_FAILED_NO_MATCHING_ABIS`) : pour
@@ -275,7 +275,7 @@ cachés (`SERVICES_CACHES` = listes de `outils/tablettes/`, comparées par `essa
 (installer, sources inconnues, comptes, réinitialisation, utilisateurs, mode sans échec ; débogage USB en profil **agent**),
 4G coupée à tout sauf Suivi fuites, services Google, WebView, Maps, WhatsApp, heure automatique, autorisations de Suivi
 fuites accordées d'office. Deux profils : **agent** (préparée par QR code) et **essai** (préparée par adb : la Redmi,
-adb et l'appli DEV gardés). Hors propriétaire (tablettes Samsung actuelles, émulateur), le module ne fait rien.
+adb et l'appli DEV gardés). Hors propriétaire (tablette préparée à la main, émulateur), le module ne fait rien.
 
 | Sujet | Où |
 |---|---|
@@ -300,7 +300,7 @@ automatique passe par une alarme inexacte (quelques minutes de marge).
   10008 allow` tient jusqu'au prochain réglage fait dans l'interface. Vérifié le 2026-10-11 : sans lui, ni la diffusion
   « paquet remplacé » ni le compte rendu de la session d'installation n'atteignent le nouveau processus : **sur Xiaomi,
   l'agent rouvre l'appli d'un toucher après « Installer »** ; la réouverture automatique (`relancerSiDemande`, depuis les
-  deux récepteurs) sert aux tablettes qui l'acceptent (Samsung, AOSP).
+  deux récepteurs) sert aux tablettes qui l'acceptent (Android d'origine, autres fabricants).
 - **Fenêtres contextuelles en arrière-plan** (op 10021, Paramètres › Applis › Gérer les applis › Suivi des fuites ›
   Autorisations de l'application › Autres autorisations › « Ouvrir de nouvelles fenêtres contextuelles pendant
   l'exécution en arrière-plan », « Toujours autoriser ») : nécessaire pour revenir au premier plan après une mise à jour ;
@@ -311,19 +311,18 @@ déverrouillage, avec Paramètres et Play Store. Installation par câble (`adb i
 (« Install canceled by user », garde-fou « Installer via USB » lié au compte Xiaomi) : passer par la mise à jour de
 l'appli elle-même (APK copiée dans son cache par `run-as`, puis `installerApk`).
 
-### Suivi GPS : à faire sur chaque tablette Samsung
+### Suivi GPS : à faire sur chaque tablette
 
 1. À la première connexion, ouvrir **Suivi GPS** (bouton de la liste), « Activer le suivi », accepter la position puis
    choisir **« Toujours autoriser »** (Android 11 et plus : la fenêtre renvoie aux réglages de l'appli > Autorisations >
    Position). Accepter aussi les notifications.
-2. **Exclure l'appli de l'optimisation de la batterie**, sinon Samsung endort le suivi quand l'écran s'éteint :
-   Réglages > Batterie (ou « Entretien de l'appareil » > Batterie) > **Limites d'utilisation en arrière-plan** >
-   **Applications jamais en veille** > ajouter « Suivi des fuites ». Aussi : Réglages > Applications > Suivi des fuites >
-   Batterie > **Non restreinte**. Le bouton « Ouvrir les réglages de la batterie » de l'écran Suivi GPS ouvre la liste
+2. **Exclure l'appli de l'optimisation de la batterie**, sinon HyperOS endort le suivi quand l'écran s'éteint :
+   Paramètres > Applis > Gérer les applis > Suivi des fuites > Batterie > **Aucune restriction** (pendant un
+   déverrouillage de la tablette, voir § HyperOS ci-dessus). Le bouton « Ouvrir les réglages de la batterie » de l'écran Suivi GPS ouvre la liste
    d'Android. À refaire après une réinstallation (pas après une mise à jour).
 3. Laisser la **notification permanente** (« Suivi GPS des heures de travail ») : Android l'impose tant que le suivi tourne ;
    elle disparaît à la fin des heures de travail et avec « Quitter ». Le service est déclaré pour survivre à la fermeture de l'écran de l'appli
-   (`killServiceOnDestroy: false`) ; « Tout fermer » de One UI peut malgré tout l'arrêter (à vérifier sur une vraie tablette) :
+   (`killServiceOnDestroy: false`) ; le nettoyage des applis récentes d'HyperOS peut malgré tout l'arrêter (à vérifier sur la Redmi) :
    il repart à la prochaine ouverture de l'appli.
 4. Redémarrage de la tablette, et chaque matin : le suivi repart à l'ouverture de l'appli (Android ne relance pas seul
    un service de localisation) ; un rappel s'affiche au début des heures de travail. Remettre à chaque agent le texte

@@ -94,17 +94,19 @@ function Reglages({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable:
 }
 
 function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable: boolean; enregistre: () => void }) {
-  type Saisie = { q_exige_m3h: string; q_plus_bas_historique_m3h: string; q_actuel_m3h: string; balayage_acheve_le: string };
+  type Saisie = { q_exige_m3h: string; q_plus_bas_historique_m3h: string; q_actuel_m3h: string; balayage_acheve_le: string; arret_srm_le: string };
+  const avecArret = d.zones.some((z) => z.arret_srm_le !== undefined);
   const initial = () => Object.fromEntries(d.zones.map((z) => [z.id, {
     q_exige_m3h: texte(z.q_exige_m3h), q_plus_bas_historique_m3h: texte(z.q_plus_bas_historique_m3h), q_actuel_m3h: texte(z.q_actuel_m3h),
-    balayage_acheve_le: z.balayage_acheve_le ?? "",
+    balayage_acheve_le: z.balayage_acheve_le ?? "", arret_srm_le: z.arret_srm_le ?? "",
   }])) as Record<string, Saisie>;
   const [v, setV] = useState(initial);
   const [envoi, setEnvoi] = useState(false);
   const modifiees = d.zones.filter((z) => {
     const x = v[z.id];
     return x && (enNombre(x.q_exige_m3h) !== z.q_exige_m3h || enNombre(x.q_plus_bas_historique_m3h) !== (z.q_plus_bas_historique_m3h ?? null)
-      || enNombre(x.q_actuel_m3h) !== (z.q_actuel_m3h ?? null) || (x.balayage_acheve_le || null) !== (z.balayage_acheve_le ?? null));
+      || enNombre(x.q_actuel_m3h) !== (z.q_actuel_m3h ?? null) || (x.balayage_acheve_le || null) !== (z.balayage_acheve_le ?? null)
+      || (avecArret && (x.arret_srm_le || null) !== (z.arret_srm_le ?? null)));
   });
   async function enregistrer() {
     setEnvoi(true);
@@ -113,6 +115,7 @@ function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable
       const { error } = await getSupabase().from("zones").update({
         q_exige_m3h: enNombre(x.q_exige_m3h), q_plus_bas_historique_m3h: enNombre(x.q_plus_bas_historique_m3h),
         q_actuel_m3h: enNombre(x.q_actuel_m3h), balayage_acheve_le: x.balayage_acheve_le || null,
+        ...(avecArret ? { arret_srm_le: x.arret_srm_le || null } : {}),
       }).eq("id", z.id);
       if (error) { toast.error(`Zone ${z.numero} : ${messageErreur(error)}`); setEnvoi(false); return; }
     }
@@ -128,7 +131,10 @@ function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable
     <Card>
       <CardHeader>
         <CardTitle>Débits de référence par zone (tableau n° 1)</CardTitle>
-        <CardDescription>Q exigé à l&apos;achèvement du balayage, plus bas historique et débit actuel (m³/h) ; date d&apos;achèvement du balayage de chaque zone.</CardDescription>
+        <CardDescription>
+          Q exigé à l&apos;achèvement du balayage, plus bas historique et débit actuel (m³/h) ; date d&apos;achèvement du balayage de chaque zone ;
+          arrêt de la zone par la SRM (τ1 &lt; −25 %, art. II-23) : plus de maintien (prix 2) à l&apos;attachement.
+        </CardDescription>
         {modifiable && <CardAction><Button size="sm" disabled={!modifiees.length || envoi} onClick={enregistrer}><Save data-icon="inline-start" />Enregistrer{modifiees.length ? ` (${modifiees.length})` : ""}</Button></CardAction>}
       </CardHeader>
       <CardContent>
@@ -141,6 +147,7 @@ function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable
               <TableHead className="w-28 text-right">Plus bas historique</TableHead>
               <TableHead className="w-28 text-right">Débit actuel</TableHead>
               <TableHead className="w-40">Balayage achevé le</TableHead>
+              {avecArret && <TableHead className="w-40">Arrêtée par la SRM le</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -152,6 +159,7 @@ function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable
                 <TableCell>{cellule(z.id, "q_plus_bas_historique_m3h")}</TableCell>
                 <TableCell>{cellule(z.id, "q_actuel_m3h")}</TableCell>
                 <TableCell>{cellule(z.id, "balayage_acheve_le", "date")}</TableCell>
+                {avecArret && <TableCell>{cellule(z.id, "arret_srm_le", "date")}</TableCell>}
               </TableRow>
             ))}
           </TableBody>
@@ -162,11 +170,16 @@ function TableauN1({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable
 }
 
 function Phases({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable: boolean; enregistre: () => void }) {
-  const [v, setV] = useState(() => Object.fromEntries(d.phases.map((p) => [p.id, { debut: p.date_debut ?? "", fin: p.date_fin ?? "" }])));
-  const modifiees = d.phases.filter((p) => (v[p.id]?.debut || null) !== p.date_debut || (v[p.id]?.fin || null) !== p.date_fin);
+  const avecPart = d.phases.some((p) => p.part_maintien_pct !== undefined);
+  const [v, setV] = useState(() => Object.fromEntries(d.phases.map((p) => [p.id, { debut: p.date_debut ?? "", fin: p.date_fin ?? "", part: texte(p.part_maintien_pct ?? null) }])));
+  const modifiees = d.phases.filter((p) => (v[p.id]?.debut || null) !== p.date_debut || (v[p.id]?.fin || null) !== p.date_fin
+    || (avecPart && enNombre(v[p.id]?.part ?? "") !== (p.part_maintien_pct ?? null)));
   async function enregistrer() {
     for (const p of modifiees) {
-      const { error } = await getSupabase().from("phases").update({ date_debut: v[p.id].debut || null, date_fin: v[p.id].fin || null }).eq("id", p.id);
+      const { error } = await getSupabase().from("phases").update({
+        date_debut: v[p.id].debut || null, date_fin: v[p.id].fin || null,
+        ...(avecPart ? { part_maintien_pct: enNombre(v[p.id].part) } : {}),
+      }).eq("id", p.id);
       if (error) { toast.error(`${p.libelle} : ${messageErreur(error)}`); return; }
     }
     toast.success("Phases enregistrées");
@@ -176,19 +189,33 @@ function Phases({ d, modifiable, enregistre }: { d: DonneesDebits; modifiable: b
     <Card>
       <CardHeader>
         <CardTitle>Phases du marché</CardTitle>
-        <CardDescription>Balayage (4 mois), puis deux phases de maintien de 4 mois (art. II-14) : la pénalité de maintien est définitive à la fin du maintien.</CardDescription>
+        <CardDescription>
+          Balayage (4 mois), puis deux phases de maintien de 4 mois (art. II-14) : la pénalité de maintien est définitive à la fin du maintien.
+          Part du prix 2 : quantité de maintien attachable à la fin de la phase (CPS art. I-32 : 40 % puis 60 %).
+        </CardDescription>
         {modifiable && <CardAction><Button size="sm" disabled={!modifiees.length} onClick={enregistrer}><Save data-icon="inline-start" />Enregistrer</Button></CardAction>}
       </CardHeader>
       <CardContent>
         {d.phases.length === 0 ? <Vide className="h-24">Aucune phase définie pour ce marché.</Vide> : (
           <Table>
-            <TableHeader><TableRow><TableHead>Phase</TableHead><TableHead className="w-44">Début</TableHead><TableHead className="w-44">Fin</TableHead></TableRow></TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Phase</TableHead><TableHead className="w-44">Début</TableHead><TableHead className="w-44">Fin</TableHead>
+                {avecPart && <TableHead className="w-36 text-right">Part du prix 2 (%)</TableHead>}
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {d.phases.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell>{p.libelle}</TableCell>
                   <TableCell><Input type="date" className="h-8" disabled={!modifiable} value={v[p.id]?.debut ?? ""} onChange={(e) => setV((x) => ({ ...x, [p.id]: { ...x[p.id], debut: e.target.value } }))} /></TableCell>
                   <TableCell><Input type="date" className="h-8" disabled={!modifiable} value={v[p.id]?.fin ?? ""} onChange={(e) => setV((x) => ({ ...x, [p.id]: { ...x[p.id], fin: e.target.value } }))} /></TableCell>
+                  {avecPart && (
+                    <TableCell>
+                      <Input inputMode="decimal" className="h-8 text-right tabular-nums" disabled={!modifiable} placeholder="—" aria-label={`Part du prix 2, ${p.libelle}`}
+                        value={v[p.id]?.part ?? ""} onChange={(e) => setV((x) => ({ ...x, [p.id]: { ...x[p.id], part: e.target.value } }))} />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>

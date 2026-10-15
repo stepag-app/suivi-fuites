@@ -233,7 +233,7 @@ function cleEtLibelle(l: LigneInventaire, dimension: Dimension | Rapide): Entete
     case 'secteur': return { cle: l.secteur_id ?? '', libelle: l.secteur ?? SANS.secteur, detail: l.zone };
     case 'zone': return { cle: l.zone_id ?? '', libelle: l.zone ?? SANS.zone, detail: null };
     case 'chef': return { cle: l.chef_id ?? '', libelle: l.chef ?? SANS.chef, detail: null };
-    case 'fuite': return { cle: l.fuite_id, libelle: `N° ${l.fuite_numero}`, detail: [l.reference_srm, l.secteur].filter(Boolean).join(' · ') || null };
+    case 'fuite': return { cle: l.fuite_id, libelle: `N° ${l.fuite_numero_affiche || l.fuite_numero}`, detail: [l.reference_srm, l.secteur].filter(Boolean).join(' · ') || null };
     case 'mois': return { cle: l.mois, libelle: libelleMois(l.mois), detail: null };
     case 'provenance': return { cle: l.provenance, libelle: LIBELLES_PROVENANCE[l.provenance] ?? l.provenance, detail: null };
     default: return { cle: '', libelle: 'Quantité', detail: null };
@@ -278,7 +278,8 @@ export interface Cellule {
   /** « 12 u », « 12 u · 3,5 ml », « — ». */
   texte: string;
   /** Seule fuite des pièces de la cellule (lien vers sa fiche quand la fuite est imposée). */
-  fuite: { id: string; numero: number } | null;
+  /** numero : numéro affiché (« 22 », « 22-bis »). */
+  fuite: { id: string; numero: number | string } | null;
   /** Seul secteur des pièces de la cellule (lien vers la liste quand le secteur est imposé). */
   secteur: { id: string; libelle: string } | null;
 }
@@ -306,7 +307,7 @@ const CELLULE_VIDE: Cellule = { quantites: {}, pieces: 0, fuites: 0, texte: '—
 function cellule(lignes: LigneInventaire[]): Cellule {
   if (!lignes.length) return CELLULE_VIDE;
   const quantites = lignes.reduce<Quantites>((q, l) => ajouterQuantite(q, l.unite, l.quantite), {});
-  const fuites = new Map(lignes.map((l) => [l.fuite_id, l.fuite_numero]));
+  const fuites = new Map<string, number | string>(lignes.map((l) => [l.fuite_id, l.fuite_numero_affiche || l.fuite_numero]));
   const secteurs = new Map(lignes.filter((l) => l.secteur_id).map((l) => [l.secteur_id as string, l.secteur ?? '']));
   return {
     quantites, pieces: lignes.length, fuites: fuites.size, texte: formaterQuantites(quantites),

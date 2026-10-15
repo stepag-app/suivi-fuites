@@ -12,7 +12,7 @@ const ALERTES = [
 const CHAMPS_LISTE = [
   'id', 'numero', 'reference_srm', 'origine', 'statut', 'zone_id', 'zone', 'secteur_id', 'secteur', 'adresse', 'latitude', 'longitude',
   'date_detection', 'derniere_reparation_le', 'derniere_refection_le', 'emplacement_fouille', 'nb_photos', 'verrouillee_le',
-  'detectee_par', ...ALERTES,
+  'detectee_par', 'numero_affiche', ...ALERTES,
 ] as const;
 
 const CHAMPS_ALERTES = [...CHAMPS_LISTE, 'date_communication_srm', 'validation_srm_le', 'avis_terrassement_srm_le', 'observation'] as const;

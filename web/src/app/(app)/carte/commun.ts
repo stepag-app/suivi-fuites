@@ -4,12 +4,12 @@ import type { StatutFuite, VFuite } from '@/lib/types';
 
 // Colonnes de v_fuites utiles à la carte (la vue applique la RLS : security_invoker).
 export const COLONNES_CARTE =
-  'id, numero, reference_srm, origine, statut, zone, secteur_id, secteur, adresse, latitude, longitude, date_detection, ' +
+  'id, numero, numero_affiche, reference_srm, origine, statut, zone, secteur_id, secteur, adresse, latitude, longitude, date_detection, ' +
   'alerte_non_reparee, alerte_communication_srm, alerte_refection_chaussee, refection_chaussee_hors_delai, alerte_refection_trottoir';
 
 export type FuiteCarte = Pick<
   VFuite,
-  | 'id' | 'numero' | 'reference_srm' | 'origine' | 'statut' | 'zone' | 'secteur_id' | 'secteur' | 'adresse'
+  | 'id' | 'numero' | 'numero_affiche' | 'reference_srm' | 'origine' | 'statut' | 'zone' | 'secteur_id' | 'secteur' | 'adresse'
   | 'latitude' | 'longitude' | 'date_detection' | 'alerte_non_reparee' | 'alerte_communication_srm'
   | 'alerte_refection_chaussee' | 'refection_chaussee_hors_delai' | 'alerte_refection_trottoir'
 >;
@@ -30,6 +30,7 @@ export const aUneAlerte = (f: FuiteCarte) => ALERTES.some((a) => f[a.cle] === tr
 // Couleurs des points : mêmes teintes que les badges de statut (src/components/statut.tsx).
 export const COULEURS: Record<StatutFuite, { fond: string; contour: string }> = {
   detectee: { fond: '#ef4444', contour: '#b91c1c' },
+  a_redetecter: { fond: '#8b5cf6', contour: '#6d28d9' },
   en_reparation: { fond: '#f59e0b', contour: '#b45309' },
   reparee: { fond: '#0ea5e9', contour: '#0369a1' },
   achevee: { fond: '#22c55e', contour: '#15803d' },

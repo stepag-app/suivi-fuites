@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { quantite, type ReglesAttachement } from '@/lib/attachements';
-import { STATUTS, dateSeule, messageErreur } from '@/lib/format';
+import { STATUTS, dateSeule, messageErreur, numeroFuiteLigne } from '@/lib/format';
 import { getSupabase, lireTout } from '@/lib/supabase';
 import type { StatutFuite } from '@/lib/types';
 import { LienFuite } from './AAttacher';
@@ -12,6 +12,8 @@ export interface Proposition {
   marche_id: string;
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   statut: string;
@@ -123,7 +125,7 @@ export function PropositionsAnticipees({ marcheId, lotId, regles, version, ajout
                 return (
                   <tr key={k}>
                     <td>
-                      <input type="checkbox" checked={choix.has(k)} disabled={!!p.brouillon_id} aria-label={`Fuite N° ${p.fuite_numero}, prix ${p.prix_numero}`}
+                      <input type="checkbox" checked={choix.has(k)} disabled={!!p.brouillon_id} aria-label={`Fuite N° ${numeroFuiteLigne(p)}, prix ${p.prix_numero}`}
                         onChange={(e) => setChoix((c) => {
                           const n = new Set(c);
                           if (e.target.checked) n.add(k);
@@ -131,7 +133,7 @@ export function PropositionsAnticipees({ marcheId, lotId, regles, version, ajout
                           return n;
                         })} />
                     </td>
-                    <td className="nowrap"><LienFuite id={p.fuite_id} numero={p.fuite_numero} /></td>
+                    <td className="nowrap"><LienFuite id={p.fuite_id} numero={numeroFuiteLigne(p)} /></td>
                     <td className="nowrap">{p.reference_srm ?? '—'}</td>
                     <td>{p.adresse ?? '—'}</td>
                     <td className="nowrap"><span className={`badge ${statut?.classe ?? ''}`}>{statut?.libelle ?? p.statut}</span></td>
@@ -142,7 +144,7 @@ export function PropositionsAnticipees({ marcheId, lotId, regles, version, ajout
                       {p.brouillon_id ? <span className="discret">dans un autre brouillon</span> : (
                         <>
                           <input className={`quantite ${fausse ? 'erreur' : ''}`} inputMode="decimal" value={texteQuantite(p)}
-                            aria-label={`Quantité anticipée, fuite N° ${p.fuite_numero}`}
+                            aria-label={`Quantité anticipée, fuite N° ${numeroFuiteLigne(p)}`}
                             onChange={(e) => setQuantites((q) => ({ ...q, [k]: e.target.value }))} /> {p.unite}
                           {p.quantite_proposee != null && enNombre(texteQuantite(p)) !== p.quantite_proposee && (
                             <span className="discret"> (proposé {quantite(p.quantite_proposee, p.unite, regles.decimales)})</span>

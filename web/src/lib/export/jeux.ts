@@ -1,7 +1,7 @@
 // Jeux de données exportables : colonnes (groupées par thème), chargement filtré,
 // regroupements, puis construction du document neutre (modele.ts).
 import { titreLot, type LigneLot, type Lot, type Recap, type ReglesAttachement } from '@/lib/attachements';
-import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche } from '@/lib/format';
+import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, libellesMarche, numeroExport } from '@/lib/format';
 import { LIBELLES_FAMILLES } from '@/lib/nomenclature/csv';
 import { getSupabase, lireTout, NOM_ORGANISATION } from '@/lib/supabase';
 import type { Marche } from '@/lib/types';
@@ -148,7 +148,7 @@ const de = (table: Record<string, string>, cle: string) => (l: Ligne) => {
 };
 const jourDe = (v: unknown) => (v ? String(v).slice(0, 10) : '');
 const LIBELLE_NATURE: Record<string, string> = {
-  solde: 'Travaux', anticipation: 'Attaché par anticipation', libre: 'Ligne libre', forcage: 'Refacturation forcée',
+  solde: 'Travaux', anticipation: 'Attaché par anticipation', libre: 'Ligne libre', lineaire: 'Linéaire', forcage: 'Refacturation forcée',
 };
 
 // ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ export const JEU_FUITES: Jeu = {
   colonnes: (ctx) => {
     const lm = libellesMarche(ctx.marche as unknown as Marche);
     const c: Colonne[] = [
-      { cle: 'numero', titre: 'N°', groupe: 'Identification', type: 'nombre', largeur: 6 },
+      { cle: 'numero', titre: 'N°', groupe: 'Identification', type: 'nombre', largeur: 6, valeur: (l) => numeroExport(l.numero, l.numero_affiche) },
       { cle: 'reference_srm', titre: lm.reference, groupe: 'Identification', largeur: 13 },
       { cle: 'origine', titre: 'Origine', groupe: 'Identification', largeur: 12, valeur: (l) => (l.origine === 'srm' ? `Signalée par ${lm.sigle}` : 'Entreprise') },
       { cle: 'statut', titre: 'Statut', groupe: 'Identification', largeur: 16, valeur: (l) => STATUTS[l.statut as keyof typeof STATUTS]?.libelle ?? l.statut },
@@ -241,7 +241,7 @@ export const JEU_QUANTITES: Jeu = {
     const lm = libellesMarche(ctx.marche as unknown as Marche);
     return [
       { cle: 'date_execution', titre: 'Exécutée le', groupe: 'Identification', type: 'date', largeur: 11 },
-      { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Identification', type: 'nombre', largeur: 7 },
+      { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Identification', type: 'nombre', largeur: 7, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) },
       { cle: 'reference_srm', titre: lm.reference, groupe: 'Identification', largeur: 13 },
       { cle: 'zone', titre: 'Zone', groupe: 'Localisation', largeur: 16 },
       { cle: 'secteur', titre: 'Secteur', groupe: 'Localisation', largeur: 16 },
@@ -271,7 +271,7 @@ export const JEU_PIECES: Jeu = {
     const lm = libellesMarche(ctx.marche as unknown as Marche);
     return [
       { cle: 'jour', titre: 'Posée le', groupe: 'Identification', type: 'date', largeur: 11 },
-      { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Identification', type: 'nombre', largeur: 7 },
+      { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Identification', type: 'nombre', largeur: 7, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) },
       { cle: 'reference_srm', titre: lm.reference, groupe: 'Identification', largeur: 13 },
       { cle: 'zone', titre: 'Zone', groupe: 'Localisation', largeur: 16 },
       { cle: 'secteur', titre: 'Secteur', groupe: 'Localisation', largeur: 16 },
@@ -341,7 +341,7 @@ const abreger = (t: unknown, n: number) => {
 export function colonnesAttachement(ctx: Contexte): Colonne[] {
   const lm = libellesMarche(ctx.marche as unknown as Marche);
   const c: Colonne[] = [
-    { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Fuite', type: 'nombre', largeur: 7 },
+    { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Fuite', type: 'nombre', largeur: 7, valeur: (l) => numeroExport(l.fuite_numero, l.fuite_numero_affiche) },
     { cle: 'reference_srm', titre: lm.reference, groupe: 'Fuite', largeur: 13 },
     { cle: 'adresse', titre: 'Adresse', groupe: 'Fuite', largeur: 20 },
     { cle: 'zone', titre: 'Zone', groupe: 'Fuite', largeur: 16 },

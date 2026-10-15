@@ -8,7 +8,7 @@ import { PointStatut, STATUT_STYLE } from "@/components/statut";
 import { Button } from "@/components/ui/button";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
-import { dateHeure } from "@/lib/format";
+import { dateHeure, numeroFuite } from "@/lib/format";
 import { listerFichesGardees, oublierFiche } from "@/lib/hors-ligne";
 import { useSession } from "@/lib/session";
 import { LIMITES_HORS_LIGNE } from "../[id]/fiche-hors-ligne";
@@ -83,7 +83,7 @@ export default function FichesHorsLigne() {
                     <PointStatut statut={f.statut} className="mt-1.5" />
                     <span className="min-w-0 flex-1">
                       <span className="block font-medium text-sm">
-                        N° {f.numero}
+                        N° {numeroFuite(f)}
                         <span className="ml-2 font-normal text-muted-foreground">{STATUT_STYLE[f.statut].libelle}</span>
                         {plusieursMarches && codeMarche(f.marche_id) && <span className="ml-2 font-normal text-muted-foreground text-xs">{codeMarche(f.marche_id)}</span>}
                       </span>
@@ -96,7 +96,7 @@ export default function FichesHorsLigne() {
                       <span className="mt-0.5 flex items-center justify-end gap-1"><Camera className="size-3" />{f.nb_photos}</span>
                     </span>
                   </Link>
-                  <Button variant="ghost" size="icon" aria-label={`Retirer la fiche N° ${f.numero} de l'appareil`} onClick={() => retirer(f.id)}>
+                  <Button variant="ghost" size="icon" aria-label={`Retirer la fiche N° ${numeroFuite(f)} de l'appareil`} onClick={() => retirer(f.id)}>
                     <Trash2 />
                   </Button>
                 </li>

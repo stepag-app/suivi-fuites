@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CalendarDays, CircleCheck, Circle, Clock3, Droplets, Ellipsis, FileText, History, Lock, LockOpen, MapPin,
-  Navigation, Pencil, Plus, Trash2, WifiOff, Wrench,
+  Navigation, Pencil, Plus, ScanSearch, Trash2, WifiOff, Wrench,
 } from "lucide-react";
 import { ETATS_PIECE, libelleProvenance, type PieceAffichee } from "@/app/(app)/attachements/controles";
 import { Vide } from "@/components/en-tete-page";
@@ -25,9 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  EMPLACEMENTS, MATERIAUX, OUVRAGES, dateHeure, libellesMarche, messageErreur, montant, nombre,
-} from "@/lib/format";
+import { EMPLACEMENTS, MATERIAUX, OUVRAGES, dateHeure, libellesMarche, messageErreur, montant, nombre, numeroFuite, numeroRedetection } from "@/lib/format";
 import { estErreurReseau, noterConsultation, oublierFiche } from "@/lib/hors-ligne";
 import { lienItineraire } from "@/lib/itineraire";
 import { lireArticlesEtUsages, lireReferentielsSaisie, type ReferentielsSaisie } from "@/lib/saisie/referentiels";
@@ -336,6 +334,8 @@ export default function DetailFuite() {
   const jalons = libelles.jalons || !!(fuite.date_communication_srm || fuite.avis_terrassement_srm_le || fuite.validation_srm_le);
   const etapes: [string, string | null | undefined][] = fuite.statut === "sans_reparation"
     ? [["Détectée", fuite.date_detection], ["Sans réparation", fuite.verrouillee_le ?? fuite.date_detection]]
+    : fuite.statut === "a_redetecter"
+    ? [["Détectée", fuite.date_detection], ["Introuvable à l'ouverture", fuite.derniere_reparation_le], ["Re-détectée", null]]
     : [
       ["Détectée", fuite.date_detection],
       ...(jalons ? [[`Communiquée ${libelles.sigle}`, fuite.date_communication_srm], ["Avis terrassement", fuite.avis_terrassement_srm_le]] as [string, string | null][] : []),
@@ -348,7 +348,7 @@ export default function DetailFuite() {
   const nomProfil = (pid: string | null | undefined) => (pid && noms.profils[pid]) || null;
 
   const historique: [string, string][] = ([
-    [fuite.date_detection, `détectée${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ""} (saisie ${fuite.source_saisie})`],
+    [fuite.date_detection, `${(fuite.rang ?? 1) > 1 ? `re-détection de la fuite N° ${fuite.fuite_liee_numero ?? "?"}` : "détectée"}${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ""} (saisie ${fuite.source_saisie})`],
     [fuite.date_communication_srm, `communiquée à ${libelles.sigle}`],
     [fuite.avis_terrassement_srm_le, "avis préalable avant terrassement obtenu"],
     ...reparations.map((r) => [r.realisee_le, `réparation saisie (${r.resultat === "reparee" ? "réparée" : r.resultat === "en_cours" ? "en cours" : "non réparée"})${nomProfil(r.auteur_terrain_id) ? ` par ${nomProfil(r.auteur_terrain_id)}` : ""}`]),
@@ -375,7 +375,7 @@ export default function DetailFuite() {
           <BreadcrumbSeparator />
           <BreadcrumbItem><span>{marche?.code}</span></BreadcrumbItem>
           <BreadcrumbSeparator />
-          <BreadcrumbItem><BreadcrumbPage>Fuite N° {fuite.numero}</BreadcrumbPage></BreadcrumbItem>
+          <BreadcrumbItem><BreadcrumbPage>Fuite N° {numeroFuite(fuite)}</BreadcrumbPage></BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
 
@@ -402,7 +402,7 @@ export default function DetailFuite() {
           </div>
           <div className="flex min-w-0 flex-col gap-2">
             <div className="flex flex-col gap-0.5">
-              <h1 className="truncate font-heading font-semibold text-xl leading-6 tracking-tight sm:text-2xl sm:leading-7">Fuite N° {fuite.numero}</h1>
+              <h1 className="truncate font-heading font-semibold text-xl leading-6 tracking-tight sm:text-2xl sm:leading-7">Fuite N° {numeroFuite(fuite)}</h1>
               <p className="truncate text-muted-foreground text-sm leading-5">
                 {[fuite.reference_srm && `Réf. ${libelles.sigle} ${fuite.reference_srm}`, fuite.secteur, fuite.adresse].filter(Boolean).join(" · ") || "Sans référence ni adresse"}
               </p>
@@ -434,7 +434,7 @@ export default function DetailFuite() {
             </Button>
           )}
           {actions.rapportPdf && marcheId && (
-            <BoutonEnvoyerEmail size="sm" document="rapport_fuite" reference={`Fuite N° ${fuite.numero}`}
+            <BoutonEnvoyerEmail size="sm" document="rapport_fuite" reference={`Fuite N° ${numeroFuite(fuite)}`}
               fabriquer={async () => (await import("@/lib/export/rapport-fuite")).fabriquerRapports([id], marcheId, peut("quantites", "lire"))} />
           )}
           {actions.verrouiller && (
@@ -487,6 +487,24 @@ export default function DetailFuite() {
         </div>
       </div>
       {rapport && <p className="text-muted-foreground text-sm" role="status">{rapport}</p>}
+      {fuite.statut === "a_redetecter" && (
+        <Alert className="border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-50" role="status">
+          <ScanSearch />
+          <AlertTitle>À re-détecter</AlertTitle>
+          <AlertDescription className="text-violet-950/80 dark:text-violet-50/80">
+            Fuite introuvable à l&apos;ouverture{fuite.motif_sans_reparation ? ` (motif : ${fuite.motif_sans_reparation})` : ""}.
+            {fuite.detectee_par ? ` ${fuite.detectee_par}, qui l'a détectée, est prévenu sur sa tablette.` : " Les agents de détection sont prévenus sur leur tablette."}
+            {" "}La re-détection prendra le N° {numeroRedetection(fuite)}.
+          </AlertDescription>
+          {!horsLigne && peut("fuites", "creer") && (
+            <AlertAction>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/fuites/nouvelle?redetection=${fuite.id}`} prefetch={false}><ScanSearch data-icon="inline-start" />Re-détecter</Link>
+              </Button>
+            </AlertAction>
+          )}
+        </Alert>
+      )}
       {erreur && (
         <Alert variant="destructive">
           <AlertTitle>Erreur</AlertTitle>
@@ -522,7 +540,7 @@ export default function DetailFuite() {
                   {droitsDetection && !formulaire && (
                     <div className="flex flex-wrap gap-2">
                       {droitsDetection.valider && (
-                        <BoutonValider element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${fuite.numero}`, nbPhotos: photosDe("detection") }}
+                        <BoutonValider element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${numeroFuite(fuite)}`, nbPhotos: photosDe("detection") }}
                           onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
                       )}
                       {droitsDetection.modifier ? (
@@ -546,6 +564,12 @@ export default function DetailFuite() {
                   <Info libelle="Détectée" valeur={`${dateHeure(fuite.date_detection)}${fuite.detectee_par ? ` par ${fuite.detectee_par}` : ""}`} />
                   <Info libelle="Adresse" valeur={fuite.adresse} large />
                   {fuite.motif_sans_reparation && <Info libelle="Motif" valeur={fuite.motif_sans_reparation} large />}
+                  {(fuite.rang ?? 1) > 1 && fuite.fuite_liee_id && (
+                    <Info libelle="Re-détection de" valeur={<Link href={`/fuites/${fuite.fuite_liee_id}`} prefetch={false} className="underline-offset-4 hover:underline">la fuite N° {fuite.fuite_liee_numero ?? "?"}</Link>} />
+                  )}
+                  {fuite.redetection_id && (
+                    <Info libelle="Re-détectée sous le" valeur={<Link href={`/fuites/${fuite.redetection_id}`} prefetch={false} className="underline-offset-4 hover:underline">N° {fuite.redetection_numero}</Link>} />
+                  )}
                   {fuite.observation && <Info libelle="Observation" valeur={<span className="whitespace-pre-wrap">{fuite.observation}</span>} large />}
                   {bureau && v2?.motif_correction && (
                     <Info libelle="Dernière correction du bureau" large

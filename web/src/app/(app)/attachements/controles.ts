@@ -10,6 +10,8 @@ export interface Controle {
   marche_id: string;
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reparation_id: string | null;
   ligne_id: string | null;
   controle: string;
@@ -21,7 +23,7 @@ export interface Controle {
 }
 
 export const COLONNES_CONTROLES =
-  'marche_id, fuite_id, fuite_numero, reparation_id, ligne_id, controle, gravite, libelle, detail, excedent, unite';
+  'marche_id, fuite_id, fuite_numero, fuite_numero_affiche, reparation_id, ligne_id, controle, gravite, libelle, detail, excedent, unite';
 
 /** Ordre d'affichage et libellé de chaque gravité (la plus grave d'abord). */
 export const GRAVITES: Record<Gravite, { libelle: string; ordre: number }> = {
@@ -125,6 +127,8 @@ export type TravailHorsBordereau = {
   libelle: string;
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   zone_id: string | null;
@@ -147,7 +151,7 @@ export type TravailHorsBordereau = {
 };
 
 // Une seule chaîne littérale : supabase-js en déduit le type des lignes lues.
-export const COLONNES_HORS_BORDEREAU = 'marche_id, nature, libelle, fuite_id, fuite_numero, reference_srm, adresse, zone_id, zone, secteur_id, secteur, reparation_id, realisee_le, jour, materiau, diametre_mm, designation, quantite, unite, piece_ligne_id, piece_provenance, piece_nature_correction';
+export const COLONNES_HORS_BORDEREAU = 'marche_id, nature, libelle, fuite_id, fuite_numero, fuite_numero_affiche, reference_srm, adresse, zone_id, zone, secteur_id, secteur, reparation_id, realisee_le, jour, materiau, diametre_mm, designation, quantite, unite, piece_ligne_id, piece_provenance, piece_nature_correction';
 
 export const NATURES_HORS_BORDEREAU: Record<NatureHorsBordereau, string> = {
   pe_au_dela_2m: 'Polyéthylène au-delà du seuil du marché',
@@ -214,7 +218,8 @@ export function lignesExportHorsBordereau(lignes: TravailHorsBordereau[]): Ligne
 }
 
 export const COLONNES_EXPORT_HB: Colonne<LigneExportHb>[] = [
-  { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Fuite', type: 'nombre', largeur: 8 },
+  { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Fuite', type: 'nombre', largeur: 8,
+    valeur: (l) => (l.fuite_numero_affiche && l.fuite_numero_affiche !== String(l.fuite_numero) ? l.fuite_numero_affiche : l.fuite_numero) },
   { cle: 'reference_srm', titre: 'Référence', groupe: 'Fuite', largeur: 13 },
   { cle: 'secteur', titre: 'Secteur', groupe: 'Fuite', largeur: 16 },
   { cle: 'jour', titre: 'Réparée le', groupe: 'Réparation', type: 'date', largeur: 11 },

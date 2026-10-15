@@ -229,7 +229,7 @@ export function pointsFuites(fuites: FuiteCarte[]): FeatureCollection<Point> {
       .map((f): Feature<Point> => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [f.longitude as number, f.latitude as number] },
-        properties: { id: f.id, numero: f.numero, statut: f.statut, alerte: aUneAlerte(f) },
+        properties: { id: f.id, numero: f.numero_affiche ?? String(f.numero), statut: f.statut, alerte: aUneAlerte(f) },
       })),
   };
 }

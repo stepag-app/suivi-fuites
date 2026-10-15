@@ -164,7 +164,7 @@ await ok('liste hors ligne : copies de ce compte seulement, les plus récemment 
   const liste = fichesDisponibles(copies, MOI);
   assert.deepEqual(liste.map((f) => f.id), ['b', 'a', 'd']);
   assert.deepEqual(liste[0], {
-    id: 'b', marche_id: 'm1', numero: 7, statut: 'detectee', adresse: '7 rue Ibn Sina', reference_srm: 'T-7', secteur: 'Secteur A',
+    id: 'b', marche_id: 'm1', numero: 7, numero_affiche: null, statut: 'detectee', adresse: '7 rue Ibn Sina', reference_srm: 'T-7', secteur: 'Secteur A',
     version_le: jour(29), consultee_le: jour(30), nb_photos: 2,
   });
   assert.deepEqual(fichesDisponibles(copies, AUTRE).map((f) => f.id), ['c']);

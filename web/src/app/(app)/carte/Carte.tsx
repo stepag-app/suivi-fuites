@@ -8,7 +8,7 @@ import type { Point } from 'geojson';
 import type { GeoJSONSource, Map as CarteMapLibre, MapGeoJSONFeature, StyleSpecification } from 'maplibre-gl';
 import { useRouter } from 'next/navigation';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { STATUTS, dateHeure, libellesMarche, nombre } from '@/lib/format';
+import { STATUTS, dateHeure, libellesMarche, nombre, numeroFuite } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
 import { langueApk, texteEtatTronconApk, traduire, useLangueApk } from '@/lib/langue-apk';
 import type { PaletteReseau } from '@/lib/reseau/palette';
@@ -389,7 +389,7 @@ function bulle(f: FuiteCarte, l: Libelles, ouvrir: (href: string) => void): HTML
   };
   const racine = el('div', 'bulle-fuite');
   const tete = el('div', 'fuite-tete');
-  tete.append(el('strong', undefined, `N° ${f.numero}`), el('span', `badge ${STATUTS[f.statut].classe}`, STATUTS[f.statut].libelle));
+  tete.append(el('strong', undefined, `N° ${numeroFuite(f)}`), el('span', `badge ${STATUTS[f.statut].classe}`, STATUTS[f.statut].libelle));
   racine.append(tete);
   if (f.reference_srm) racine.append(el('div', undefined, `${l.reference} : ${f.reference_srm}`));
   racine.append(el('div', undefined, [f.zone, f.secteur ?? 'Secteur non renseigné'].filter(Boolean).join(' · ')));

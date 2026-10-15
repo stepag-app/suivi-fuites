@@ -48,7 +48,8 @@ export function colonnesInventaireCroise(c: Croisement, libelleLignes: string): 
 
 export const COLONNES_DETAIL: Colonne<LigneDetailExport>[] = [
   { cle: 'jour', titre: 'Réparée le', groupe: 'Réparation', type: 'date', largeur: 11 },
-  { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réparation', type: 'nombre', largeur: 7 },
+  { cle: 'fuite_numero', titre: 'N° fuite', groupe: 'Réparation', type: 'nombre', largeur: 7,
+    valeur: (l) => (l.fuite_numero_affiche && l.fuite_numero_affiche !== String(l.fuite_numero) ? l.fuite_numero_affiche : l.fuite_numero) },
   { cle: 'reference_srm', titre: 'Référence', groupe: 'Réparation', largeur: 13 },
   { cle: 'chef', titre: "Chef d'équipe (matricule)", groupe: 'Réparation', largeur: 15 },
   { cle: 'zone', titre: 'Zone', groupe: 'Lieu', largeur: 16 },

@@ -4,7 +4,7 @@ export type TypeDonnee =
 
 export type Action = 'lire' | 'creer' | 'modifier' | 'supprimer' | 'valider';
 
-export type StatutFuite = 'detectee' | 'en_reparation' | 'reparee' | 'achevee' | 'sans_reparation';
+export type StatutFuite = 'detectee' | 'a_redetecter' | 'en_reparation' | 'reparee' | 'achevee' | 'sans_reparation';
 
 export interface Profil {
   id: string;
@@ -55,7 +55,11 @@ export interface Droit {
 
 export interface Secteur { id: string; zone_id: string; code: string; libelle: string }
 export interface Nature { id: string; code: string; libelle_fr: string; emplacement: string; necessite_refection: boolean }
-export interface Motif { id: string; categorie: 'sans_reparation' | 'sans_refection'; code: string; libelle_fr: string }
+export interface Motif {
+  id: string; categorie: 'sans_reparation' | 'sans_refection'; code: string; libelle_fr: string;
+  /** Motif de non-réparation qui demande une re-détection (fuite « À re-détecter », agent de détection prévenu). */
+  redetection?: boolean;
+}
 /** Article Dolibarr (id : identifiant du produit dans Dolibarr), commun à tous les marchés. */
 export interface Piece { id: number; designation: string; unite: string | null }
 
@@ -96,6 +100,14 @@ export interface VFuite {
   refection_chaussee_hors_delai: boolean;
   alerte_refection_trottoir: boolean;
   alerte_sans_photo: boolean;
+  /** Re-détection : 1 = fuite d'origine, 2 = bis, 3 = ter… ; numéro à afficher (« 22-bis »). */
+  rang?: number;
+  numero_affiche?: string | null;
+  fuite_liee_id?: string | null;
+  /** Numéro affiché de la fuite liée (re-détection de…) et de la re-détection de cette fuite. */
+  fuite_liee_numero?: string | null;
+  redetection_numero?: string | null;
+  redetection_id?: string | null;
 }
 
 export interface Reparation {

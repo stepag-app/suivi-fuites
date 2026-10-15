@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { dateHeure, type libellesMarche } from "@/lib/format";
+import { dateHeure, type libellesMarche, numeroFuite } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
 import type { FuiteListe } from "@/lib/colonnes-fuites";
 
@@ -48,7 +48,7 @@ export function colonnesFuites(libelles: Libelles, actions: { rapport: (f: Fuite
       header: ({ column }) => <EnTeteTriable colonne={column} titre="N°" />,
       cell: ({ row }) => (
         <Link href={`/fuites/${row.original.id}`} prefetch={false} className="font-medium tabular-nums hover:underline" onClick={(e) => e.stopPropagation()}>
-          {row.original.numero}
+          {numeroFuite(row.original)}
         </Link>
       ),
       enableHiding: false,

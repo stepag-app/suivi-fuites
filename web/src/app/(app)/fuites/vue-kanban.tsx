@@ -5,7 +5,7 @@ import { Camera, CalendarDays, MapPin } from "lucide-react";
 import { BadgesAlertes, ORDRE_STATUTS, STATUT_STYLE } from "@/components/statut";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { dateSeule, type libellesMarche } from "@/lib/format";
+import { dateSeule, type libellesMarche, numeroFuite } from "@/lib/format";
 import type { FuiteListe } from "@/lib/colonnes-fuites";
 import { cn, pluriel } from "@/lib/utils";
 
@@ -35,7 +35,7 @@ export function VueKanban({ fuites, libelles }: { fuites: FuiteListe[]; libelles
                   <div className="min-w-0 space-y-1">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="min-w-0 truncate font-medium text-sm leading-tight" title={f.reference_srm ?? undefined}>
-                        N° {f.numero}{f.reference_srm ? <span className="font-normal text-muted-foreground"> · {f.reference_srm}</span> : null}
+                        N° {numeroFuite(f)}{f.reference_srm ? <span className="font-normal text-muted-foreground"> · {f.reference_srm}</span> : null}
                       </h3>
                       {f.origine === "srm" && <Badge variant="secondary" className="shrink-0 rounded-md px-1.5 text-[0.625rem]">{libelles.sigle}</Badge>}
                     </div>

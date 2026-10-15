@@ -7,7 +7,7 @@ import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/componen
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { dateSeule, type libellesMarche } from "@/lib/format";
+import { dateSeule, type libellesMarche, numeroFuite } from "@/lib/format";
 import type { StatutFuite } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import type { FuiteCarte } from "./commun";
@@ -30,7 +30,7 @@ function CarteFuite({ fuite, active, libelles, choisir }: { fuite: FuiteCarte; a
       )}
     >
       <div className="flex items-center gap-2">
-        <span className="font-medium text-sm tabular-nums">N° {fuite.numero}</span>
+        <span className="font-medium text-sm tabular-nums">N° {numeroFuite(fuite)}</span>
         <span className="flex items-center gap-1 text-muted-foreground text-xs"><span className={cn("size-1.5 rounded-full", s.point)} />{s.court}</span>
         <span className="ml-auto text-muted-foreground text-xs tabular-nums">{dateSeule(fuite.date_detection)}</span>
       </div>

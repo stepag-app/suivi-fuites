@@ -3,11 +3,51 @@ import { dateHeureMaroc, dateMaroc } from '@/lib/heure-maroc';
 
 export const STATUTS: Record<StatutFuite, { libelle: string; classe: string }> = {
   detectee: { libelle: 'Détectée, non réparée', classe: 'st-detectee' },
+  a_redetecter: { libelle: 'À re-détecter', classe: 'st-redetecter' },
   en_reparation: { libelle: 'Réparation en cours', classe: 'st-encours' },
   reparee: { libelle: 'Réparée, réfection à faire', classe: 'st-reparee' },
   achevee: { libelle: 'Achevée', classe: 'st-achevee' },
   sans_reparation: { libelle: 'Sans réparation', classe: 'st-sans' },
 };
+
+/** Numéro à afficher d'une fuite : « 22 » ou, pour une re-détection, « 22-bis », « 22-ter »… */
+export function numeroFuite(f: { numero_affiche?: string | null; numero?: number | null } | null | undefined): string {
+  if (!f) return '—';
+  return f.numero_affiche || (f.numero != null ? String(f.numero) : '—');
+}
+
+/** Même chose pour une ligne de vue qui porte fuite_numero et fuite_numero_affiche. */
+export function numeroFuiteLigne(l: { fuite_numero_affiche?: string | null; fuite_numero?: number | null } | null | undefined): string {
+  if (!l) return '—';
+  return l.fuite_numero_affiche || (l.fuite_numero != null ? String(l.fuite_numero) : '—');
+}
+
+const SUFFIXES_RANG = ['', 'bis', 'ter', 'quater', 'quinquies', 'sexies', 'septies', 'octies', 'nonies', 'decies'];
+
+/** Numéro que prendra la re-détection d'une fuite (rang suivant) : 22 → « 22-bis », 22-bis → « 22-ter ». */
+export function numeroRedetection(f: { numero?: number | null; rang?: number | null }): string {
+  const rang = (f.rang ?? 1) + 1;
+  return `${f.numero ?? '?'}-${SUFFIXES_RANG[rang - 1] ?? rang}`;
+}
+
+/** Rang d'une fuite d'après son numéro affiché : « 22 » → 1, « 22-bis » → 2, « 22-ter » → 3… */
+export function rangDepuisAffiche(numero: number | null | undefined, affiche: string | null | undefined): number {
+  if (!affiche || affiche === String(numero ?? '')) return 1;
+  const i = SUFFIXES_RANG.indexOf(affiche.slice(String(numero ?? '').length + 1));
+  return i > 0 ? i + 1 : 1;
+}
+
+/** Numéro pour un export : le nombre (colonne numérique) sauf pour une re-détection (« 22-bis », texte). */
+export function numeroExport(numero: unknown, affiche: unknown): unknown {
+  return typeof affiche === 'string' && affiche && affiche !== String(numero ?? '') ? affiche : numero;
+}
+
+/** Recherche par numéro : « 22 » trouve la 22 et ses re-détections, « 22-bis » la seule 22-bis. */
+export function numeroCorrespond(f: { numero_affiche?: string | null; numero?: number | null }, texte: string): boolean {
+  const t = texte.trim().toLowerCase();
+  if (!t) return false;
+  return String(f.numero ?? '') === t || (f.numero_affiche ?? '').toLowerCase() === t;
+}
 
 export const OUVRAGES: Record<string, string> = {
   branchement: 'Branchement',

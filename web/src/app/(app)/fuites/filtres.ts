@@ -28,7 +28,7 @@ export interface FiltresListe {
 export const FILTRES_VIDES: FiltresListe = { statuts: [], zone: '', secteur: '', du: '', au: '', alertes: false, alerte: '', texte: '' };
 
 // Le type impose la liste complète des statuts (et rien d'autre) ; l'ordre est celui du cycle de vie.
-const STATUTS: Record<StatutFuite, number> = { detectee: 1, en_reparation: 2, reparee: 3, achevee: 4, sans_reparation: 5 };
+const STATUTS: Record<StatutFuite, number> = { detectee: 1, a_redetecter: 2, en_reparation: 3, reparee: 4, achevee: 5, sans_reparation: 6 };
 const estStatut = (v: string): v is StatutFuite => Object.hasOwn(STATUTS, v);
 /** « En attente » du tableau de bord : détectées ou réparation en cours. */
 export const STATUTS_EN_ATTENTE: StatutFuite[] = ['detectee', 'en_reparation'];
@@ -159,7 +159,7 @@ export function jourMaroc(iso: string | null | undefined): string | null {
 }
 
 export type FuiteFiltrable = Pick<VFuite, 'statut' | 'secteur_id' | 'numero' | 'reference_srm' | 'adresse'>
-  & Partial<Pick<VFuite, 'zone_id' | 'date_detection' | CleAlerte>>;
+  & Partial<Pick<VFuite, 'zone_id' | 'date_detection' | 'numero_affiche' | CleAlerte>>;
 
 export const aUneAlerte = (f: Partial<Pick<VFuite, CleAlerte>>) => CLES_ALERTES.some((c) => f[c] === true);
 
@@ -181,7 +181,7 @@ export function correspondance(filtres: Brut): (f: FuiteFiltrable) => boolean {
       if (!j || (du && j < du) || (au && j > au)) return false;
     }
     return !t ||
-      String(f.numero) === t ||
+      String(f.numero) === t || (f.numero_affiche ?? '').toLowerCase() === t ||
       (f.reference_srm ?? '').toLowerCase().includes(t) ||
       (chiffres.length >= 3 && (f.reference_srm ?? '').replace(/\D/g, '').includes(chiffres)) ||
       (f.adresse ?? '').toLowerCase().includes(t);

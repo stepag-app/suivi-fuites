@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { LineString } from "geojson";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { Camera, CircleAlert, Crosshair, Lightbulb, LocateFixed, Save, TriangleAlert, X } from "lucide-react";
+import { Camera, CircleAlert, Crosshair, Lightbulb, LocateFixed, Save, ScanSearch, TriangleAlert, X } from "lucide-react";
 import { EnTetePage, Vide } from "@/components/en-tete-page";
 import { MiniCarte } from "@/components/mini-carte";
 import { BadgeStatut } from "@/components/statut";
@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { MATERIAUX, OUVRAGES, dateHeure, formaterReference, libellesMarche, messageErreur, motifMasque } from "@/lib/format";
+import { MATERIAUX, OUVRAGES, dateHeure, formaterReference, libellesMarche, messageErreur, motifMasque, numeroFuite, numeroRedetection, rangDepuisAffiche } from "@/lib/format";
 import { lireCache, mettreEnCache, mettreFuiteEnAttente, synchroniser, type PhotoEnAttente } from "@/lib/hors-ligne";
 import { preparerPhoto } from "@/lib/photo";
 import { lireReferentielsSaisie, type ReferentielsSaisie } from "@/lib/saisie/referentiels";
@@ -34,7 +34,11 @@ interface Position { latitude: number; longitude: number; precision: number | nu
 interface Proche {
   id: string; numero: number; reference_srm: string | null; statut: StatutFuite;
   date_detection: string; distance_m: number | null; meme_reference: boolean;
+  /** « 22-bis » (re-détection) ; absent d'une base pas encore à jour. */
+  numero_affiche?: string | null;
 }
+/** Fuite « À re-détecter » dont on saisit la re-détection (lien ?redetection=…). */
+interface Origine { id: string; numero: number; numero_affiche: string | null; rang: number }
 /** Réponse de suggestions_localisation (contrat S2 § 3). */
 interface Suggestions {
   precision_insuffisante: boolean;
@@ -69,6 +73,7 @@ export default function NouvelleFuite() {
   const [photos, setPhotos] = useState<File[]>([]);
   const [proches, setProches] = useState<Proche[]>([]);
   const [lierA, setLierA] = useState("");
+  const [origine, setOrigine] = useState<Origine | null>(null);
   // Saisie au bureau (responsable) : à la place d'un agent, date réelle, source, validation immédiate
   const [detecteePar, setDetecteePar] = useState("");
   const [dateDetection, setDateDetection] = useState("");
@@ -108,6 +113,36 @@ export default function NouvelleFuite() {
       (r) => { setRef(r); mettreEnCache(cle, r); },
       async () => setRef((await lireCache<ReferentielsSaisie>(cle)) ?? VIDE),
     );
+  }, [marcheId]);
+
+  // Re-détection (bouton « Re-détecter » de la fiche) : fuite d'origine liée, champs repris, nouvelle position à relever.
+  useEffect(() => {
+    if (!marcheId) return;
+    const id = new URLSearchParams(window.location.search).get("redetection");
+    if (!id) return;
+    const sb = getSupabase();
+    Promise.all([
+      sb.from("v_fuites").select("id, numero, numero_affiche, rang, statut, reference_srm, secteur_id, adresse, ouvrage, visibilite").eq("id", id).maybeSingle(),
+      sb.from("fuites").select("nature_degradation_id, materiau, diametre_mm").eq("id", id).maybeSingle(),
+    ]).then(([v, f]) => {
+      const o = v.data as (Origine & { statut: StatutFuite; reference_srm: string | null; secteur_id: string | null; adresse: string | null;
+        ouvrage: string | null; visibilite: "visible" | "invisible" | null }) | null;
+      if (!o) return setErreur(v.error ? messageErreur(v.error) : "Fuite à re-détecter introuvable.");
+      if (o.statut !== "a_redetecter") return setErreur(`La fuite N° ${numeroFuite(o)} n'est plus « À re-détecter » : la saisie sera une nouvelle fuite.`);
+      setOrigine({ id: o.id, numero: o.numero, numero_affiche: o.numero_affiche, rang: o.rang ?? 1 });
+      setLierA(o.id);
+      setReference(o.reference_srm ?? "");
+      setSecteurId(o.secteur_id ?? "");
+      setAdresse(o.adresse ?? "");
+      setOuvrage(o.ouvrage ?? "");
+      setVisibilite(o.visibilite ?? "");
+      const d = f.data as { nature_degradation_id: string | null; materiau: string | null; diametre_mm: number | null } | null;
+      if (d) {
+        setNatureId(d.nature_degradation_id ?? "");
+        setMateriau(d.materiau ?? "");
+        setDiametre(d.diametre_mm != null ? String(d.diametre_mm) : "");
+      }
+    });
   }, [marcheId]);
 
   const localiser = useCallback(() => {
@@ -233,6 +268,12 @@ export default function NouvelleFuite() {
 
   if (!peut("fuites", "creer")) return <Vide>Votre compte ne peut pas signaler de fuite.</Vide>;
 
+  // Fuite liée « À re-détecter » : la saisie est sa re-détection (même numéro, suffixe suivant).
+  const procheLiee = proches.find((p) => p.id === lierA);
+  const liee = origine ?? (procheLiee?.statut === "a_redetecter"
+    ? { id: procheLiee.id, numero: procheLiee.numero, numero_affiche: procheLiee.numero_affiche ?? null, rang: rangDepuisAffiche(procheLiee.numero, procheLiee.numero_affiche) }
+    : null);
+
   const s = suggestions;
   const rues = (s?.rues ?? []).filter((r) => r.nom && !adresse.toLowerCase().includes(r.nom.toLowerCase()));
   const secteurPropose = s?.secteur && s.secteur.id !== secteurId && secteurs.some((x) => x.id === s.secteur!.id) ? s.secteur : null;
@@ -242,7 +283,23 @@ export default function NouvelleFuite() {
 
   return (
     <form onSubmit={enregistrer} className="mx-auto flex w-full max-w-3xl flex-col gap-4" noValidate>
-      <EnTetePage titre="Nouvelle fuite" description={`${marche?.code ?? ""} · position, ${minusculeInitiale(libelles.reference)}, secteur, ouvrage et photos. Sans réseau, la fuite est gardée sur la tablette puis envoyée.`} />
+      <EnTetePage titre={origine ? `Re-détection de la fuite N° ${numeroFuite(origine)}` : "Nouvelle fuite"} description={`${marche?.code ?? ""} · position, ${minusculeInitiale(libelles.reference)}, secteur, ouvrage et photos. Sans réseau, la fuite est gardée sur la tablette puis envoyée.`} />
+
+      {liee && (
+        <Alert className="border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-50">
+          <ScanSearch />
+          <AlertTitle>Re-détection de la fuite N° {numeroFuite(liee)}</AlertTitle>
+          <AlertDescription className="text-violet-950/80 dark:text-violet-50/80">
+            Elle sera enregistrée sous le N° {numeroRedetection(liee)} ; la fuite N° {numeroFuite(liee)} sera close. Relevez la nouvelle position
+            (GPS ou épingle) et prenez une photo du marquage.
+            {origine && (
+              <Button type="button" variant="link" className="h-auto px-1 text-violet-950 dark:text-violet-50" onClick={() => { setOrigine(null); setLierA(""); }}>
+                Annuler la re-détection
+              </Button>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Card>
         <CardHeader>
@@ -270,7 +327,7 @@ export default function NouvelleFuite() {
         </CardContent>
       </Card>
 
-      {proches.length > 0 && (
+      {proches.length > 0 && !origine && (
         <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
           <TriangleAlert />
           <AlertTitle>Fuite déjà signalée ici ?</AlertTitle>
@@ -278,7 +335,7 @@ export default function NouvelleFuite() {
             <ul className="flex flex-col gap-1.5">
               {proches.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-2">
-                  <Link href={`/fuites/${p.id}`} className="font-medium underline-offset-4 hover:underline" target="_blank" rel="noopener">N° {p.numero}</Link>
+                  <Link href={`/fuites/${p.id}`} className="font-medium underline-offset-4 hover:underline" target="_blank" rel="noopener">N° {numeroFuite(p)}</Link>
                   <BadgeStatut statut={p.statut} court />
                   <span>{dateHeure(p.date_detection)}{p.meme_reference ? " · même référence" : ""}{p.distance_m != null ? ` · à ${Math.round(p.distance_m)} m` : ""}</span>
                 </li>
@@ -288,7 +345,7 @@ export default function NouvelleFuite() {
               <FieldLabel htmlFor="lier">Si c&apos;est la même fuite (re-détection), la lier à</FieldLabel>
               <NativeSelect id="lier" value={lierA} onChange={(e) => setLierA(e.target.value)} className="w-full bg-background">
                 <NativeSelectOption value="">Nouvelle fuite (ne pas lier)</NativeSelectOption>
-                {proches.map((p) => <NativeSelectOption key={p.id} value={p.id}>N° {p.numero}</NativeSelectOption>)}
+                {proches.map((p) => <NativeSelectOption key={p.id} value={p.id}>N° {numeroFuite(p)}{p.statut === "a_redetecter" ? " (à re-détecter)" : ""}</NativeSelectOption>)}
               </NativeSelect>
             </Field>
           </AlertDescription>

@@ -5,7 +5,7 @@ import type { Row } from "@tanstack/react-table";
 import { Camera, ChevronRight } from "lucide-react";
 import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Badge } from "@/components/ui/badge";
-import { dateHeure, type libellesMarche } from "@/lib/format";
+import { dateHeure, type libellesMarche, numeroFuite } from "@/lib/format";
 import type { FuiteListe } from "@/lib/colonnes-fuites";
 
 /** Écran étroit (tablette en portrait, téléphone) : une carte par fuite, mêmes lignes que le tableau. */
@@ -18,7 +18,7 @@ export function VueCartes({ lignes, libelles }: { lignes: Row<FuiteListe>[]; lib
           <Link href={`/fuites/${f.id}`} prefetch={false} className="flex items-center gap-3 px-4 py-3 active:bg-muted/50">
             <div className="flex min-w-0 flex-1 flex-col gap-1.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="font-medium">N° {f.numero}{f.reference_srm ? <span className="text-muted-foreground font-normal"> · {f.reference_srm}</span> : null}
+                <span className="font-medium">N° {numeroFuite(f)}{f.reference_srm ? <span className="text-muted-foreground font-normal"> · {f.reference_srm}</span> : null}
                   {f.origine === "srm" && <Badge variant="secondary" className="ml-1.5 rounded-sm">{libelles.sigle}</Badge>}
                 </span>
                 <BadgeStatut statut={f.statut} court />

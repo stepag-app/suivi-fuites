@@ -115,6 +115,8 @@ function cellule(c: Colonne, l: Ligne, decimales: Record<string, number>): { val
   if (type === 'date' || type === 'dateheure') return { valeur: enDate(brute), dec: 0 };
   if (type === 'nombre' || type === 'quantite' || type === 'montant') {
     const n = brute == null || brute === '' ? null : Number(brute);
+    // Numéro de re-détection (« 22-bis ») dans une colonne de numéros : gardé tel quel, en texte.
+    if (type === 'nombre' && typeof brute === 'string' && n != null && Number.isNaN(n)) return { valeur: brute, dec: 0 };
     const dec = type === 'montant' ? 2
       : type === 'quantite' ? decimales[String(l[c.uniteCle ?? 'unite'] ?? '')] ?? c.decimales ?? 2
       : c.decimales ?? 0;

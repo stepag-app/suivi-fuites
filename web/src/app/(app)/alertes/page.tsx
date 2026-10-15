@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { dateHeure, libellesMarche, messageErreur } from "@/lib/format";
+import { dateHeure, libellesMarche, messageErreur, numeroFuite } from "@/lib/format";
 import { lienItineraire } from "@/lib/itineraire";
 import { useSession } from "@/lib/session";
 import { COLONNES_ALERTES, filtreAlertes, type FuiteAlerte } from "@/lib/colonnes-fuites";
@@ -163,12 +163,12 @@ export default function Alertes() {
               const h = heuresDepuis(f.date_detection, maintenant) ?? 0;
               return (
                 <button key={f.id} type="button" aria-pressed={f.id === choisie.id} onClick={() => setSelection(f.id)}
-                  aria-label={`Ouvrir la fuite N° ${f.numero}`}
+                  aria-label={`Ouvrir la fuite N° ${numeroFuite(f)}`}
                   className={cn("flex min-h-36 min-w-0 flex-col bg-card p-2 text-left text-card-foreground hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     f.id === choisie.id && "ring-2 ring-primary ring-inset")}>
                   <div className="flex w-full items-start justify-between gap-2">
                     <div className="truncate font-medium text-sm">
-                      <span className={cn(retard && "text-amber-500 dark:text-amber-400")}>N° {f.numero}</span> {f.secteur ?? "—"}
+                      <span className={cn(retard && "text-amber-500 dark:text-amber-400")}>N° {numeroFuite(f)}</span> {f.secteur ?? "—"}
                     </div>
                     {anticipees.has(f.id) ? <BadgeAnticipe className="h-auto shrink-0 rounded-none text-[10px] uppercase" lot={anticipees.get(f.id)?.premier_lot} />
                       : retard && <Badge className="h-auto shrink-0 rounded-none border-amber-500 text-[10px] text-amber-700 dark:border-amber-400 dark:text-amber-300" variant="outline">RETARD</Badge>}
@@ -200,7 +200,7 @@ export default function Alertes() {
             <div className="flex min-h-11 flex-wrap items-center gap-4 bg-muted/50 px-3 py-1">
               <div className="flex items-center gap-3 font-medium">
                 <Badge className="rounded-none" variant="outline">{choisie.secteur ?? "Secteur ?"}</Badge>
-                <span className="text-lg">Fuite N° {choisie.numero}</span>
+                <span className="text-lg">Fuite N° {numeroFuite(choisie)}</span>
                 {anticipees.has(choisie.id) && <BadgeAnticipe lot={anticipees.get(choisie.id)?.premier_lot} />}
               </div>
               <div className="text-muted-foreground text-sm">{choisie.adresse ?? "Adresse non renseignée"} · <BadgeStatut statut={choisie.statut} court className="align-middle" /></div>

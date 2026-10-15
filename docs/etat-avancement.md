@@ -4,7 +4,8 @@
 > Détail historique complet (lots, PR, vérifications, pièges, session par session) :
 > `docs/archives/etat-avancement-historique-2026-10-13.md`. Exploitation courante : `docs/manuel-exploitation.md`.
 
-Dernière mise à jour : 2026-10-15, 11 h 20 (**carte terrain des agents** (PR #140) : fusionnée, déployée, dans l'APK
+Dernière mise à jour : 2026-10-15, 23 h (**Mes chiffres et À faire** de l'APK : branche `claude/mes-chiffres-a-faire`,
+PR ouverte, pas encore fusionnée ni dans une APK). Avant : 2026-10-15, 11 h 20 (**carte terrain des agents** (PR #140) : fusionnée, déployée, dans l'APK
 bêta 5 (208) ; état d'avancement à jour (#141 à #143), #137 fermée car déjà reprise). Avant : 2026-10-15, 10 h 45 (**prix 1
 et 2 à l'attachement, re-détection 22-bis** (PR #138) et **interface épurée, modales sans débordement** (PR #139) :
 fusionnées et déployées ; APK bêta 5 publiée à 10 h 51). Avant : 2026-10-14, soir (renvoi d'une étape
@@ -43,6 +44,7 @@ réécrit, **E4 fait** : équipes retirées de la base). Avant : 2026-10-12, 23 
 | 9 | **Prix 1 et 2, re-détection 22-bis** : en service (PR #138, déployée le 2026-10-15) ; **APK bêta 5** (bouton « Re-détecter », 22-bis, badge « À corriger », orange brûlé) publiée le 2026-10-15 ; relire l'arabe des nouvelles phrases (statut « À re-détecter », `mobile/src/traductions.ts`, `envoyer-push`) ; cocher sur la carte le linéaire balayé du 2 au 12 octobre (date réelle) avant le premier attachement du prix 1 ; **à confirmer avec la SRM** : attachement mensuel du prix 1 et plafond au marché | Claude avec Issam | `docs/manuel-exploitation.md` § 10 et 11, `supabase/README.md` |
 | 10 | **Interface épurée, modales** : en service (PR #139) ; règles à respecter dans `web/README.md` § Style de l'interface | Claude | `web/README.md` |
 | 11 | **Carte terrain** : en service (PR #140) et dans la bêta 5 ; essayer sur une tablette mise à jour (bouton « Carte » pour chaque rôle, calques, « Ma position », « Ouvrir la fiche » puis retour, changement de langue sur la Carte et le Balayage) ; relire l'arabe K01 à K52 du dictionnaire de relecture ; retours du terrain | Issam, puis Claude | `web/README.md` § Carte terrain, `mobile/README.md` (écran Carte) |
+| 12 | **Mes chiffres et À faire** (demande d'Issam du 2026-10-15, gabarit validé) : rangée de boutons de l'accueil sur une ligne (Envois en attente passé dans la barre), écran « Mes chiffres » (chiffres du compte aujourd'hui / semaine / mois par rôle, chiffres du marché) et écran « À faire » (actions par rôle, urgentes puis plus anciennes, sans l'anticipation) ; migration `20261016900000`, 29 tests pgTAP, essai sans pile `essais/tableau.test.mjs` ; vérifié sur un banc React Native Web (portrait 800 dp, paysage 1280 dp, trois langues). **À faire** : fusion à la demande d'Issam (vérifier « Déploiement de la base » **avant** de publier l'APK : une APK sans les fonctions affiche « Hors ligne »), APK bêta 6 à publier à sa demande, essai sur la Redmi Pad 2, relire l'arabe des 43 nouvelles phrases | Claude, puis Issam | `mobile/README.md` (Mes chiffres, À faire), `supabase/README.md` |
 
 **E4, fait le 2026-10-13 (S21).** Condition remplie : Issam a confirmé qu'il n'y a qu'**une seule tablette** en
 service (Redmi Pad 2), en beta.4 (195), qui n'envoie plus `equipe_id`. Migration

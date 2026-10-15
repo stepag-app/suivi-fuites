@@ -1,4 +1,4 @@
-import { useState, type ComponentProps, type ReactNode, type Ref } from 'react';
+import { Children, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import {
   ActivityIndicator, Alert, Image, Linking, Pressable, ScrollView, StatusBar, StyleSheet, Text, TextInput, View,
   type StyleProp, type ViewStyle,
@@ -169,6 +169,50 @@ export function Bouton({ titre, onPress, primaire, danger, fantome, desactive, o
         </View>
       )}
     </Pressable>
+  );
+}
+
+/** Largeur maximale (dp) d'un bouton de la rangée de l'accueil. */
+export const LARGEUR_TUILE = 132;
+const ECART_TUILES = 8;
+
+/**
+ * Bouton de la rangée de l'accueil (demande d'Issam du 2026-10-15 : tout sur une ligne) : icône au-dessus du
+ * libellé (deux lignes au plus, pour l'arabe), même largeur pour tous ; pastille chiffrée, rouge si `urgent`.
+ */
+export function BoutonTuile({ titre, icone, onPress, primaire, compteur, urgent }: {
+  titre: string; icone: NomIcone; onPress: () => void; primaire?: boolean; compteur?: number | string; urgent?: boolean;
+}) {
+  const couleur = primaire ? COULEURS.principalTexte : COULEURS.texte;
+  return (
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [s.tuile, primaire && s.primaire, pressed && [primaire ? s.primaireAppuye : s.appuye, s.enfonce]]}
+      accessibilityRole="button"
+      accessibilityLabel={compteur != null ? `${titre} (${compteur})` : titre}
+    >
+      <Icone nom={icone} taille={22} couleur={couleur} />
+      <Text style={[s.texteTuile, { color: couleur }]} numberOfLines={2}>{titre}</Text>
+      {compteur != null && (
+        <View style={[s.compteur, s.pastilleTuile, urgent && { backgroundColor: COULEURS.danger }]}>
+          <Text style={s.texteCompteur}>{compteur}</Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
+
+/**
+ * Rangée de boutons sur une seule ligne : `large` (paysage), largeur juste nécessaire, à droite du titre ; sinon
+ * toute la largeur, sous le titre. Les boutons se partagent la place, sans dépasser LARGEUR_TUILE.
+ */
+export function RangeeTuiles({ large, children }: { large: boolean; children: ReactNode }) {
+  const n = Children.toArray(children).filter(Boolean).length;
+  if (!n) return null;
+  return (
+    <View style={[s.rangeeTuiles, large ? { width: n * LARGEUR_TUILE + (n - 1) * ECART_TUILES } : { flexBasis: '100%', flexGrow: 1 }]}>
+      {children}
+    </View>
   );
 }
 
@@ -535,6 +579,14 @@ export const s = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   texteCompteur: { fontFamily: POLICE, fontSize: 13, fontWeight: '600', color: COULEURS.principalTexte },
+  rangeeTuiles: { flexDirection: 'row', gap: ECART_TUILES },
+  tuile: {
+    flexGrow: 1, flexShrink: 1, flexBasis: 0, maxWidth: LARGEUR_TUILE, minHeight: 72, borderRadius: 10, borderWidth: 1,
+    borderColor: COULEURS.bord, backgroundColor: COULEURS.fond, alignItems: 'center', justifyContent: 'center', gap: 4,
+    paddingHorizontal: 4, paddingVertical: 8,
+  },
+  texteTuile: { fontFamily: POLICE, fontSize: 14, lineHeight: 17, fontWeight: '500', textAlign: 'center' },
+  pastilleTuile: { position: 'absolute', top: -8, right: -6, borderWidth: 2, borderColor: COULEURS.fond },
   ligne: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
   puce: {
     minHeight: 48, justifyContent: 'center', paddingHorizontal: 16, borderRadius: 10, borderWidth: 1,

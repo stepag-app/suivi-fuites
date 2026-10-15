@@ -17,6 +17,8 @@ import { enregistrerPush, retenirLangue } from './src/push';
 import { SaisieRefection, SaisieReparation } from './src/saisie';
 import { SessionProvider, useSession } from './src/session';
 import { SuiviGpsEcran, useSuiviGps } from './src/suivi-gps-ecran';
+import { AFaire, MesChiffres } from './src/tableau';
+import type { Filtre } from './src/tableau-donnees';
 import { BandeauTablette, EcranTablette, useTablette } from './src/tablette';
 import { configurationManquante } from './src/supabase';
 import type { FicheFuite } from './src/types';
@@ -26,8 +28,10 @@ type Vue =
   | { nom: 'liste' } | { nom: 'nouvelle'; modification?: FicheFuite; redetection?: FicheFuite } | { nom: 'attente' } | { nom: 'balayage' }
   | { nom: 'avalider' } | { nom: 'notifications' } | { nom: 'suivigps' } | { nom: 'mesures' } | { nom: 'tablette' }
   | { nom: 'carte'; fuite?: string }
-  // `depuis` : fiche ouverte depuis la carte, qui la rouvre au retour (centrée sur la fuite).
-  | { nom: 'fiche'; id: string; depuis?: 'carte' }
+  // « Mes chiffres » et « À faire » (2026-10-15) ; « À faire » ouvert depuis « Mes chiffres » y revient.
+  | { nom: 'chiffres' } | { nom: 'afaire'; filtre?: Filtre; depuis?: 'chiffres' }
+  // `depuis` : fiche ouverte depuis la carte (qui la rouvre au retour, centrée sur la fuite) ou depuis « À faire ».
+  | { nom: 'fiche'; id: string; depuis?: 'carte' } | { nom: 'fiche'; id: string; depuis: 'afaire'; filtre: Filtre; avant?: 'chiffres' }
   | { nom: 'reparation' | 'refection'; contexte: ContexteSaisie };
 const LISTE: Vue = { nom: 'liste' };
 
@@ -36,12 +40,16 @@ function Racine() {
   const { t, langue } = useLangue();
   const [vue, setVue] = useState<Vue>(LISTE);
   const retourListe = () => setVue(LISTE);
-  // Une saisie et la modification d'une fuite reviennent à leur fiche, une fiche ouverte de la carte à la carte, le
-  // reste à la liste.
-  const precedente = (v: Vue): Vue => (v.nom === 'reparation' || v.nom === 'refection'
-    ? { nom: 'fiche', id: v.contexte.fuiteId }
-    : v.nom === 'nouvelle' && (v.modification || v.redetection) ? { nom: 'fiche', id: (v.modification ?? v.redetection)!.id }
-      : v.nom === 'fiche' && v.depuis === 'carte' ? { nom: 'carte', fuite: v.id } : LISTE);
+  // Une saisie et la modification d'une fuite reviennent à leur fiche, une fiche ouverte de la carte à la carte, de
+  // « À faire » à « À faire » (même filtre), « À faire » ouvert de « Mes chiffres » à « Mes chiffres », le reste à la liste.
+  const precedente = (v: Vue): Vue => {
+    if (v.nom === 'reparation' || v.nom === 'refection') return { nom: 'fiche', id: v.contexte.fuiteId };
+    if (v.nom === 'nouvelle' && (v.modification || v.redetection)) return { nom: 'fiche', id: (v.modification ?? v.redetection)!.id };
+    if (v.nom === 'fiche' && v.depuis === 'carte') return { nom: 'carte', fuite: v.id };
+    if (v.nom === 'fiche' && v.depuis === 'afaire') return { nom: 'afaire', filtre: v.filtre, depuis: v.avant };
+    if (v.nom === 'afaire' && v.depuis === 'chiffres') return { nom: 'chiffres' };
+    return LISTE;
+  };
   const [nonLues, relireNonLues] = useNonLues();
   const miseAJour = useMiseAJour();
   // Fenêtre de mise à jour refermée (« Plus tard ») : numéro de la version, jusqu'au prochain démarrage.
@@ -138,6 +146,15 @@ function Racine() {
       return <Balayage retour={retourListe} />;
     case 'carte':
       return <CarteFuites fuite={vue.fuite} retour={retourListe} ouvrirFiche={(id) => setVue({ nom: 'fiche', id, depuis: 'carte' })} />;
+    case 'chiffres':
+      return <MesChiffres retour={retourListe} ouvrirAFaire={(filtre) => setVue({ nom: 'afaire', filtre, depuis: 'chiffres' })} />;
+    case 'afaire':
+      return (
+        <AFaire
+          key={vue.filtre ?? 'toutes'} filtreInitial={vue.filtre} retour={() => setVue(precedente(vue))}
+          ouvrir={(id, filtre) => setVue({ nom: 'fiche', id, depuis: 'afaire', filtre, avant: vue.depuis })}
+        />
+      );
     case 'avalider':
       return <AValiderEcran retour={retourListe} ouvrir={ouvrir} />;
     case 'mesures':
@@ -167,6 +184,8 @@ function Racine() {
           attente={() => setVue({ nom: 'attente' })}
           balayage={() => setVue({ nom: 'balayage' })}
           carte={() => setVue({ nom: 'carte' })}
+          chiffres={() => setVue({ nom: 'chiffres' })}
+          aFaire={() => setVue({ nom: 'afaire' })}
           aValider={() => setVue({ nom: 'avalider' })}
           notifications={() => setVue({ nom: 'notifications' })}
           suiviGps={() => setVue({ nom: 'suivigps' })}

@@ -87,7 +87,7 @@ transfererVers(paquet: string): Promise<void>     // DEV → appli normale (Redm
 liberer(): Promise<void>
 ```
 
-Hors propriétaire (tablettes Samsung actuelles, émulateur) : `proprietaire = false`, rien ne change (mise à jour par
+Hors propriétaire (tablette préparée à la main, émulateur) : `proprietaire = false`, rien ne change (mise à jour par
 l'installateur d'Android comme aujourd'hui, pas d'entrée « Déverrouiller »).
 
 ## 4. Applis, 4G, batterie, interdictions
@@ -270,7 +270,7 @@ panneau) ; il survit aux mises à jour. Le « démarrage automatique » n'est **
 l'appli, et sans lui HyperOS refuse **tout** réveil de l'appli après l'installation (diffusion « paquet remplacé » et
 compte rendu de la session d'installation, vérifié sur 5 mises à jour) : **sur Xiaomi, l'agent rouvre l'appli d'un
 toucher après « Installer »** (texte de la fenêtre adapté) ; la réouverture automatique reste en place pour les tablettes
-qui l'acceptent (Samsung, AOSP : propriétaire exempté). Si l'appli est fermée, le reverrouillage se fait à l'ouverture
+qui l'acceptent (Android d'origine, autres fabricants : propriétaire exempté). Si l'appli est fermée, le reverrouillage se fait à l'ouverture
 suivante. La « Sécurité » de Xiaomi reste visible pendant un
 déverrouillage pour accéder à ces pages. `adb install` refusé par HyperOS (« Installer via USB ») : l'APK DEV s'installe
 par la mise à jour de l'appli elle-même.

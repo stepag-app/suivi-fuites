@@ -4,7 +4,7 @@ Application Next.js 15 (App Router, TypeScript), hébergée sur Vercel. Elle par
 à Supabase depuis le navigateur : la **RLS** de la base fait la sécurité, il n'y a aucun secret
 côté client. Les comptes sont créés par la fonction serveur `supabase/functions/gerer-utilisateurs`.
 
-Une seule application, utilisable sur ordinateur (bureau, responsable) et sur la tablette Samsung
+Une seule application, utilisable sur ordinateur (bureau, responsable) et sur tablette
 (navigateur Chrome, « Ajouter à l'écran d'accueil » pour l'installer comme une application).
 C'est la **version rapide de test** : mode hors ligne léger pour la création de fuites (voir plus bas),
 pas de GPS en arrière-plan ; l'APK Expo prévu dans CLAUDE.md viendra après validation du parcours.

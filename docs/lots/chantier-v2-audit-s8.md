@@ -52,7 +52,7 @@ et rejoué les tests (voir § Vérifications), mais n'a pas rejoué le parcours 
 | X3 lots P3 / P4 | fait | `20261009300000`, `300100` ; pgTAP 13, 14 ; pages Fournitures, Rapprochement | écart de rapprochement au départ élevé (rien n'est posé) |
 | X4 listes en arabe | fait | `libelles_listes` ; APK `listes.ts`, 415 clés de `traductions.ts` | arabe à relire par Issam (V001 à V121) |
 | X5 tuiles vectorielles | fait | fonction `reseau-tuiles`, `lib/reseau/tuiles.ts` ; `verifier-tuiles.mjs` (15) | **les tuiles doivent être générées une fois** (Paramètres > Réseau) et la règle CORS R2 avec `Range` posée |
-| X6 suivi GPS | fait | `20261011100000` ; pgTAP 34 (57) ; APK `suivi-gps*.ts` ; web `suivi-gps/page.tsx`, `lib/trace-gps.ts` ; essais 42 + `verifier-trace-gps.mjs` | agents à informer avant l'usage ; optimisation batterie Samsung à régler sur chaque tablette |
+| X6 suivi GPS | fait | `20261011100000` ; pgTAP 34 (57) ; APK `suivi-gps*.ts` ; web `suivi-gps/page.tsx`, `lib/trace-gps.ts` ; essais 42 + `verifier-trace-gps.mjs` | agents à informer avant l'usage ; optimisation batterie à régler sur chaque tablette (HyperOS) |
 | X7 exports au choix | fait | `lib/export/rubriques.ts`, `PanneauExport.tsx` | modèles stockés dans `modeles_export` sans colonne dédiée (S3) |
 | X8 envoi Dolibarr → Supabase | **reporté** (prévu) | `importer_mouvements_dolibarr` prête (S9), import CSV livré | tâche planifiée côté serveur Dolibarr à faire après S8 |
 

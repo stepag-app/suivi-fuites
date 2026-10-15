@@ -125,7 +125,7 @@ Réseau activé, coloration « balayage », 34 secteurs cochés :
   le cache IndexedDB évite de les retélécharger, pas de les redessiner.
 - Le temps passe dans le navigateur (34 appels de 75 ms en moyenne côté serveur) : chaque secteur chargé refait
   les sources de la carte.
-- La mémoire varie beaucoup d'un essai à l'autre (ramasse-miettes) : retenir **0,4 à 1,3 Go**. Une tablette Samsung
+- La mémoire varie beaucoup d'un essai à l'autre (ramasse-miettes) : retenir **0,4 à 1,3 Go**. Une tablette
   de milieu de gamme (3 à 4 Go) risque de fermer la WebView de l'APK (écran Balayage).
 - En profil bureau, 62 à 64 appels pour 34 secteurs : des secteurs rechargés après une annulation (zoom) ; corrigé
   par la branche `claude/reseau-simplification` (pas encore fusionnée).
@@ -177,7 +177,7 @@ Vérifications : 648 tests pgTAP (PostgreSQL 17 + PostGIS 3.6), `tsc`, `next bui
 - Tout est local : ni la latence réelle vers Paris, ni le processeur partagé du plan Nano, ni la compression réelle de
   l'API Supabase n'ont été mesurés.
 - Le profil « tablette » ralentit le processeur et le réseau d'un Mac ; il ne remplace pas un essai sur la tablette
-  Samsung (surtout pour la carte et la mémoire).
+  (Redmi Pad 2 ; surtout pour la carte et la mémoire).
 - Photos sans fichier : ni envoi, ni miniatures, ni rapports PDF avec images n'ont été chargés.
 
 ## 10. Suites proposées

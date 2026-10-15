@@ -17,7 +17,7 @@ import { MiniCarte, useCarteDisponible, type PositionCarte } from './mini-carte'
 import { champsChanges } from './modification';
 import { diametresDe, useParametres } from './parametres';
 import { prendrePhoto as photoCamera } from './photos';
-import { champsExiges, champsManquants, nombreOuNul } from './regles';
+import { champsExiges, champsManquants, nombreOuNul, numeroAffiche, numeroRedetection, rangDepuisAffiche } from './regles';
 import { Proposition } from './saisie';
 import { useSession } from './session';
 import { jetonARenouveler } from './session-donnees';
@@ -45,27 +45,32 @@ const Obligatoire = ({ libelle, exige }: { libelle: string; exige: boolean }) =>
   <Text style={s.etiquette}>{libelle}{exige ? <Text style={{ color: COULEURS.danger }}> *</Text> : null}</Text>
 );
 
-export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
+export function NouvelleFuite({ retour, ouvrirFiche, modification, redetection }: {
   retour: () => void; ouvrirFiche: (id: string) => void; modification?: FicheFuite;
+  /** Re-détection d'une fuite « À re-détecter » (bouton de sa fiche) : champs repris, fuite liée, nouvelle position. */
+  redetection?: FicheFuite;
 }) {
   const { marche, aRenouveler } = useSession();
   const { langue } = useLangue();
   const parametres = useParametres(marche?.id, aRenouveler);
   const m = modification;
+  // Champs de départ : la fuite modifiée, ou celle qu'on re-détecte (position, photos et observation : nouvelles)
+  const r = m ? undefined : redetection;
+  const depart = m ?? r;
   const libelleReference = tx(marche?.libelle_reference || 'Référence client');
   const masque = marche?.masque_reference ?? null;
   const exiges = champsExiges(marche);
   const [secteurs, setSecteurs] = useState<Secteur[]>([]);
-  const [secteurId, setSecteurId] = useState(m?.secteur_id ?? '');
+  const [secteurId, setSecteurId] = useState(depart?.secteur_id ?? '');
   const [choixSecteur, setChoixSecteur] = useState(false);
-  const [reference, setReference] = useState(m?.reference_srm ?? '');
-  const [ouvrage, setOuvrage] = useState(m?.ouvrage ?? '');
-  const [visibilite, setVisibilite] = useState(m?.visibilite ?? '');
-  const [natureId, setNatureId] = useState(m?.nature_degradation_id ?? '');
-  const [adresse, setAdresse] = useState(m?.adresse ?? '');
+  const [reference, setReference] = useState(depart?.reference_srm ?? '');
+  const [ouvrage, setOuvrage] = useState(depart?.ouvrage ?? '');
+  const [visibilite, setVisibilite] = useState(depart?.visibilite ?? '');
+  const [natureId, setNatureId] = useState(depart?.nature_degradation_id ?? '');
+  const [adresse, setAdresse] = useState(depart?.adresse ?? '');
   const [observation, setObservation] = useState(m?.observation ?? '');
-  const [materiau, setMateriau] = useState(m?.materiau ?? '');
-  const [diametre, setDiametre] = useState(m?.diametre_mm != null ? String(m.diametre_mm) : '');
+  const [materiau, setMateriau] = useState(depart?.materiau ?? '');
+  const [diametre, setDiametre] = useState(depart?.diametre_mm != null ? String(depart.diametre_mm) : '');
   const [tronconId, setTronconId] = useState(m?.troncon_id ?? '');
   const [position, setPosition] = useState<{ lat: number; lon: number; precision: number } | null>(
     m?.latitude != null && m.longitude != null ? { lat: m.latitude, lon: m.longitude, precision: 0 } : null,
@@ -87,7 +92,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
   // Contrôle des doublons : fuites proches (rayon du marché) ou de même référence.
   const [proches, setProches] = useState<Proche[]>([]);
   const [controle, setControle] = useState<'' | 'en_cours' | 'fait' | 'hors_ligne'>('');
-  const [lierA, setLierA] = useState('');
+  const [lierA, setLierA] = useState(r?.id ?? '');
   const bas = useBas();
   // Photos prises puis saisie abandonnée : effacées du dossier privé de l'appli.
   const gardees = useRef(false);
@@ -202,7 +207,7 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
         if (error) throw error;
         const liste = (data as Proche[] | null) ?? [];
         setProches(liste);
-        setLierA((l) => (liste.some((p) => p.id === l) ? l : ''));
+        setLierA((l) => (l === r?.id || liste.some((p) => p.id === l) ? l : ''));
         setControle('fait');
       } catch {
         if (annule) return;
@@ -350,8 +355,17 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
 
   return (
     <View style={s.ecran}>
-      <BarreApp titre={m ? t('Modifier la fuite') : t('Nouvelle fuite')} sousTitre={marche?.code} retour={retour} />
+      <BarreApp
+        titre={m ? t('Modifier la fuite') : r ? t('Re-détection de la fuite N° {numero}', { numero: numeroAffiche(r) }) : t('Nouvelle fuite')}
+        sousTitre={marche?.code} retour={retour}
+      />
       <ScrollView contentContainerStyle={[s.defile, { paddingBottom: 40 + bas }]} keyboardShouldPersistTaps="handled">
+        {!!r && (
+          <Message ton="attention" icone="scan-search">
+            {t('Elle sera enregistrée sous le N° {numero} ; la fuite N° {origine} sera close.', { numero: numeroRedetection(r), origine: numeroAffiche(r) })}
+            {' '}{t('Relevez la nouvelle position et photographiez le marquage.')}
+          </Message>
+        )}
         {!m && (
           <Carte>
             <TeteCarte
@@ -428,13 +442,13 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
             {t("Sans réseau : pas de contrôle des doublons. Vérifiez sur place qu'elle n'est pas déjà signalée.")}
           </Message>
         )}
-        {proches.length > 0 && (
+        {proches.length > 0 && !r && (
           <Carte>
             <TeteCarte titre={t('Fuite déjà signalée ici ?')} icone="triangle-alert" />
             {proches.map((p) => (
               <View key={p.id} style={s.separateur}>
                 <View style={[s.ligne, { alignItems: 'center' }]}>
-                  <Text style={s.texteFort}>{t('N° {numero}', { numero: p.numero })}</Text>
+                  <Text style={s.texteFort}>{t('N° {numero}', { numero: p.numero_affiche || p.numero })}</Text>
                   <Statut statut={p.statut} court />
                   <Text style={s.discret}>
                     {dateHeure(p.date_detection)}
@@ -455,9 +469,18 @@ export function NouvelleFuite({ retour, ouvrirFiche, modification }: {
               </View>
             ))}
             <Text style={s.discret}>
-              {lierA
-                ? t('Elle sera enregistrée comme nouvelle fuite liée au N° {numero}.', { numero: proches.find((p) => p.id === lierA)?.numero })
-                : t('Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.')}
+              {(() => {
+                const liee = proches.find((p) => p.id === lierA);
+                if (!liee) return t('Sans choix, elle sera enregistrée comme une nouvelle fuite indépendante.');
+                // Fuite « À re-détecter » : la saisie est sa re-détection (même numéro, suffixe suivant)
+                if (liee.statut === 'a_redetecter') {
+                  return t('Elle sera enregistrée sous le N° {numero} ; la fuite N° {origine} sera close.', {
+                    numero: numeroRedetection({ numero: liee.numero, rang: rangDepuisAffiche(liee.numero, liee.numero_affiche) }),
+                    origine: liee.numero_affiche || liee.numero,
+                  });
+                }
+                return t('Elle sera enregistrée comme nouvelle fuite liée au N° {numero}.', { numero: liee.numero_affiche || liee.numero });
+              })()}
             </Text>
           </Carte>
         )}

@@ -75,7 +75,10 @@ function texteArabe(n: Notification): { titre: string; corps: string | null } | 
   const adresse = (d.adresse as string | null) ?? (d.reference_srm as string | null) ?? n.corps;
   switch (n.evenement) {
     case 'fuite_detectee':
-      return { titre: `تسرب جديد رقم ${numero} تم كشفه`, corps: adresse };
+      // Re-détection (rang 2 = bis…) : même phrase que mobile/src/traductions.ts
+      return { titre: Number(d.rang ?? 1) > 1 ? `أُعيد كشف التسرب رقم ${numero}` : `تسرب جديد رقم ${numero} تم كشفه`, corps: adresse };
+    case 'redetection_demandee':
+      return { titre: `التسرب رقم ${numero} في انتظار إعادة الكشف`, corps: adresse };
     case 'reparation_saisie':
       return { titre: `تم إدخال إصلاح: التسرب رقم ${numero}`, corps: RESULTATS_AR[String(d.resultat)] ?? n.corps };
     case 'reparation_validee':

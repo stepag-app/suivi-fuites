@@ -3,7 +3,7 @@
 // Depuis mobile/ : node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
 import {
   champsExiges, champsManquants, CHAMPS_FUITE_DEFAUT, compterUsage, gardeFousRefection, gardeFousReparation, peutChangerPhoto,
-  peutModifierEtape, piecesProposees, texteNotification, versionPlusRecente,
+  numeroAffiche, numeroRedetection, peutModifierEtape, piecesProposees, rangDepuisAffiche, texteNotification, versionPlusRecente,
 } from '../src/regles.ts';
 
 let ok = 0, ko = 0;
@@ -102,6 +102,18 @@ const n = texteNotification({ evenement: 'reparation_validee', titre: 'x', corps
 verifier(n.titre === 'Fuite N° 12 non réparée, fouille validée : réfection à faire' && n.corps === 'Rue A', 'titre composé comme celui de la base (français)', n);
 const sansNumero = texteNotification({ evenement: 'fuite_detectee', titre: 'Titre de la base', corps: 'c', donnees: {} });
 verifier(sansNumero.titre === 'Titre de la base', 'sans données : titre de la base');
+
+console.log('7. Re-détection : numéro affiché (22-bis), numéro suivant, notifications');
+verifier(numeroAffiche({ numero: 22, numero_affiche: '22-bis' }) === '22-bis' && numeroAffiche({ numero: 22 }) === '22'
+  && numeroAffiche({ numero: null }) === '', 'numéro affiché : celui de la base, sinon le numéro, vide avant l\'envoi');
+verifier(numeroRedetection({ numero: 22 }) === '22-bis' && numeroRedetection({ numero: 22, rang: 2 }) === '22-ter'
+  && numeroRedetection({ numero: 22, rang: 3 }) === '22-quater', 'numéro de la re-détection : suffixe suivant');
+verifier(rangDepuisAffiche(22, '22') === 1 && rangDepuisAffiche(22, '22-bis') === 2 && rangDepuisAffiche(22, '22-ter') === 3
+  && rangDepuisAffiche(22, null) === 1, 'rang d\'après le numéro affiché');
+const aRedetecter = texteNotification({ evenement: 'redetection_demandee', titre: 'x', corps: null, donnees: { numero: '22', adresse: 'Rue A' } });
+verifier(aRedetecter.titre === 'Fuite N° 22 à re-détecter' && aRedetecter.corps === 'Rue A', 'notification « à re-détecter »', aRedetecter);
+const redetectee = texteNotification({ evenement: 'fuite_detectee', titre: 'x', corps: null, donnees: { numero: '22-bis', rang: 2, adresse: 'Rue A' } });
+verifier(redetectee.titre === 'Fuite N° 22-bis re-détectée', 'notification de la re-détection (22-bis)', redetectee);
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 if (ko) process.exit(1);

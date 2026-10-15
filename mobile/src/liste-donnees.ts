@@ -6,7 +6,7 @@ import { supabase } from './supabase';
 import type { VFuite } from './types';
 
 export const cleListe = (marcheId: string) => `suivi-fuites:liste:${marcheId}`;
-const COLONNES = 'id, numero, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, '
+const COLONNES = 'id, numero, numero_affiche, reference_srm, statut, secteur, adresse, date_detection, nb_photos, alerte_non_reparee, '
   + 'alerte_sans_photo, latitude, longitude';
 
 /** Dernière liste reçue du serveur, telle que gardée sur la tablette (JSON). */

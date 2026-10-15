@@ -1,7 +1,8 @@
-export type StatutFuite = 'detectee' | 'en_reparation' | 'reparee' | 'achevee' | 'sans_reparation';
+export type StatutFuite = 'detectee' | 'a_redetecter' | 'en_reparation' | 'reparee' | 'achevee' | 'sans_reparation';
 
 export const STATUTS: Record<StatutFuite, string> = {
   detectee: 'Détectée, non réparée',
+  a_redetecter: 'À re-détecter',
   en_reparation: 'Réparation en cours',
   reparee: 'Réparée, réfection à faire',
   achevee: 'Achevée',
@@ -33,6 +34,8 @@ export interface VFuite {
   secteur: string | null; adresse: string | null; date_detection: string; nb_photos: number;
   alerte_non_reparee: boolean; alerte_sans_photo: boolean;
   latitude?: number | null; longitude?: number | null; // absents d'une liste gardée avant leur ajout
+  /** « 22-bis » pour une re-détection (absent d'une liste gardée avant la re-détection). */
+  numero_affiche?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -73,6 +76,9 @@ export interface FicheFuite {
   visibilite?: string | null; nature_degradation_id?: string | null; diametre_mm?: number | null; materiau?: string | null;
   troncon_id?: string | null; secteur_id?: string | null; zone_id?: string | null; validee_le?: string | null;
   saisi_par?: string | null; auteur_terrain_id?: string | null; cree_le?: string | null;
+  // Re-détection (absents d'une fiche gardée avant elle) : numéro affiché (« 22-bis »), rang (2 = bis), fuite d'origine et re-détection
+  numero_affiche?: string | null; rang?: number | null; fuite_liee_numero?: string | null;
+  redetection_numero?: string | null; redetection_id?: string | null;
 }
 export interface PhotoLigne {
   id: string; type: TypePhoto; chemin: string; stockage?: string | null; prise_le: string; reparation_id: string | null; refection_id: string | null;
@@ -107,7 +113,11 @@ export interface OuvrierPresent { reparation_id: string; ouvrier_id: string }
 export interface Nature {
   id: string; code: string; libelle_fr: string; libelle_ar?: string | null; emplacement: string; necessite_refection: boolean;
 }
-export interface Motif { id: string; categorie: 'sans_reparation' | 'sans_refection'; libelle_fr: string; libelle_ar?: string | null }
+export interface Motif {
+  id: string; categorie: 'sans_reparation' | 'sans_refection'; libelle_fr: string; libelle_ar?: string | null;
+  /** Fuite non réparée pour ce motif : « À re-détecter », agent de détection prévenu. */
+  redetection?: boolean;
+}
 /** Diamètre proposé pour un matériau (P2, réglable par marché). */
 export interface Diametre { materiau: string; diametre_mm: number }
 /** Représentant du maître d'ouvrage proposé à la réparation (P7). */
@@ -120,6 +130,7 @@ export interface Ouvrier { id: string; nom_complet: string }
 export interface Proche {
   id: string; numero: number; reference_srm: string | null; statut: StatutFuite;
   date_detection: string; distance_m: number | null; meme_reference: boolean;
+  numero_affiche?: string | null;
 }
 
 /** Réponse de suggestions_localisation (F3, F4) : à proposer, jamais à pré-remplir. */

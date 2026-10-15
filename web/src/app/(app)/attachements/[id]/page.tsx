@@ -66,7 +66,7 @@ export default function DetailLot() {
     if (!marcheId) return;
     const sb = getSupabase();
     const lignesLot = lireTout<LigneLot>((de, a) =>
-      sb.from("v_attachement_lignes").select("*").eq("attachement_id", id).order("fuite_numero", { nullsFirst: false }).order("prix_ordre").order("id").range(de, a))
+      sb.from("v_attachement_lignes").select("*").eq("attachement_id", id).order("fuite_numero", { nullsFirst: false }).order("prix_ordre").order("designation", { nullsFirst: true }).order("id").range(de, a))
       .then((data) => ({ data, error: null }), (error: { message: string }) => ({ data: null, error }));
     const [l, li, rc, rg, o, z, p, n, dn] = await Promise.all([
       sb.from("attachements").select("*").eq("id", id).maybeSingle(),

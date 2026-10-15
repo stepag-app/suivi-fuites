@@ -24,7 +24,7 @@ const metres = (m: number | null | undefined) =>
 function Etat({ l }: { l: Ligne }) {
   if (l.dans_lot) return <Badge variant="outline" className="border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300">Dans ce lot</Badge>;
   if (l.autre_brouillon) return <Badge variant="outline" title={`Déjà dans le brouillon « ${l.autre_brouillon} »`}>Autre brouillon</Badge>;
-  if (l.famille === "maintien" && !l.disponible) return <span className="text-muted-foreground text-xs">après le {dateSeule(l.phase_fin)}</span>;
+  if (l.famille === "maintien" && !l.disponible) return <span className="text-muted-foreground text-xs">à partir du {dateSeule(l.phase_fin)}</span>;
   if (l.proposee === 0) return <span className="text-muted-foreground text-xs">rien à attacher</span>;
   return <span className="text-muted-foreground text-xs">à ajouter</span>;
 }
@@ -160,7 +160,7 @@ export function LineaireAAttacher({ lotId, version, modifiable, ajoute, onErreur
             <span className="font-medium">Maintien (prix {p2[0]?.prix_numero ?? "2"})</span>{" "}
             <span className="text-muted-foreground">
               {phases.length
-                ? phases.map((ph) => `${ph.phase} : ${Number(ph.part_pct)} % ${ph.disponible ? "disponible" : `après le ${dateSeule(ph.phase_fin)}`}`).join(" ; ")
+                ? phases.map((ph) => `${ph.phase}${ph.phase?.includes("%") ? "" : ` (${Number(ph.part_pct)} %)`} : ${ph.disponible ? "disponible" : `à partir du ${dateSeule(ph.phase_fin)}`}`).join(" ; ")
                 : "aucune phase portant une part du prix (Paramètres › Débits de nuit)"}
               {phases.length ? " ; base : linéaire balayé attaché de chaque zone." : ""}
             </span>

@@ -214,7 +214,7 @@ ajouter le compte Google des tablettes, installer WhatsApp depuis le Play Store,
             <div className="flex flex-col items-start gap-2 rounded-lg border bg-muted/40 p-4">
               <p className="text-muted-foreground text-sm">{code.libelle} · à noter maintenant : il ne s&apos;affichera plus.</p>
               <div className="flex items-center gap-3">
-                <span className="font-mono font-semibold text-4xl tracking-[0.3em]">{code.code.slice(0, 4)} {code.code.slice(4)}</span>
+                <span className="font-semibold text-4xl tabular-nums tracking-[0.2em]">{code.code.slice(0, 4)} {code.code.slice(4)}</span>
                 <Button variant="outline" size="sm" onClick={() => void navigator.clipboard?.writeText(code.code)}>
                   <Copy data-icon="inline-start" />Copier
                 </Button>

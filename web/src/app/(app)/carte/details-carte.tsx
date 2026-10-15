@@ -51,7 +51,7 @@ export function ApercuFuite({ fuite, libelles }: { fuite: FuiteCarte | null; lib
         <div className="flex flex-col gap-1"><span className="text-muted-foreground text-xs leading-none">Adresse</span><span className="line-clamp-2 text-sm leading-snug" title={fuite.adresse ?? undefined}>{fuite.adresse ?? "—"}</span></div>
         <div className="flex flex-col gap-1">
           <span className="text-muted-foreground text-xs leading-none">Coordonnées GPS</span>
-          <span className="font-mono text-sm leading-snug tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
+          <span className="text-sm leading-snug tabular-nums">{fuite.latitude != null && fuite.longitude != null ? `${fuite.latitude.toFixed(6)} ; ${fuite.longitude.toFixed(6)}` : "non relevées"}</span>
         </div>
       </div>
     </div>

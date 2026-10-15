@@ -383,10 +383,10 @@ export default function DetailFuite() {
       </Breadcrumb>
 
       {horsLigne && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50" role="status">
+        <Alert variant="attention" role="status">
           <WifiOff />
           <AlertTitle>Hors ligne : version du {dateHeure(horsLigne)}</AlertTitle>
-          <AlertDescription className="text-amber-900/80 dark:text-amber-50/80">Lecture seule : les modifications reviendront avec le réseau.</AlertDescription>
+          <AlertDescription>Lecture seule : les modifications reviendront avec le réseau.</AlertDescription>
         </Alert>
       )}
 
@@ -415,7 +415,7 @@ export default function DetailFuite() {
               {fuite.origine === "srm" && <Badge className="rounded-sm" variant="secondary">Signalée par {libelles.sigle}</Badge>}
               {v2 && <EtatValidation valideeLe={v2.validee_le} par={nomProfil(v2.validee_par)} renvoyeeLe={v2.renvoyee_le} motif={v2.motif_renvoi} />}
               {v2?.saisie_differee && (
-                <Badge className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300" variant="outline"
+                <Badge className="rounded-sm" variant="secondary"
                   title={`Détectée le ${dateHeure(fuite.date_detection)}, saisie le ${dateHeure(v2.cree_le)}`}>
                   <Clock3 data-icon="inline-start" />Saisie différée
                 </Badge>
@@ -491,10 +491,10 @@ export default function DetailFuite() {
       </div>
       {rapport && <p className="text-muted-foreground text-sm" role="status">{rapport}</p>}
       {fuite.statut === "a_redetecter" && (
-        <Alert className="border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-50" role="status">
+        <Alert variant="redetection" role="status">
           <ScanSearch />
           <AlertTitle>À re-détecter</AlertTitle>
-          <AlertDescription className="text-violet-950/80 dark:text-violet-50/80">
+          <AlertDescription>
             Fuite introuvable à l&apos;ouverture{fuite.motif_sans_reparation ? ` (motif : ${fuite.motif_sans_reparation})` : ""}.
             {fuite.detectee_par ? ` ${fuite.detectee_par}, qui l'a détectée, est prévenu sur sa tablette.` : " Les agents de détection sont prévenus sur leur tablette."}
             {" "}La re-détection prendra le N° {numeroRedetection(fuite)}.
@@ -599,7 +599,7 @@ export default function DetailFuite() {
                 </div>
                 {fuite.latitude != null && fuite.longitude != null ? (
                   <div className="flex flex-wrap items-center gap-3 text-sm">
-                    <span className="font-mono tabular-nums">{fuite.latitude.toFixed(6)} ; {fuite.longitude.toFixed(6)}</span>
+                    <span className="tabular-nums">{fuite.latitude.toFixed(6)} ; {fuite.longitude.toFixed(6)}</span>
                     <a className="text-primary underline-offset-4 hover:underline" href={`https://www.google.com/maps?q=${fuite.latitude},${fuite.longitude}`} target="_blank" rel="noreferrer">Google Maps</a>
                     {itineraire && <a className="text-primary underline-offset-4 hover:underline" href={itineraire} target="_blank" rel="noreferrer">Itinéraire ›</a>}
                   </div>

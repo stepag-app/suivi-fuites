@@ -149,7 +149,7 @@ export default function AFaire() {
               { titre: "Cette semaine", valeur: `${pourcent(semaine.reparees, semaine.detectees || semaine.reparees)} %`, description: `${semaine.reparees} réparées pour ${semaine.detectees} détectées`, icone: TrendingUp, href: `/fuites?du=${lundi}&au=${ajouterJours(lundi, 6)}` },
               { titre: "En retard", valeur: String(enRetard), description: `non réparées > ${libelles.delaiReparationH} h`, icone: Siren, href: "/fuites?alertes=1" },
             ].map((item) => (
-              <Card key={item.titre} className="shadow-xs">
+              <Card key={item.titre}>
                 <CardHeader>
                   <CardTitle>
                     <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -192,7 +192,7 @@ export default function AFaire() {
                 {peut("fuites", "creer") && <Button asChild><Link href="/fuites/nouvelle" prefetch={false}><Plus data-icon="inline-start" />Nouvelle fuite</Link></Button>}
               </div>
             </div>
-            <div className="overflow-hidden rounded-xl border bg-background shadow-xs">
+            <div className="overflow-hidden rounded-xl border bg-background">
               {chargement && fuites.length === 0 ? <p className="flex items-center gap-2 p-4 text-muted-foreground text-sm"><Spinner />Chargement…</p>
                 : visibles.length === 0 ? <p className="p-6 text-center text-muted-foreground text-sm">Rien à faire dans cette catégorie : tout est à jour.</p> : (
                   <div className="divide-y">
@@ -239,7 +239,7 @@ export default function AFaire() {
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               {secteurs.map((s) => (
-                <Card key={s.libelle} className="shadow-xs">
+                <Card key={s.libelle}>
                   <CardHeader>
                     <CardTitle><div className="flex items-center gap-2"><MapPinned className="size-4 text-muted-foreground" /><span className="truncate">{s.libelle}</span></div></CardTitle>
                     <CardAction><Badge variant="outline">{s.alertes ? `${s.alertes} alerte${s.alertes > 1 ? "s" : ""}` : "à jour"}</Badge></CardAction>
@@ -271,7 +271,7 @@ export default function AFaire() {
             </div>
           </section>
 
-          <Card className="bg-muted/40 shadow-none">
+          <Card className="bg-muted/40">
             <CardContent className="text-muted-foreground text-sm">
               « Une fuite réparée sous {libelles.delaiReparationH} h, c&apos;est une alerte en moins, de l&apos;eau économisée et un attachement sans régularisation. »
             </CardContent>
@@ -291,7 +291,7 @@ export default function AFaire() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader><CardTitle>Seuil d&apos;alerte</CardTitle></CardHeader>
           <CardContent>
             <div className="flex flex-col gap-2">
@@ -304,7 +304,7 @@ export default function AFaire() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader>
             <CardTitle>Dernières réparations</CardTitle>
             <CardAction><Button variant="ghost" size="sm" className="text-muted-foreground" asChild><Link href="/fuites?statut=reparee" prefetch={false}>Tout voir</Link></Button></CardAction>
@@ -320,7 +320,7 @@ export default function AFaire() {
           </CardContent>
         </Card>
 
-        <Card className="shadow-xs">
+        <Card>
           <CardHeader>
             <CardTitle>Cette semaine</CardTitle>
             <CardAction><Button variant="ghost" size="sm" className="text-muted-foreground" asChild><Link href="/tableau-de-bord" prefetch={false}>Détail</Link></Button></CardAction>

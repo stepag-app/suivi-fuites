@@ -56,12 +56,10 @@ export function StatutReseau() {
     <div
       role="status"
       className={cn(
-        "flex items-center justify-center gap-2 border-b px-4 py-2 text-sm",
-        enLigne ? "border-sky-200 bg-sky-50 text-sky-900 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-100"
-          : "border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100",
+        "flex items-center justify-center gap-2 bg-muted px-4 py-2 text-foreground text-sm",
       )}
     >
-      {enLigne ? <CloudUpload className="size-4" /> : <WifiOff className="size-4" />}
+      {enLigne ? <CloudUpload className="size-4 text-sky-600 dark:text-sky-400" /> : <WifiOff className="size-4 text-amber-600 dark:text-amber-400" />}
       {!enLigne && <strong>Hors ligne.</strong>}
       {attente > 0 ? (
         <>

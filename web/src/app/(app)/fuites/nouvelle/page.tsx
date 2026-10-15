@@ -286,14 +286,14 @@ export default function NouvelleFuite() {
       <EnTetePage titre={origine ? `Re-détection de la fuite N° ${numeroFuite(origine)}` : "Nouvelle fuite"} description={`${marche?.code ?? ""} · position, ${minusculeInitiale(libelles.reference)}, secteur, ouvrage et photos. Sans réseau, la fuite est gardée sur la tablette puis envoyée.`} />
 
       {liee && (
-        <Alert className="border-violet-200 bg-violet-50 text-violet-950 dark:border-violet-900 dark:bg-violet-950 dark:text-violet-50">
+        <Alert variant="redetection">
           <ScanSearch />
           <AlertTitle>Re-détection de la fuite N° {numeroFuite(liee)}</AlertTitle>
-          <AlertDescription className="text-violet-950/80 dark:text-violet-50/80">
+          <AlertDescription>
             Elle sera enregistrée sous le N° {numeroRedetection(liee)} ; la fuite N° {numeroFuite(liee)} sera close. Relevez la nouvelle position
             (GPS ou épingle) et prenez une photo du marquage.
             {origine && (
-              <Button type="button" variant="link" className="h-auto px-1 text-violet-950 dark:text-violet-50" onClick={() => { setOrigine(null); setLierA(""); }}>
+              <Button type="button" variant="link" className="h-auto px-1" onClick={() => { setOrigine(null); setLierA(""); }}>
                 Annuler la re-détection
               </Button>
             )}
@@ -312,7 +312,7 @@ export default function NouvelleFuite() {
         <CardContent className="flex flex-col gap-3">
           {position ? (
             <div className="flex flex-wrap items-center gap-3">
-              <span className="font-mono text-sm tabular-nums">{position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}</span>
+              <span className="text-sm tabular-nums">{position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}</span>
               {position.precision != null ? (
                 <Badge variant="outline" className={position.precision > 30 ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300" : "border-green-500/20 bg-green-500/10 text-green-700 dark:text-green-300"}>
                   ± {Math.round(position.precision)} m
@@ -328,10 +328,10 @@ export default function NouvelleFuite() {
       </Card>
 
       {proches.length > 0 && !origine && (
-        <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+        <Alert variant="attention">
           <TriangleAlert />
           <AlertTitle>Fuite déjà signalée ici ?</AlertTitle>
-          <AlertDescription className="flex flex-col gap-3 text-amber-900/90 dark:text-amber-50/90">
+          <AlertDescription className="flex flex-col gap-3">
             <ul className="flex flex-col gap-1.5">
               {proches.map((p) => (
                 <li key={p.id} className="flex flex-wrap items-center gap-2">
@@ -513,7 +513,7 @@ export default function NouvelleFuite() {
                   </NativeSelect>
                 </Field>
               </div>
-              {differee && <p className="text-violet-700 text-sm dark:text-violet-300">Elle portera la marque « saisie différée » (détection plus de 12 h avant la saisie).</p>}
+              {differee && <p className="text-muted-foreground text-sm">Elle portera la marque « saisie différée » (détection plus de 12 h avant la saisie).</p>}
               {dansLeFutur(quandDetection) && <p className="text-amber-700 text-sm">Date de détection dans le futur : vérifiez.</p>}
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox checked={validerAussi} onCheckedChange={(v) => setValiderAussi(v === true)} />

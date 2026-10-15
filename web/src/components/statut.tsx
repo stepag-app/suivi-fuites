@@ -16,8 +16,8 @@ export const STATUT_STYLE: Record<
   },
   a_redetecter: {
     libelle: "À re-détecter", court: "À re-détecter", progression: 10,
-    badge: "border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300",
-    point: "bg-violet-500", texte: "text-violet-600 dark:text-violet-400", couleur: "#7c3aed",
+    badge: "border-orange-700/20 bg-orange-700/10 text-orange-800 dark:text-orange-300",
+    point: "bg-orange-700", texte: "text-orange-700 dark:text-orange-400", couleur: "#c2410c",
   },
   en_reparation: {
     libelle: "Réparation en cours", court: "En cours", progression: 45,
@@ -113,7 +113,7 @@ export function BadgesAlertes({ fuite, libelles, verrouillee, sansPhoto = false,
 /** A1 : fuite attachée par anticipation dont l'exécution manque (prioritaire jusqu'à l'exécution réelle). */
 export function BadgeAnticipe({ className, lot }: { className?: string; lot?: number | null }) {
   return (
-    <Badge variant="outline" className={cn("border-violet-500/25 bg-violet-500/10 text-violet-700 dark:text-violet-300", className)}
+    <Badge variant="secondary" className={className}
       title={`Attaché par anticipation${lot ? ` (lot N° ${lot})` : ""} : travaux à exécuter en priorité`}>
       Anticipé
     </Badge>

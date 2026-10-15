@@ -196,7 +196,7 @@ export default function Marches() {
       </div>
 
       {erreur && <Alert variant="destructive"><AlertTitle>Erreur</AlertTitle><AlertDescription>{erreur}</AlertDescription></Alert>}
-      {info && <Alert className="border-green-200 bg-green-50 text-green-900 dark:border-green-900 dark:bg-green-950 dark:text-green-50"><Check /><AlertTitle>Fait</AlertTitle><AlertDescription className="text-green-900/80 dark:text-green-50/80">{info}</AlertDescription></Alert>}
+      {info && <Alert variant="succes"><Check /><AlertTitle>Fait</AlertTitle><AlertDescription>{info}</AlertDescription></Alert>}
 
       {chargement && liste.length === 0 && <p className="flex items-center gap-2 text-muted-foreground text-sm"><Spinner />Chargement…</p>}
       {!chargement && filtres.length === 0 && <Vide>Aucun marché.</Vide>}

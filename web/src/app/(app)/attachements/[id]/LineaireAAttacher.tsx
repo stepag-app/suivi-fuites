@@ -138,17 +138,17 @@ export function LineaireAAttacher({ lotId, version, modifiable, ajoute, onErreur
           </p>
         )}
         {horsPlafond > 0.005 && (
-          <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+          <Alert variant="attention">
             <CircleAlert />
-            <AlertDescription className="text-amber-900/90 dark:text-amber-50/90">
+            <AlertDescription>
               {km(horsPlafond)} balayés au-delà de la quantité du marché ne sont pas attachés (avenant ou refacturation forcée par l&apos;administrateur).
             </AlertDescription>
           </Alert>
         )}
         {sansZone > 0.005 && (
-          <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
+          <Alert variant="attention">
             <CircleAlert />
-            <AlertDescription className="text-amber-900/90 dark:text-amber-50/90">
+            <AlertDescription>
               {km(sansZone)} balayés sur des tronçons sans zone ne sont pas comptés :{" "}
               <Link href="/parametres?onglet=reseau" prefetch={false} className="underline underline-offset-4">affectez-les à un secteur (Paramètres › Réseau)</Link>.
             </AlertDescription>

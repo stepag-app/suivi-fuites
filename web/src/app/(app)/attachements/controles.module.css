@@ -48,9 +48,7 @@
 .panneau {
   margin: 0.3rem 0 0.6rem;
   padding: 0.75rem 0.85rem;
-  background: var(--card);
-  border: 1px solid var(--bord);
-  border-left: 3px solid var(--principal);
+  background: var(--survol);
   border-radius: var(--rayon-petit);
   white-space: normal;
 }
@@ -75,8 +73,21 @@
 .listeControles li {
   padding: 0.3rem 0.55rem;
   border-radius: var(--rayon-petit);
-  border-left: 3px solid currentColor;
+  border: 0;
+  background: var(--survol);
   font-size: 0.88rem;
+}
+
+/* Niveau du contrôle : point de couleur, le texte reste à l'encre */
+.listeControles li::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.45rem;
+  border-radius: 999px;
+  background: currentColor;
+  vertical-align: 0.05em;
 }
 
 .listeControles li span {
@@ -152,8 +163,7 @@
   padding: 0.3rem 0.5rem;
   font-size: 0.82rem;
   color: var(--texte);
-  background: var(--info-fond);
-  border-left: 3px solid #0040b0;
+  background: var(--carte);
   border-radius: var(--rayon-petit);
 }
 

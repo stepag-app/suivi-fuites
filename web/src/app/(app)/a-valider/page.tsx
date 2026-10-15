@@ -215,7 +215,7 @@ export default function AValider() {
                       <BadgeStatut statut={l.statut} court />
                       {l.resultat && <span className="text-sm">{RESULTATS[l.resultat] ?? l.resultat}</span>}
                       {l.saisie_differee && l.etape === "detection" && (
-                        <Badge variant="outline" className="rounded-sm border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300"><Clock3 data-icon="inline-start" />Saisie différée</Badge>
+                        <Badge variant="secondary" className="rounded-sm"><Clock3 data-icon="inline-start" />Saisie différée</Badge>
                       )}
                       {l.etape !== "detection" && !l.fuite_validee_le && <span className="text-muted-foreground text-xs">détection non validée</span>}
                       {l.renvoyee_le && (

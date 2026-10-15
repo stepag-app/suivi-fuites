@@ -10,6 +10,13 @@ const alertVariants = cva(
         default: "bg-card text-card-foreground",
         destructive:
           "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+        // Encadrés sans bordure ni teinte : fond gris d'un ton, texte à l'encre, seule l'icône porte la couleur
+        attention:
+          "border-transparent bg-muted text-foreground *:data-[slot=alert-description]:text-foreground *:[svg]:text-amber-600 dark:*:[svg]:text-amber-400",
+        succes:
+          "border-transparent bg-muted text-foreground *:data-[slot=alert-description]:text-foreground *:[svg]:text-green-600 dark:*:[svg]:text-green-400",
+        redetection:
+          "border-transparent bg-muted text-foreground *:data-[slot=alert-description]:text-foreground *:[svg]:text-orange-700 dark:*:[svg]:text-orange-400",
       },
     },
     defaultVariants: {

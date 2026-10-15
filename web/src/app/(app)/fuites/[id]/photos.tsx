@@ -137,7 +137,7 @@ export function Photos({
                     ) : (
                       <span className="flex flex-col items-center gap-1 text-muted-foreground text-xs"><Camera className="size-6" />{horsLigne ? 'Pas de copie hors ligne' : 'Indisponible'}</span>
                     )}
-                    <span className="absolute bottom-2 left-2 rounded-sm bg-background/85 px-1.5 py-0.5 text-xs font-medium backdrop-blur">{TYPES_PHOTO[p.type] ?? p.type}</span>
+                    <span className="absolute bottom-2 left-2 rounded-sm bg-background px-1.5 py-0.5 text-xs font-medium">{TYPES_PHOTO[p.type] ?? p.type}</span>
                   </div>
                 </CardContent>
                 <CardHeader>

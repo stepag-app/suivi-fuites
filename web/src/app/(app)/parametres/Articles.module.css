@@ -78,8 +78,7 @@
 .confidentiel {
   margin: 0.4rem 0 0;
   padding: 0.5rem 0.7rem;
-  border-left: 3px solid var(--principal);
-  background: var(--principal-clair);
+  background: var(--survol);
   border-radius: var(--rayon-petit);
   font-size: 0.9rem;
 }

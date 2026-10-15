@@ -69,7 +69,7 @@ function resumeReparation(r: RepFuite): string {
 export function CorrectionsFuite({
   marcheId, fuiteId, fuiteNumero, controles, articles, lot, fermer, corrige,
 }: {
-  marcheId: string; fuiteId: string; fuiteNumero: number | null; controles: Controle[]; articles: ArticleChoix[];
+  marcheId: string; fuiteId: string; fuiteNumero: number | string | null; controles: Controle[]; articles: ArticleChoix[];
   lot?: LotCorrection; fermer: () => void; corrige: () => void;
 }) {
   const { peut, session } = useSession();

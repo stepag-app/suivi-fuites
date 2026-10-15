@@ -47,6 +47,8 @@ export interface ZoneDebit {
   q_plus_bas_historique_m3h?: number | null;
   q_actuel_m3h?: number | null;
   balayage_acheve_le?: string | null;
+  /** Zone arrêtée par la SRM après le balayage (τ1 < −25 %, art. II-23) : plus de maintien attaché. */
+  arret_srm_le?: string | null;
   actif?: boolean;
 }
 

@@ -14,6 +14,7 @@ import { chargerListe } from './liste-donnees';
 import { useSession } from './session';
 import type { EtatSuivi } from './suivi-gps';
 import { heureLocale, hhmm } from './suivi-gps-regles';
+import { numeroAffiche } from './regles';
 import { emailDepuisIdentifiant, supabase } from './supabase';
 import type { StatutFuite, VFuite } from './types';
 import {
@@ -236,8 +237,8 @@ export function Liste({
   const correspond = useMemo(() => {
     const t = sansAccents(texte.trim());
     const chiffres = t.replace(/\D/g, '');
-    return (numero: number | null, reference: string | null, adresse: string | null) => !t ||
-      (numero != null && String(numero) === t) ||
+    return (numero: number | null, reference: string | null, adresse: string | null, affiche?: string | null) => !t ||
+      (numero != null && String(numero) === t) || sansAccents(affiche ?? '') === t ||
       sansAccents(reference ?? '').includes(t) ||
       (chiffres.length >= 3 && (reference ?? '').replace(/\D/g, '').includes(chiffres)) ||
       sansAccents(adresse ?? '').includes(t);
@@ -247,7 +248,7 @@ export function Liste({
     fuites.forEach((f) => (c[f.statut] = (c[f.statut] ?? 0) + 1));
     return c;
   }, [fuites]);
-  const affichees = fuites.filter((f) => (onglet === 'toutes' || f.statut === onglet) && correspond(f.numero, f.reference_srm, f.adresse));
+  const affichees = fuites.filter((f) => (onglet === 'toutes' || f.statut === onglet) && correspond(f.numero, f.reference_srm, f.adresse, f.numero_affiche));
   // Une fuite pas encore envoyée sera « détectée » : elle reste sous « Toutes » et « Détectée ».
   const localesAffichees = onglet === 'toutes' || onglet === 'detectee'
     ? locales.filter((e) => correspond(null, (e.ligne.reference_srm as string) ?? null, (e.ligne.adresse as string) ?? null))
@@ -321,6 +322,14 @@ export function Liste({
         )}
         {bandeauTablette}
         {miseAJour}
+        {/* Re-détection : fuites introuvables à l'ouverture, à re-localiser par l'agent de détection */}
+        {peut('fuites', 'creer') && (compteurs.a_redetecter ?? 0) > 0 && onglet !== 'a_redetecter' && (
+          <Pressable onPress={() => setOnglet('a_redetecter')} accessibilityRole="button">
+            <Message ton="attention" icone="scan-search">
+              {t('{n} fuite(s) à re-détecter : introuvables à l’ouverture.', { n: compteurs.a_redetecter ?? 0 })} {t('Voir')}
+            </Message>
+          </Pressable>
+        )}
 
         <View style={l.onglets}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 4 }}>
@@ -433,12 +442,12 @@ export function Liste({
               <Pressable
                 onPress={() => ouvrir(f.id)}
                 accessibilityRole="button"
-                accessibilityLabel={t('Fuite N° {numero}', { numero: f.numero })}
+                accessibilityLabel={t('Fuite N° {numero}', { numero: numeroAffiche(f) })}
                 style={({ pressed }) => [large ? l.ligneTableau : l.ligneEmpilee, pressed && s.appuye]}
               >
                 {large ? (
                   <>
-                    <Text style={[s.texteFort, COL.numero]}>{f.numero}</Text>
+                    <Text style={[s.texteFort, COL.numero]}>{numeroAffiche(f)}</Text>
                     <Text style={[s.texte, COL.reference]} numberOfLines={1}>{f.reference_srm ?? '—'}</Text>
                     <View style={COL.lieu}>
                       <Text style={s.texte} numberOfLines={1}>{f.secteur ?? t('Secteur non renseigné')}</Text>
@@ -452,7 +461,7 @@ export function Liste({
                     <Photos nb={f.nb_photos} />
                     <View style={[COL.aller, { alignItems: 'flex-end' }]}>
                       {f.latitude != null && f.longitude != null && (
-                        <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: f.numero })} />
+                        <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: numeroAffiche(f) })} />
                       )}
                     </View>
                   </>
@@ -460,7 +469,7 @@ export function Liste({
                   <View style={{ flex: 1, gap: 6 }}>
                     <View style={l.entreDeux}>
                       <Text style={[s.texteFort, { flexShrink: 1 }]} numberOfLines={1}>
-                        {t('N° {numero}', { numero: f.numero })}{f.reference_srm ? <Text style={s.discret}> · {f.reference_srm}</Text> : null}
+                        {t('N° {numero}', { numero: numeroAffiche(f) })}{f.reference_srm ? <Text style={s.discret}> · {f.reference_srm}</Text> : null}
                       </Text>
                       <Statut statut={f.statut} court />
                     </View>
@@ -474,7 +483,7 @@ export function Liste({
                     </View>
                     {f.alerte_non_reparee && <Alerte texte={t('Non réparée > {delai} h', { delai })} />}
                     {f.latitude != null && f.longitude != null && (
-                      <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: f.numero })} style={{ alignSelf: 'flex-start' }} />
+                      <BoutonYAller latitude={f.latitude} longitude={f.longitude} libelle={t('Fuite N° {numero}', { numero: numeroAffiche(f) })} style={{ alignSelf: 'flex-start' }} />
                     )}
                   </View>
                 )}

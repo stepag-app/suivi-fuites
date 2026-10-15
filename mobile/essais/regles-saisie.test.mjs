@@ -3,7 +3,7 @@
 // Depuis mobile/ : node --import ./essais/substituts.mjs essais/regles-saisie.test.mjs
 import {
   champsExiges, champsManquants, CHAMPS_FUITE_DEFAUT, compterUsage, gardeFousRefection, gardeFousReparation, peutChangerPhoto,
-  peutModifierEtape, piecesProposees, texteNotification, versionPlusRecente,
+  numeroAffiche, numeroRedetection, peutModifierEtape, piecesProposees, rangDepuisAffiche, texteNotification, versionPlusRecente,
 } from '../src/regles.ts';
 
 let ok = 0, ko = 0;
@@ -110,6 +110,18 @@ verifier(texteNotification({ evenement: 'etape_a_corriger', titre: 'x', corps: '
 verifier(!peutModifierEtape({ validee_le: '2026-10-09T08:00:00Z', auteurs: ['moi'] }, { type: 'interventions', peut: chef })
   && peutModifierEtape({ validee_le: null, auteurs: ['moi'] }, { type: 'interventions', peut: chef }),
   'étape renvoyée (plus validée) : son auteur la modifie de nouveau');
+
+console.log('7. Re-détection : numéro affiché (22-bis), numéro suivant, notifications');
+verifier(numeroAffiche({ numero: 22, numero_affiche: '22-bis' }) === '22-bis' && numeroAffiche({ numero: 22 }) === '22'
+  && numeroAffiche({ numero: null }) === '', 'numéro affiché : celui de la base, sinon le numéro, vide avant l\'envoi');
+verifier(numeroRedetection({ numero: 22 }) === '22-bis' && numeroRedetection({ numero: 22, rang: 2 }) === '22-ter'
+  && numeroRedetection({ numero: 22, rang: 3 }) === '22-quater', 'numéro de la re-détection : suffixe suivant');
+verifier(rangDepuisAffiche(22, '22') === 1 && rangDepuisAffiche(22, '22-bis') === 2 && rangDepuisAffiche(22, '22-ter') === 3
+  && rangDepuisAffiche(22, null) === 1, 'rang d\'après le numéro affiché');
+const aRedetecter = texteNotification({ evenement: 'redetection_demandee', titre: 'x', corps: null, donnees: { numero: '22', adresse: 'Rue A' } });
+verifier(aRedetecter.titre === 'Fuite N° 22 à re-détecter' && aRedetecter.corps === 'Rue A', 'notification « à re-détecter »', aRedetecter);
+const redetectee = texteNotification({ evenement: 'fuite_detectee', titre: 'x', corps: null, donnees: { numero: '22-bis', rang: 2, adresse: 'Rue A' } });
+verifier(redetectee.titre === 'Fuite N° 22-bis re-détectée', 'notification de la re-détection (22-bis)', redetectee);
 
 console.log(`\n${ok} vérifications réussies, ${ko} en échec`);
 if (ko) process.exit(1);

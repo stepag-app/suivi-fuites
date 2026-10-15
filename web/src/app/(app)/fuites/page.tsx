@@ -33,7 +33,7 @@ import { JEU_FUITES, JEU_PIECES, JEU_QUANTITES } from "@/lib/export/jeux";
 import { ChoixRubriques } from "@/lib/export/ChoixRubriques";
 import { PanneauExport } from "@/lib/export/PanneauExport";
 import { dernierChoix } from "@/lib/export/rubriques";
-import { libellesMarche, messageErreur } from "@/lib/format";
+import { libellesMarche, messageErreur, numeroFuite } from "@/lib/format";
 import { useSession } from "@/lib/session";
 import { getSupabase, lireTout, type Lignes } from "@/lib/supabase";
 import type { Secteur, StatutFuite } from "@/lib/types";
@@ -299,7 +299,7 @@ function ListeFuites() {
             <Button variant="outline" onClick={() => setAImprimer(null)}>Annuler</Button>
             {aImprimer && marcheId && (
               <BoutonEnvoyerEmail document="rapport_fuite" disabled={!rubriques.size}
-                reference={aImprimer.length === 1 ? `Fuite N° ${aImprimer[0].numero}` : `${aImprimer.length} fuites`}
+                reference={aImprimer.length === 1 ? `Fuite N° ${numeroFuite(aImprimer[0])}` : `${aImprimer.length} fuites`}
                 fabriquer={async () => (await import("@/lib/export/rapport-fuite"))
                   .fabriquerRapports(aImprimer.map((f) => f.id), marcheId, peut("quantites", "lire"), undefined, rubriques)} />
             )}

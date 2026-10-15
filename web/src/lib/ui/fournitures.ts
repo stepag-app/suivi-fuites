@@ -14,6 +14,8 @@ export interface LigneInventaire {
   reparation_id: string;
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   realisee_le: string;
   /** Jour de la réparation (AAAA-MM-JJ, heure du Maroc). */
@@ -40,7 +42,7 @@ export interface LigneInventaire {
 
 // Une seule chaîne littérale : supabase-js en déduit le type des lignes lues.
 export const COLONNES_INVENTAIRE =
-  'id, marche_id, reparation_id, fuite_id, fuite_numero, reference_srm, realisee_le, jour, mois, zone_id, zone, secteur_id, secteur, chef_id, chef, produit_id, designation, famille, unite, quantite, provenance, nature_correction';
+  'id, marche_id, reparation_id, fuite_id, fuite_numero, fuite_numero_affiche, reference_srm, realisee_le, jour, mois, zone_id, zone, secteur_id, secteur, chef_id, chef, produit_id, designation, famille, unite, quantite, provenance, nature_correction';
 
 export const LIBELLES_PROVENANCE: Record<Provenance, string> = { terrain: 'Terrain', correction: 'Correction du bureau' };
 export const LIBELLES_NATURE: Record<NatureCorrection, string> = { oubli: 'oubli', remplacement: 'remplacement' };

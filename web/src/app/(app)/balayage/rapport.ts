@@ -16,7 +16,7 @@ import { STYLE_FOND } from '../carte/commun';
 export type ModeRapport = 'jour' | 'agent';
 
 const COLONNES_FUITES =
-  'numero, reference_srm, adresse, zone, secteur_id, secteur, auteur_terrain_id, visibilite, diametre_mm, materiau, revetement, latitude, longitude, jour_detection';
+  'numero, numero_affiche, reference_srm, adresse, zone, secteur_id, secteur, auteur_terrain_id, visibilite, diametre_mm, materiau, revetement, latitude, longitude, jour_detection';
 
 export interface PeriodeRapport { du: string; au: string }
 /** Filtres du journal repris par le rapport (vides : tous les agents, tous les secteurs). */

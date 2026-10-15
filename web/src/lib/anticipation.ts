@@ -8,6 +8,8 @@ import { fonctionAbsente, getSupabase } from './supabase';
 export interface FuiteAnticipee {
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   premier_lot: number | null;
   /** Date d'arrêt du premier lot qui l'a attachée */
   attachee_le: string | null;

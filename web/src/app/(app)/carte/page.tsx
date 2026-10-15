@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { STATUT_STYLE } from "@/components/statut";
-import { dateHeure, libellesMarche, messageErreur, nombre } from "@/lib/format";
+import { dateHeure, libellesMarche, messageErreur, nombre, numeroCorrespond, numeroFuite } from "@/lib/format";
 import { compterBalayagesEnAttente, ecouterAttente, synchroniser } from "@/lib/hors-ligne";
 import { preparerBalayages, type ChoixBalayage } from "@/lib/reseau/balayage";
 import { annulerDernierBalayage, avecCopie, cleCopieReseau, enregistrerBalayages, messageReseau } from "@/lib/reseau/donnees";
@@ -205,7 +205,7 @@ function CarteDesFuites() {
         if (filtres.du && j < filtres.du) return false;
         if (filtres.au && j > filtres.au) return false;
       }
-      return !t || String(f.numero) === t || (f.reference_srm ?? "").toLowerCase().includes(t) || (f.adresse ?? "").toLowerCase().includes(t);
+      return !t || numeroCorrespond(f, t) || (f.reference_srm ?? "").toLowerCase().includes(t) || (f.adresse ?? "").toLowerCase().includes(t);
     });
   }, [fuites, statut, filtres, texte]);
   const placees = useMemo(() => filtrees.filter((f) => f.latitude != null && f.longitude != null), [filtrees]);
@@ -635,7 +635,7 @@ function CarteDesFuites() {
       <Sheet open={feuille} onOpenChange={setFeuille}>
         <SheetContent side="bottom" className="h-[70vh] gap-0 p-0">
           <SheetHeader className="sr-only">
-            <SheetTitle>{choisie ? `Fuite N° ${choisie.numero}` : "Détails"}</SheetTitle>
+            <SheetTitle>{choisie ? `Fuite N° ${numeroFuite(choisie)}` : "Détails"}</SheetTitle>
             <SheetDescription>Détails de la fuite choisie, filtres et impression.</SheetDescription>
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-hidden">{details}</div>

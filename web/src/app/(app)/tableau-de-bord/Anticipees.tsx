@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { joursDepuisAttache, type FuiteAnticipee } from "@/lib/anticipation";
 import type { StatutFuite } from "@/lib/types";
+import { numeroFuiteLigne } from "@/lib/format";
 
 const AFFICHEES = 6;
 
@@ -39,7 +40,7 @@ export function AnticipeesPrioritaires({ liste, statuts, maintenant }: {
                 <Link href={`/fuites/${f.fuite_id}`} prefetch={false}
                   className="flex items-center justify-between gap-2 rounded-lg border bg-background px-3 py-2 text-sm hover:border-violet-500/40">
                   <span className="min-w-0">
-                    <span className="font-medium">N° {f.fuite_numero}</span>
+                    <span className="font-medium">N° {numeroFuiteLigne(f)}</span>
                     <span className="block truncate text-muted-foreground text-xs">
                       Lot N° {f.premier_lot ?? "?"} · {f.articles} article{f.articles > 1 ? "s" : ""}
                     </span>

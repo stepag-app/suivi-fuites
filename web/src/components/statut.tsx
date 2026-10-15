@@ -14,6 +14,11 @@ export const STATUT_STYLE: Record<
     badge: "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300",
     point: "bg-red-500", texte: "text-red-600 dark:text-red-400", couleur: "#dc2626",
   },
+  a_redetecter: {
+    libelle: "À re-détecter", court: "À re-détecter", progression: 10,
+    badge: "border-violet-500/20 bg-violet-500/10 text-violet-700 dark:text-violet-300",
+    point: "bg-violet-500", texte: "text-violet-600 dark:text-violet-400", couleur: "#7c3aed",
+  },
   en_reparation: {
     libelle: "Réparation en cours", court: "En cours", progression: 45,
     badge: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
@@ -36,7 +41,7 @@ export const STATUT_STYLE: Record<
   },
 };
 
-export const ORDRE_STATUTS: StatutFuite[] = ["detectee", "en_reparation", "reparee", "achevee", "sans_reparation"];
+export const ORDRE_STATUTS: StatutFuite[] = ["detectee", "a_redetecter", "en_reparation", "reparee", "achevee", "sans_reparation"];
 
 export function BadgeStatut({ statut, court = false, className }: { statut: StatutFuite; court?: boolean; className?: string }) {
   const s = STATUT_STYLE[statut];

@@ -40,6 +40,8 @@ interface Ouvrier { id: string; nom_complet: string; matricule?: string | null; 
 interface MotifLigne {
   id: string; categorie: "sans_reparation" | "sans_refection"; code: string;
   libelle_fr: string; libelle_ar: string | null; terrassement_paye: boolean; actif: boolean;
+  /** Fuite non réparée pour ce motif : « À re-détecter », agent de détection prévenu (absent d'une base pas encore à jour). */
+  redetection?: boolean;
 }
 
 const CATEGORIES = { sans_reparation: "Fuite non réparée", sans_refection: "Clôture sans réfection" } as const;
@@ -97,14 +99,17 @@ function Parametres() {
   const charger = useCallback(async () => {
     if (!marcheId) return;
     const sb = getSupabase();
-    const [o, m] = await Promise.all([
+    const lireMotifs = (colonnes: string) => sb.from("motifs").select(colonnes).eq("marche_id", marcheId).order("categorie").order("ordre");
+    const [o, mComplet] = await Promise.all([
       sb.from("ouvriers").select("id, nom_complet, matricule, telephone, actif").eq("marche_id", marcheId).order("nom_complet"),
-      sb.from("motifs").select("id, categorie, code, libelle_fr, libelle_ar, terrassement_paye, actif").eq("marche_id", marcheId).order("categorie").order("ordre"),
+      lireMotifs("id, categorie, code, libelle_fr, libelle_ar, terrassement_paye, redetection, actif"),
     ]);
+    // Base sans la case « re-détection » (migration pas encore déployée) : liste lue sans elle
+    const m = mComplet.error?.code === "42703" ? await lireMotifs("id, categorie, code, libelle_fr, libelle_ar, terrassement_paye, actif") : mComplet;
     const premiere = o.error || m.error;
     setErreur(premiere ? messageErreur(premiere) : "");
     setOuvriers((o.data as Ouvrier[] | null) ?? []);
-    setMotifs((m.data as MotifLigne[] | null) ?? []);
+    setMotifs((m.data as unknown as MotifLigne[] | null) ?? []);
   }, [marcheId]);
 
   useEffect(() => {
@@ -219,9 +224,19 @@ function Parametres() {
                           <Item key={m.id} variant="outline" size="sm" className={cn(!m.actif && "opacity-60")}>
                             <ItemContent>
                               <ItemTitle>{m.libelle_fr}{m.libelle_ar && <span dir="rtl" lang="ar" className="ml-2 text-muted-foreground font-normal">{m.libelle_ar}</span>}</ItemTitle>
-                              <ItemDescription>{m.terrassement_paye ? "Terrassement payé" : "Terrassement non payé"}{m.actif ? "" : " · désactivé"}</ItemDescription>
+                              <ItemDescription>
+                                {m.terrassement_paye ? "Terrassement payé" : "Terrassement non payé"}
+                                {c === "sans_reparation" && m.redetection ? " · demande une re-détection (agent de détection prévenu)" : ""}
+                                {m.actif ? "" : " · désactivé"}
+                              </ItemDescription>
                             </ItemContent>
                             <ItemActions>
+                              {peutModifier && c === "sans_reparation" && m.redetection !== undefined && (
+                                <Button size="sm" variant="outline" onClick={() => ecrire("motifs", m.id, { redetection: !m.redetection })}
+                                  title="Une fuite non réparée pour ce motif passe « À re-détecter » et l'agent qui l'a détectée est prévenu">
+                                  {m.redetection ? "Ne plus demander de re-détection" : "Demander une re-détection"}
+                                </Button>
+                              )}
                               {peutModifier && <Button size="sm" variant="outline" onClick={() => basculer("motifs", m.id, m.actif)}>{m.actif ? "Désactiver" : "Réactiver"}</Button>}
                             </ItemActions>
                           </Item>
@@ -306,9 +321,13 @@ function FormMotif({ onSubmit, annuler }: { onSubmit: (v: Record<string, unknown
   const [fr, setFr] = useState("");
   const [ar, setAr] = useState("");
   const [paye, setPaye] = useState(false);
+  const [redetection, setRedetection] = useState(false);
   const envoyer = (e: FormEvent) => {
     e.preventDefault();
-    onSubmit({ categorie, code: codeDepuis(fr), libelle_fr: fr.trim(), libelle_ar: ar.trim() || null, terrassement_paye: paye, ordre: 900 });
+    onSubmit({
+      categorie, code: codeDepuis(fr), libelle_fr: fr.trim(), libelle_ar: ar.trim() || null, terrassement_paye: paye, ordre: 900,
+      ...(categorie === "sans_reparation" && redetection ? { redetection: true } : {}),
+    });
   };
   return (
     <form onSubmit={envoyer}>
@@ -322,6 +341,9 @@ function FormMotif({ onSubmit, annuler }: { onSubmit: (v: Record<string, unknown
         <label>Libellé en français<input value={fr} onChange={(e) => setFr(e.target.value)} required /></label>
         <label>Libellé en arabe (facultatif)<input value={ar} onChange={(e) => setAr(e.target.value)} dir="rtl" lang="ar" /></label>
         <label className="ligne"><input type="checkbox" checked={paye} onChange={(e) => setPaye(e.target.checked)} />Terrassement payé malgré l&apos;absence de réparation</label>
+        {categorie === "sans_reparation" && (
+          <label className="ligne"><input type="checkbox" checked={redetection} onChange={(e) => setRedetection(e.target.checked)} />Demande une re-détection (fuite « À re-détecter », agent de détection prévenu)</label>
+        )}
       </div>
       <div className="actions"><button className="primaire" disabled={!codeDepuis(fr)}>Enregistrer</button><button type="button" onClick={annuler}>Annuler</button></div>
     </form>

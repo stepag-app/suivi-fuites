@@ -28,6 +28,8 @@ export interface Lot {
 export interface Unite {
   fuite_id: string;
   fuite_numero: number;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   statut: string;
@@ -59,9 +61,11 @@ export interface Unite {
 export interface LigneLot {
   id: string;
   attachement_id: string;
-  nature: 'solde' | 'anticipation' | 'libre' | 'forcage';
+  nature: 'solde' | 'anticipation' | 'libre' | 'lineaire' | 'forcage';
   fuite_id: string | null;
   fuite_numero: number | null;
+  /** « 22 », « 22-bis » (re-détection). */
+  fuite_numero_affiche?: string | null;
   reference_srm: string | null;
   adresse: string | null;
   zone: string | null;
@@ -88,6 +92,11 @@ export interface LigneLot {
   designation: string | null;
   motif: string | null;
   prix_refection_prevu: string | null;
+  /** Ligne de linéaire (prix 1 ou 2) : zone, et tranche du maintien (phase, part du prix). */
+  zone_id?: string | null;
+  phase_id?: string | null;
+  phase?: string | null;
+  part_maintien_pct?: number | null;
 }
 
 export interface Recap {
@@ -124,8 +133,37 @@ export const NATURES_LIGNE: Record<LigneLot['nature'], string> = {
   solde: 'Travaux',
   anticipation: 'Attaché par anticipation',
   libre: 'Ligne libre',
+  lineaire: 'Linéaire',
   forcage: 'Refacturation forcée',
 };
+
+/** Ligne de lineaire_a_attacher : prix 1 par zone, prix 2 par zone et tranche. */
+export interface LineaireAAttacher {
+  prix_id: string;
+  prix_numero: string;
+  famille: 'balayage' | 'maintien';
+  zone_id: string;
+  zone_numero: number;
+  zone: string;
+  zone_lineaire_contrat_m: number | null;
+  zone_arret_srm_le: string | null;
+  phase_id: string | null;
+  phase: string | null;
+  phase_fin: string | null;
+  part_pct: number | null;
+  base: number | null;
+  executee: number;
+  attachee: number;
+  reste: number;
+  proposee: number;
+  disponible: boolean;
+  dans_lot: boolean;
+  autre_brouillon: string | null;
+  au: string;
+  quantite_marche: number | null;
+  attachee_marche: number;
+  balaye_sans_zone_m: number | null;
+}
 
 // Quantité avec le nombre de décimales réglé pour l'unité (règles du marché).
 export function quantite(q: number | null | undefined, unite: string, decimales?: Record<string, number>): string {

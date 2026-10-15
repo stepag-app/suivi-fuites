@@ -8,7 +8,7 @@
 // d'archive (les anciennes photos pourront être purgées du stockage, CLAUDE.md § 7).
 import { lireArticles, uniteArticle } from '@/lib/articles';
 import type { ReglesAttachement } from '@/lib/attachements';
-import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO, libellesMarche } from '@/lib/format';
+import { EMPLACEMENTS, MATERIAUX, OUVRAGES, STATUTS, TYPES_PHOTO, libellesMarche, numeroFuite } from '@/lib/format';
 import { lienItineraire } from '@/lib/itineraire';
 import { chargerLogosEntete } from '@/lib/logos';
 import { urlsPhotos } from '@/lib/photo';
@@ -398,12 +398,12 @@ export async function genererRapports(
     const f = fiche.fuite;
     if (k > 0) pdf.addPage();
     const premierePage = pdf.getNumberOfPages();
-    const pied = `Rapport de la fuite N° ${f.numero}${marche.code ? ` · marché ${marche.code}` : ''}`;
-    progres?.(fait, totalEtapes, `Fuite N° ${f.numero} : photos`);
-    const images = avec('photos') ? await imagesDesPhotos(fiche.photos, () => avancer(`Fuite N° ${f.numero} : photos`)) : new Map<string, ImagePhoto | null>();
+    const pied = `Rapport de la fuite N° ${numeroFuite(f)}${marche.code ? ` · marché ${marche.code}` : ''}`;
+    progres?.(fait, totalEtapes, `Fuite N° ${numeroFuite(f)} : photos`);
+    const images = avec('photos') ? await imagesDesPhotos(fiche.photos, () => avancer(`Fuite N° ${numeroFuite(f)} : photos`)) : new Map<string, ImagePhoto | null>();
 
     // En-tête du marché
-    const entete = construireEntete(ctx, `Rapport de fuite N° ${f.numero}`, [
+    const entete = construireEntete(ctx, `Rapport de fuite N° ${numeroFuite(f)}`, [
       [f.secteur && `Secteur : ${f.secteur}`, f.zone && `zone : ${f.zone}`].filter(Boolean).join(', '),
     ].filter(Boolean));
     let y = dessinerEntete(pdf, entete, imagesEntete, marge);
@@ -424,7 +424,9 @@ export async function genererRapports(
     if (itineraire) liens.set(texteItineraire, itineraire);
     const id = avec('identification');
     const champsIdentification: [string, string | null | undefined, boolean?][] = [
-      ['N° de la fuite', String(f.numero)],
+      ['N° de la fuite', numeroFuite(f)],
+      ...((f.rang ?? 1) > 1 ? [['Re-détection de', `la fuite N° ${f.fuite_liee_numero ?? '?'}`] as [string, string]] : []),
+      ...(f.redetection_numero ? [['Re-détectée sous le', `N° ${f.redetection_numero}`] as [string, string]] : []),
       [libelles.reference, f.reference_srm ?? '—'],
       ['Origine', f.origine === 'srm' ? `Signalée par ${libelles.sigle}` : 'Détection de l\'entreprise'],
       ['Statut', STATUTS[f.statut]?.libelle ?? f.statut],
@@ -608,7 +610,7 @@ export async function genererRapports(
     }
 
     for (let p = premierePage; p <= pdf.getNumberOfPages(); p++) piedParPage.set(p, pied);
-    avancer(`Fuite N° ${f.numero}`);
+    avancer(`Fuite N° ${numeroFuite(f)}`);
   }
 
   // Pied de chaque page : fuite, date d'édition, page n / N
@@ -641,9 +643,9 @@ export async function fabriquerRapports(
   const code = String(ctx.marche.code ?? '');
   const date = jourMaroc(new Date());
   const nom = fiches.length === 1
-    ? `rapport-fuite-${fiches[0].fuite.numero}-${code}`
+    ? `rapport-fuite-${numeroFuite(fiches[0].fuite)}-${code}`
     : `rapports-fuites-${code}-${fiches.length}`;
-  return { blob, nom: `${nomFichierSur(nom)}-${date}.pdf`, fuites: fiches.length, numeros: fiches.map((f) => f.fuite.numero) };
+  return { blob, nom: `${nomFichierSur(nom)}-${date}.pdf`, fuites: fiches.length, numeros: fiches.map((f) => numeroFuite(f.fuite)) };
 }
 
 // Fabrique et télécharge. Renvoie poids et durée (affichés à l'écran).

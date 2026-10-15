@@ -29,7 +29,8 @@ export interface ImageCarte extends Bornes {
 export interface EntreeLegende { libelle: string; fond: string; contour: string; nombre: number }
 
 export interface FuiteListe {
-  numero: number;
+  /** « 22 » ou « 22-bis » (re-détection). */
+  numero: number | string;
   reference: string | null;
   statut: string;
   couleur: { fond: string; contour: string };

@@ -6,7 +6,7 @@
 // automatiquement.
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { dateSeule, messageErreur, nombre } from '@/lib/format';
+import { dateSeule, messageErreur, nombre, numeroFuiteLigne } from '@/lib/format';
 import { useSession } from '@/lib/session';
 import { getSupabase, lireTout } from '@/lib/supabase';
 import {
@@ -186,7 +186,7 @@ export default function HorsBordereau() {
                   <tr key={`${l.nature}-${l.reparation_id}-${l.piece_ligne_id ?? ''}`}>
                     <td className="nowrap">
                       <Link href={`/fuites/${l.fuite_id}`} target="_blank" rel="noopener" className="lien-fuite" title="Ouvrir la fiche dans un nouvel onglet">
-                        N° {l.fuite_numero} ↗
+                        N° {numeroFuiteLigne(l)} ↗
                       </Link>
                     </td>
                     <td className="nowrap">{l.reference_srm ?? '—'}</td>

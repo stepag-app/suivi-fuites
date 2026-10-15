@@ -63,8 +63,8 @@ select results_eq($$ select alerte_non_reparee, alerte_communication_srm from v_
 -- -----------------------------------------------------------------------------
 select results_eq($$ select type_donnee::text from droits
                       where profil_id = '00000000-0000-0000-0000-00000000000c' order by 1 $$,
-  $$ values ('fuites'), ('interventions'), ('photos'), ('refections') $$,
-  'chef : droits limités aux fuites, interventions, photos (et lecture des réfections)');
+  $$ values ('balayage'), ('fuites'), ('interventions'), ('photos'), ('refections') $$,
+  'chef : droits limités aux fuites, interventions, photos (et lecture des réfections et des balayages)');
 
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}', true);

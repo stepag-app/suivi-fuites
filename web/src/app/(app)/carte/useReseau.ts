@@ -78,7 +78,13 @@ export interface EtatReseau {
   copieDu: string | null;
 }
 
-export function useReseau(marcheId: string | undefined, peutLireBalayage: boolean, forcerActif = false, besoinGeometries = false): EtatReseau {
+/**
+ * `terrain` (carte terrain de l'APK) : tous les secteurs et les tronçons non zonés, sans lire ni écrire les choix
+ * mémorisés de la carte du balayage (interrupteur, coloration, secteurs cochés).
+ */
+export function useReseau(
+  marcheId: string | undefined, peutLireBalayage: boolean, forcerActif = false, besoinGeometries = false, terrain = false,
+): EtatReseau {
   const [actif, setActifEtat] = useState(false);
   const [coloration, setColorationEtat] = useState<Coloration>('secteur');
   const [choisis, setChoisisEtat] = useState<Set<string>>(new Set());
@@ -106,23 +112,23 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
 
   // Mémorisation (interrupteur, coloration) : lue au montage.
   useEffect(() => {
-    setActifEtat(forcerActif || lireLocal(CLE_ACTIF) === '1');
-    const c = lireLocal(CLE_COLORATION) as Coloration | null;
+    setActifEtat(forcerActif || (!terrain && lireLocal(CLE_ACTIF) === '1'));
+    const c = terrain ? null : lireLocal(CLE_COLORATION) as Coloration | null;
     if (c && COLORATIONS.includes(c)) setColorationEtat(c);
-  }, [forcerActif]);
+  }, [forcerActif, terrain]);
 
   const setActif = useCallback((v: boolean) => {
     setActifEtat(v);
-    ecrireLocal(CLE_ACTIF, v ? '1' : '0');
-  }, []);
+    if (!terrain) ecrireLocal(CLE_ACTIF, v ? '1' : '0');
+  }, [terrain]);
   const setColoration = useCallback((c: Coloration) => {
     setColorationEtat(c);
-    ecrireLocal(CLE_COLORATION, c);
-  }, []);
+    if (!terrain) ecrireLocal(CLE_COLORATION, c);
+  }, [terrain]);
   const setChoisis = useCallback((s: Set<string>) => {
     setChoisisEtat(s);
-    if (marcheId) ecrireLocal(cleSecteurs(marcheId), JSON.stringify([...s]));
-  }, [marcheId]);
+    if (marcheId && !terrain) ecrireLocal(cleSecteurs(marcheId), JSON.stringify([...s]));
+  }, [marcheId, terrain]);
 
   // Changement de marché : tout oublier.
   useEffect(() => {
@@ -188,6 +194,11 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
   // Secteurs cochés : mémorisés par marché ; par défaut, tous.
   useEffect(() => {
     if (!contexte || !marcheId || choisisInitialises) return;
+    if (terrain) {
+      setChoisisEtat(new Set([...contexte.secteurs.map((s) => s.id), SANS_SECTEUR]));
+      setChoisisInitialises(true);
+      return;
+    }
     const memorise = lireLocal(cleSecteurs(marcheId));
     const connus = new Set([...contexte.secteurs.map((s) => s.id), SANS_SECTEUR]);
     let choix: Set<string> | null = null;
@@ -201,7 +212,7 @@ export function useReseau(marcheId: string | undefined, peutLireBalayage: boolea
     }
     setChoisisEtat(choix ?? new Set(contexte.secteurs.map((s) => s.id)));
     setChoisisInitialises(true);
-  }, [contexte, marcheId, choisisInitialises]);
+  }, [contexte, marcheId, choisisInitialises, terrain]);
 
   const palette = useMemo(
     () => paletteSecteurs(contexte?.zones ?? [], contexte?.secteurs ?? []),

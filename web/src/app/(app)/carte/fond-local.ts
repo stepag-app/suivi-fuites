@@ -37,3 +37,10 @@ export function styleFondLocal(source: string, langue: 'fr' | 'ar', origine: str
     layers: layers('protomaps', namedFlavor('light'), { lang: langue }),
   } as StyleSpecification;
 }
+
+/** Noms du fond local dans une autre langue (tablette passée du français à l'arabe, carte ouverte) : [couche, texte]. */
+export function textesFondLocal(langue: 'fr' | 'ar'): [string, unknown][] {
+  return layers('protomaps', namedFlavor('light'), { lang: langue })
+    .filter((l) => l.type === 'symbol' && !!l.layout && 'text-field' in l.layout)
+    .map((l) => [l.id, (l.layout as Record<string, unknown>)['text-field']]);
+}

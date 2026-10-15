@@ -4,7 +4,7 @@ import * as Location from 'expo-location';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, BackHandler, Linking, StyleSheet, Text, View } from 'react-native';
 import { WebView, type WebViewNavigation } from 'react-native-webview';
-import { langueCourante, t, tx, useLangue } from './langue';
+import { langueCourante, t, tx, useLangue, type Langue } from './langue';
 import { useSession } from './session';
 import { reprendreSuivi } from './suivi-gps';
 import { supabase } from './supabase';
@@ -15,8 +15,16 @@ import { BarreApp, Bouton, Carte, COULEURS, Message, s, useBas } from './ui';
 export const PANNEAU = (process.env.EXPO_PUBLIC_WEB_URL || 'https://fuites.stepag.ma').replace(/\/+$/, '');
 const ORIGINE = PANNEAU.match(/^https?:\/\/[^/]+/)?.[0] ?? PANNEAU;
 const PAGE_SESSION = `${PANNEAU}/session`;
-// Langue de la tablette transmise au panneau (partie Balayage traduite : web/src/lib/langue-apk.ts).
-const suite = () => encodeURIComponent(`/carte?mode=balayage${langueCourante() === 'fr' ? '' : `&langue=${langueCourante()}`}`);
+// Langue de la tablette transmise au panneau (cartes traduites : web/src/lib/langue-apk.ts), français compris : sans
+// elle, la page garderait la langue d'avant pour l'onglet.
+const avecLangue = (chemin: string) => `${chemin}${chemin.includes('?') ? '&' : '?'}langue=${langueCourante()}`;
+
+/**
+ * Langue changée sur la tablette, carte ouverte : la page la reçoit par l'événement `langue-apk` et se redessine sans
+ * recharger (sélection de balayage, épingle de la mini-carte gardées). Un panneau plus ancien l'ignore.
+ */
+export const scriptLangue = (langue: Langue) =>
+  `window.dispatchEvent(new CustomEvent('langue-apk', { detail: ${JSON.stringify(langue)} })); true;`;
 // Large : sur un réseau lent, la première connexion à un nom d'hôte peut prendre une dizaine de secondes (DNS).
 const DELAI_SONDE_MS = 15000;
 // Le panneau garde sa propre copie de la session et la renouvelle lui-même ~1,5 min avant l'échéance, avec le
@@ -30,7 +38,6 @@ const PAS_ENCORE_GARDEE = "La carte n'est pas encore sur cette tablette pour ce 
 // seulement pour ce compte : sinon les balayages partiraient au nom de l'agent précédent. La copie reste à la
 // déconnexion (tablette partagée entre agents du même marché).
 const CLE_CARTE_GARDEE = 'suivi-fuites:carte-hors-ligne';
-const carteDirecte = () => `${PANNEAU}${decodeURIComponent(suite())}`;
 
 async function carteGardeePour(uid: string | undefined): Promise<boolean> {
   if (!uid) return false;
@@ -52,9 +59,9 @@ function noterCarteGardee(message: string) {
   }
 }
 
-const adresse = (session: Session) =>
+const adresse = (session: Session, chemin: string) =>
   `${PAGE_SESSION}#access_token=${encodeURIComponent(session.access_token)}` +
-  `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${suite()}`;
+  `&refresh_token=${encodeURIComponent(session.refresh_token)}&suite=${encodeURIComponent(avecLangue(chemin))}`;
 const estPanneau = (url: string) => url === ORIGINE || url.startsWith(`${ORIGINE}/`);
 const estPageSession = (url: string) => url.split(/[#?]/)[0].replace(/\/$/, '') === PAGE_SESSION;
 
@@ -84,10 +91,29 @@ const Chargement = () => (
 
 /** Carte du réseau et balayage par tronçon : le panneau web, ouvert dans une WebView avec la session de la tablette. */
 export function Balayage({ retour }: { retour: () => void }) {
+  const marcheId = useSession().marche?.id;
+  return (
+    <CartePanneau
+      titre={t('Balayage')} sousTitre={t('Carte du réseau')} retour={retour}
+      chemin={`/carte?mode=balayage${marcheId ? `&marche=${marcheId}` : ''}`}
+    />
+  );
+}
+
+/**
+ * Page cartographique du panneau (Balayage, Carte) dans une WebView, ouverte avec la session de la tablette ;
+ * `chemin` : page du panneau, sans la langue (ajoutée ici) ; `surMessage` : messages propres à l'écran.
+ */
+export function CartePanneau({ titre, sousTitre, chemin, retour, surMessage }: {
+  titre: string; sousTitre: string; chemin: string; retour: () => void; surMessage?: (m: Record<string, unknown>) => void;
+}) {
   const web = useRef<WebView>(null);
   const bas = useBas();
-  useLangue();
+  const { langue } = useLangue();
   const uid = useSession().session?.user.id;
+  // Adresse lue au moment de (re)charger la page : le chemin d'ouverture, la langue en cours.
+  const cheminCourant = useRef(chemin);
+  cheminCourant.current = chemin;
   const [uri, setUri] = useState<string | null>(null);
   const [message, setMessage] = useState('');
   const [cle, setCle] = useState(0);
@@ -98,7 +124,7 @@ export function Balayage({ retour }: { retour: () => void }) {
   const attenteSession = useRef(true);
 
   const appliquer = useCallback((session: Session) => {
-    const nouvelle = adresse(session);
+    const nouvelle = adresse(session, cheminCourant.current);
     if (nouvelle === uriCourante.current) return;
     uriCourante.current = nouvelle;
     attenteSession.current = true;
@@ -108,7 +134,7 @@ export function Balayage({ retour }: { retour: () => void }) {
   // Sans réseau : la carte gardée sur la tablette, ouverte directement (session déjà gardée par le panneau).
   const ouvrirSansReseau = useCallback(async () => {
     if (!(await carteGardeePour(uid))) return false;
-    const directe = carteDirecte();
+    const directe = `${PANNEAU}${avecLangue(cheminCourant.current)}`;
     uriCourante.current = directe;
     attenteSession.current = false;
     setUri(directe);
@@ -159,6 +185,14 @@ export function Balayage({ retour }: { retour: () => void }) {
     return () => clearInterval(minuteur);
   }, []);
 
+  // Langue changée pendant que la carte est ouverte : envoyée à la page, sans la recharger.
+  const langueEnvoyee = useRef(langue);
+  useEffect(() => {
+    if (langueEnvoyee.current === langue) return;
+    langueEnvoyee.current = langue;
+    web.current?.injectJavaScript(scriptLangue(langue));
+  }, [langue]);
+
   // Bouton retour d'Android : d'abord l'historique de la WebView, sinon la liste.
   useEffect(() => {
     const abonnement = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -185,7 +219,7 @@ export function Balayage({ retour }: { retour: () => void }) {
 
   return (
     <View style={[s.ecran, { paddingBottom: bas }]}>
-      <BarreApp titre={t('Balayage')} sousTitre={t('Carte du réseau')} retour={retour} />
+      <BarreApp titre={titre} sousTitre={sousTitre} retour={retour} />
       {message ? (
         <View style={s.defile}>
           <Carte>
@@ -227,6 +261,13 @@ export function Balayage({ retour }: { retour: () => void }) {
             if (!estPanneau(e.nativeEvent.url)) return;
             if (/"activite-balayage"/.test(e.nativeEvent.data)) void reprendreSuivi('balayage').catch(() => undefined);
             if (/"carte-hors-ligne"/.test(e.nativeEvent.data)) noterCarteGardee(e.nativeEvent.data);
+            if (surMessage) {
+              try {
+                surMessage(JSON.parse(e.nativeEvent.data) as Record<string, unknown>);
+              } catch {
+                /* message illisible */
+              }
+            }
           }}
         />
       )}

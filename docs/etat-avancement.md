@@ -49,6 +49,16 @@ supprime plus d'équipes. **Conséquence** : ne pas réinstaller une APK d'avant
 tablette en base (`journal_tablettes` note les mises à jour sans numéro) : avec d'autres tablettes à venir, faire écrire
 la version dans ce journal (petit lot base + APK) pour vérifier le parc.
 
+**Carte terrain des agents (2026-10-15, branche `claude/carte-terrain`, en attente de fusion).** Demande d'Issam :
+bouton **« Carte »** sur la tablette pour tout agent (détection, réparation, réfection), plein écran, lecture seule,
+calques (fuites prioritaires, chaque statut, réseau, zones balayées, limites, satellite, ma position), en trois
+langues ; correctif du changement de langue sur le Balayage (la page suit sans recharger). Base : « balayage / lire »
+pour Réparation et Réfection (migration `20261016800000`, numérotée après celles de la PR #138). À faire après la
+fusion : vérifier « Déploiement de la base » et Vercel ; la page web sert dès la mise en ligne, mais le bouton
+« Carte » et le correctif de langue n'arrivent sur les tablettes qu'avec la **prochaine APK publiée** (bêta 5, à la
+demande d'Issam). À confirmer par Issam : règle des « fuites prioritaires » (retard de réparation au-delà du délai ou
+réfection de chaussée hors délai, comme « Urgent » de À faire). Détail : `web/README.md` § Carte terrain.
+
 ## 3. Décisions à respecter
 
 **Produit**

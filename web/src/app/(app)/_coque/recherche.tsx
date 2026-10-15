@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Droplets, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList, CommandSeparator } from "@/components/ui/command";
+import { SUFFIXES_RANG } from "@/lib/format";
 import type { NavGroup, NavMainItem } from "./elements-nav";
 
 type SearchItem = { id: string; group: string; label: string; url: string; icon?: NavMainItem["icon"]; disabled?: boolean };
@@ -53,7 +54,10 @@ export function Recherche({ groupes }: { groupes: readonly NavGroup[] }) {
     router.push(url);
   };
 
-  const numero = /^\s*(n°|no|#)?\s*(\d{1,6})\s*$/i.exec(query)?.[2];
+  // Numéro de fuite, re-détection comprise (« 22-bis », « 22 ter »)
+  const saisi = /^\s*(n°|no|#)?\s*(\d{1,6})(?:\s*-?\s*([a-z]+))?\s*$/i.exec(query);
+  const suffixe = saisi?.[3]?.toLowerCase();
+  const numero = saisi && (!suffixe || SUFFIXES_RANG.indexOf(suffixe) > 0) ? (suffixe ? `${saisi[2]}-${suffixe}` : saisi[2]) : undefined;
 
   const renderGroups = (liste: SearchItem[]) =>
     grouper(liste).map(({ group, items: groupItems }, index) => (

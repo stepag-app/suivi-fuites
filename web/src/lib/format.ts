@@ -22,7 +22,7 @@ export function numeroFuiteLigne(l: { fuite_numero_affiche?: string | null; fuit
   return l.fuite_numero_affiche || (l.fuite_numero != null ? String(l.fuite_numero) : '—');
 }
 
-const SUFFIXES_RANG = ['', 'bis', 'ter', 'quater', 'quinquies', 'sexies', 'septies', 'octies', 'nonies', 'decies'];
+export const SUFFIXES_RANG = ['', 'bis', 'ter', 'quater', 'quinquies', 'sexies', 'septies', 'octies', 'nonies', 'decies'];
 
 /** Numéro que prendra la re-détection d'une fuite (rang suivant) : 22 → « 22-bis », 22-bis → « 22-ter ». */
 export function numeroRedetection(f: { numero?: number | null; rang?: number | null }): string {

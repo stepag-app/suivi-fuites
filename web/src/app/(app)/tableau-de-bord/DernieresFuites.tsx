@@ -7,7 +7,7 @@ import { BadgeStatut, BadgesAlertes } from "@/components/statut";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { dateHeure, type libellesMarche } from "@/lib/format";
+import { dateHeure, numeroFuite, type libellesMarche } from "@/lib/format";
 import type { FuiteTdb } from "@/lib/ui/tableau-de-bord";
 
 export type FuiteRecente = FuiteTdb & { reference_srm: string | null; adresse: string | null; detectee_par: string | null };
@@ -51,7 +51,7 @@ export function DernieresFuites({ fuites, total, libelles, nombre = 10 }: {
                       <Droplets className="size-4 text-muted-foreground" />
                     </span>
                     <div className="grid min-w-0 gap-0.5">
-                      <span className="truncate font-medium text-sm leading-none">N° {f.numero}{f.reference_srm ? ` · ${f.reference_srm}` : ""}</span>
+                      <span className="truncate font-medium text-sm leading-none">N° {numeroFuite(f)}{f.reference_srm ? ` · ${f.reference_srm}` : ""}</span>
                       <span className="truncate text-muted-foreground text-xs leading-none">{f.adresse ?? "Adresse non renseignée"}</span>
                     </div>
                   </div>
@@ -66,7 +66,7 @@ export function DernieresFuites({ fuites, total, libelles, nombre = 10 }: {
                 <TableCell className="py-3 text-right tabular-nums">{f.nb_photos}</TableCell>
                 <TableCell className="py-3 text-right">
                   <Button variant="ghost" size="icon-sm" asChild onClick={(e) => e.stopPropagation()}>
-                    <Link href={`/fuites/${f.id}`} prefetch={false} aria-label={`Ouvrir la fuite N° ${f.numero}`}><ExternalLink /></Link>
+                    <Link href={`/fuites/${f.id}`} prefetch={false} aria-label={`Ouvrir la fuite N° ${numeroFuite(f)}`}><ExternalLink /></Link>
                   </Button>
                 </TableCell>
               </TableRow>

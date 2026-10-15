@@ -547,7 +547,7 @@ export default function DetailFuite() {
                           onValide={charger} onErreur={setErreur} onAjouterPhoto={ajouterPhotoEtape} />
                       )}
                       {droitsDetection.renvoyer && (
-                        <BoutonRenvoyer element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${fuite.numero}` }}
+                        <BoutonRenvoyer element={{ etape: "detection", id: fuite.id, libelle: `Détection de la fuite N° ${numeroFuite(fuite)}` }}
                           validee={!!v2?.validee_le} onRenvoye={charger} />
                       )}
                       {droitsDetection.modifier ? (

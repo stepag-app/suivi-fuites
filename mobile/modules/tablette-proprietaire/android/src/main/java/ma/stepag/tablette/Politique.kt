@@ -24,7 +24,8 @@ import org.json.JSONObject
  *
  * Fermée (état normal) : applis à icône hors de la liste gardée et services en arrière-plan cachés (une appli cachée
  * ne tourne plus), installations, comptes, réinitialisation, utilisateurs et mode sans échec interdits, 4G réservée à
- * Suivi fuites et à ses dépendances, heure automatique, autorisations de Suivi fuites accordées.
+ * Suivi fuites et à ses dépendances, heure automatique, écran éteint après une minute sans toucher, autorisations de
+ * Suivi fuites accordées.
  * Déverrouillée (code temporaire du panneau web) : Paramètres et Play Store remontrés, installations et comptes permis,
  * rien de nouveau n'est caché ; au reverrouillage, les applis installées entre-temps restent visibles sur la tablette.
  *
@@ -125,6 +126,9 @@ object Politique {
     UserManager.DISALLOW_ADD_USER,
     UserManager.DISALLOW_SAFE_BOOT,
   )
+  /** Écran éteint (noir) après une minute sans toucher ; l'appli continue de tourner (décision d'Issam du 2026-10-16). */
+  private const val ECRAN_ETEINT_APRES_MS = 60_000
+
   private val LEVEES_DEVERROUILLEE = setOf(
     UserManager.DISALLOW_INSTALL_APPS,
     UserManager.DISALLOW_INSTALL_UNKNOWN_SOURCES,
@@ -292,6 +296,11 @@ object Politique {
       runCatching { dpm.setLocationEnabled(admin, true) }.onFailure { Log.w(ETIQUETTE, "localisation : ${it.message}") }
     }
     corrigerFuseauMaroc(ctx, dpm, admin, bilan)
+    if (Build.VERSION.SDK_INT >= 28) {
+      runCatching { dpm.setSystemSetting(admin, Settings.System.SCREEN_OFF_TIMEOUT, ECRAN_ETEINT_APRES_MS.toString()) }
+        .onSuccess { bilan.put("ecranEteintApresMs", ECRAN_ETEINT_APRES_MS) }
+        .onFailure { Log.w(ETIQUETTE, "mise en veille de l'écran : ${it.message}") }
+    }
 
     // 5. Suivi fuites jamais arrêtée par l'agent ni endormie par Android (suivi GPS) : ni arrêt forcé ni effacement des
     // données depuis les Paramètres, exemption des paliers d'inactivité (App Standby). L'économiseur de batterie

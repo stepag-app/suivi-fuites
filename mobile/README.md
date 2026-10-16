@@ -275,7 +275,7 @@ Quand Suivi fuites est **propriétaire de l'appareil** (Device Owner d'Android),
 politique idempotente (`Politique.kt`) : applis à icône hors de la liste gardée cachées (donc arrêtées), services inutiles
 cachés (`SERVICES_CACHES` = listes de `outils/tablettes/`, comparées par `essais/tablette-listes.test.mjs`), interdictions
 (installer, sources inconnues, comptes, réinitialisation, utilisateurs, mode sans échec ; débogage USB en profil **agent**),
-4G coupée à tout sauf Suivi fuites, services Google, WebView, Maps, WhatsApp, heure automatique, autorisations de Suivi
+4G coupée à tout sauf Suivi fuites, services Google, WebView, Maps, WhatsApp, heure automatique, écran éteint après une minute sans toucher (`SCREEN_OFF_TIMEOUT`, imposé à chaque application de la politique ; l'appli continue de tourner), autorisations de Suivi
 fuites accordées d'office. Deux profils : **agent** (préparée par QR code) et **essai** (préparée par adb : la Redmi,
 adb et l'appli DEV gardés). Hors propriétaire (tablette préparée à la main, émulateur), le module ne fait rien.
 

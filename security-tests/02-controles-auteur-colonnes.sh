@@ -49,12 +49,6 @@ attendu_succes "reparation_A ajoute un ouvrier sur SA PROPRE réparation" "$AF_R
 attendu_succes "resp_A (toutes) ajoute un ouvrier sur la réparation de detection_A" "$AF_RESP_A" \
   "insert into public.reparation_ouvriers (marche_id,reparation_id,ouvrier_id) values ('$AF_MARCHE_A','$REP_OWN_DET','$OUV');"
 
-echo "### §3.2 marches — montant/identifiants légaux réservés à l'admin"
-attendu_refus "resp_A modifie montant_ttc du marché" "$AF_RESP_A" \
-  "update public.marches set montant_ttc=1 where id='$AF_MARCHE_A';"
-attendu_refus "resp_A modifie l'ICE du titulaire" "$AF_RESP_A" \
-  "update public.marches set titulaire_ice='000000000000000' where id='$AF_MARCHE_A';"
-
 echo "### §3.3 activer_produits_dolibarr — effet GLOBAL réservé à l'admin"
 attendu_refus "resp_A active un produit Dolibarr (effet tous marchés)" "$AF_RESP_A" \
   "select public.activer_produits_dolibarr(array[9991]::int[], true);"

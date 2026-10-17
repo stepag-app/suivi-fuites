@@ -26,36 +26,12 @@ as $$
 $$;
 
 -- -----------------------------------------------------------------------------
--- 2. proteger_marche : montant_ttc et identifiants légaux (ICE/IF/RC/patente/CNSS)
---    étaient modifiables par un responsable (parametres/modifier). Données
---    contractuelles → réservées à l'administrateur, comme le code et l'activation.
+-- 2. (retiré) proteger_marche — montant_ttc et identifiants légaux.
+--    Évalué puis ÉCARTÉ : remplir la fiche du marché (titulaire ICE/IF/RC, montant, délai)
+--    est le travail NOMINAL du responsable (droit « paramètres / modifier »), confirmé par la
+--    suite de tests (02_parametres_marche). Restreindre ces colonnes casserait l'opérationnel.
+--    Conservé comme résidu documenté dans RAPPORT_SECURITE.md §5 (intégrité du montant).
 -- -----------------------------------------------------------------------------
-create or replace function private.proteger_marche()
-returns trigger
-language plpgsql
-set search_path = ''
-as $$
-begin
-  if private.appel_systeme() or private.est_admin() then
-    return new;
-  end if;
-  if new.code is distinct from old.code or new.actif is distinct from old.actif then
-    raise exception 'Le code et l''activation d''un marché sont réservés à l''administrateur'
-      using errcode = 'insufficient_privilege';
-  end if;
-  if new.montant_ttc    is distinct from old.montant_ttc
-     or new.titulaire_ice     is distinct from old.titulaire_ice
-     or new.titulaire_if      is distinct from old.titulaire_if
-     or new.titulaire_rc      is distinct from old.titulaire_rc
-     or new.titulaire_patente is distinct from old.titulaire_patente
-     or new.titulaire_cnss    is distinct from old.titulaire_cnss
-     or new.client_ice        is distinct from old.client_ice then
-    raise exception 'Le montant et les identifiants légaux du marché sont réservés à l''administrateur'
-      using errcode = 'insufficient_privilege';
-  end if;
-  return new;
-end
-$$;
 
 -- -----------------------------------------------------------------------------
 -- 3. avant_insertion_balayage : agent_id était pris tel quel du client

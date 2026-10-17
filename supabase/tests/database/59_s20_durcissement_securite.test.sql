@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(14);
+select plan(12);
 
 -- Jeu d'essai : a = admin, b = détection A, c = chef réparation A, d = responsable A,
 -- e = détection B, f = détection A désactivé.
@@ -71,14 +71,6 @@ select throws_ok($$ insert into reparation_ouvriers (marche_id, reparation_id, o
 select lives_ok($$ insert into reparation_ouvriers (marche_id, reparation_id, ouvrier_id)
   values ('aaaaaaaa-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000002','01000000-0000-0000-0000-000000000001') $$,
   'chef A ajoute un ouvrier sur sa propre réparation');
-
--- ============ 4. marches : montant / identifiants légaux réservés à l'admin ============
-set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000d0","role":"authenticated"}', true);
-select throws_ok($$ update marches set montant_ttc = 1 where id = 'aaaaaaaa-0000-0000-0000-000000000001' $$,
-  '42501', NULL, 'responsable A ne peut pas changer le montant du marché');
-select throws_ok($$ update marches set titulaire_ice = '001122334455667' where id = 'aaaaaaaa-0000-0000-0000-000000000001' $$,
-  '42501', NULL, 'responsable A ne peut pas changer l''ICE du titulaire');
 
 -- ============ 5. activer_produits_dolibarr : effet global réservé à l'admin ============
 select throws_ok($$ select activer_produits_dolibarr(array[9991]::int[], true) $$,

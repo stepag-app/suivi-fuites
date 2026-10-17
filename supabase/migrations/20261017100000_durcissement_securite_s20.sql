@@ -137,15 +137,19 @@ begin
   end if;
 
   -- Photos : saisie à la place (auteur terrain choisi) réservée au droit « photos / valider ».
-  if tg_table_name = 'photos' and not private.appel_systeme()
-     and new.auteur_terrain_id is distinct from auth.uid() then
-    if not private.peut(new.marche_id, 'photos', 'valider') then
-      raise exception 'Photo au nom d''un autre agent réservée au responsable'
-        using errcode = 'insufficient_privilege';
-    end if;
-    if not private.est_affecte(new.auteur_terrain_id, new.marche_id) then
-      raise exception 'L''agent choisi n''est pas affecté à ce marché'
-        using errcode = 'check_violation';
+  -- Garde imbriquée : new.auteur_terrain_id n'est référencé QUE pour les photos — ce déclencheur
+  -- sert aussi lignes_quantites (sans ce champ) ; une condition combinée le résoudrait quand même
+  -- (erreur 42703 sous PostgreSQL 16).
+  if tg_table_name = 'photos' then
+    if not private.appel_systeme() and new.auteur_terrain_id is distinct from auth.uid() then
+      if not private.peut(new.marche_id, 'photos', 'valider') then
+        raise exception 'Photo au nom d''un autre agent réservée au responsable'
+          using errcode = 'insufficient_privilege';
+      end if;
+      if not private.est_affecte(new.auteur_terrain_id, new.marche_id) then
+        raise exception 'L''agent choisi n''est pas affecté à ce marché'
+          using errcode = 'check_violation';
+      end if;
     end if;
   end if;
 
@@ -240,6 +244,10 @@ create trigger d_controler_auteur
   before insert or delete on public.reparation_ouvriers
   for each row execute function private.controler_auteur_reparation_ouvriers();
 
+-- Convention du dépôt : aucune fonction exécutable par PUBLIC/anon (test 01). Le déclencheur
+-- s'exécute quel que soit le grant ; on retire l'EXECUTE implicite de PUBLIC.
+revoke execute on function private.controler_auteur_reparation_ouvriers() from public, anon, authenticated;
+
 -- -----------------------------------------------------------------------------
 -- 6. activer_produits_dolibarr : un droit « paramètres / modifier » sur UN marché
 --    agissait sur le référentiel GLOBAL (table sans marche_id) → effet inter-marchés.
@@ -296,6 +304,7 @@ as $$
      where f.id = p_fuite and f.marche_id = p_marche and f.supprime_le is null
   )
 $$;
+revoke execute on function private.fuite_du_marche(uuid, uuid) from public, anon;
 grant execute on function private.fuite_du_marche(uuid, uuid) to authenticated;
 
 drop policy if exists photos_fichiers_envoi on storage.objects;

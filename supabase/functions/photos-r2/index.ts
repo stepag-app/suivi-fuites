@@ -8,7 +8,7 @@
 //   lire     { chemins: string[], duree_s? }     → { urls: { [chemin]: url } } : lecture GET
 // Sans secrets R2 : 503 { code: 'r2_non_configure' } ; les clients retombent sur Supabase Storage.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 
 const CORS = {
@@ -21,7 +21,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CHEMIN = /^[0-9a-f-]{36}\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.jpg$/i;
 const DUREE_DEPOT_S = 900;
 const DUREE_LECTURE_S = 3600;
-const DUREE_LECTURE_MAX_S = 86400;
+const DUREE_LECTURE_MAX_S = 7200;  // 2 h (audit S20) : une URL de lecture n'a pas à vivre 24 h
 const LECTURE_MAX = 200;
 
 const reponse = (statut: number, corps: Record<string, unknown>) =>
@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
         return reponse(400, { erreur: 'Action inconnue' });
     }
   } catch (e) {
-    return reponse(500, { erreur: e instanceof Error ? e.message : String(e) });
+    console.error('photos-r2:', e);
+    return reponse(500, { erreur: 'Erreur interne' });
   }
 });

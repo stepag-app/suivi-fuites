@@ -10,7 +10,7 @@
 // workflow « Déploiement de la base » depuis le secret GitHub du même nom). Absent : 200 { configure: false } et
 // rien n'est pris (les notifications restent dans la cloche de l'appli).
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 
 const reponse = (statut: number, corps: Record<string, unknown>) =>
   new Response(JSON.stringify(corps), { status: statut, headers: { 'Content-Type': 'application/json' } });

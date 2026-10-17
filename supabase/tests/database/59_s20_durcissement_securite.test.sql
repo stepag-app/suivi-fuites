@@ -7,7 +7,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(9);
 
 -- Jeu d'essai : a = admin, b = détection A, c = chef réparation A, d = responsable A,
 -- e = détection B, f = détection A désactivé.
@@ -71,15 +71,6 @@ select throws_ok($$ insert into reparation_ouvriers (marche_id, reparation_id, o
 select lives_ok($$ insert into reparation_ouvriers (marche_id, reparation_id, ouvrier_id)
   values ('aaaaaaaa-0000-0000-0000-000000000001','d0000000-0000-0000-0000-000000000002','01000000-0000-0000-0000-000000000001') $$,
   'chef A ajoute un ouvrier sur sa propre réparation');
-
--- ============ 5. activer_produits_dolibarr : effet global réservé à l'admin ============
-select throws_ok($$ select activer_produits_dolibarr(array[9991]::int[], true) $$,
-  '42501', NULL, 'responsable A ne peut pas activer un produit Dolibarr (effet global)');
-reset role; select set_config('request.jwt.claims', '', true);
-set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a0","role":"authenticated"}', true);
-select lives_ok($$ select activer_produits_dolibarr(array[9991]::int[], true) $$,
-  'admin active un produit Dolibarr');
 
 -- ============ 6. storage photos : dossier lié à une vraie fuite du marché ============
 set local role authenticated;

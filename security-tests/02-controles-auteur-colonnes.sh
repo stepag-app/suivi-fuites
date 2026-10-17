@@ -49,12 +49,6 @@ attendu_succes "reparation_A ajoute un ouvrier sur SA PROPRE réparation" "$AF_R
 attendu_succes "resp_A (toutes) ajoute un ouvrier sur la réparation de detection_A" "$AF_RESP_A" \
   "insert into public.reparation_ouvriers (marche_id,reparation_id,ouvrier_id) values ('$AF_MARCHE_A','$REP_OWN_DET','$OUV');"
 
-echo "### §3.3 activer_produits_dolibarr — effet GLOBAL réservé à l'admin"
-attendu_refus "resp_A active un produit Dolibarr (effet tous marchés)" "$AF_RESP_A" \
-  "select public.activer_produits_dolibarr(array[9991]::int[], true);"
-attendu_succes "admin active un produit Dolibarr" "$AF_ADMIN" \
-  "select public.activer_produits_dolibarr(array[9991]::int[], true);"
-
 echo "### §3.8 Storage photos — dépôt dans le dossier d'une fuite inexistante/d'autrui"
 attendu_refus "detection_A dépose un objet sous une fuite inexistante de son marché" "$AF_DET_A" \
   "insert into storage.objects (bucket_id,name) values ('photos','$AF_MARCHE_A/99999999-9999-4999-8999-999999999999/x.jpg');"

@@ -225,44 +225,13 @@ create trigger d_controler_auteur
 revoke execute on function private.controler_auteur_reparation_ouvriers() from public, anon, authenticated;
 
 -- -----------------------------------------------------------------------------
--- 6. activer_produits_dolibarr : un droit « paramètres / modifier » sur UN marché
---    agissait sur le référentiel GLOBAL (table sans marche_id) → effet inter-marchés.
---    Aligné sur importer_produits_dolibarr : réservé à l'administrateur.
+-- 6. (retiré) activer_produits_dolibarr — garde admin-seulement.
+--    Évalué puis ÉCARTÉ : « administrateur OU responsable (paramètres/modifier) » est une décision
+--    explicite (catalogue Dolibarr unique sans marche_id, partagé entre marchés) couverte par la
+--    suite de tests (11_articles_dolibarr). L'effet inter-marchés est voulu. Résidu documenté
+--    dans RAPPORT_SECURITE.md §5. La fonction d'origine (garde admin ∨ paramètres/modifier) est
+--    donc laissée inchangée.
 -- -----------------------------------------------------------------------------
-create or replace function public.activer_produits_dolibarr(p_ids integer[], p_utilisable boolean)
-returns integer
-language plpgsql
-security definer
-set search_path = ''
-as $$
-declare
-  _n integer;
-begin
-  -- Durcissement S20 : l'effet est GLOBAL (table sans marche_id) → réservé à l'administrateur
-  -- (aligné sur importer_produits_dolibarr). Avant : un droit « paramètres / modifier » sur un
-  -- seul marché suffisait, ce qui agissait sur le catalogue de tous les marchés.
-  if not private.est_admin() then
-    raise exception 'L''activation des articles Dolibarr est réservée à l''administrateur'
-      using errcode = 'insufficient_privilege';
-  end if;
-  perform private.controler_verrou_admin('parametres', 'modifier');
-  if p_ids is null or p_utilisable is null then
-    raise exception 'Articles et état attendus' using errcode = 'invalid_parameter_value';
-  end if;
-  if cardinality(p_ids) > 20000 then
-    raise exception 'Trop d''articles en une fois (20 000 au plus)' using errcode = 'program_limit_exceeded';
-  end if;
-  -- Un produit retiré de Dolibarr ne s'active plus (il ne serait de toute façon pas proposé).
-  update public.produits_dolibarr d
-     set utilisable = p_utilisable, utilisable_le = now(), utilisable_par = auth.uid()
-   where d.dolibarr_id = any (p_ids)
-     and d.utilisable is distinct from p_utilisable
-     and (d.actif or not p_utilisable);
-  get diagnostics _n = row_count;
-  return _n;
-end
-$$;
-
 -- 7. Storage (compartiment photos) : la règle d'INSERT ne vérifiait que le dossier
 --    marché (foldername[1]). Le 2e segment (fuite) n'était pas lié à une vraie fuite du
 --    marché → dépôt d'un objet dans l'arborescence d'une fuite d'autrui ou inexistante.

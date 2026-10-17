@@ -1,5 +1,6 @@
 import type { Marche, StatutFuite } from './types';
 import { dateHeureMaroc, dateMaroc } from '@/lib/heure-maroc';
+import { neutraliserFormuleCsv } from '@/lib/export/csv-securise';
 
 export const STATUTS: Record<StatutFuite, { libelle: string; classe: string }> = {
   detectee: { libelle: 'Détectée, non réparée', classe: 'st-detectee' },
@@ -148,7 +149,10 @@ export function messageErreur(e: unknown): string {
 
 export function telechargerCsv(nom: string, lignes: (string | number | null | undefined)[][]) {
   const echapper = (v: string | number | null | undefined) => {
-    const t = v == null ? '' : String(v);
+    let t = v == null ? '' : String(v);
+    // Injection de formules CSV : neutralise une valeur TEXTE commençant par = + - @ (tab/CR).
+    // Les nombres (typeof number) ne sont jamais préfixés pour ne pas casser tri/somme dans Excel.
+    if (typeof v === 'string') t = neutraliserFormuleCsv(t);
     return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
   };
   const contenu = '﻿' + lignes.map((l) => l.map(echapper).join(';')).join('\r\n');

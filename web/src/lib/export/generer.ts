@@ -1,6 +1,7 @@
 // Aiguillage par format. Chaque bibliothèque n'est téléchargée qu'au moment de
 // l'export qui en a besoin (aucun poids ajouté à l'ouverture des pages).
 import { decimalesPour, nomFichierSur, parcourir, telecharger, texteDate, type DocumentExport } from './modele';
+import { neutraliserFormuleCsv } from './csv-securise';
 import { jourMaroc } from '@/lib/heure-maroc';
 
 export type FormatExport = 'xlsx' | 'pdf' | 'docx' | 'csv';
@@ -22,7 +23,7 @@ function genererCsv(d: DocumentExport): Blob {
     lignes.push(s.colonnes.map((c) => c.titre));
     for (const { ligne, indexDonnees } of parcourir(s)) {
       if (ligne.type === 'groupe') {
-        lignes.push([ligne.libelle ?? '']);
+        lignes.push([neutraliserFormuleCsv(ligne.libelle ?? '')]);
         continue;
       }
       const cellules = ligne.cellules.map((v, i) => {
@@ -32,9 +33,11 @@ function genererCsv(d: DocumentExport): Blob {
         }
         // Nombre lisible par Excel en français : virgule décimale, pas de séparateur de milliers
         if (typeof v === 'number') return v.toFixed(decimalesPour(s, ligne, i, indexDonnees)).replace('.', ',');
-        return v;
+        // Neutralisation de l'injection de formules CSV (= + - @ tab/CR) sur les cellules TEXTE
+        // uniquement : les nombres et dates sont déjà formatés au-dessus et ne sont jamais préfixés.
+        return neutraliserFormuleCsv(v);
       });
-      if (ligne.type !== 'donnees' && ligne.libelle) cellules[0] = ligne.libelle;
+      if (ligne.type !== 'donnees' && ligne.libelle) cellules[0] = neutraliserFormuleCsv(ligne.libelle);
       lignes.push(cellules);
     }
     lignes.push([]);

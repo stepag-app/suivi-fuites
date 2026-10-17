@@ -24,6 +24,11 @@ export async function setValueToCookie(
   cookieStore.set(key, value, {
     path: options.path ?? "/",
     maxAge: options.maxAge ?? 60 * 60 * 24 * 7, // default: 7 days
+    // Durcissement S20 : ces préférences sont relues côté serveur (getPreference) → httpOnly sûr ;
+    // sameSite 'lax' contre le CSRF de cookie ; secure en production (localhost reste en http).
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
   });
 }
 

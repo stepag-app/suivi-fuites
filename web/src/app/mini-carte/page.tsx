@@ -56,6 +56,11 @@ function Contenu() {
   // Positions GPS envoyées par l'APK : postMessage (Android : événement sur document) ou window.miniCarte.gps(…).
   useEffect(() => {
     const recevoir = (e: Event) => {
+      // Durcissement S20 : n'accepter que les messages de même origine. Le canal de l'APK (React Native
+      // WebView) émet un événement « message » sur document avec une origine vide : on l'autorise ; on
+      // rejette toute origine tierce (défense en profondeur ; la page est déjà en frame-ancestors 'self').
+      const o = (e as MessageEvent).origin;
+      if (o && o !== window.location.origin) return;
       const g = lireMessageGps((e as MessageEvent).data);
       if (g) setGps(g);
     };

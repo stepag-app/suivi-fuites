@@ -190,6 +190,12 @@ propriétaire pendant le développement (rechargement par Metro) ; la propriét�
 
 ### 8.2 Tablettes des agents (QR code, profil agent)
 
+> **Constat du 2026-10-18** : sur la REDMI Pad 2 9.7 4G (HyperOS 3.0, Android 16), les 6 touchers ne font rien ;
+> Xiaomi ne propose pas cette préparation. Les Redmi des agents sont donc préparées **par câble, en profil essai**
+> (`outils/tablettes/preparer-cable.sh`, gestes dans `outils/tablettes/README.md`). Le profil agent (débogage USB
+> coupé) n'est atteignable que par QR code, donc sur une autre marque.
+
+
 Tablette neuve ou réinitialisée, SIM insérée : **six touchers** sur le premier écran de l'assistant, lecture du QR code ;
 Android télécharge l'APK, la déclare propriétaire et applique la politique avant la fin de l'assistant ; aucun compte
 demandé. Contenu du QR code (Android Enterprise) :

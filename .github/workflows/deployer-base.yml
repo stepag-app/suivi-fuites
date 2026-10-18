@@ -2,7 +2,8 @@ name: Déploiement de la base
 
 # Applique les migrations au projet Supabase de production :
 #  * automatiquement quand une migration arrive sur main (fusion d'une PR) ;
-#  * à la demande (onglet Actions > Déploiement de la base > Run workflow).
+#  * à la demande (onglet Actions > Déploiement de la base > Run workflow) : le déploiement n'a lieu que si
+#    la branche choisie est main (un dispatch depuis une autre branche rejoue les tests mais ne déploie pas — H5).
 # Les tests sont rejoués d'abord ; rien n'est envoyé s'ils échouent.
 # Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
 #  * SUPABASE_ACCESS_TOKEN : jeton personnel Supabase (Account > Access Tokens)
@@ -61,8 +62,13 @@ jobs:
   deployer:
     name: Appliquer au projet Supabase
     needs: tests
+    # Déploiement réservé à main : push déjà limité à main ; un workflow_dispatch depuis une autre branche est
+    # ignoré ici (H5). L'environnement protégé « base-production » (branches autorisées = main, relecteur
+    # possible) verrouille aussi l'accès aux secrets de production (H5/H6).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    environment: base-production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -89,8 +95,11 @@ jobs:
   fonctions:
     name: Déployer les fonctions serveur
     needs: deployer
+    # Même garde que « deployer » : main seulement + environnement protégé (H5/H6).
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    environment: base-production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:

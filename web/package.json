@@ -50,6 +50,6 @@
     "@types/react-dom": "^19.1.0",
     "aws4fetch": "^1.0.20",
     "shadcn": "^4.21.2",
-    "typescript": "^5.9.0"
+    "typescript": "^7.0.2"
   }
 }

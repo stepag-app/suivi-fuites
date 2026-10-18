@@ -43,7 +43,7 @@ secours disponible), comme la tablette 1. Recette suivie pour la tablette 2 ; m�
 |---|---|---|---|
 | 1 | Redmi Pad 2 11 pouces 4G | `koto`, 2505DRP06G | HyperOS 2.0, Android 15 |
 | 2 | REDMI Pad 2 9.7 4G, 128 Go | `erhu`, 2604ERP4DG | HyperOS 3.0, Android 16 |
-| 3 | REDMI Pad 2 9.7 4G, 64 Go | même modèle que la 2 | |
+| 3 | REDMI Pad 2 9.7 4G, 64 Go | `erhu`, 2604ERP4DG | HyperOS 3.0, Android 16 (préparée le 2026-10-18) |
 
 Gestes d'Issam avant le câble :
 
@@ -64,6 +64,8 @@ outils/tablettes/preparer-cable.sh <série>
 HyperOS refuse l'installation par câble (« Installer via USB » exige un compte Xiaomi) : le script dépose l'APK dans
 Téléchargements et attend qu'Issam l'installe d'un toucher (Gestionnaire de fichiers › Téléchargements ›
 suivi-fuites.apk › Installer, puis Terminé sans ouvrir l'appli).
+Si **Google Play Protect** affiche « Appli bloquée » (tablette 3), ne pas toucher OK (= refus) : **Plus d'infos ›
+Installer quand même**, puis « Ne pas envoyer » pour l'analyse. L'installation prend ensuite une à deux minutes.
 
 Gestes d'Issam après le script :
 
@@ -74,7 +76,8 @@ Gestes d'Issam après le script :
 9. Applis › Gérer les applis › Suivi fuites › **Économiseur de batterie › Aucune restriction**. Ne pas toucher aux
    « Autres autorisations » : le script les a mises à « autoriser » et HyperOS en remet à « refuser » dès qu'on y touche.
 10. Écran de verrouillage › **Données faciales et verrouillage d'écran** › Code PIN (le même sur toutes les tablettes).
-11. Cadenas › **Reverrouiller maintenant** ; redémarrer, taper le PIN, essayer de sortir de l'appli (seules Suivi fuites,
+11. Cadenas › **Reverrouiller maintenant** (vérifier que Paramètres disparaît de l'écran d'accueil ; sinon, par adb :
+    `am broadcast -n ma.stepag.suivifuites/ma.stepag.tablette.RecepteurSecours --es action reverrouiller`) ; redémarrer, taper le PIN, essayer de sortir de l'appli (seules Suivi fuites,
     Appareil photo, Maps, Messages, Contacts, Téléphone doivent apparaître).
 
 Réglages de référence (relevés sur la tablette 1 le 2026-10-18, posés par le script) : luminosité automatique, veille

@@ -17,7 +17,7 @@ if [ $# -ge 1 ] && ! printf '%s' "$1" | grep -q '\.'; then
   shift
 fi
 
-paquets() { grep -v '^[[:space:]]*#' "$1" | grep -v '^[[:space:]]*$' | tr -d '[:space:]\r' | sed '/^$/d'; }
+paquets() { grep -v '^[[:space:]]*#' "$1" | grep -v '^[[:space:]]*$' | tr -d ' \t\r' | sed '/^$/d'; }
 
 if [ $# -gt 0 ]; then
   liste=("$@")
@@ -28,8 +28,8 @@ fi
 
 remises=0; refus=()
 for p in "${liste[@]}"; do
-  r1=$("$ADB" "${CIBLE[@]}" shell cmd package install-existing --user 0 "$p" 2>&1 | tr -d '\r' || true)
-  r2=$("$ADB" "${CIBLE[@]}" shell pm enable --user 0 "$p" 2>&1 | tr -d '\r' || true)
+  r1=$("$ADB" ${CIBLE[@]+"${CIBLE[@]}"} shell cmd package install-existing --user 0 "$p" 2>&1 | tr -d '\r' || true)
+  r2=$("$ADB" ${CIBLE[@]+"${CIBLE[@]}"} shell pm enable --user 0 "$p" 2>&1 | tr -d '\r' || true)
   if printf '%s\n%s' "$r1" "$r2" | grep -Eq 'installed for user|new state: enabled'; then
     remises=$((remises + 1))
   else

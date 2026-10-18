@@ -30,6 +30,13 @@ Ce dossier ne contient que le code. Les données réelles restent hors du dépô
 - Rien n'est validé ; source de saisie `import`, observation « Import de l'attachement Excel n° 1 (fiche n° …) ».
 - Les articles retenus sont activés (Paramètres › Articles) pour être proposés dans les listes.
 
+## Par l'éditeur SQL de Supabase (sans accès à la base depuis le Mac)
+
+`generer` écrit aussi `data-private/import-excel/editeur-supabase/` : `1-verifier.sql` (lecture seule),
+`2-injecter.sql`, `3-annuler.sql` et `3-annuler-forcer.sql`, sans commandes psql. Les coller un par un dans
+Supabase › SQL Editor (rôle `postgres`, donc mode système) ; chacun affiche un seul tableau de contrôle. Même
+transaction, mêmes garde-fous que par `importer.sh`.
+
 ## Commandes
 
 ```bash

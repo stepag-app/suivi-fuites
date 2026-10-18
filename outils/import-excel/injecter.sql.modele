@@ -133,6 +133,7 @@ on conflict (marche_id, cle) do update set valeur = greatest(private.compteurs.v
 -- -----------------------------------------------------------------------------
 -- Résumé
 -- -----------------------------------------------------------------------------
+-- <resume-psql>
 \echo 'Fuites importées par statut :'
 select f.statut, count(*) from public.fuites f join imp_fuites i on i.id = f.id group by 1 order by 1;
 \echo 'Réparations, pièces, lignes de prix :'
@@ -145,5 +146,6 @@ select pr.numero as prix, sum(l.quantite) as quantite
  group by pr.numero, pr.ordre order by pr.ordre;
 \echo 'Prochain numéro de fuite :'
 select c.valeur + 1 as prochain from private.compteurs c join imp_param p on p.marche_id = c.marche_id where c.cle = 'fuite';
+-- </resume-psql>
 
 :fin;

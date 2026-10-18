@@ -131,10 +131,75 @@ def main():
            .replace('{{PIECES}}', ',\n  '.join(lp))
            .replace('{{PRODUITS}}', ', '.join(map(str, produits))))
     (base / 'injecter.sql').write_text(sql)
+    ecrire_editeur(base / 'editeur-supabase', sql, cfg)
     ecrire_controle(base / 'controle-import.xlsx', controle, corresp)
     print(f"{len(fuites)} fuites, {len(lr)} réparations, {len(lp)} pièces, {len(produits)} articles ; "
           f"date de détection tirée des rapports pour {sum(1 for c in controle if c['source_date'] != 'Excel')} fuites")
-    print(f"Écrit : {base / 'injecter.sql'} et {base / 'controle-import.xlsx'}")
+    print(f"Écrit : {base / 'injecter.sql'}, {base / 'editeur-supabase'} et {base / 'controle-import.xlsx'}")
+
+
+RESUME_EDITEUR = """
+-- Résultat affiché par l'éditeur : une ligne par contrôle
+select 'fuites ' || f.statut::text as controle, count(*)::text as valeur
+  from public.fuites f join public.marches m on m.id = f.marche_id
+ where m.code = {m} and f.source_saisie = 'import' group by f.statut
+union all
+select 'réparations', count(*)::text from public.reparations r join public.marches m on m.id = r.marche_id
+ where m.code = {m} and r.source_saisie = 'import'
+union all
+select 'pièces', count(*)::text from public.reparation_pieces p join public.reparations r on r.id = p.reparation_id
+  join public.marches m on m.id = r.marche_id where m.code = {m} and r.source_saisie = 'import'
+union all
+select 'prix ' || pr.numero, sum(l.quantite)::text from public.lignes_quantites l
+  join public.fuites f on f.id = l.fuite_id join public.prix pr on pr.id = l.prix_id
+  join public.marches m on m.id = f.marche_id
+ where m.code = {m} and f.source_saisie = 'import' group by pr.numero
+union all
+select 'prochain numéro de fuite', (c.valeur + 1)::text from private.compteurs c
+  join public.marches m on m.id = c.marche_id where m.code = {m} and c.cle = 'fuite';
+"""
+
+VERIFIER_EDITEUR = """-- Vérification avant import (lecture seule) : à coller dans Supabase › SQL Editor
+select 'marché ' || code as controle, case when actif then 'actif' else 'INACTIF' end as valeur
+  from public.marches where code = {m}
+union all
+select 'fuites déjà présentes', count(*)::text
+  from public.fuites f join public.marches m on m.id = f.marche_id where m.code = {m}
+union all
+select 'fuites déjà importées', count(*)::text
+  from public.fuites f join public.marches m on m.id = f.marche_id where m.code = {m} and f.source_saisie = 'import'
+union all
+select 'compteur des fuites', coalesce(max(c.valeur), 0)::text
+  from private.compteurs c join public.marches m on m.id = c.marche_id where m.code = {m} and c.cle = 'fuite'
+union all
+select 'compte ' || x.identifiant,
+       coalesce((select case when not p.actif then 'INACTIF'
+                             when not private.est_affecte(p.id, m.id) then 'NON AFFECTÉ AU MARCHÉ'
+                             else 'actif et affecté' end
+                   from public.profils p where p.identifiant = x.identifiant), 'INTROUVABLE')
+  from unnest(array[{d}, {r}, {s}]) as x(identifiant)
+  cross join public.marches m where m.code = {m};
+"""
+
+
+def ecrire_editeur(dossier, sql, cfg):
+    """Versions pour Supabase › SQL Editor : sans commandes psql, un seul tableau de résultat."""
+    dossier.mkdir(exist_ok=True)
+    m = q(cfg['marche'])
+    sans_resume = re.sub(r'-- <resume-psql>.*?-- </resume-psql>\n', '', sql, flags=re.S)
+    lignes = [ln for ln in sans_resume.splitlines() if not ln.startswith('\\')]
+    corps = '\n'.join(lignes).replace(':fin;', 'commit;')
+    entete = ("-- 2. IMPORT : à coller tel quel dans Supabase › SQL Editor, puis Run.\n"
+              "-- Tout ou rien : si un garde-fou échoue, rien n'est écrit et l'éditeur affiche le message.\n")
+    (dossier / '2-injecter.sql').write_text(entete + corps + RESUME_EDITEUR.format(m=m))
+    (dossier / '1-verifier.sql').write_text(VERIFIER_EDITEUR.format(
+        m=m, d=q(cfg['detecteur']), r=q(cfg['reparateur']), s=q(cfg['saisie'])))
+    modele = (Path(__file__).parent / 'annuler.sql').read_text()
+    for nom, forcer in (('3-annuler.sql', 'non'), ('3-annuler-forcer.sql', 'oui')):
+        a = (modele.replace(":'marche'", m).replace(":'forcer'", q(forcer))
+             .replace(' \\gset', ';').replace(':fin;', 'commit;'))
+        a = '\n'.join(ln for ln in a.splitlines() if not ln.startswith('\\'))
+        (dossier / nom).write_text("-- ANNULATION de l'import : à coller dans Supabase › SQL Editor, puis Run.\n" + a + '\n')
 
 
 def ecrire_controle(chemin, controle, corresp):

@@ -19,7 +19,8 @@ Ce dossier ne contient que le code. Les données réelles restent hors du dépô
 ## Règles appliquées (validées par Issam le 2026-10-18)
 
 - Numéros de l'Excel gardés (1 à 112) ; la première fuite saisie sur tablette prend le numéro suivant.
-- Détection : KASMI MOHAMMED ; réparation : TAIBI ABDELALI ; saisie : la responsable (BOUAZZI OUMAYMA) depuis le papier.
+- Auteurs : l'agent de détection et le chef de réparation désignés dans `config.json` ; saisie : la responsable,
+  depuis le papier.
 - Date de détection : celle des rapports journaliers du 2026-10-02 quand la tournée y figure, sinon la date de la fiche.
 - Fuites sans pièce ni fouille : « Détectée », à réparer sur tablette ; l'alerte des 48 h joue normalement.
 - Visibilité : invisible ; ouvrage déduit des pièces (robinet ou collier PEC, raccord, PE de DE < 40 → branchement ;

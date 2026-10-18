@@ -26,14 +26,18 @@ sh_() { a shell "$@" | tr -d '\r'; }
 etape() { printf '\n== %s\n' "$1"; }
 secours() { sh_ am broadcast -n "$PAQUET/ma.stepag.tablette.RecepteurSecours" -a ma.stepag.tablette.SECOURS --es action "$1" | tail -1; }
 attendre_demarrage() {
-  a wait-for-device
+  # adb perd la tablette pendant le redémarrage : « wait-for-device » échoue, on la guette.
   until [ "$(sh_ getprop sys.boot_completed 2>/dev/null)" = 1 ]; do sleep 3; done
 }
 
 etape "Tablette"
+if [ "$(sh_ echo ok 2>/dev/null)" != ok ]; then
+  echo "ARRÊT : la tablette ne répond pas à adb (« error: closed ») : débogage USB à désactiver puis réactiver, ou câble à rebrancher."
+  exit 1
+fi
 echo "$(sh_ getprop ro.product.marketname) ($(sh_ getprop ro.product.model)), $(sh_ getprop ro.build.version.incremental), Android $(sh_ getprop ro.build.version.release)"
 comptes=$(sh_ dumpsys account | sed -n 's/^ *Accounts: //p' | head -1)
-if [ "${comptes:-0}" != 0 ]; then
+if [ "$comptes" != 0 ]; then
   echo "ARRÊT : $comptes compte(s) sur la tablette. Android refuse le propriétaire tant qu'un compte existe :"
   sh_ dumpsys account | grep 'Account {' || true
   exit 1
@@ -59,7 +63,7 @@ if ! sh_ pm list packages "$PAQUET" | grep -qx "package:$PAQUET"; then
     sh_ rm -f /sdcard/Download/suivi-fuites.apk
   fi
 fi
-sh_ dumpsys package "$PAQUET" | grep -m2 -E 'versionName|versionCode' | sed 's/^ */  /'
+sh_ dumpsys package "$PAQUET" | awk '/versionName|versionCode/ && n < 2 { sub(/^ */, "  "); print; n++ }'
 
 etape "Ménage"
 "$ICI/menage.sh" ${SERIE:+"$SERIE"}
@@ -83,6 +87,9 @@ sh_ cmd appops set "$PAQUET" RUN_ANY_IN_BACKGROUND allow
 # Autorisations Xiaomi (Autres autorisations) : démarrage automatique, raccourcis, écran verrouillé, fenêtres en
 # arrière-plan. Ne plus y toucher dans l'interface ensuite : HyperOS en remet à « refuser ».
 for op in 10008 10017 10020 10021; do sh_ appops set "$PAQUET" "$op" allow; done
+# Sans écriture forcée, un redémarrage juste après perd les autorisations et l'exemption de batterie (tablette 3).
+sh_ appops write-settings
+sleep 5
 echo "Fuseau : $(sh_ getprop persist.sys.timezone), heure : $(sh_ date)"
 
 etape "Redémarrage (fait apparaître le cadenas dans l'appli)"
@@ -92,6 +99,8 @@ attendre_demarrage
 sleep 10
 sh_ dpm list-owners | tail -1
 sh_ cmd package query-activities --brief -a android.intent.action.MAIN -c android.intent.category.LAUNCHER | grep / | sort -u
+sh_ appops get "$PAQUET" | grep -E 'MIUIOP\(100(08|17|20|21)\)|RUN_ANY'
+sh_ dumpsys deviceidle whitelist | grep "$PAQUET" || echo "ATTENTION : exemption de batterie perdue, relancer : adb shell dumpsys deviceidle whitelist +$PAQUET"
 
 cat <<'FIN'
 

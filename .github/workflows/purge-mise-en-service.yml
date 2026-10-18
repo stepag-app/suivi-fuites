@@ -6,14 +6,15 @@ name: Purge de mise en service
 # Détail : outils/purge/README.md.
 #
 # Actions (onglet Actions > Purge de mise en service > Run workflow) :
-#  * inventaire : nombre de lignes par table et par marché, fichiers de Storage ; lecture seule (aussi lancé
-#    sur une PR qui modifie la purge) ;
+#  * inventaire : nombre de lignes par table et par marché, fichiers de Storage ; lecture seule. Relie la
+#    production : déclenchement MANUEL seulement (plus jamais sur une PR — H4) ;
 #  * purger     : sauvegarde complète d'abord (« Sauvegarde de la base », copie Drive comprise), puis purge de la
 #    base en UNE transaction (outils/purge/purger.sql), puis effacement des fichiers ; exige la confirmation
 #    « PURGER DEMO ET ESSAIS » ;
 #  * fichiers   : effacement des fichiers seul (à relancer si cette étape a échoué après la purge ; même
 #    confirmation).
-# Aucune donnée affichée : seulement des noms de tables, de compartiments et des nombres.
+# Une PR qui modifie la purge joue seulement des contrôles sans secret (syntaxe des scripts, présence du SQL) :
+# elle ne relie plus la production. Aucune donnée affichée : seulement des noms de tables, de compartiments et des nombres.
 
 on:
   pull_request:
@@ -56,11 +57,28 @@ env:
   AFFECTER_AGENTS_DEMO: 'oui'
 
 jobs:
+  controles:
+    name: Contrôles des scripts (sans secret, PR)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntaxe des scripts shell et présence des fichiers SQL
+        run: |
+          bash -n outils/purge/purge.sh
+          test -f outils/purge/inventaire.sql
+          test -f outils/purge/purger.sql
+          echo "Contrôles sans secret : OK (aucune connexion à la production sur une PR)."
+
   inventaire:
     name: Inventaire (lecture seule)
-    if: github.event_name == 'pull_request' || inputs.action == 'inventaire'
+    # Relie la production : déclenchement manuel seulement, jamais sur une PR (H4).
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'inventaire'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    # Environnement protégé (Settings > Environments > purge-production, branches autorisées = main) (H6).
+    environment: purge-production
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -101,6 +119,9 @@ jobs:
     if: ${{ !cancelled() && needs.verifier.result == 'success' && (inputs.action == 'fichiers' || needs.sauvegarde.result == 'success') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Opération destructrice : environnement protégé avec relecteur obligatoire (Settings > Environments >
+    # purge-production, branches autorisées = main, relecteur requis) (H6).
+    environment: purge-production
     env:
       ACTION: ${{ inputs.action }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}

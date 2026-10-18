@@ -3,7 +3,7 @@ name: Sauvegarde de la base
 # Le plan gratuit de Supabase n'a aucune sauvegarde : ce workflow exporte chaque nuit le schéma, les
 # données (comptes et enregistrements de fichiers compris) et le complément applicatif de auth et
 # storage (déclencheur de création de profil, règles des fichiers), chiffre le tout (AES-256) puis :
-#  1. le garde 30 jours en artefact GitHub (dépôt privé) ;
+#  1. le garde 7 jours en artefact GitHub (dépôt privé ; rétention courte, les copies durables sont R2 et le Drive) ;
 #  2. en dépose une copie HORS de GitHub dans Cloudflare R2 (compartiment suivi-fuites-photos, préfixe
 #     sauvegardes/base/), vérifiée par empreinte SHA-256, 30 jours de conservation (les archives plus
 #     anciennes sont supprimées par le workflow, au moins 7 récentes toujours gardées) ;
@@ -48,6 +48,9 @@ jobs:
     name: Exporter, chiffrer et copier
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Environnement protégé « sauvegarde-production » (Settings > Environments, branches autorisées = main,
+    # SANS relecteur obligatoire : la sauvegarde tourne en automatique chaque nuit) (H6).
+    environment: sauvegarde-production
     concurrency:
       group: sauvegarde-r2
       cancel-in-progress: false
@@ -83,8 +86,10 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: sauvegarde-base
+          # Rétention courte (H6) : l'archive chiffrée reste 30 j dans R2 et sans limite sur le Drive ;
+          # l'artefact GitHub ne sert qu'à la copie Drive du même run et au test de restauration (< 48 h).
+          retention-days: 7
           path: sauvegarde-*.tar.gz.gpg
-          retention-days: 30
           if-no-files-found: error
       - name: Copie hors de GitHub (R2, 30 jours)
         run: bash outils/sauvegarde/copie-r2.sh sauvegarde-*.tar.gz.gpg
@@ -98,6 +103,8 @@ jobs:
     if: ${{ !cancelled() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 120
+    # Même environnement protégé que « sauvegarde » (branches = main, sans relecteur) (H6).
+    environment: sauvegarde-production
     concurrency:
       group: sauvegarde-drive
       cancel-in-progress: false

@@ -2,8 +2,9 @@ name: Application Android (APK)
 
 # Depuis le 2026-10-11 (décision d'Issam) : plus de nouvelle version publiée aux tablettes à chaque fusion.
 #  * Pull request qui touche mobile/ : types (tsc) et essais sans pile, toujours ; compilation Gradle (APK en artefact,
-#    14 jours) seulement si un fichier natif change (app.json, app.config.js, plugins/, modules/, package.json,
-#    package-lock.json) ou ce workflow lui-même. Jamais de publication depuis une PR.
+#    7 jours) seulement si un fichier natif change (app.json, app.config.js, plugins/, modules/, package.json,
+#    package-lock.json) ou ce workflow lui-même. Jamais de signature de production ni de publication depuis une PR :
+#    l'APK d'une PR est compilée sans la clé de production (débogage). Clé de production : seulement main/tag/manuel.
 #  * Push sur main : types et essais seulement (ni compilation ni publication).
 #  * Publication pour les tablettes : à la main, Actions > Application Android (APK) > Run workflow, branche main,
 #    avec le nom de version (ex. 1.0.0) : APK signée avec la clé de production, déposée dans le compartiment privé R2
@@ -107,6 +108,11 @@ jobs:
     if: needs.verifications.outputs.compiler == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+    # Environnement protégé seulement hors pull request : la clé de production et les secrets R2 doivent y être
+    # rangés (Settings > Environments > apk-production, branches autorisées = main). Une PR n'a pas d'environnement
+    # et n'accède donc pas à ces secrets. Vide ('') = aucun environnement (H2/H6).
+    # Ordre voulu : la valeur non vide est sur le côté && (une chaîne vide est « fausse » et déclencherait le || sinon).
+    environment: ${{ github.event_name != 'pull_request' && 'apk-production' || '' }}
     defaults:
       run:
         working-directory: mobile
@@ -159,8 +165,11 @@ jobs:
           assert 'ma.stepag.suivifuites' in paquets, f'google-services.json ne contient pas ma.stepag.suivifuites : {paquets}'
           PY2
       - run: npx expo prebuild --platform android --no-install
+      # Signature avec la clé de production : JAMAIS sur une pull request (H2). Seulement push main / tag / manuel.
+      # Le mot de passe du keystore n'est plus écrit dans $GITHUB_ENV ; il est passé en variable d'étape à Gradle.
       - name: Signature de production (si le keystore est disponible)
         id: signature
+        if: github.event_name != 'pull_request'
         env:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
@@ -192,12 +201,15 @@ jobs:
           s = s[:m.start(1)] + corps + s[m.end(1):]
           open(p, 'w').write(s)
           PY
-          echo "KS_FILE=$RUNNER_TEMP/suivi-fuites.keystore" >> "$GITHUB_ENV"
-          echo "KS_PASS=$KS_PASS" >> "$GITHUB_ENV"
-          echo "KS_ALIAS=$KS_ALIAS" >> "$GITHUB_ENV"
           echo "mode=production" >> "$GITHUB_OUTPUT"
       - name: Compilation (release)
         working-directory: mobile/android
+        # Secrets de signature passés en variables d'étape (jamais via $GITHUB_ENV) ; vides hors production, et le
+        # build.gradle n'est modifié pour les lire que par l'étape de signature (donc jamais sur une PR).
+        env:
+          KS_FILE: ${{ runner.temp }}/suivi-fuites.keystore
+          KS_PASS: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEYSTORE_PASSWORD || '' }}
+          KS_ALIAS: ${{ github.event_name != 'pull_request' && secrets.ANDROID_KEY_ALIAS || '' }}
         run: ./gradlew assembleRelease --no-daemon
       - name: Vérifier la signature
         if: steps.signature.outputs.mode == 'production'
@@ -210,7 +222,8 @@ jobs:
         with:
           name: suivi-fuites-apk
           path: mobile/android/app/build/outputs/apk/release/*.apk
-          retention-days: 14
+          # Rétention courte (H6) : l'APK de production est aussi déposée dans R2 ; l'artefact n'est qu'un dépannage.
+          retention-days: 7
       # Mise à jour des tablettes (X2) : seulement au déclenchement manuel depuis main, case « publier » cochée, APK signée
       # avec la clé de production. Dépôt dans le compartiment privé R2 (apk/suivi-fuites-<numéro>.apk + apk/derniere.json) ;
       # la fonction serveur version-apk la propose aux tablettes par une URL signée. Les 3 dernières APK sont gardées.

@@ -12,10 +12,13 @@ name: Test de restauration
 #  * chaque lundi à 04:07 UTC (après la sauvegarde de 02:17) : dernière sauvegarde réussie de main ;
 #  * à la demande (Actions > Test de restauration > Run workflow) : idem, ou l'exécution de
 #    « Sauvegarde de la base » dont on donne le numéro ;
-#  * sur une PR qui modifie les workflows de sauvegarde ou outils/sauvegarde/ : une sauvegarde COMPLÈTE est
-#    d'abord réalisée (copie R2 comprise, c'est une vraie sauvegarde), puis restaurée.
+#  * sur une PR qui modifie les workflows de sauvegarde ou outils/sauvegarde/ : SEULS les essais des scripts
+#    (dossiers locaux, sans secret) sont joués. La restauration réelle n'est PLUS lancée depuis une PR : elle
+#    exigeait une vraie sauvegarde de production avec « secrets: inherit » sur du code contrôlé par la PR (H3).
+#    Tester une modification de la chaîne de sauvegarde : « Run workflow » sur main après fusion (ou avant, à la main).
 #
 # Sécurité :
+#  * la restauration ne s'exécute que sur planification ou déclenchement manuel (jamais sur une PR) ;
 #  * aucune connexion de ce job au projet Supabase de production : pas de « supabase link », ni
 #    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seuls l'artefact de sauvegarde et la copie R2 sont lus ;
 #  * secrets utilisés : SAUVEGARDE_PASSPHRASE (transmise à gpg par l'entrée standard, jamais en argument),
@@ -66,18 +69,16 @@ jobs:
       - name: Essais (dossiers locaux à la place du Drive et de R2)
         run: bash outils/sauvegarde/essais/drive.test.sh
 
-  sauvegarde:
-    name: Sauvegarde préalable (PR seulement)
-    if: github.event_name == 'pull_request'
-    uses: ./.github/workflows/sauvegarde-base.yml
-    secrets: inherit
-
   restauration:
     name: Restaurer et contrôler la sauvegarde
-    needs: sauvegarde
-    if: ${{ !cancelled() && (needs.sauvegarde.result == 'success' || needs.sauvegarde.result == 'skipped') }}
+    # Jamais sur une PR (H3) : la restauration lit les copies de production (R2/Drive) avec des secrets de prod,
+    # et déclenchait auparavant une vraie sauvegarde de production (« secrets: inherit ») depuis le code de la PR.
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # Environnement protégé (à créer : Settings > Environments > sauvegarde-production, branches autorisées = main,
+    # SANS relecteur obligatoire, car ce test s'exécute automatiquement chaque lundi) (H6).
+    environment: sauvegarde-production
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
@@ -149,11 +150,6 @@ jobs:
         env:
           RUN_DEMANDE: ${{ inputs.sauvegarde_run_id }}
         run: |
-          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-            echo "Sauvegarde préalable de cette exécution (PR) : exécution $GITHUB_RUN_ID."
-            echo "SAUVEGARDE_RUN_ID=$GITHUB_RUN_ID" >> "$GITHUB_ENV"
-            exit 0
-          fi
           if [ -n "$RUN_DEMANDE" ]; then
             if ! [[ "$RUN_DEMANDE" =~ ^[0-9]+$ ]]; then echo "::error::Numéro d'exécution invalide."; exit 1; fi
             echo "Exécution demandée : $RUN_DEMANDE."
@@ -231,11 +227,6 @@ jobs:
           SAUVEGARDE_DRIVE_CONFIG: ${{ secrets.SAUVEGARDE_DRIVE_CONFIG }}
         run: |
           if [ -z "$SAUVEGARDE_DRIVE_CONFIG" ]; then
-            if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
-              echo "::warning::Secret SAUVEGARDE_DRIVE_CONFIG absent : restauration depuis le Drive non testée (toléré sur une PR)."
-              echo "configure=non" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
             echo "::error::Secret SAUVEGARDE_DRIVE_CONFIG manquant dans GitHub : la copie sur le Drive n'est pas configurée, la restauration depuis le Drive ne peut pas être testée."
             exit 1
           fi

@@ -21,9 +21,18 @@ function origine(url) {
 }
 const SUPABASE = origine(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const SUPABASE_WS = SUPABASE ? SUPABASE.replace(/^http/, 'ws') : ''; // Realtime (websocket)
-// Hôte public R2 (photos/tuiles/APK) : réglable ; défaut = points de terminaison R2 génériques.
-const R2 = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST || 'https://*.r2.cloudflarestorage.com https://*.r2.dev';
+// R2 (photos, tuiles réseau, fond de carte) : les Edge Functions signent toujours sur
+// https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com/<compartiment>/… (jamais r2.dev). Le joker par défaut couvre ce
+// compte mais aussi tout autre compte R2 ; pour le verrouiller sur le seul compte STEPAG, poser
+// NEXT_PUBLIC_R2_PUBLIC_HOST = https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com (cette valeur REMPLACE le joker :
+// n'y mettre que l'hôte du compte, sinon photos et tuiles R2 sont bloquées).
+const R2 = process.env.NEXT_PUBLIC_R2_PUBLIC_HOST || 'https://*.r2.cloudflarestorage.com';
 const ESRI = 'https://ibasemaps-api.arcgis.com';
+// Fond OpenStreetMap d'OpenFreeMap (carte/commun.ts : STYLE_FOND) : style, tuiles, glyphes et icônes sur cette
+// seule origine. Utilisé par le suivi GPS, le rapport de balayage, le zonage, la mini-carte et la carte sans fond local.
+const OPENFREEMAP = 'https://tiles.openfreemap.org';
+// Photos fictives du mode démonstration (lib/demo/client.ts) : jamais en production (garde de build ci-dessus).
+const DEMO = process.env.NEXT_PUBLIC_MODE_DEMO === '1' ? 'https://picsum.photos https://fastly.picsum.photos' : '';
 const liste = (...v) => v.filter(Boolean).join(' ');
 
 const CSP = [
@@ -32,13 +41,14 @@ const CSP = [
   `object-src 'none'`,
   `frame-ancestors 'self'`,
   `form-action 'self'`,
-  `script-src 'self' 'unsafe-inline'`,
+  // 'unsafe-eval' en développement seulement : React Refresh (next dev) évalue du code ; le build de prod n'en a pas besoin.
+  `script-src 'self' 'unsafe-inline'${process.env.NODE_ENV === 'production' ? '' : " 'unsafe-eval'"}`,
   `style-src 'self' 'unsafe-inline'`,
   `font-src 'self'`,
   `worker-src 'self' blob:`,
   `child-src 'self' blob:`,
-  `img-src 'self' data: blob: ${liste(SUPABASE, R2, ESRI)}`,
-  `connect-src ${liste("'self'", SUPABASE, SUPABASE_WS, R2, ESRI)}`,
+  `img-src 'self' data: blob: ${liste(SUPABASE, R2, ESRI, OPENFREEMAP, DEMO)}`,
+  `connect-src ${liste("'self'", SUPABASE, SUPABASE_WS, R2, ESRI, OPENFREEMAP, DEMO)}`,
 ].join('; ');
 
 const ENTETES_SECURITE = [

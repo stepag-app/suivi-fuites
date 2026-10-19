@@ -33,7 +33,9 @@ Les failles réelles trouvées sont surtout de **sévérité moyenne à basse** 
 **Décompte** (après vérification adversariale, doublons fusionnés) : 6 Hautes (toutes hors-code),
 ~18 Moyennes, ~28 Basses, 10 faux positifs prouvés.
 
-**Go / no-go : NO-GO tant que les 6 Hautes hors-code ne sont pas traitées** (§4). Les correctifs de code
+**État au 19/10/2026** : #149 fusionnée et déployée, vérifiée en production (0 violation CSP, migration et 7 Edge Functions en service) ; H2–H6 corrigées par #150 ; H7–H9 réglées au tableau de bord Supabase ; H1 tranché (dépôt privé à la mise en production). Restent H10 (PR #166) et H11 (rotation des secrets), voir §4 et §6.
+
+**Go / no-go (avant correctifs) : NO-GO tant que les 6 Hautes hors-code ne sont pas traitées** (§4). Les correctifs de code
 de cette branche sont prêts et testés ; ils ne suffisent pas seuls car les risques les plus graves sont
 dans la configuration du dépôt et de la CI.
 
@@ -71,7 +73,7 @@ mise en production (détaillé où nécessaire).
 | A7 | Broken Access Control (A01) | Basse | `private.est_affecte` `mig/20261009100200:102-110` | Ignore `profils.actif` **et** `affectations.actif` → attribuer une saisie à un agent désactivé | `est_affecte(agent désactivé)` = true | Jointure `profils.actif` + filtre `affectations.actif` | ✅ attribution à un agent désactivé refusée (test 59 #13) |
 | B1 | Injection (A03) — CSV Formula Injection (CWE-1236) | Moyenne | `web/src/lib/export/generer.ts:16`, `web/src/lib/format.ts:150` | Une cellule texte commençant par `= + - @` (observation, adresse, référence SRM) ressort non neutralisée dans le CSV **envoyé par e-mail à la SRM** → exécution de formule à l'ouverture | Échappement limité à `" ; \r \n` ; charges `=HYPERLINK(...)`, `=WEBSERVICE(...)` écrites brutes | Helper unique `neutraliserFormuleCsv` (préfixe `'`), appliqué aux cellules **texte** (nombres/dates épargnés) | ✅ `security-tests/07-injection-csv.mjs` |
 | C1 | Identification & Auth (A07) | Moyenne | `web/src/app/session/page.tsx` | `/session#access_token=…` ouvert dans un navigateur ⇒ **connexion forcée** (fixation de session) sur un compte attaquant | `setSession` accepte des jetons arbitraires du fragment | Page réservée au contexte APK (`estContexteApk()`), seul usage légitime | vérif. statique (tsc) ; rejeu navigateur à faire en préprod |
-| C2 | Security Misconfiguration (A05) | Moyenne | `web/next.config.mjs:5` | CSP sans `script-src`/`default-src`/`connect-src` ⇒ une XSS exfiltre le jeton (`localStorage`) vers n'importe quel hôte | En-tête réel partiel | CSP complète dérivée de l'env (Supabase, R2, Esri, OpenFreeMap) + COOP/CORP | ✅ éprouvée en local, dev et prod (§3 bis) ; origines réelles à confirmer sur prévisualisation |
+| C2 | Security Misconfiguration (A05) | Moyenne | `web/next.config.mjs:5` | CSP sans `script-src`/`default-src`/`connect-src` ⇒ une XSS exfiltre le jeton (`localStorage`) vers n'importe quel hôte | En-tête réel partiel | CSP complète dérivée de l'env (Supabase, R2, Esri, OpenFreeMap) + COOP/CORP | ✅ éprouvée en local (dev et prod), sur la prévisualisation et en production le 19/10 (§3 bis) |
 | C3 | Security Misconfiguration (A05) | Moyenne | `web/src/lib/supabase.ts:15,34-38` | `NEXT_PUBLIC_MODE_DEMO=1` (connexion sans mot de passe) livrable en production sans garde | Aucune garde dans le code | Échec de build si `VERCEL_ENV=production` + `MODE_DEMO=1` | vérif. logique (local/preview non touchés) |
 | C4 | Security Misconfiguration (A05) | Basse | `web/src/app/mini-carte/page.tsx:57-64` | Écouteur `message` sans contrôle d'origine | Confirmé (défense en profondeur) | Filtre d'origine (même origine ∪ canal APK) | vérif. statique |
 | C5 | Security Misconfiguration (A05) | Basse | `web/src/server/server-actions.ts:18-27` | Cookie de préférence sans `HttpOnly/Secure/SameSite` | Confirmé (lecture serveur ⇒ httpOnly sûr) | `httpOnly` + `sameSite=lax` + `secure` (prod) | vérif. statique |
@@ -100,9 +102,11 @@ console du navigateur relevée à chaque écran. En parallèle, balayage statiqu
 | Fond OpenFreeMap (`carte/commun.ts:61`, `STYLE_FOND`) | **production** | 6 cartes sans fond (« Fond de carte indisponible ») : suivi GPS, rapport de balayage imprimé, zonage, mini-carte de l'APK, saisie de position, carte sans fond local | `https://tiles.openfreemap.org` dans `connect-src` et `img-src` (style, tuiles, glyphes, icônes sur cette seule origine) |
 | Photos fictives `picsum.photos` | démo seulement | photos de la démo vides | autorisé **seulement** si `NEXT_PUBLIC_MODE_DEMO=1` (jamais livré : garde de build) |
 | `https://*.r2.dev` | — | inutile : aucun code ne produit d'URL r2.dev | retiré |
-| Aperçu PDF des rapports (`<iframe src=blob:>`) | production | aperçu gris dans le navigateur intégré, **identique avec `object-src` assoupli** : limite du navigateur intégré, pas de la CSP ; `object-src 'none'` était déjà en production avant #149 | aucun ; **à vérifier par Issam dans Chrome** sur fuites.stepag.ma |
+| Aperçu PDF des rapports (`<iframe src=blob:>`) | production | aperçu gris dans le navigateur intégré, **identique avec `object-src` assoupli** : limite du navigateur intégré, pas de la CSP ; `object-src 'none'` était déjà en production avant #149 | aucun : **vérifié le 19/10 dans Chrome** (prévisualisation et production), le PDF s'affiche avec `object-src 'none'` |
 | Erreur « unknown error when fetching the script » (worker MapLibre) | build de prod | aucune : la carte s'affiche | aucun : **reproduite à l'identique avec les en-têtes d'origine de `main`** (préexistante) |
 | Barre d'outils Vercel (`vercel.live`) | prévisualisations seulement | rejets en console, appli intacte | facultatif : la désactiver pour les prévisualisations (Vercel › Settings › General › Vercel Toolbar) |
+
+Vérification en production (19/10, après fusion) : CSP servie à l'identique, **HSTS posé par Vercel** (`max-age=63072000`), carte (fond local, réseau par `reseau-tuiles`), suivi GPS, aperçu PDF, et **Rapport PDF d'une fiche avec ses 2 photos R2**, le tout sans violation (écouteur `securitypolicyviolation`, contrôlé par un témoin).
 
 Recommandation : poser dans Vercel `NEXT_PUBLIC_R2_PUBLIC_HOST = https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`
 pour verrouiller `connect-src`/`img-src` sur le seul compte R2 de STEPAG (le joker par défaut couvre tout compte R2 ;
@@ -116,20 +120,20 @@ les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas
 ## 4. Checklist Go / No-Go de mise en production
 
 **Bloquants (NO-GO tant que non traités — tous hors-code, §6) :**
-- [ ] **Rendre le dépôt GitHub privé** et nettoyer l'historique (données contractuelles, identifiant admin, réf. projet Supabase).
-- [ ] **CI** : empêcher les PR d'utiliser les secrets de production (environnements protégés, `pull_request` sans secrets de prod, keystore hors `GITHUB_ENV`).
-- [ ] **`deployer-base.yml`** : restreindre le `workflow_dispatch` à `main` + environnement protégé avec relecteur.
-- [ ] **Supabase Auth** : fermer les inscriptions, désactiver les connexions anonymes, longueur de mot de passe ≥ 12, protection des mots de passe divulgués, rate-limit au login.
-- [ ] **Supabase Data API** : confirmer que seuls `public` et `graphql_public` sont exposés (jamais `private`).
-- [ ] **Mot de passe admin fort + 2FA** sur le compte applicatif `issam` (identifiant public dans le dépôt).
+- [ ] **Rendre le dépôt GitHub privé** et nettoyer l'historique (données contractuelles, identifiant admin, réf. projet Supabase). *Décidé le 18/10 : public pendant le développement, privé à la mise en production.*
+- [x] **CI** (#150) : empêcher les PR d'utiliser les secrets de production (environnements protégés, `pull_request` sans secrets de prod, keystore hors `GITHUB_ENV`).
+- [x] **`deployer-base.yml`** (#150, premier déploiement réussi le 19/10) : restreindre le `workflow_dispatch` à `main` + environnement protégé avec relecteur.
+- [x] **Supabase Auth** (18/10) : inscriptions fermées, connexions anonymes désactivées, mot de passe ≥ 12 avec minuscules/majuscules/chiffres. Protection des mots de passe divulgués : plan Pro seulement. Rate-limit laissé par défaut (tablettes derrière la même IP 4G/5G).
+- [x] **Supabase Data API** (18/10) : confirmé que seuls `public` et `graphql_public` sont exposés (jamais `private`).
+- [ ] **Mot de passe admin fort + 2FA** sur le compte applicatif `issam` (identifiant public dans le dépôt). *Mot de passe fort confirmé ; la 2FA des comptes de l'appli reste une évolution à faire.*
 
 **Fortement recommandés avant go-live :**
-- [ ] Sur la **prévisualisation Vercel** de #149, connecté avec un vrai compte : ouvrir une fiche avec photos R2, la carte, le suivi GPS, un aperçu PDF ; console sans rejet CSP. (Vérifié en local, dev et prod, §3 bis.)
+- [x] Sur la **prévisualisation Vercel** de #149 puis **en production** (19/10) : photos R2, carte, suivi GPS, aperçu PDF, Rapport PDF avec photos ; 0 violation CSP.
 - [ ] Poser `NEXT_PUBLIC_R2_PUBLIC_HOST` dans Vercel pour verrouiller R2 sur le compte STEPAG (§3 bis).
-- [ ] Vercel **Pro** + HSTS confirmé + protection des prévisualisations.
-- [ ] R2 : clé **lecture seule** distincte pour `apk-enrolement`/lecture ; limite de taille d'objet (ou dépôt via POST présigné `content-length-range`).
+- [ ] Vercel **Pro**. *HSTS confirmé (2 ans) et prévisualisations protégées par l'authentification Vercel : vérifiés le 19/10.*
+- [ ] R2 : clé **lecture seule** distincte pour `apk-enrolement`/lecture (PR #166, à remettre à jour sur `main` puis à activer) ; limite de taille d'objet (ou dépôt via POST présigné `content-length-range`).
 - [ ] Révocation des sessions après changement de mot de passe (§5).
-- [ ] Installer Sentry et Dependabot ; planifier les mises à jour Expo/Next.
+- [ ] Installer Sentry ; planifier les mises à jour Expo/Next. *Dependabot actif depuis #150 : 14 PR à trier (majeures next 16, TypeScript 7, Expo 58 à tester avant fusion).*
 
 **Acceptables en l'état (résidus documentés, §5) :** lecture intra-marché du plan réseau, journaux Dolibarr globaux, file d'envoi hors-ligne mono-compte par appareil, codes de tablette non salés.
 
@@ -153,6 +157,8 @@ les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas
 ---
 
 ## 6. Constats hors-code (tableaux de bord — à traiter par Issam)
+
+**État au 19/10/2026** : H2–H6 corrigées (#150, 4 environnements protégés, secrets du keystore et de R2 déplacés) ; H7–H9 réglées au tableau de bord ; H1 tranché (privé à la mise en production) ; H10 en cours (#166) ; H11 à faire, avec le déplacement des autres secrets de production encore au niveau du dépôt vers leurs environnements.
 
 > Ce sont les risques les plus graves (les 6 Hautes y sont). Ils ne sont **pas** dans le code et ne peuvent
 > être ni prouvés ni corrigés en local. **Ne lancer aucun workflow CI pour les tester.**

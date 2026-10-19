@@ -10,6 +10,7 @@
     "android": {
       "package": "ma.stepag.suivifuites",
       "versionCode": 1,
+      "allowBackup": false,
       "adaptiveIcon": {
         "backgroundColor": "#0b5d8a",
         "foregroundImage": "./assets/android-icon-foreground.png",

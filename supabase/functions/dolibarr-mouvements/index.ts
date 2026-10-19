@@ -12,7 +12,7 @@
 // Secrets de la fonction, posés par le workflow « Déploiement de la base » depuis les secrets GitHub du même nom :
 // DOLIBARR_API_URL, DOLIBARR_API_CLE, CF_ACCESS_CLIENT_ID, CF_ACCESS_CLIENT_SECRET. Absents : 503 { configure: false }.
 
-import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2';
+import { createClient, type SupabaseClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { ErreurApi, clientDolibarr, lireEntrepot, nouveauxCaches, type ConfigApi, type MouvementEnvoye } from './lecture-api.ts';
 
 const TAILLE_LOT = 1000;
@@ -160,6 +160,7 @@ Deno.serve(async (req) => {
     const statut = bilan.statut === 'occupe' ? 409 : bilan.statut === 'erreur' ? 502 : 200;
     return reponse(statut, { ...bilan });
   } catch (e) {
-    return reponse(500, { erreur: e instanceof Error ? e.message : String(e) });
+    console.error('dolibarr-mouvements:', e);
+    return reponse(500, { erreur: 'Erreur interne' });
   }
 });

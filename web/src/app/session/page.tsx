@@ -26,6 +26,13 @@ export default function PageSession() {
       const lu = lireFragmentSession(window.location.hash);
       // Le fragment ne doit pas rester dans l'historique ni dans la barre d'adresse.
       window.history.replaceState(null, '', '/session');
+      // Durcissement S20 : cette page n'est l'entrée QUE de l'APK (la tablette l'ouvre avec les jetons de
+      // SA session). Hors WebView de l'APK, refuser : empêche la connexion forcée (session fixation) via un
+      // lien /session#access_token=<attaquant> envoyé à une victime et ouvert dans un navigateur ordinaire.
+      if (!estContexteApk()) {
+        setErreur('Cette page n\'est accessible que depuis l\'application de la tablette. Pour vous connecter, utilisez l\'écran de connexion.');
+        return;
+      }
       if ('erreur' in lu) {
         setErreur(lu.erreur);
         return;

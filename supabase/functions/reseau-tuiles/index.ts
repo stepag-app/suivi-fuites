@@ -12,7 +12,7 @@
 //            administrateur, ou droit « paramètres / modifier » sur ce marché (même règle que le zonage)
 // Sans secrets R2 : 503 { code: 'r2_non_configure' } ; le panneau garde alors la lecture par secteur.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 
 const CORS = {
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
           utilisateur.from('profils').select('est_admin').eq('id', id).maybeSingle(),
           utilisateur.from('droits').select('modifier').eq('profil_id', id).eq('marche_id', marcheId).eq('type_donnee', 'parametres').maybeSingle(),
         ]);
-        if (profil?.est_admin !== true && droit?.modifier !== true) {
+        if (profil?.est_admin !== true && (droit?.modifier ?? 'non') === 'non') {
           return reponse(403, { erreur: 'Réservé à l\'administrateur ou au droit « paramètres / modifier »' });
         }
         return reponse(200, { url: await signer(r2, 'PUT', chemin, DUREE_DEPOT_S), chemin, expire_s: DUREE_DEPOT_S });
@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
         return reponse(400, { erreur: 'Action inconnue' });
     }
   } catch (e) {
-    return reponse(500, { erreur: e instanceof Error ? e.message : String(e) });
+    console.error('reseau-tuiles:', e);
+    return reponse(500, { erreur: 'Erreur interne' });
   }
 });

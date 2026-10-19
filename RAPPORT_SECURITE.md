@@ -51,8 +51,9 @@ dans la configuration du dépôt et de la CI.
 | Edge Functions (Deno) | vérifiées en **boîte blanche** + `deno check` ; **non rejouées** faute de runtime Supabase local |
 | Réglages tableaux de bord (Supabase/Vercel/Cloudflare/GitHub) | **non accessibles** en local → documentés en §6 |
 
-Conséquence honnête : les correctifs **en base** sont prouvés par rejeu ; les correctifs **Edge** et **CSP**
-sont vérifiés statiquement et **doivent passer un test de fumée sur une prévisualisation Vercel** avant la
+Conséquence honnête : les correctifs **en base** sont prouvés par rejeu ; la **CSP** a été éprouvée à l'exécution en
+local (`next dev` et build de production, mode démo, voir §3 bis) ; les correctifs **Edge** sont vérifiés statiquement.
+Il reste à confirmer sur une **prévisualisation Vercel** les origines réelles (Supabase, R2) avant la
 mise en production (détaillé où nécessaire).
 
 ---
@@ -70,7 +71,7 @@ mise en production (détaillé où nécessaire).
 | A7 | Broken Access Control (A01) | Basse | `private.est_affecte` `mig/20261009100200:102-110` | Ignore `profils.actif` **et** `affectations.actif` → attribuer une saisie à un agent désactivé | `est_affecte(agent désactivé)` = true | Jointure `profils.actif` + filtre `affectations.actif` | ✅ attribution à un agent désactivé refusée (test 59 #13) |
 | B1 | Injection (A03) — CSV Formula Injection (CWE-1236) | Moyenne | `web/src/lib/export/generer.ts:16`, `web/src/lib/format.ts:150` | Une cellule texte commençant par `= + - @` (observation, adresse, référence SRM) ressort non neutralisée dans le CSV **envoyé par e-mail à la SRM** → exécution de formule à l'ouverture | Échappement limité à `" ; \r \n` ; charges `=HYPERLINK(...)`, `=WEBSERVICE(...)` écrites brutes | Helper unique `neutraliserFormuleCsv` (préfixe `'`), appliqué aux cellules **texte** (nombres/dates épargnés) | ✅ `security-tests/07-injection-csv.mjs` |
 | C1 | Identification & Auth (A07) | Moyenne | `web/src/app/session/page.tsx` | `/session#access_token=…` ouvert dans un navigateur ⇒ **connexion forcée** (fixation de session) sur un compte attaquant | `setSession` accepte des jetons arbitraires du fragment | Page réservée au contexte APK (`estContexteApk()`), seul usage légitime | vérif. statique (tsc) ; rejeu navigateur à faire en préprod |
-| C2 | Security Misconfiguration (A05) | Moyenne | `web/next.config.mjs:5` | CSP sans `script-src`/`default-src`/`connect-src` ⇒ une XSS exfiltre le jeton (`localStorage`) vers n'importe quel hôte | En-tête réel partiel | CSP complète dérivée de l'env (Supabase/R2/Esri) + COOP/CORP | ⚠️ **test de fumée prévisualisation requis** (origines R2) |
+| C2 | Security Misconfiguration (A05) | Moyenne | `web/next.config.mjs:5` | CSP sans `script-src`/`default-src`/`connect-src` ⇒ une XSS exfiltre le jeton (`localStorage`) vers n'importe quel hôte | En-tête réel partiel | CSP complète dérivée de l'env (Supabase, R2, Esri, OpenFreeMap) + COOP/CORP | ✅ éprouvée en local, dev et prod (§3 bis) ; origines réelles à confirmer sur prévisualisation |
 | C3 | Security Misconfiguration (A05) | Moyenne | `web/src/lib/supabase.ts:15,34-38` | `NEXT_PUBLIC_MODE_DEMO=1` (connexion sans mot de passe) livrable en production sans garde | Aucune garde dans le code | Échec de build si `VERCEL_ENV=production` + `MODE_DEMO=1` | vérif. logique (local/preview non touchés) |
 | C4 | Security Misconfiguration (A05) | Basse | `web/src/app/mini-carte/page.tsx:57-64` | Écouteur `message` sans contrôle d'origine | Confirmé (défense en profondeur) | Filtre d'origine (même origine ∪ canal APK) | vérif. statique |
 | C5 | Security Misconfiguration (A05) | Basse | `web/src/server/server-actions.ts:18-27` | Cookie de préférence sans `HttpOnly/Secure/SameSite` | Confirmé (lecture serveur ⇒ httpOnly sûr) | `httpOnly` + `sameSite=lax` + `secure` (prod) | vérif. statique |
@@ -85,6 +86,33 @@ mise en production (détaillé où nécessaire).
 
 ---
 
+## 3 bis. CSP — vérification d'exécution (2026-10-19)
+
+Méthode : panneau lancé en local en mode démo (Supabase et Esri factices, rien de réel touché), d'abord `next dev`,
+puis `next build` + `next start` ; parcours de la connexion, du tableau de bord, des fuites, d'une fiche avec photos,
+de la carte, du suivi GPS, du balayage, des rapports (aperçu PDF), des attachements, des débits et de la mini-carte,
+console du navigateur relevée à chaque écran. En parallèle, balayage statique de toutes les ressources chargées
+(4 angles, puis un vérificateur adverse par blocage annoncé : 31 agents).
+
+| Constat | Contexte | Effet sans correctif | Correctif |
+|---|---|---|---|
+| `next dev` utilise `eval` (React Refresh, source maps webpack) | développement | **le panneau ne s'hydratait plus en dev** (EvalError) | `'unsafe-eval'` ajouté **seulement** si `NODE_ENV !== 'production'` |
+| Fond OpenFreeMap (`carte/commun.ts:61`, `STYLE_FOND`) | **production** | 6 cartes sans fond (« Fond de carte indisponible ») : suivi GPS, rapport de balayage imprimé, zonage, mini-carte de l'APK, saisie de position, carte sans fond local | `https://tiles.openfreemap.org` dans `connect-src` et `img-src` (style, tuiles, glyphes, icônes sur cette seule origine) |
+| Photos fictives `picsum.photos` | démo seulement | photos de la démo vides | autorisé **seulement** si `NEXT_PUBLIC_MODE_DEMO=1` (jamais livré : garde de build) |
+| `https://*.r2.dev` | — | inutile : aucun code ne produit d'URL r2.dev | retiré |
+| Aperçu PDF des rapports (`<iframe src=blob:>`) | production | aperçu gris dans le navigateur intégré, **identique avec `object-src` assoupli** : limite du navigateur intégré, pas de la CSP ; `object-src 'none'` était déjà en production avant #149 | aucun ; **à vérifier par Issam dans Chrome** sur fuites.stepag.ma |
+| Erreur « unknown error when fetching the script » (worker MapLibre) | build de prod | aucune : la carte s'affiche | aucun : **reproduite à l'identique avec les en-têtes d'origine de `main`** (préexistante) |
+| Barre d'outils Vercel (`vercel.live`) | prévisualisations seulement | rejets en console, appli intacte | facultatif : la désactiver pour les prévisualisations (Vercel › Settings › General › Vercel Toolbar) |
+
+Recommandation : poser dans Vercel `NEXT_PUBLIC_R2_PUBLIC_HOST = https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com`
+pour verrouiller `connect-src`/`img-src` sur le seul compte R2 de STEPAG (le joker par défaut couvre tout compte R2 ;
+l'identifiant de compte n'est pas un secret, il figure dans chaque URL signée). Cette valeur **remplace** le joker.
+
+Constats annexes (hors sécurité) : le `node_modules` local du Mac était désynchronisé du `package-lock`
+(`@protomaps/basemaps`, `qrcode-generator` manquants — cause des 4 erreurs `tsc` vues au départ ; `npm install`
+les règle, lockfile inchangé) ; en mode démo, **Paramètres** plante (`ReglagesSuiviGps`) car le marché fictif n'a pas
+les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas d'effet en production).
+
 ## 4. Checklist Go / No-Go de mise en production
 
 **Bloquants (NO-GO tant que non traités — tous hors-code, §6) :**
@@ -96,7 +124,8 @@ mise en production (détaillé où nécessaire).
 - [ ] **Mot de passe admin fort + 2FA** sur le compte applicatif `issam` (identifiant public dans le dépôt).
 
 **Fortement recommandés avant go-live :**
-- [ ] Déployer cette branche (base + Edge) et **rejouer la CSP sur une prévisualisation** (confirmer les origines R2 réelles dans `connect-src`/`img-src`).
+- [ ] Sur la **prévisualisation Vercel** de #149, connecté avec un vrai compte : ouvrir une fiche avec photos R2, la carte, le suivi GPS, un aperçu PDF ; console sans rejet CSP. (Vérifié en local, dev et prod, §3 bis.)
+- [ ] Poser `NEXT_PUBLIC_R2_PUBLIC_HOST` dans Vercel pour verrouiller R2 sur le compte STEPAG (§3 bis).
 - [ ] Vercel **Pro** + HSTS confirmé + protection des prévisualisations.
 - [ ] R2 : clé **lecture seule** distincte pour `apk-enrolement`/lecture ; limite de taille d'objet (ou dépôt via POST présigné `content-length-range`).
 - [ ] Révocation des sessions après changement de mot de passe (§5).

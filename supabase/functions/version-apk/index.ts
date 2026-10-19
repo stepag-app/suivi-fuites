@@ -6,7 +6,7 @@
 // Réponse : { version_code, version, taille, sha256, publiee_le, url, expire_s } ; { aucune: true } si rien n'est
 // publié ; 503 { code: 'r2_non_configure' } sans secrets R2.
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 
 const CORS = {
@@ -59,6 +59,7 @@ Deno.serve(async (req) => {
       url: signee.url, expire_s: DUREE_S,
     });
   } catch (e) {
-    return reponse(500, { erreur: e instanceof Error ? e.message : String(e) });
+    console.error('version-apk:', e);
+    return reponse(500, { erreur: 'Erreur interne' });
   }
 });

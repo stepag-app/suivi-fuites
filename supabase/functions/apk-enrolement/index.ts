@@ -9,7 +9,7 @@
 import { AwsClient } from 'npm:aws4fetch@1.0.20';
 
 const CHEMIN_APK = /^apk\/suivi-fuites-\d+\.apk$/;
-const DUREE_S = 3600;
+const DUREE_S = 600;  // 10 min (audit S20) : suffit au téléchargement d'enrôlement par QR
 
 const texte = (statut: number, message: string) =>
   new Response(message, { status: statut, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' } });

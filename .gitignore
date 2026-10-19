@@ -167,6 +167,14 @@ recovery-codes*
 *.keystore
 keystore.properties
 
+# Durcissement audit S20 : secrets/certificats supplémentaires jamais versionnés
+*.p12
+*.pfx
+*.gpg
+*-service-account*.json
+*service-account*.json
+gha-creds-*.json
+
 # Binaires et builds
 *.apk
 *.aab

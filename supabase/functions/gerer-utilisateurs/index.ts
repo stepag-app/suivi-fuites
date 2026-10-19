@@ -12,7 +12,7 @@
 //                                                 sinon 409 avec la raison ; la révocation reste « activer »)
 // Rôles d'un compte existant : RPC modifier_roles depuis le panneau (administrateur connecté).
 
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 
 // Domaine technique des identifiants (même valeur que NEXT_PUBLIC_DOMAINE_AGENTS du panneau).
 const DOMAINE_AGENTS = Deno.env.get('DOMAINE_AGENTS') || 'agents.stepag.ma';

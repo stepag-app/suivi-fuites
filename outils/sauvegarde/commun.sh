@@ -16,9 +16,8 @@ psql_prod() {
 #                          suivi-fuites-sauvegardes) avec sa propre clé R2_SAUV_*, qu'aucune fonction Supabase
 #                          ne détient : une clé des photos qui fuit ne peut pas effacer les sauvegardes ;
 #   r2_cle photos-lecture  compartiment des photos avec la clé lecture seule R2_RO_*.
-# Clé absente : repli sur R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY et le compartiment des photos (avant la mise
-# en service). Clé à moitié posée : échec. R2_RACINE_SAUVEGARDES remplace R2_RACINE pour les sauvegardes
-# (essais : dossier local).
+# Clé absente : repli, avec un avertissement, sur R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY et le compartiment des
+# photos (avant la mise en service). Clé à moitié posée : échec.
 r2_cle() {
   local id secret
   case "$1" in
@@ -28,13 +27,12 @@ r2_cle() {
   esac
   if [ -n "$id" ] && [ -n "$secret" ]; then
     R2_ACCESS_KEY_ID="$id" R2_SECRET_ACCESS_KEY="$secret"
-    if [ "$1" = sauvegardes ]; then
-      R2_BUCKET="${R2_BUCKET_SAUVEGARDES:-suivi-fuites-sauvegardes}"
-      if [ -n "${R2_RACINE_SAUVEGARDES:-}" ]; then R2_RACINE="$R2_RACINE_SAUVEGARDES"; fi
-    fi
+    if [ "$1" = sauvegardes ]; then R2_BUCKET="${R2_BUCKET_SAUVEGARDES:-suivi-fuites-sauvegardes}"; fi
   elif [ -n "$id$secret" ]; then
     echo "::error::Clé R2 « $1 » incomplète : il faut l'identifiant ET le secret (en-tête de sauvegarde-base.yml)."
     return 1
+  else
+    echo "::warning::Clé R2 dédiée « $1 » absente : repli sur la clé lecture+écriture des photos (H10 à activer)."
   fi
 }
 
@@ -64,13 +62,13 @@ curl_config_cle() {
 # SAUVEGARDE_DRIVE_CONFIG). Un chemin local peut le remplacer (essais sans réseau).
 DRIVE_RACINE="${DRIVE_RACINE:-drive:Suivi-fuites-sauvegarde}"
 
-# Remote « r2 » de rclone défini par l'environnement (jamais écrit sur disque). R2_RACINE peut le remplacer
-# (essais : dossier local) ; dans ce cas aucune clé R2 n'est nécessaire.
+# Remote « r2 » de rclone défini par l'environnement (jamais écrit sur disque), racine du compartiment R2_BUCKET
+# dans R2_RACINE. Essais : R2_ESSAI_DOSSIER (un sous-dossier local par compartiment) le remplace, sans clé.
 rclone_r2() {
-  if [ -n "${R2_RACINE:-}" ]; then return 0; fi
+  R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
+  if [ -n "${R2_ESSAI_DOSSIER:-}" ]; then R2_RACINE="$R2_ESSAI_DOSSIER/$R2_BUCKET"; return 0; fi
   : "${R2_ACCOUNT_ID:?R2_ACCOUNT_ID manquant}" "${R2_ACCESS_KEY_ID:?R2_ACCESS_KEY_ID manquant}" \
     "${R2_SECRET_ACCESS_KEY:?R2_SECRET_ACCESS_KEY manquant}"
-  R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
   export RCLONE_CONFIG_R2_TYPE=s3 RCLONE_CONFIG_R2_PROVIDER=Cloudflare RCLONE_CONFIG_R2_ACL=private \
          RCLONE_CONFIG_R2_ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com" \
          RCLONE_CONFIG_R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" RCLONE_CONFIG_R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" \

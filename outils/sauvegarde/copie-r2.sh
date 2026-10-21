@@ -43,7 +43,11 @@ if [ "${#anciennes[@]}" -gt 0 ]; then
   if [ "$recentes" -lt "$minimum_gardees" ]; then
     echo "::warning::Moins de $minimum_gardees archives récentes dans R2 : aucune suppression."
   else
-    for k in "${anciennes[@]}"; do r2 s3 rm "s3://$R2_BUCKET/$k" --only-show-errors; done
-    echo "${#anciennes[@]} archive(s) de plus de $conservation_jours jours supprimée(s) de R2."
+    supprimees=0
+    for k in "${anciennes[@]}"; do
+      if r2 s3 rm "s3://$R2_BUCKET/$k" --only-show-errors; then supprimees=$((supprimees + 1))
+      else echo "::warning::Ancienne archive non supprimée (verrou du compartiment plus long que 30 jours ?) : $k"; fi
+    done
+    echo "$supprimees archive(s) de plus de $conservation_jours jours supprimée(s) de R2."
   fi
 fi

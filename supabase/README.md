@@ -206,10 +206,11 @@ L'archive est conservée **à trois endroits** (le secret `SAUVEGARDE_PASSPHRASE
 2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-sauvegardes/sauvegardes/base/<archive>`, copie vérifiée par
    empreinte SHA-256. Compartiment **séparé de celui des photos** (H10), avec son propre jeton (`R2_SAUV_*`, dans
    l'environnement GitHub `sauvegarde-production` seulement) : aucune fonction Supabase ne le détient, donc une clé
-   des photos qui fuit ne peut ni lire ni effacer les sauvegardes. À la fin du job Drive, l'étape « Isolement des clés
-   R2 » le vérifie à chaque exécution (`outils/sauvegarde/isolement-r2.sh` : chaque clé présente doit être refusée
-   sur l'autre compartiment). Le workflow supprime lui-même les archives de plus de 30 jours (en gardant toujours au
-   moins 7 archives récentes) ;
+   des photos qui fuit ne peut ni lire ni effacer les sauvegardes. L'étape « Isolement des clés R2 »
+   (`outils/sauvegarde/isolement-r2.sh`) le vérifie à la fin du job Drive de chaque sauvegarde et à chaque
+   déploiement de la base (avec les clés réellement données aux fonctions) : chaque clé présente doit lire son
+   compartiment et être refusée (`AccessDenied`) sur l'autre. Le workflow supprime lui-même les archives de plus de
+   30 jours (en gardant toujours au moins 7 archives récentes) ;
 3. **Google Drive du compte `stepag.app@gmail.com`**, hors de Supabase, Vercel, Cloudflare et GitHub (voir
    « Copie hors plateformes » ci-dessous) : 30 archives quotidiennes et 12 mensuelles.
 

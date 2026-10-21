@@ -8,6 +8,10 @@ set -uo pipefail
 ici="$(cd "$(dirname "$0")/.." && pwd)"
 command -v rclone > /dev/null || { echo "rclone absent : installer rclone (outils/sauvegarde/installer-rclone.sh)." >&2; exit 2; }
 
+# Aucune clé ni variable R2 / AWS du poste ne doit fausser les essais.
+unset R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY R2_BUCKET R2_RO_ACCESS_KEY_ID R2_RO_SECRET_ACCESS_KEY \
+      R2_SAUV_ACCESS_KEY_ID R2_SAUV_SECRET_ACCESS_KEY R2_BUCKET_SAUVEGARDES R2_RACINE R2_ESSAI_DOSSIER \
+      AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY AWS_SESSION_TOKEN AWS_PROFILE
 travail="$(mktemp -d)"
 trap 'rm -rf "$travail"' EXIT
 export RCLONE_CONFIG="$travail/rclone.conf"
@@ -138,30 +142,49 @@ egal "repli de la lecture des photos signalé (R2_RO_* absent)" 1 "$(grep -c '::
 
 echo "Contrôle de l'isolement des clés (H10, aws simulé)"
 mkdir -p "$travail/bin"
-# Faux aws : accepte la liste si la clé figure dans ACCES (« clé:compartiment » séparés par des espaces).
+# Faux aws : liste acceptée si « clé:compartiment » figure dans ACCES ; sinon NoSuchBucket si le compartiment
+# n'est pas dans EXISTE, AccessDenied sinon (comme R2 pour un jeton limité à un autre compartiment).
 cat > "$travail/bin/aws" <<'AWS'
 #!/usr/bin/env bash
 compartiment=""; while [ $# -gt 0 ]; do [ "$1" = --bucket ] && compartiment="$2"; shift; done
-case " $ACCES " in *" $AWS_ACCESS_KEY_ID:$compartiment "*) exit 0 ;; *) exit 254 ;; esac
+case " $ACCES " in *" $AWS_ACCESS_KEY_ID:$compartiment "*) exit 0 ;; esac
+case " $EXISTE " in
+  *" $compartiment "*) echo "An error occurred (AccessDenied) when calling the ListObjectsV2 operation: Access Denied" >&2 ;;
+  *) echo "An error occurred (NoSuchBucket) when calling the ListObjectsV2 operation: The specified bucket does not exist." >&2 ;;
+esac
+exit 254
 AWS
 chmod +x "$travail/bin/aws"
 isolement() { # ACCES CLÉ=VALEUR… : contrôle d'isolement avec le faux aws
   local acces="$1"; shift
-  env "$@" ACCES="$acces" PATH="$travail/bin:$PATH" R2_ACCOUNT_ID=essai R2_BUCKET=suivi-fuites-photos \
-    bash "$ici/isolement-r2.sh" > "$travail/sortie.txt" 2>&1
+  env "$@" ACCES="$acces" EXISTE="${EXISTE:-suivi-fuites-photos suivi-fuites-sauvegardes}" PATH="$travail/bin:$PATH" \
+    R2_ACCOUNT_ID=essai R2_BUCKET=suivi-fuites-photos bash "$ici/isolement-r2.sh" > "$travail/sortie.txt" 2>&1
 }
-cles=(R2_ACCESS_KEY_ID=rw R2_SECRET_ACCESS_KEY=rw-s R2_RO_ACCESS_KEY_ID=ro R2_RO_SECRET_ACCESS_KEY=ro-s "${sv[@]}")
+rw=(R2_ACCESS_KEY_ID=rw R2_SECRET_ACCESS_KEY=rw-s)
+ro=(R2_RO_ACCESS_KEY_ID=ro R2_RO_SECRET_ACCESS_KEY=ro-s)
 bien="rw:suivi-fuites-photos ro:suivi-fuites-photos sv:suivi-fuites-sauvegardes"
-isolement "$bien" "${cles[@]}"
+isolement "$bien" "${rw[@]}" "${ro[@]}" "${sv[@]}"
 verifie "jetons bien limités : contrôle réussi" 0 "$?"
-isolement "$bien rw:suivi-fuites-sauvegardes" "${cles[@]}"
+egal "trois clés contrôlées" 3 "$(grep -c 'Correct\.' "$travail/sortie.txt")"
+egal "aucun secret dans la sortie" 0 "$(grep -cE 'rw-s|ro-s|sv-s' "$travail/sortie.txt")"
+isolement "$bien rw:suivi-fuites-sauvegardes" "${rw[@]}" "${ro[@]}" "${sv[@]}"
 verifie "clé des photos qui lit les sauvegardes : échec" 1 "$?"
-isolement "$bien sv:suivi-fuites-photos" "${cles[@]}"
+isolement "$bien ro:suivi-fuites-sauvegardes" "${rw[@]}" "${ro[@]}" "${sv[@]}"
+verifie "clé lecture seule qui lit les sauvegardes : échec" 1 "$?"
+isolement "$bien sv:suivi-fuites-photos" "${rw[@]}" "${ro[@]}" "${sv[@]}"
 verifie "clé des sauvegardes qui lit les photos : échec" 1 "$?"
-isolement "rw:suivi-fuites-photos ro:suivi-fuites-photos" "${cles[@]}"
-verifie "témoin refusé (réseau, jeton faux) : échec, pas de faux « isolé »" 1 "$?"
-isolement "rw:suivi-fuites-sauvegardes" R2_ACCESS_KEY_ID=rw R2_SECRET_ACCESS_KEY=rw-s
-verifie "avant la mise en service : rien à contrôler" 0 "$?"
+isolement "ro:suivi-fuites-photos sv:suivi-fuites-sauvegardes" "${rw[@]}" "${ro[@]}" "${sv[@]}"
+verifie "clé des photos périmée (témoin refusé) : échec, pas de faux « isolé »" 1 "$?"
+isolement "$bien" "${ro[@]}" "${sv[@]}"
+verifie "clé des photos absente ici : les deux autres contrôlées" 0 "$?"
+egal "clé absente signalée" 1 "$(grep -c 'absente ici : non contrôlée' "$travail/sortie.txt")"
+isolement "$bien" "${rw[@]}" R2_SAUV_ACCESS_KEY_ID=sv
+verifie "clé des sauvegardes à moitié posée : échec" 1 "$?"
+EXISTE=suivi-fuites-photos isolement "rw:suivi-fuites-photos" "${rw[@]}"
+verifie "compartiment des sauvegardes pas encore créé : pas d'échec" 0 "$?"
+egal "… mais un avertissement" 1 "$(grep -c '::warning::Compartiment suivi-fuites-sauvegardes introuvable' "$travail/sortie.txt")"
+isolement ""
+verifie "aucune clé : rien à contrôler" 0 "$?"
 
 echo "Contrôle depuis la base restaurée"
 tab=$'\t'

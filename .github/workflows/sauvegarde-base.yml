@@ -64,6 +64,7 @@ jobs:
     # Le job drive copie l'archive dès qu'elle est en artefact, même si une étape R2 qui suit échoue.
     outputs:
       archive: ${{ steps.artefact.outcome }}
+      r2: ${{ steps.copie_r2.outcome }}
     env:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -78,17 +79,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Vérifier la présence des secrets
+        # Les clés R2 ne sont pas exigées ici : mal posées, elles font échouer les seules étapes R2, après l'artefact,
+        # et l'archive part quand même sur le Drive.
         run: |
-          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE R2_ACCOUNT_ID; do
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE; do
             if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
           done
-          source outils/sauvegarde/commun.sh
-          r2_cle sauvegardes
-          if [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ]; then
-            echo "::error::Clé R2 des sauvegardes manquante : secrets R2_SAUV_ACCESS_KEY_ID et R2_SAUV_SECRET_ACCESS_KEY."
-            exit 1
-          fi
-          echo "Sauvegardes dans le compartiment $R2_BUCKET (isolement des clés contrôlé à la fin du job Drive)."
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -113,6 +109,7 @@ jobs:
           path: sauvegarde-*.tar.gz.gpg
           if-no-files-found: error
       - name: Copie hors de GitHub (R2, 30 jours)
+        id: copie_r2
         run: bash outils/sauvegarde/copie-r2.sh sauvegarde-*.tar.gz.gpg
       - name: Fichiers de Supabase Storage vers R2
         run: bash outils/sauvegarde/photos-vers-r2.sh
@@ -202,7 +199,9 @@ jobs:
         env:
           CONFIG: ${{ steps.config.outcome }}
           CONNEXION: ${{ steps.connexion.outcome }}
-          EXPORT: ${{ needs.sauvegarde.result }}
+          ARCHIVE: ${{ needs.sauvegarde.outputs.archive }}
+          COPIE_R2: ${{ needs.sauvegarde.outputs.r2 }}
+          RECUPERER: ${{ steps.recuperer.outcome }}
           BASE: ${{ steps.base.outcome }}
           R2: ${{ steps.r2.outcome }}
           STOCKAGE: ${{ steps.stockage.outcome }}
@@ -226,8 +225,10 @@ jobs:
               echo "| Élément | État |"
               echo "| --- | --- |"
               echo "| Connexion au Drive | $(etat "$CONNEXION") |"
-              echo "| Export de la base (job précédent) | $(etat "$EXPORT") |"
-              echo "| Archive chiffrée de la base (SHA-256 relu, rotation) | $(etat "$BASE") |"
+              echo "| Archive exportée et chiffrée (job précédent) | $(etat "${ARCHIVE:-skipped}") |"
+              echo "| Copie R2 des sauvegardes (job précédent) | $(etat "${COPIE_R2:-skipped}") |"
+              if [ "$RECUPERER" = failure ]; then BASE=failure; fi
+              echo "| Archive chiffrée de la base sur le Drive (SHA-256 relu, rotation) | $(etat "$BASE") |"
               echo "| Photos et APK du compartiment R2 | $(etat "$R2") |"
               echo "| Fichiers de Supabase Storage | $(etat "$STOCKAGE") |"
               echo "| Isolement des clés R2 (H10) | $(etat "$ISOLEMENT") |"

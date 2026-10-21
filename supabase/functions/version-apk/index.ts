@@ -1,6 +1,7 @@
 // Fonction serveur version-apk (X2) : dernière version de l'APK publiée par la CI dans le compartiment privé R2
 // (workflow apk.yml : apk/derniere.json et apk/suivi-fuites-<numéro>.apk), avec une URL signée de téléchargement.
-// Réservée aux comptes connectés et actifs. Les clés R2 restent ici (mêmes secrets que photos-r2).
+// Réservée aux comptes connectés et actifs. Lecture seule : utilise la clé R2 lecture seule dédiée (R2_RO_*) si
+// elle est configurée, sinon la clé partagée lecture+écriture (aucune régression) — voir H10.
 //
 // Réponse : { version_code, version, taille, sha256, publiee_le, url, expire_s } ; { aucune: true } si rien n'est
 // publié ; 503 { code: 'r2_non_configure' } sans secrets R2.
@@ -25,8 +26,10 @@ Deno.serve(async (req) => {
   if (req.method !== 'POST') return reponse(405, { erreur: 'Méthode non autorisée' });
 
   const compte = Deno.env.get('R2_ACCOUNT_ID');
-  const cle = Deno.env.get('R2_ACCESS_KEY_ID');
-  const secret = Deno.env.get('R2_SECRET_ACCESS_KEY');
+  const roCle = Deno.env.get('R2_RO_ACCESS_KEY_ID');
+  const roSecret = Deno.env.get('R2_RO_SECRET_ACCESS_KEY');
+  const cle = roCle && roSecret ? roCle : Deno.env.get('R2_ACCESS_KEY_ID');
+  const secret = roCle && roSecret ? roSecret : Deno.env.get('R2_SECRET_ACCESS_KEY');
   if (!compte || !cle || !secret) return reponse(503, { erreur: 'Stockage R2 non configuré sur le serveur', code: 'r2_non_configure' });
 
   const jeton = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '');

@@ -17,9 +17,14 @@ const texte = (statut: number, message: string) =>
 Deno.serve(async (req) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return texte(405, 'Méthode non autorisée');
 
+  // Fonction PUBLIQUE (verify_jwt = false) : on utilise la clé R2 LECTURE SEULE dédiée si elle est configurée
+  // (R2_RO_*), sinon on retombe sur la clé lecture+écriture partagée (aucune régression). Ainsi, une exploitation
+  // de cette fonction ouverte ne peut, au pire, que lire — jamais écrire ni supprimer dans R2 (H10).
   const compte = Deno.env.get('R2_ACCOUNT_ID');
-  const cle = Deno.env.get('R2_ACCESS_KEY_ID');
-  const secret = Deno.env.get('R2_SECRET_ACCESS_KEY');
+  const roCle = Deno.env.get('R2_RO_ACCESS_KEY_ID');
+  const roSecret = Deno.env.get('R2_RO_SECRET_ACCESS_KEY');
+  const cle = roCle && roSecret ? roCle : Deno.env.get('R2_ACCESS_KEY_ID');
+  const secret = roCle && roSecret ? roSecret : Deno.env.get('R2_SECRET_ACCESS_KEY');
   if (!compte || !cle || !secret) return texte(503, 'Stockage R2 non configuré sur le serveur');
 
   const base = `https://${compte}.r2.cloudflarestorage.com/${Deno.env.get('R2_BUCKET') || 'suivi-fuites-photos'}`;

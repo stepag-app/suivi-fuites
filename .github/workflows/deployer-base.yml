@@ -12,6 +12,10 @@ name: Déploiement de la base
 #    Cloudflare R2 des photos, passées à la fonction photos-r2 ; absentes, les photos restent sur
 #    Supabase Storage. Variable R2_BUCKET (facultative, défaut suivi-fuites-photos). Mêmes secrets pour version-apk
 #    (mise à jour de l'APK publiée dans R2 par le workflow apk.yml) et apk-enrolement (QR code des tablettes).
+#  * R2_RO_ACCESS_KEY_ID, R2_RO_SECRET_ACCESS_KEY (facultatifs, H10) : clé R2 LECTURE SEULE dédiée. Si présents,
+#    les fonctions de lecture seule — apk-enrolement (publique) et version-apk — l'utilisent à la place de la clé
+#    lecture+écriture ; absents, elles retombent dessus (aucune régression). À créer dans Cloudflare : jeton R2
+#    « Object Read only » limité au compartiment.
 #  * FIREBASE_SERVICE_ACCOUNT (facultatif) : fichier JSON du compte de service Firebase (Paramètres du projet >
 #    Comptes de service > Générer une clé privée), passé à la fonction envoyer-push ; absent, aucune notification
 #    push ne part (la cloche de l'appli reste à jour).
@@ -115,6 +119,9 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ vars.R2_BUCKET }}
+          # Clé R2 LECTURE SEULE dédiée (H10), facultative : utilisée par apk-enrolement (publique) et version-apk.
+          R2_RO_ACCESS_KEY_ID: ${{ secrets.R2_RO_ACCESS_KEY_ID }}
+          R2_RO_SECRET_ACCESS_KEY: ${{ secrets.R2_RO_SECRET_ACCESS_KEY }}
         run: |
           if [ -z "$R2_ACCOUNT_ID" ] || [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ]; then
             echo "Secrets R2 absents : photos-r2 répondra « non configuré » (photos sur Supabase Storage)."
@@ -123,6 +130,15 @@ jobs:
           supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" \
             R2_ACCOUNT_ID="$R2_ACCOUNT_ID" R2_ACCESS_KEY_ID="$R2_ACCESS_KEY_ID" \
             R2_SECRET_ACCESS_KEY="$R2_SECRET_ACCESS_KEY" R2_BUCKET="${R2_BUCKET:-suivi-fuites-photos}"
+          # Clé lecture seule (H10) : les fonctions de lecture seule (apk-enrolement publique, version-apk) la préfèrent
+          # si elle est présente ; absente, elles retombent sur la clé lecture+écriture ci-dessus (aucune régression).
+          if [ -n "$R2_RO_ACCESS_KEY_ID" ] && [ -n "$R2_RO_SECRET_ACCESS_KEY" ]; then
+            supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" \
+              R2_RO_ACCESS_KEY_ID="$R2_RO_ACCESS_KEY_ID" R2_RO_SECRET_ACCESS_KEY="$R2_RO_SECRET_ACCESS_KEY"
+            echo "Clé R2 lecture seule configurée (apk-enrolement, version-apk)."
+          else
+            echo "Clé R2 lecture seule absente : apk-enrolement et version-apk utilisent la clé partagée (H10 à finaliser)."
+          fi
       - name: Déployer photos-r2
         run: supabase functions deploy photos-r2 --project-ref "$SUPABASE_PROJECT_ID"
       - name: Déployer version-apk

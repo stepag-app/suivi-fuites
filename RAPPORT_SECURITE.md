@@ -33,7 +33,7 @@ Les failles réelles trouvées sont surtout de **sévérité moyenne à basse** 
 **Décompte** (après vérification adversariale, doublons fusionnés) : 6 Hautes (toutes hors-code),
 ~18 Moyennes, ~28 Basses, 10 faux positifs prouvés.
 
-**État au 21/10/2026** : #149 fusionnée et déployée, vérifiée en production (0 violation CSP, migration et 7 Edge Functions en service) ; H2–H6 corrigées par #150 ; H7–H9 réglées au tableau de bord Supabase ; H1 tranché (dépôt privé à la mise en production). H10 premier volet fait le 21/10 (#166, clé R2 lecture seule). Restent le 2e volet de H10 (sauvegardes) et H11 (rotation des secrets), voir §4 et §6.
+**État au 21/10/2026** : #149 fusionnée et déployée, vérifiée en production (0 violation CSP, migration et 7 Edge Functions en service) ; H2–H6 corrigées par #150 ; H7–H9 réglées au tableau de bord Supabase ; H1 tranché (dépôt privé à la mise en production). H10 fait le 21/10 en deux volets (#166, clé R2 lecture seule ; #171, compartiment séparé des sauvegardes, isolement des clés contrôlé). Reste H11 (rotation des secrets), voir §4 et §6.
 
 **Go / no-go (avant correctifs) : NO-GO tant que les 6 Hautes hors-code ne sont pas traitées** (§4). Les correctifs de code
 de cette branche sont prêts et testés ; ils ne suffisent pas seuls car les risques les plus graves sont
@@ -132,7 +132,8 @@ les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas
 - [ ] Poser `NEXT_PUBLIC_R2_PUBLIC_HOST` dans Vercel pour verrouiller R2 sur le compte STEPAG (§3 bis).
 - [ ] Vercel **Pro**. *HSTS confirmé (2 ans) et prévisualisations protégées par l'authentification Vercel : vérifiés le 19/10.*
 - [x] R2 : clé **lecture seule** distincte pour `apk-enrolement` et `version-apk` (#166, en production le 21/10 : jeton Cloudflare « Object Read only » limité à `suivi-fuites-photos`, `R2_RO_*` dans `base-production`, téléchargement de l'APK vérifié).
-- [ ] R2 : limite de taille d'objet (ou dépôt via POST présigné `content-length-range`) ; compartiment des sauvegardes séparé (H10, 2e volet).
+- [x] R2 : compartiment des sauvegardes séparé (#171, en production le 21/10) : jeton `R2_SAUV_*` limité à `suivi-fuites-sauvegardes` dans `sauvegarde-production` seulement, archives de moins de 28 jours verrouillées, copie Drive des photos avec un jeton lecture seule à part ; étape « Isolement des clés R2 » à chaque sauvegarde et à chaque déploiement (3 clés sur 3 correctes le 21/10) ; sauvegarde et test de restauration manuels réussis.
+- [ ] R2 : limite de taille d'objet (ou dépôt via POST présigné `content-length-range`).
 - [ ] Révocation des sessions après changement de mot de passe (§5).
 - [ ] Installer Sentry ; planifier les mises à jour Expo/Next. *Dependabot actif depuis #150 : 14 PR à trier (majeures next 16, TypeScript 7, Expo 58 à tester avant fusion).*
 
@@ -154,12 +155,15 @@ les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas
 | **Journaux Dolibarr globaux / plan réseau intra-marché** | Basse / faux positif | Comportements **voulus** (base ERP unique sans `marche_id` ; fond de carte pour tous les agents du marché). Pas de fuite inter-marchés (prouvé) | Réserver à l'admin seulement si la SRM l'exige |
 | **Codes de déverrouillage tablette non salés / non liés** | Basse | Changement du schéma de codes (lier à l'appareil + sel) ; usage interne encadré | Sel + liaison appareil/compte à la prochaine itération tablettes |
 | **Filtre « heures de travail » GPS contournable** (décalage auto-déclaré) | Basse | Donnée déclarée par l'appareil ; impact faible | Recouper avec l'horodatage serveur |
+| **Photo écrasée dans R2 = copie Drive écrasée** (`copie-drive.sh r2`, antérieur à H10) | Basse | La clé lecture+écriture des fonctions peut remplacer une photo sous le même nom ; la copie de la nuit suivante remplace alors celle du Drive (l'historique des versions du Drive la garde environ 30 jours) | `rclone copy --backup-dir` vers un dossier daté du Drive, en surveillant l'espace (tuiles et `derniere.json` s'y accumuleraient) |
+| **Ancien préfixe `sauvegardes/` du compartiment des photos** | Basse | Gardé après H10 (seule copie R2 des fichiers de Storage effacés avant la bascule) ; encore effaçable par la clé des fonctions | Sans enjeu : archives chiffrées, tout est aussi sur le Drive ; le vider seulement après un `rclone check` contre le Drive |
+| **CLI Supabase non épinglée** (`supabase/setup-cli` en `version: latest` dans les workflows) | Basse | Chantier transversal (déploiement, sauvegarde, purge, test de restauration) | Épingler la version et l'action par SHA, avec H11 |
 
 ---
 
 ## 6. Constats hors-code (tableaux de bord — à traiter par Issam)
 
-**État au 21/10/2026** : H2–H6 corrigées (#150, 4 environnements protégés, secrets du keystore et de R2 déplacés) ; H7–H9 réglées au tableau de bord ; H1 tranché (privé à la mise en production) ; H10 premier volet fait le 21/10 (#166, clé lecture seule), 2e volet (compartiment des sauvegardes séparé) à faire ; H11 à faire, avec le déplacement des autres secrets de production encore au niveau du dépôt vers leurs environnements.
+**État au 21/10/2026** : H2–H6 corrigées (#150, 4 environnements protégés, secrets du keystore et de R2 déplacés) ; H7–H9 réglées au tableau de bord ; H1 tranché (privé à la mise en production) ; H10 fait le 21/10 (#166, clé lecture seule ; #171, compartiment séparé des sauvegardes) ; H11 à faire, avec le déplacement des autres secrets de production encore au niveau du dépôt vers leurs environnements.
 
 > Ce sont les risques les plus graves (les 6 Hautes y sont). Ils ne sont **pas** dans le code et ne peuvent
 > être ni prouvés ni corrigés en local. **Ne lancer aucun workflow CI pour les tester.**
@@ -175,7 +179,7 @@ les champs `suivi_gps_*` (en base réelle ils sont `NOT NULL` avec défaut : pas
 | H7 | Moyenne | **Inscriptions Supabase Auth** peut-être ouvertes : la clé anon est extractible de l'APK (`apk-enrolement`), le déclencheur crée un profil **actif** (mais **jamais admin** — prouvé) | Dashboard Supabase | Fermer les inscriptions ; désactiver les connexions anonymes |
 | H8 | Moyenne | Pas de **rate-limit applicatif** au login ; identifiant admin public | Dashboard Supabase | Rate-limit Auth ; mot de passe admin fort + 2FA |
 | H9 | Moyenne | Vérifier que la Data API n'expose **que** `public`/`graphql_public` (jamais `private`, où vivent 30 fonctions DEFINER dont certaines sans contrôle d'appelant) | Dashboard Supabase | Confirmer `Exposed schemas` |
-| H10 | Moyenne | **R2** : un seul compartiment, une seule clé lecture+écriture partagée par 4 fonctions dont `apk-enrolement` (publique) | Cloudflare | Clé lecture seule dédiée (**fait le 21/10**, #166) ; compartiment distinct pour les sauvegardes (à faire) |
+| H10 | Moyenne | **R2** : un seul compartiment, une seule clé lecture+écriture partagée par 4 fonctions dont `apk-enrolement` (publique) | Cloudflare | Clé lecture seule dédiée (**fait le 21/10**, #166) ; compartiment distinct pour les sauvegardes, avec son jeton et son verrou (**fait le 21/10**, #171) |
 | H11 | Basse | Rotation des secrets « oubliés » (Resend, Dolibarr, Cloudflare Access, clés machine `x-cle-push`/`x-cle-synchro`) | divers | Rotation + Dependabot/secret scanning GitHub |
 
 ---

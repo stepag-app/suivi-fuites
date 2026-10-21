@@ -437,8 +437,8 @@ perdu, celui des sauvegardes est intact (clé distincte) : étapes 1 à 3 seulem
    ```
 3. Nouvelles clés dans les environnements GitHub (`docs/feuille-de-route.md`, tableau B, lignes B6 à B6 ter) :
    `R2_*` dans `base-production`, `apk-production` et `purge-production` ; `R2_RO_*` dans `base-production` et
-   `sauvegarde-production`. Puis « Déploiement de la base » (secrets des fonctions) ; régénérer les tuiles du réseau
-   si `reseau/` manque (Paramètres › Réseau).
+   `sauvegarde-production` (un jeton lecture seule par environnement). Puis « Déploiement de la base » (secrets des
+   fonctions) ; régénérer les tuiles du réseau si `reseau/` manque (Paramètres › Réseau).
 4. Compartiment des sauvegardes perdu aussi : recréer `suivi-fuites-sauvegardes` (privé, sans CORS), son jeton
    **Object Read & Write** limité à ce seul compartiment (secrets `R2_SAUV_*` de l'environnement
    `sauvegarde-production`) et son verrou (« Réglages du compartiment des sauvegardes » ci-dessus), puis laisser

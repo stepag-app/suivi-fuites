@@ -25,8 +25,9 @@ name: Sauvegarde de la base
 #    - R2_SAUV_ACCESS_KEY_ID, R2_SAUV_SECRET_ACCESS_KEY : jeton Object Read & Write limité au SEUL compartiment
 #      suivi-fuites-sauvegardes (variable facultative R2_BUCKET_SAUVEGARDES). Il n'est jamais donné aux
 #      fonctions Supabase : une clé des photos qui fuit ne peut ni lire ni effacer les sauvegardes ;
-#    - R2_RO_ACCESS_KEY_ID, R2_RO_SECRET_ACCESS_KEY : jeton Object Read only du compartiment des photos (le même
-#      que dans base-production), pour la copie des photos et des APK sur le Drive ;
+#    - R2_RO_ACCESS_KEY_ID, R2_RO_SECRET_ACCESS_KEY : jeton Object Read only limité au compartiment des photos,
+#      distinct de celui de base-production (suivi-fuites-lecture-sauvegarde), pour la copie des photos et des APK
+#      sur le Drive ;
 #    - repli (avant la mise en service) : R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, jeton Object Read & Write du
 #      compartiment des photos (variable facultative R2_BUCKET), utilisé quand l'un des deux jetons manque.
 #    Choix de la clé : r2_cle dans outils/sauvegarde/commun.sh.

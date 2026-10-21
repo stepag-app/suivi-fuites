@@ -4,10 +4,10 @@ name: Sauvegarde de la base
 # données (comptes et enregistrements de fichiers compris) et le complément applicatif de auth et
 # storage (déclencheur de création de profil, règles des fichiers), chiffre le tout (AES-256) puis :
 #  1. le garde 7 jours en artefact GitHub (dépôt privé ; rétention courte, les copies durables sont R2 et le Drive) ;
-#  2. en dépose une copie HORS de GitHub dans Cloudflare R2 (compartiment suivi-fuites-photos, préfixe
-#     sauvegardes/base/), vérifiée par empreinte SHA-256, 30 jours de conservation (les archives plus
+#  2. en dépose une copie HORS de GitHub dans Cloudflare R2 (compartiment SÉPARÉ suivi-fuites-sauvegardes,
+#     préfixe sauvegardes/base/), vérifiée par empreinte SHA-256, 30 jours de conservation (les archives plus
 #     anciennes sont supprimées par le workflow, au moins 7 récentes toujours gardées) ;
-#  3. copie dans R2 (préfixe sauvegardes/stockage-supabase/) les fichiers encore dans Supabase Storage ;
+#  3. copie dans ce compartiment (préfixe sauvegardes/stockage-supabase/) les fichiers encore dans Supabase Storage ;
 #  4. second job « drive » : copie COMPLÈTE hors de Supabase, Vercel, R2 et GitHub, sur le Google Drive du
 #     compte stepag.app@gmail.com (rclone) : archive de la base (30 quotidiennes, 12 mensuelles), photos et
 #     APK du compartiment R2, fichiers de Supabase Storage. Incrémentale ; rien n'est jamais effacé du Drive,
@@ -21,8 +21,15 @@ name: Sauvegarde de la base
 #  * SAUVEGARDE_PASSPHRASE : phrase secrète de chiffrement. À ranger dans le gestionnaire de mots de
 #    passe : sans elle, les sauvegardes sont illisibles. Jamais dans le dépôt ni dans une conversation.
 #    Elle n'est jamais envoyée dans R2 : seule l'archive chiffrée y va.
-#  * R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY : jeton Object Read & Write limité au
-#    compartiment suivi-fuites-photos (déjà créé pour les photos). Variable facultative R2_BUCKET.
+#  * R2_ACCOUNT_ID et, dans l'environnement sauvegarde-production (H10) :
+#    - R2_SAUV_ACCESS_KEY_ID, R2_SAUV_SECRET_ACCESS_KEY : jeton Object Read & Write limité au SEUL compartiment
+#      suivi-fuites-sauvegardes (variable facultative R2_BUCKET_SAUVEGARDES). Il n'est jamais donné aux
+#      fonctions Supabase : une clé des photos qui fuit ne peut ni lire ni effacer les sauvegardes ;
+#    - R2_RO_ACCESS_KEY_ID, R2_RO_SECRET_ACCESS_KEY : jeton Object Read only du compartiment des photos (le même
+#      que dans base-production), pour la copie des photos et des APK sur le Drive ;
+#    - repli (avant la mise en service) : R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, jeton Object Read & Write du
+#      compartiment des photos (variable facultative R2_BUCKET), utilisé quand l'un des deux jetons manque.
+#    Choix de la clé : r2_cle dans outils/sauvegarde/commun.sh.
 #  * SAUVEGARDE_DRIVE_CONFIG : section [drive] de la configuration rclone (autorisation du Drive de
 #    stepag.app, créée par Issam : note pas à pas « Autoriser rclone sur le Drive »). Sans ce secret, le job
 #    drive échoue (planifié ou lancé à la main) ; sur une PR il signale seulement un avertissement.
@@ -59,6 +66,9 @@ jobs:
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       SAUVEGARDE_PASSPHRASE: ${{ secrets.SAUVEGARDE_PASSPHRASE }}
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_SAUV_ACCESS_KEY_ID: ${{ secrets.R2_SAUV_ACCESS_KEY_ID }}
+      R2_SAUV_SECRET_ACCESS_KEY: ${{ secrets.R2_SAUV_SECRET_ACCESS_KEY }}
+      R2_BUCKET_SAUVEGARDES: ${{ vars.R2_BUCKET_SAUVEGARDES || 'suivi-fuites-sauvegardes' }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
@@ -66,9 +76,20 @@ jobs:
       - uses: actions/checkout@v4
       - name: Vérifier la présence des secrets
         run: |
-          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE R2_ACCOUNT_ID; do
             if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
           done
+          source outils/sauvegarde/commun.sh
+          r2_cle sauvegardes
+          if [ -z "$R2_ACCESS_KEY_ID" ] || [ -z "$R2_SECRET_ACCESS_KEY" ]; then
+            echo "::error::Clé R2 des sauvegardes manquante : secrets R2_SAUV_ACCESS_KEY_ID et R2_SAUV_SECRET_ACCESS_KEY."
+            exit 1
+          fi
+          if [ -n "$R2_SAUV_ACCESS_KEY_ID" ]; then
+            echo "Sauvegardes dans le compartiment séparé $R2_BUCKET, avec leur propre clé (H10)."
+          else
+            echo "::warning::Secrets R2_SAUV_* absents : sauvegardes encore dans le compartiment des photos ($R2_BUCKET), avec sa clé (H10 à activer)."
+          fi
       - uses: supabase/setup-cli@v1
         with:
           version: latest
@@ -111,6 +132,11 @@ jobs:
     env:
       SAUVEGARDE_DRIVE_CONFIG: ${{ secrets.SAUVEGARDE_DRIVE_CONFIG }}
       R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_RO_ACCESS_KEY_ID: ${{ secrets.R2_RO_ACCESS_KEY_ID }}
+      R2_RO_SECRET_ACCESS_KEY: ${{ secrets.R2_RO_SECRET_ACCESS_KEY }}
+      R2_SAUV_ACCESS_KEY_ID: ${{ secrets.R2_SAUV_ACCESS_KEY_ID }}
+      R2_SAUV_SECRET_ACCESS_KEY: ${{ secrets.R2_SAUV_SECRET_ACCESS_KEY }}
+      R2_BUCKET_SAUVEGARDES: ${{ vars.R2_BUCKET_SAUVEGARDES || 'suivi-fuites-sauvegardes' }}
       R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
@@ -128,8 +154,13 @@ jobs:
             echo "::error::Secret SAUVEGARDE_DRIVE_CONFIG manquant dans GitHub : la copie hors plateformes sur le Drive n'est pas configurée (note pas à pas « Autoriser rclone sur le Drive »)."
             exit 1
           fi
-          for v in R2_ACCOUNT_ID R2_ACCESS_KEY_ID R2_SECRET_ACCESS_KEY; do
-            if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
+          if [ -z "$R2_ACCOUNT_ID" ]; then echo "::error::Secret R2_ACCOUNT_ID manquant dans GitHub."; exit 1; fi
+          source outils/sauvegarde/commun.sh
+          for usage in photos-lecture sauvegardes; do
+            if ! ( r2_cle "$usage" && [ -n "$R2_ACCESS_KEY_ID" ] && [ -n "$R2_SECRET_ACCESS_KEY" ] ); then
+              echo "::error::Clé R2 manquante pour « $usage » (en-tête de ce workflow)."
+              exit 1
+            fi
           done
           echo "configure=oui" >> "$GITHUB_OUTPUT"
       - name: Installer rclone (version épinglée)

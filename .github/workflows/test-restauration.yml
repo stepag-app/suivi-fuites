@@ -22,7 +22,8 @@ name: Test de restauration
 #  * aucune connexion de ce job au projet Supabase de production : pas de « supabase link », ni
 #    SUPABASE_ACCESS_TOKEN ni SUPABASE_DB_PASSWORD ; seuls l'artefact de sauvegarde et la copie R2 sont lus ;
 #  * secrets utilisés : SAUVEGARDE_PASSPHRASE (transmise à gpg par l'entrée standard, jamais en argument),
-#    les clés R2 (lecture de la copie pour comparer son empreinte) et SAUVEGARDE_DRIVE_CONFIG (lecture du Drive) ;
+#    la clé R2 des sauvegardes (lecture de la copie pour comparer son empreinte ; r2_cle dans
+#    outils/sauvegarde/commun.sh) et SAUVEGARDE_DRIVE_CONFIG (lecture du Drive) ;
 #  * aucune donnée affichée : journaux et résumé ne montrent que des noms de tables, des nombres de
 #    lignes et des messages d'erreur dont les valeurs sont masquées ; les fichiers déchiffrés ne sont
 #    jamais republiés et sont effacés en fin de job, même en cas d'échec.
@@ -204,15 +205,19 @@ jobs:
       - name: Comparer avec la copie R2 (hors de GitHub)
         env:
           R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+          R2_SAUV_ACCESS_KEY_ID: ${{ secrets.R2_SAUV_ACCESS_KEY_ID }}
+          R2_SAUV_SECRET_ACCESS_KEY: ${{ secrets.R2_SAUV_SECRET_ACCESS_KEY }}
+          R2_BUCKET_SAUVEGARDES: ${{ vars.R2_BUCKET_SAUVEGARDES || 'suivi-fuites-sauvegardes' }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
         run: |
           source outils/sauvegarde/commun.sh
+          r2_cle sauvegardes
           r2_config
           local_sha="$(sha256sum "$SAUVEGARDE_ARCHIVE" | cut -d' ' -f1)"
           if ! r2_sha="$(r2 s3 cp "s3://$R2_BUCKET/sauvegardes/base/$SAUVEGARDE_NOM" - --no-progress | sha256sum | cut -d' ' -f1)"; then
-            echo "::error::Copie R2 introuvable : sauvegardes/base/$SAUVEGARDE_NOM."
+            echo "::error::Copie R2 introuvable : $R2_BUCKET/sauvegardes/base/$SAUVEGARDE_NOM."
             exit 1
           fi
           if [ "$local_sha" != "$r2_sha" ]; then

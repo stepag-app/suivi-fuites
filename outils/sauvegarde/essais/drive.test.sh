@@ -92,6 +92,45 @@ bash "$ici/copie-drive.sh" stockage > "$travail/sortie.txt" 2>&1
 verifie "copie de stockage-supabase" 0 "$?"
 egal "fichier présent" 1 "$([ -f "$DRIVE_RACINE/stockage-supabase/photos/m1/a.jpg" ] && echo 1 || echo 0)"
 
+echo "Choix de la clé R2 (H10)"
+cle() { # USAGE : « clé compartiment » choisis par r2_cle, clé des photos « rw » posée, dans un sous-shell
+  ( R2_ACCESS_KEY_ID=rw R2_SECRET_ACCESS_KEY=rw-s; source "$ici/commun.sh"
+    r2_cle "$1" > /dev/null || exit $?; printf '%s %s' "$R2_ACCESS_KEY_ID" "$R2_BUCKET" )
+}
+egal "sauvegardes sans clé dédiée : repli sur la clé et le compartiment des photos" "rw essai" "$(cle sauvegardes)"
+egal "sauvegardes avec R2_SAUV_* : clé et compartiment séparés" "sv suivi-fuites-sauvegardes" \
+     "$(R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s cle sauvegardes)"
+egal "nom du compartiment des sauvegardes réglable" "sv autre" \
+     "$(R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s R2_BUCKET_SAUVEGARDES=autre cle sauvegardes)"
+egal "sauvegardes : jamais la clé lecture seule" "rw essai" \
+     "$(R2_RO_ACCESS_KEY_ID=ro R2_RO_SECRET_ACCESS_KEY=ro-s cle sauvegardes)"
+egal "photos en lecture avec R2_RO_* : clé lecture seule, compartiment des photos" "ro essai" \
+     "$(R2_RO_ACCESS_KEY_ID=ro R2_RO_SECRET_ACCESS_KEY=ro-s R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s cle photos-lecture)"
+egal "photos en lecture sans R2_RO_* : jamais la clé des sauvegardes" "rw essai" \
+     "$(R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s cle photos-lecture)"
+R2_SAUV_ACCESS_KEY_ID=sv cle sauvegardes > /dev/null 2>&1
+verifie "clé des sauvegardes à moitié posée : échec" 1 "$?"
+R2_RO_SECRET_ACCESS_KEY=ro-s cle photos-lecture > /dev/null 2>&1
+verifie "clé lecture seule à moitié posée : échec" 1 "$?"
+cle inconnu > /dev/null 2>&1
+verifie "usage inconnu refusé" 2 "$?"
+
+echo "Compartiment séparé des sauvegardes (H10)"
+sauv="$travail/r2-sauvegardes"
+mkdir -p "$sauv/sauvegardes/stockage-supabase/logos/m1"
+printf 'logo' > "$sauv/sauvegardes/stockage-supabase/logos/m1/titulaire.png"
+printf '\xff\xd8\xff\xe0reste' > "$R2_RACINE/sauvegardes/stockage-supabase/photos/m1/b.jpg"
+R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s R2_RACINE_SAUVEGARDES="$sauv" \
+  bash "$ici/copie-drive.sh" stockage > "$travail/sortie.txt" 2>&1
+verifie "copie de stockage-supabase depuis le compartiment des sauvegardes" 0 "$?"
+egal "fichier du compartiment des sauvegardes copié" 1 "$([ -f "$DRIVE_RACINE/stockage-supabase/logos/m1/titulaire.png" ] && echo 1 || echo 0)"
+egal "l'ancien emplacement (compartiment des photos) n'est plus lu" 0 "$([ -f "$DRIVE_RACINE/stockage-supabase/photos/m1/b.jpg" ] && echo 1 || echo 0)"
+rm "$R2_RACINE/sauvegardes/stockage-supabase/photos/m1/b.jpg"
+R2_SAUV_ACCESS_KEY_ID=sv R2_SAUV_SECRET_ACCESS_KEY=sv-s R2_RACINE_SAUVEGARDES="$sauv" \
+  bash "$ici/copie-drive.sh" r2 > "$travail/sortie.txt" 2>&1
+verifie "photos et APK toujours lus dans le compartiment des photos" 0 "$?"
+egal "rien du compartiment des sauvegardes dans r2/" 0 "$(find "$DRIVE_RACINE/r2" -name 'titulaire.png' | wc -l | tr -d ' ')"
+
 echo "Contrôle depuis la base restaurée"
 tab=$'\t'
 {

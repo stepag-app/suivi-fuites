@@ -11,6 +11,33 @@ psql_prod() {
          -U "${BASH_REMATCH[2]}" -d "${BASH_REMATCH[6]}" "$@"
 }
 
+# Clé R2 la plus restreinte pour chaque usage (H10), à appeler avant r2_config ou rclone_r2 :
+#   r2_cle sauvegardes     compartiment séparé des sauvegardes (R2_BUCKET_SAUVEGARDES, défaut
+#                          suivi-fuites-sauvegardes) avec sa propre clé R2_SAUV_*, qu'aucune fonction Supabase
+#                          ne détient : une clé des photos qui fuit ne peut pas effacer les sauvegardes ;
+#   r2_cle photos-lecture  compartiment des photos avec la clé lecture seule R2_RO_*.
+# Clé absente : repli sur R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY et le compartiment des photos (avant la mise
+# en service). Clé à moitié posée : échec. R2_RACINE_SAUVEGARDES remplace R2_RACINE pour les sauvegardes
+# (essais : dossier local).
+r2_cle() {
+  local id secret
+  case "$1" in
+    sauvegardes)    id="${R2_SAUV_ACCESS_KEY_ID:-}" secret="${R2_SAUV_SECRET_ACCESS_KEY:-}" ;;
+    photos-lecture) id="${R2_RO_ACCESS_KEY_ID:-}" secret="${R2_RO_SECRET_ACCESS_KEY:-}" ;;
+    *) echo "r2_cle : usage inconnu « $1 » (sauvegardes ou photos-lecture)." >&2; return 2 ;;
+  esac
+  if [ -n "$id" ] && [ -n "$secret" ]; then
+    R2_ACCESS_KEY_ID="$id" R2_SECRET_ACCESS_KEY="$secret"
+    if [ "$1" = sauvegardes ]; then
+      R2_BUCKET="${R2_BUCKET_SAUVEGARDES:-suivi-fuites-sauvegardes}"
+      if [ -n "${R2_RACINE_SAUVEGARDES:-}" ]; then R2_RACINE="$R2_RACINE_SAUVEGARDES"; fi
+    fi
+  elif [ -n "$id$secret" ]; then
+    echo "::error::Clé R2 « $1 » incomplète : il faut l'identifiant ET le secret (en-tête de sauvegarde-base.yml)."
+    return 1
+  fi
+}
+
 # AWS CLI vers Cloudflare R2 (API compatible S3). Variables : R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
 # R2_SECRET_ACCESS_KEY, R2_BUCKET (défaut suivi-fuites-photos).
 r2_config() {

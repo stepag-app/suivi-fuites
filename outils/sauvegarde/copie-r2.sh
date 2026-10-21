@@ -2,13 +2,15 @@
 # Dépose l'archive chiffrée dans R2 (copie hors de GitHub), vérifie la copie par empreinte SHA-256,
 # puis supprime les archives de plus de 30 jours (en gardant au moins 7 archives récentes).
 #   copie-r2.sh ARCHIVE.tar.gz.gpg
-# Variables : R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET (facultatif).
-# Cible : s3://<compartiment>/sauvegardes/base/<nom de l'archive>. Seule l'archive CHIFFRÉE y va ;
-# la phrase secrète n'est jamais envoyée.
+# Variables : R2_ACCOUNT_ID, R2_SAUV_ACCESS_KEY_ID, R2_SAUV_SECRET_ACCESS_KEY, R2_BUCKET_SAUVEGARDES
+# (facultatif) ; repli sur R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET (voir r2_cle dans commun.sh).
+# Cible : s3://<compartiment des sauvegardes>/sauvegardes/base/<nom de l'archive>. Seule l'archive CHIFFRÉE
+# y va ; la phrase secrète n'est jamais envoyée.
 set -euo pipefail
 [ $# -eq 1 ] || { sed -n '2,5p' "$0" >&2; exit 2; }
 # shellcheck source=commun.sh
 source "$(dirname "$0")/commun.sh"
+r2_cle sauvegardes
 r2_config
 
 archive="$1"
@@ -24,7 +26,7 @@ if [ "$attendu" != "$obtenu" ]; then
   echo "::error::La copie R2 de l'archive ne correspond pas à l'originale (empreintes différentes)."
   exit 1
 fi
-echo "Copie R2 vérifiée : $cle ($(stat -c %s "$archive") octets, SHA-256 identique)."
+echo "Copie R2 vérifiée : $R2_BUCKET/$cle ($(stat -c %s "$archive") octets, SHA-256 identique)."
 
 limite="$(date -u -d "$conservation_jours days ago" +%s)"
 liste="$(r2 s3api list-objects-v2 --bucket "$R2_BUCKET" --prefix "$prefixe" \

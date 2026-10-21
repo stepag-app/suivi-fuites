@@ -4,12 +4,13 @@
 # dans R2 (même nom, même taille) ne sont pas recopiés ; rien n'est jamais supprimé de R2 : un fichier
 # effacé de Supabase reste donc récupérable. Les photos prises depuis le lot N sont déjà dans R2
 # (colonne photos.stockage = 'r2') et n'ont pas besoin de ce script.
-# Cible : s3://<compartiment>/sauvegardes/stockage-supabase/<compartiment Supabase>/<chemin>.
+# Cible : s3://<compartiment des sauvegardes>/sauvegardes/stockage-supabase/<compartiment Supabase>/<chemin>.
 # Projet déjà lié (supabase link) ; variables : SUPABASE_PROJECT_ID, SUPABASE_ACCESS_TOKEN,
-# SUPABASE_DB_PASSWORD, R2_*.
+# SUPABASE_DB_PASSWORD, R2_ACCOUNT_ID, R2_SAUV_* (repli sur R2_* : voir r2_cle dans commun.sh).
 set -euo pipefail
 # shellcheck source=commun.sh
 source "$(dirname "$0")/commun.sh"
+r2_cle sauvegardes
 r2_config
 : "${SUPABASE_PROJECT_ID:?SUPABASE_PROJECT_ID manquant}"
 
@@ -31,7 +32,7 @@ awk -F '\t' -v p="$prefixe" '
   { cle = p "/" $1 "/" $2; if (!(cle in r2) || ($3 >= 0 && r2[cle] != $3)) print $1 "\t" $2 }
 ' "$travail/r2.tsv" "$travail/supabase.tsv" > "$travail/a-copier.tsv"
 a_copier="$(wc -l < "$travail/a-copier.tsv" | tr -d ' ')"
-echo "Fichiers dans Supabase Storage : $total ; à copier vers R2 : $a_copier."
+echo "Fichiers dans Supabase Storage : $total ; à copier vers R2 ($R2_BUCKET) : $a_copier."
 
 copies=0
 echecs=0

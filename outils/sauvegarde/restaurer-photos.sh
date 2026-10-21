@@ -3,7 +3,7 @@
 #   restaurer-photos.sh DOSSIER
 # DOSSIER contient un sous-dossier par compartiment Supabase (photos, evenements, logos), par exemple
 # obtenu avec :
-#   aws s3 sync s3://suivi-fuites-photos/sauvegardes/stockage-supabase/ DOSSIER/ \
+#   aws s3 sync s3://suivi-fuites-sauvegardes/sauvegardes/stockage-supabase/ DOSSIER/ \
 #       --endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com
 # Variables : SUPABASE_URL (https://<projet>.supabase.co, projet NEUF), SUPABASE_SERVICE_ROLE_KEY
 # (clé de service du projet neuf, à ne jamais ranger dans un fichier du dépôt). Les compartiments

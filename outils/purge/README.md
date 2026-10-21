@@ -32,7 +32,7 @@ toutes les fuites et tous les balayages d'essai, et supprimer le marché DEMO. L
 Comptes (`auth.users`, `profils`), affectations et droits du SRM, paramétrage du SRM, `troncons` et `noeuds`,
 `reseau/<SRM>/reseau.pmtiles` et `fonds/<SRM>/fond.pmtiles` dans R2, articles Dolibarr et mouvements de stock
 (tables communes à tous les marchés), tablettes (`codes_tablette`, `journal_tablettes`), appareils push, rues,
-libellés, historique du paramétrage et des comptes. Les sauvegardes (R2 `sauvegardes/`, Google Drive) ne sont pas
+libellés, historique du paramétrage et des comptes. Les sauvegardes (compartiment R2 `suivi-fuites-sauvegardes`, Google Drive) ne sont pas
 touchées : les photos effacées y restent.
 
 ## Lancer

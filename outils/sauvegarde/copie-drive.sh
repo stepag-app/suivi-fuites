@@ -4,14 +4,16 @@
 # base (30 quotidiennes, 12 mensuelles : rotation-archives.sh).
 #   copie-drive.sh preparer         écrit la configuration rclone (SAUVEGARDE_DRIVE_CONFIG) et teste la connexion
 #   copie-drive.sh base ARCHIVE     archive chiffrée -> base/, relue et comparée par SHA-256, puis rotation
-#   copie-drive.sh r2               compartiment R2 (photos, APK, tuiles ; hors sauvegardes/) -> r2/
-#   copie-drive.sh stockage         copie R2 des fichiers de Supabase Storage -> stockage-supabase/
+#   copie-drive.sh r2               compartiment R2 des photos (photos, APK, tuiles ; hors sauvegardes/) -> r2/
+#   copie-drive.sh stockage         copie R2 des fichiers de Supabase Storage (compartiment des sauvegardes)
+#                                   -> stockage-supabase/
 #   copie-drive.sh lisezmoi         dépose LISEZMOI.txt à la racine du dossier
 #   copie-drive.sh espace           espace utilisé et libre du Drive (alerte si moins de 3 Go)
 # Variables : SAUVEGARDE_DRIVE_CONFIG (contenu de la section [drive] de rclone.conf, préparer seulement),
-# RCLONE_CONFIG (fichier de configuration), R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET
-# (facultatif), DRIVE_RACINE (défaut drive:Suivi-fuites-sauvegarde), R2_RACINE (essais). Aucun secret n'est
-# affiché ni placé dans un argument.
+# RCLONE_CONFIG (fichier de configuration), R2_ACCOUNT_ID, R2_RO_* (photos, lecture seule), R2_SAUV_* et
+# R2_BUCKET_SAUVEGARDES (sauvegardes), avec repli sur R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET (voir
+# r2_cle dans commun.sh), DRIVE_RACINE (défaut drive:Suivi-fuites-sauvegarde), R2_ESSAI_DOSSIER (essais). Aucun
+# secret n'est affiché ni placé dans un argument.
 #
 # Disposition du Drive :
 #   base/                 sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg (chiffrées : sans SAUVEGARDE_PASSPHRASE, illisibles)
@@ -110,14 +112,20 @@ copier_base() {
 }
 
 copier_r2() {
+  r2_cle photos-lecture
   rclone_r2
   rclone copy "$R2_RACINE" "$DRIVE_RACINE/r2" --exclude 'sauvegardes/**' "${RCLONE_OPTIONS[@]}"
   verifier_copie "$R2_RACINE" "$DRIVE_RACINE/r2" --exclude 'sauvegardes/**'
 }
 
 copier_stockage() {
+  r2_cle sauvegardes
   rclone_r2
   local source="$R2_RACINE/sauvegardes/stockage-supabase"
+  if ! rclone lsf "$R2_RACINE" --max-depth 1 > /dev/null 2>&1; then
+    echo "::error::Compartiment des sauvegardes illisible ($R2_BUCKET) : jeton, nom du compartiment ?"
+    return 1
+  fi
   if [ -z "$(rclone lsf "$source" --max-depth 1 2> /dev/null | head -n 1)" ]; then
     echo "Aucun fichier de Supabase Storage dans la copie R2 : rien à copier."
     return 0

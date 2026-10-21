@@ -202,15 +202,20 @@ et à la demande (Actions > Sauvegarde de la base > Run workflow), il exporte pu
 | `LISEZMOI.txt` | rappel de l'ordre de restauration |
 
 L'archive est conservée **à trois endroits** (le secret `SAUVEGARDE_PASSPHRASE` n'est jamais copié) :
-1. **GitHub** : artefact `sauvegarde-base`, 30 jours ;
-2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-photos/sauvegardes/base/<archive>`, copie vérifiée par empreinte
-   SHA-256. Le workflow supprime lui-même les archives de plus de 30 jours (en gardant toujours au moins 7
-   archives récentes), parce que le jeton R2 (Object Read & Write) ne peut pas régler de règle de cycle de vie ;
+1. **GitHub** : artefact `sauvegarde-base`, 7 jours ;
+2. **Cloudflare R2**, hors de GitHub : `suivi-fuites-sauvegardes/sauvegardes/base/<archive>`, copie vérifiée par
+   empreinte SHA-256. Compartiment **séparé de celui des photos** (H10), avec son propre jeton (`R2_SAUV_*`, dans
+   l'environnement GitHub `sauvegarde-production` seulement) : aucune fonction Supabase ne le détient, donc une clé
+   des photos qui fuit ne peut ni lire ni effacer les sauvegardes. L'étape « Isolement des clés R2 »
+   (`outils/sauvegarde/isolement-r2.sh`) le vérifie à la fin du job Drive de chaque sauvegarde et à chaque
+   déploiement de la base (avec les clés réellement données aux fonctions) : chaque clé présente doit lire son
+   compartiment et être refusée (`AccessDenied`) sur l'autre. Le workflow supprime lui-même les archives de plus de
+   30 jours (en gardant toujours au moins 7 archives récentes) ;
 3. **Google Drive du compte `stepag.app@gmail.com`**, hors de Supabase, Vercel, Cloudflare et GitHub (voir
    « Copie hors plateformes » ci-dessous) : 30 archives quotidiennes et 12 mensuelles.
 
-**Fichiers de Supabase Storage (photos comprises)** : le même workflow copie dans R2, sous
-`sauvegardes/stockage-supabase/<compartiment>/<chemin>`, tout fichier encore stocké dans Supabase Storage
+**Fichiers de Supabase Storage (photos comprises)** : le même workflow copie dans le compartiment R2 des
+sauvegardes, sous `sauvegardes/stockage-supabase/<compartiment>/<chemin>`, tout fichier encore stocké dans Supabase Storage
 (`photos`, `evenements`, `logos`), seulement s'il manque ou si sa taille diffère ; rien n'est jamais supprimé de R2,
 donc un fichier effacé de Supabase reste récupérable. Les photos prises depuis le lot N sont déjà dans R2
 (`photos.stockage = 'r2'`, préfixe racine du compartiment) : elles ne dépendent plus de Supabase, et ont leur
@@ -228,8 +233,8 @@ Disposition du dossier `Suivi-fuites-sauvegarde` du Drive (un `LISEZMOI.txt` la 
 | Dossier du Drive | Contenu | Conservation |
 |---|---|---|
 | `base/` | `sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg`, l'archive chiffrée de la nuit (vérifiée par SHA-256 après relecture) | **30 quotidiennes** (la dernière de chacun des 30 jours les plus récents) et **12 mensuelles** (la première de chacun des 12 mois les plus récents) ; au plus 20 suppressions par exécution |
-| `r2/` | le compartiment R2 tel quel, hors `sauvegardes/` : photos (`<marché>/<fuite>/<photo>.jpg`), `apk/` (APK publiées et `derniere.json`), `reseau/` (tuiles) | jamais supprimé |
-| `stockage-supabase/` | fichiers de Supabase Storage, `<compartiment>/<chemin>` (copiés d'abord dans R2, puis ici) | jamais supprimé |
+| `r2/` | le compartiment R2 des photos tel quel, hors `sauvegardes/` (lu avec le jeton lecture seule `R2_RO_*`) : photos (`<marché>/<fuite>/<photo>.jpg`), `apk/` (APK publiées et `derniere.json`), `reseau/` (tuiles) | jamais supprimé |
+| `stockage-supabase/` | fichiers de Supabase Storage, `<compartiment>/<chemin>` (copiés d'abord dans le compartiment R2 des sauvegardes, puis ici) | jamais supprimé |
 
 - **Incrémentale** : un fichier déjà sur le Drive (même chemin, même taille) n'est pas recopié ; la première nuit est
   longue (toutes les photos), les suivantes durent quelques minutes. Après la copie, `rclone check` vérifie que chaque
@@ -237,10 +242,10 @@ Disposition du dossier `Suivi-fuites-sauvegarde` du Drive (un `LISEZMOI.txt` la 
 - **Rien n'est effacé côté Drive**, sauf la rotation des archives de `base/` : `rclone copy` (jamais `sync`), une
   photo supprimée de R2 reste sur le Drive. La corbeille du Drive garde 30 jours les archives tournées.
 - **Échec visible** : l'étape en cause est rouge, le **résumé de l'exécution** (onglet Summary) dit pour chaque
-  élément (connexion, base, photos et APK, Storage) s'il a réussi, avec l'espace libre du Drive ; GitHub envoie un
+  élément (connexion, base, photos et APK, Storage, isolement des clés R2) s'il a réussi, avec l'espace libre du Drive ; GitHub envoie un
   e-mail pour tout workflow planifié en échec (régler Settings > Notifications > Actions du compte qui a modifié le
-  planning en dernier). Sans le secret `SAUVEGARDE_DRIVE_CONFIG`, le job échoue aussi (sauf sur une PR : simple
-  avertissement). Une alerte apparaît quand il reste moins de 3 Go libres (Google One 100 Go si la place manque).
+  planning en dernier). Sans le secret `SAUVEGARDE_DRIVE_CONFIG`, le job échoue aussi. Une alerte apparaît quand il
+  reste moins de 3 Go libres (Google One 100 Go si la place manque).
 - **Secret** : `SAUVEGARDE_DRIVE_CONFIG` contient la section `[drive]` de la configuration rclone (identifiant OAuth
   et jeton du compte `stepag.app`). Il est créé par Issam lui-même : note pas à pas « Autoriser rclone sur le
   Drive » (Claude Docs). Étendue `drive` (accès complet) et non `drive.file` : une nouvelle autorisation (rotation,
@@ -256,9 +261,9 @@ Disposition du dossier `Suivi-fuites-sauvegarde` du Drive (un `LISEZMOI.txt` la 
 ### Test de restauration
 
 Workflow `.github/workflows/test-restauration.yml` : chaque lundi à 04:07 UTC, à la demande (Actions > Test de
-restauration > Run workflow ; champ facultatif : numéro d'une exécution de « Sauvegarde de la base »), et sur toute
-PR qui modifie les workflows de sauvegarde ou `outils/sauvegarde/` (une sauvegarde complète est alors réalisée
-d'abord). Il trouve la dernière exécution dont l'**export** a réussi (une panne du Drive ne masque pas le test de la
+restauration > Run workflow ; champ facultatif : numéro d'une exécution de « Sauvegarde de la base ») ; sur une PR
+qui modifie les workflows de sauvegarde ou `outils/sauvegarde/`, seuls les essais sans réseau des scripts sont joués
+(H3). Il trouve la dernière exécution dont l'**export** a réussi (une panne du Drive ne masque pas le test de la
 base), vérifie que la copie R2 est identique à l'artefact GitHub, **télécharge l'archive depuis le Drive** (comparée
 à l'artefact par SHA-256) et restaure **celle du Drive** avec `outils/sauvegarde/restaurer.sh` (le **même script**
 que la procédure manuelle) dans une base Supabase locale et vierge créée dans la CI (`supabase start`, même
@@ -275,7 +280,9 @@ Si le test échoue :
 - « aucune exécution réussie » ou « plus de 48 h » : la sauvegarde nocturne ne tourne plus ; vérifier
   Actions > Sauvegarde de la base, puis la relancer ;
 - « copie R2 introuvable » ou « diffère » : la copie hors de GitHub ne s'est pas faite ; lire l'étape
-  « Copie hors de GitHub (R2) » de la sauvegarde (secrets R2, jeton, compartiment) ;
+  « Copie hors de GitHub (R2) » de la sauvegarde (secrets `R2_SAUV_*`, jeton, compartiment
+  `suivi-fuites-sauvegardes`) ; juste après la mise en service du compartiment séparé, relancer d'abord une
+  sauvegarde (l'archive d'avant est restée dans le compartiment des photos) ;
 - « archive … pas sur le Drive », « diffère de l'artefact » ou « Connexion au Drive impossible » : lire le job
   « Copie sur le Drive » de la sauvegarde (jeton Drive expiré ou révoqué : refaire la note pas à pas ; Drive plein) ;
 - « fichiers référencés par la base restaurée manquent sur le Drive » : des photos ou fichiers de la base ne sont
@@ -293,11 +300,11 @@ base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `ps
 1. **Récupérer l'archive** : artefact GitHub (Actions > exécution de « Sauvegarde de la base » > `sauvegarde-base`),
    ou le Drive (voir « Reprise après sinistre » ci-dessous), ou R2 (copie hors de GitHub) :
    ```bash
-   export AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… AWS_DEFAULT_REGION=auto   # clés R2 du gestionnaire de mots de passe
+   export AWS_ACCESS_KEY_ID=… AWS_SECRET_ACCESS_KEY=… AWS_DEFAULT_REGION=auto   # jeton R2 des sauvegardes (R2_SAUV_*), gestionnaire de mots de passe
    export AWS_REQUEST_CHECKSUM_CALCULATION=when_required AWS_RESPONSE_CHECKSUM_VALIDATION=when_required
    R2="--endpoint-url https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com"
-   aws s3 ls $R2 s3://suivi-fuites-photos/sauvegardes/base/
-   aws s3 cp $R2 s3://suivi-fuites-photos/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
+   aws s3 ls $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/
+   aws s3 cp $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
    ```
 2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument) :
    ```bash
@@ -320,22 +327,31 @@ base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `ps
 5. **Fichiers de Supabase Storage** (les lignes `storage.objects` sont revenues avec `donnees.sql`, pas les
    fichiers) : télécharger puis renvoyer dans le projet neuf (clé de service du projet **neuf**) :
    ```bash
-   aws s3 sync $R2 s3://suivi-fuites-photos/sauvegardes/stockage-supabase/ ./restauration/fichiers/
+   aws s3 sync $R2 s3://suivi-fuites-sauvegardes/sauvegardes/stockage-supabase/ ./restauration/fichiers/
    SUPABASE_URL=https://<projet>.supabase.co SUPABASE_SERVICE_ROLE_KEY=… \
      bash outils/sauvegarde/restaurer-photos.sh ./restauration/fichiers
    ```
    Les photos stockées dans R2 (`stockage = 'r2'`) n'ont rien à restaurer : elles sont toujours dans le
-   compartiment.
+   compartiment. Pour une archive d'avant la mise en service du compartiment séparé, prendre plutôt
+   `drive:Suivi-fuites-sauvegarde/stockage-supabase` (complet, scénario A étape 5).
 6. **Reconnecter l'application** : nouveau `SUPABASE_PROJECT_ID`, URL et clé anon dans les secrets GitHub et
    les variables Vercel, puis « Déploiement de la base » (fonctions, secrets R2). Les comptes reviennent avec
    leurs mots de passe ; les sessions ouvertes sont invalidées (nouveau secret JWT), les agents se reconnectent.
 
-### Réglage à faire une fois dans Cloudflare (facultatif)
+### Réglages du compartiment des sauvegardes dans Cloudflare
 
-Le workflow supprime déjà les archives de plus de 30 jours. Pour doubler cette règle côté Cloudflare : R2 >
-`suivi-fuites-photos` > **Settings** > **Object lifecycle rules** > **Add rule** : nom `sauvegardes-base-30-jours`,
-préfixe `sauvegardes/base/`, action **Delete uploaded objects** après **30 jours**. Ne **pas** mettre de règle sur
-`sauvegardes/stockage-supabase/` (copie des fichiers, à garder) ni sur le reste du compartiment (photos).
+R2 > `suivi-fuites-sauvegardes` > **Settings** :
+- **Bucket lock rules** (recommandé) > **Add rule** : nom `archives-28-jours`, préfixe `sauvegardes/base/`, conservation
+  **28 jours**. Une archive de moins de 28 jours ne peut alors être ni effacée ni remplacée, même avec le jeton des
+  sauvegardes. 28 et non 30 : le workflow efface lui-même les archives de plus de 30 jours, qui ne sont donc jamais
+  verrouillées. Pas de verrou sur `sauvegardes/stockage-supabase/` : un logo remplacé dans Supabase y est recopié
+  sous le même nom.
+- **Pas de règle de cycle de vie** : le workflow fait déjà la rotation, et garde toujours au moins 7 archives même
+  après une longue panne, ce qu'une règle Cloudflare ne ferait pas.
+
+Le compartiment des photos garde son ancien préfixe `sauvegardes/`, à **ne pas vider** : plus rien n'y est écrit ni
+lu, mais `sauvegardes/stockage-supabase/` y reste la seule copie R2 des fichiers de Storage effacés avant la mise en
+service du compartiment séparé (le Drive les a aussi, dans `stockage-supabase/`).
 
 **Limites** : l'historique des migrations est seulement listé (`migrations_appliquees.txt`) ; la copie de Storage
 vers R2 puis vers le Drive est nocturne (un fichier déposé depuis la dernière nuit n'y est pas encore) ; les secrets
@@ -352,9 +368,9 @@ gestionnaire de mots de passe d'Issam et dans les paramètres GitHub / Vercel ; 
 
 | Donnée | Emplacement normal | Copies |
 |---|---|---|
-| Base (comptes, fuites, réparations…) | Supabase | GitHub (artefact, 30 j) ; R2 `sauvegardes/base/` (30 j) ; **Drive `base/`** (30 quotidiennes, 12 mensuelles) |
-| Photos | R2 (racine du compartiment) | **Drive `r2/`** |
-| Fichiers de Supabase Storage (anciennes photos, logos) | Supabase Storage | R2 `sauvegardes/stockage-supabase/` ; **Drive `stockage-supabase/`** |
+| Base (comptes, fuites, réparations…) | Supabase | GitHub (artefact, 7 j) ; R2 `suivi-fuites-sauvegardes/sauvegardes/base/` (30 j) ; **Drive `base/`** (30 quotidiennes, 12 mensuelles) |
+| Photos | R2 `suivi-fuites-photos` (racine du compartiment) | **Drive `r2/`** |
+| Fichiers de Supabase Storage (anciennes photos, logos) | Supabase Storage | R2 `suivi-fuites-sauvegardes/sauvegardes/stockage-supabase/` ; **Drive `stockage-supabase/`** |
 | APK publiées | R2 `apk/` (3 dernières) ; artefact GitHub (14 j) | **Drive `r2/apk/`** |
 | Code | GitHub `stepag-app/suivi-fuites` | clones locaux (Mac d'Issam) |
 | Secrets (phrase secrète, clés R2, `service_role`, jetons) | gestionnaire de mots de passe | paramètres GitHub / Vercel / Supabase |
@@ -407,20 +423,26 @@ R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Stor
 
 ### Scénario B : R2 est perdu (compartiment supprimé, compte Cloudflare fermé)
 
-La base et Storage sont intacts ; il faut un compartiment et les photos.
+La base et Storage sont intacts ; il faut un compartiment et les photos. Si seul le compartiment des photos est
+perdu, celui des sauvegardes est intact (clé distincte) : étapes 1 à 3 seulement.
 
 1. Créer le compartiment privé `suivi-fuites-photos` (ou un autre nom, puis variable GitHub `R2_BUCKET`), un jeton
-   **Object Read & Write** limité à ce compartiment, et la règle CORS (`web/README.md` § Tuiles).
+   **Object Read & Write** et un jeton **Object Read only**, chacun limité à ce seul compartiment, et la règle CORS
+   (`web/README.md` § Tuiles).
 2. Renvoyer les photos et les APK depuis le Drive (remote R2 créé avec `rclone config`, type S3, fournisseur
    Cloudflare ; le remote s'appelle ici `r2`) :
    ```bash
    rclone copy drive:Suivi-fuites-sauvegarde/r2 r2:suivi-fuites-photos --progress
    rclone check drive:Suivi-fuites-sauvegarde/r2 r2:suivi-fuites-photos --size-only --one-way
    ```
-3. Nouvelles clés R2 dans les secrets GitHub (`R2_*`) et dans les secrets des fonctions Supabase
-   (« Déploiement de la base ») ; régénérer les tuiles du réseau si `reseau/` manque (Paramètres › Réseau).
-4. Laisser tourner la sauvegarde de la nuit : `sauvegardes/base/` et `sauvegardes/stockage-supabase/` se
-   reconstruisent seuls.
+3. Nouvelles clés dans les environnements GitHub (`docs/feuille-de-route.md`, tableau B, lignes B6 à B6 ter) :
+   `R2_*` dans `base-production`, `apk-production` et `purge-production` ; `R2_RO_*` dans `base-production` et
+   `sauvegarde-production` (un jeton lecture seule par environnement). Puis « Déploiement de la base » (secrets des
+   fonctions) ; régénérer les tuiles du réseau si `reseau/` manque (Paramètres › Réseau).
+4. Compartiment des sauvegardes perdu aussi : recréer `suivi-fuites-sauvegardes` (privé, sans CORS), son jeton
+   **Object Read & Write** limité à ce seul compartiment (secrets `R2_SAUV_*` de l'environnement
+   `sauvegarde-production`) et son verrou (« Réglages du compartiment des sauvegardes » ci-dessus), puis laisser
+   tourner la sauvegarde de la nuit : `sauvegardes/base/` et `sauvegardes/stockage-supabase/` se reconstruisent seuls.
 
 ### Scénario C : GitHub est perdu (compte suspendu, dépôt supprimé)
 

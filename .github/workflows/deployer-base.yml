@@ -5,7 +5,8 @@ name: Déploiement de la base
 #  * à la demande (onglet Actions > Déploiement de la base > Run workflow) : le déploiement n'a lieu que si
 #    la branche choisie est main (un dispatch depuis une autre branche rejoue les tests mais ne déploie pas — H5).
 # Les tests sont rejoués d'abord ; rien n'est envoyé s'ils échouent.
-# Secrets à créer dans GitHub (Settings > Secrets and variables > Actions) :
+# Secrets de l'environnement GitHub base-production (Settings > Environments > base-production), jamais au niveau
+# du dépôt (H11) :
 #  * SUPABASE_ACCESS_TOKEN : jeton personnel Supabase (Account > Access Tokens)
 #  * SUPABASE_DB_PASSWORD : mot de passe de la base du projet
 #  * R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY (facultatifs) : clés du compartiment privé
@@ -84,7 +85,7 @@ jobs:
       - name: Vérifier la présence des secrets
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ] || [ -z "$SUPABASE_DB_PASSWORD" ]; then
-            echo "::error::Secrets SUPABASE_ACCESS_TOKEN et SUPABASE_DB_PASSWORD manquants dans GitHub (Settings > Secrets and variables > Actions)."
+            echo "::error::Secrets SUPABASE_ACCESS_TOKEN et SUPABASE_DB_PASSWORD manquants dans l'environnement GitHub base-production."
             exit 1
           fi
       - uses: supabase/setup-cli@v1

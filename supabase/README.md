@@ -310,7 +310,8 @@ base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `ps
    aws s3 ls $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/
    aws s3 cp $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
    ```
-2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument) :
+2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument ; une archive faite avant la
+   dernière rotation de la phrase s'ouvre avec l'entrée « Phrase des sauvegardes jusqu'au … » du coffre) :
    ```bash
    read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE
    bash outils/sauvegarde/restaurer.sh dechiffrer sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg ./restauration
@@ -402,7 +403,8 @@ R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Stor
    bash outils/sauvegarde/restaurer-drive.sh archive ./restauration           # affiche le chemin du fichier
    # une date précise : bash outils/sauvegarde/restaurer-drive.sh archive ./restauration sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg
    ```
-2. **Déchiffrer** : `read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE`, puis
+2. **Déchiffrer** (archive d'avant la dernière rotation de la phrase : entrée « Phrase des sauvegardes jusqu'au … »
+   du coffre) : `read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE`, puis
    `bash outils/sauvegarde/restaurer.sh dechiffrer ./restauration/sauvegarde-….tar.gz.gpg ./restauration/sql`.
 3. **Projet Supabase neuf** (même région, PostGIS disponible), chaîne « Session pooler » dans `URL_BASE_NEUVE`, puis
    `bash outils/sauvegarde/restaurer.sh charger ./restauration/sql` (schéma, données, complément ; une transaction par
@@ -412,9 +414,14 @@ R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Stor
    Les migrations n'étant pas rejouées, les adresses d'appel et les tâches planifiées restent à refaire dans le
    SQL Editor du projet neuf : `update private.envoi_push set url = 'https://<projet>.supabase.co/functions/v1/envoyer-push'`,
    même chose pour `private.synchro_dolibarr` (`…/dolibarr-mouvements`), puis `select private.renouveler_cles_appel()`
-   (clés neuves, jamais lues) ; recréer les tâches pg_cron `alertes-reparation`, `envoi-push`, `lecture-dolibarr`,
-   `alertes-suivi-gps` et `rotation-cles-appel` avec les `cron.schedule` de leurs migrations (`grep -n "cron.schedule("
-   supabase/migrations/*.sql`).
+   (clés neuves, jamais lues) ; recréer les tâches pg_cron (lignes des migrations, `perform` remplacé par `select`) :
+   ```sql
+   select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');
+   select cron.schedule('envoi-push', '*/5 * * * *', 'select private.declencher_push()');
+   select cron.schedule('lecture-dolibarr', '*/15 * * * *', 'select private.declencher_synchro_dolibarr()');
+   select cron.schedule('alertes-suivi-gps', '*/5 * * * *', 'select public.generer_alertes_suivi_gps()');
+   select cron.schedule('rotation-cles-appel', '7 3 1 * *', 'select private.renouveler_cles_appel()');
+   ```
 5. **Fichiers de Supabase Storage** :
    ```bash
    rclone copy drive:Suivi-fuites-sauvegarde/stockage-supabase ./restauration/fichiers --progress
@@ -457,9 +464,11 @@ perdu, celui des sauvegardes est intact (clé distincte) : étapes 1 à 3 seulem
 ### Scénario C : GitHub est perdu (compte suspendu, dépôt supprimé)
 
 1. Récupérer le code d'un clone local (`git log` pour vérifier le dernier commit) et le pousser vers un dépôt neuf.
-2. Recréer **tous** les secrets (liste : en-têtes des workflows, `CLAUDE.md`, gestionnaire de mots de passe), dont
-   `SAUVEGARDE_PASSPHRASE` **à l'identique** (sinon les archives existantes restent illisibles) et
-   `SAUVEGARDE_DRIVE_CONFIG` (`rclone config show drive`, voir la note pas à pas).
+2. Recréer d'abord les quatre environnements (`base-production`, `sauvegarde-production`, `purge-production` avec
+   relecteur obligatoire, `apk-production` ; branches autorisées : `main`), puis **tous** leurs secrets selon le
+   tableau B de `docs/feuille-de-route.md` § 5, dont `SAUVEGARDE_PASSPHRASE` **à l'identique** (sinon les archives
+   existantes restent illisibles) et `SAUVEGARDE_DRIVE_CONFIG` (`rclone config show drive`, voir la note pas à pas).
+   Au niveau du dépôt, seulement `GOOGLE_SERVICES_JSON` et `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 3. Relancer « Sauvegarde de la base » à la main : le Drive est repris tel quel (copie incrémentale), rien n'est
    recopié ni supprimé hors rotation.
 

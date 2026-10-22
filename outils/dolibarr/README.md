@@ -41,15 +41,19 @@ gh secret set -f ~/Desktop/Suivi-fuites/data-private/dolibarr/api-dolibarr.env -
 
 **Changer les clés sans coupure** (H11 ; aucune fusion touchant `supabase/migrations`, `supabase/functions` ou
 `supabase/config.toml` pendant l'opération) :
-1. Cloudflare : jeton `supabase-suivi-fuites` › **Rotate** (secret seulement, l'identifiant ne change pas), période de
-   grâce de 24 h : l'ancien et le nouveau secret valent ensemble. Nouveau secret dans le fichier et le coffre.
+1. Cloudflare : jeton `supabase-suivi-fuites` › **Rotate** (secret seulement, l'identifiant ne change pas), ancien secret
+   gardé **1 h** : les deux valent ensemble pendant ce temps. Nouveau secret au coffre. Étapes 2 à 4 dans l'heure.
 2. Dolibarr : une seule clé par utilisateur, l'ancienne cesse dès l'enregistrement de la nouvelle. Juste après un
    passage planifié (:00, :15, :30, :45 UTC), fiche `api-suivi-fuites` › Modifier › nouvelle clé API › Enregistrer.
-3. Dans la minute : Supabase › Edge Functions › Secrets, mettre à jour `DOLIBARR_API_CLE` et `CF_ACCESS_CLIENT_SECRET`
+3. Dans la minute : dans le fichier `.env`, remplacer `DOLIBARR_API_CLE` et `CF_ACCESS_CLIENT_SECRET`, puis la commande
+   ci-dessus (`--env base-production`) ; enfin Supabase › Edge Functions › Secrets, mettre à jour les deux mêmes secrets
    (lus aussitôt par la fonction, sans redéploiement).
-4. Fichier `.env`, puis la commande ci-dessus (`--env base-production`).
-5. « Synchroniser maintenant » dans le panneau, puis « Déploiement de la base » (Actions › Run workflow, `main`) pour
-   vérifier que GitHub et Supabase concordent ; le passage planifié suivant doit réussir.
+4. « Déploiement de la base » (Actions › Run workflow, `main`) : il réécrit Supabase avec les valeurs de GitHub. Une fois
+   vert : Fournitures › Rapprochement Dolibarr (marché SRM) › onglet Synchronisation › **Synchroniser maintenant**,
+   aucune erreur (c'est la valeur de GitHub qui est testée).
+5. Plus d'1 h après le Rotate (ancien secret Cloudflare expiré) : **Synchroniser maintenant** de nouveau, aucune erreur.
+   Une erreur Cloudflare (403, redirection) : GitHub a gardé l'ancien secret ; le reposer depuis le coffre
+   (`gh secret set CF_ACCESS_CLIENT_SECRET --env base-production -R stepag-app/suivi-fuites`) et relancer l'étape 4.
 
 ## Fonctionnement (`supabase/functions/dolibarr-mouvements/`)
 

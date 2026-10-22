@@ -16,8 +16,8 @@ name: Sauvegarde de la base
 # juste avant une purge (workflow_call).
 # Scripts : outils/sauvegarde/ (exporter.sh, copie-r2.sh, photos-vers-r2.sh, copie-drive.sh, isolement-r2.sh). Procédure de
 # restauration : supabase/README.md, sections « Sauvegarde et restauration » et « Reprise après sinistre ».
-# Secrets (Settings > Secrets and variables > Actions) :
-#  * SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD : déjà créés pour le déploiement
+# Secrets de l'environnement GitHub sauvegarde-production (Settings > Environments), jamais au niveau du dépôt (H11) :
+#  * SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD : mêmes valeurs que dans base-production
 #  * SAUVEGARDE_PASSPHRASE : phrase secrète de chiffrement. À ranger dans le gestionnaire de mots de
 #    passe : sans elle, les sauvegardes sont illisibles. Jamais dans le dépôt ni dans une conversation.
 #    Elle n'est jamais envoyée dans R2 : seule l'archive chiffrée y va.

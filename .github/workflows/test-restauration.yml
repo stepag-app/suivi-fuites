@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Installer rclone (version épinglée)
         run: bash outils/sauvegarde/installer-rclone.sh
       - name: Essais (dossiers locaux à la place du Drive et de R2)
@@ -83,7 +83,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Préparer les outils
         run: |
@@ -262,7 +262,7 @@ jobs:
           echo "SAUVEGARDE_ARCHIVE=$fichier" >> "$GITHUB_ENV"
           echo "SOURCE_RESTAURATION=le Drive" >> "$GITHUB_ENV"
 
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
 

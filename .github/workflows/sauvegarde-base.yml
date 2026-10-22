@@ -78,7 +78,7 @@ jobs:
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Vérifier la présence des secrets
         # Les clés R2 ne sont pas exigées ici : mal posées, elles font échouer les seules étapes R2, après l'artefact,
         # et l'archive part quand même sur le Drive.
@@ -86,7 +86,7 @@ jobs:
           for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SAUVEGARDE_PASSPHRASE; do
             if [ -z "${!v}" ]; then echo "::error::Secret $v manquant dans GitHub."; exit 1; fi
           done
-      - uses: supabase/setup-cli@v1
+      - uses: supabase/setup-cli@v3
         with:
           version: latest
       - name: Lier le projet
@@ -100,7 +100,7 @@ jobs:
                   --passphrase "$SAUVEGARDE_PASSPHRASE" -o "sauvegarde-$(date -u +%Y%m%d-%H%M).tar.gz.gpg"
           rm -rf sauvegarde
           ls -l sauvegarde-*.gpg
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         id: artefact
         with:
           name: sauvegarde-base
@@ -139,7 +139,7 @@ jobs:
       R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
       R2_BUCKET: ${{ vars.R2_BUCKET || 'suivi-fuites-photos' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Vérifier la configuration du Drive
         id: config
         # Seul le Drive est exigé ici : une clé R2 manquante fait échouer les seules étapes R2 (photos, Storage),
@@ -162,7 +162,7 @@ jobs:
       - name: Récupérer l'archive chiffrée de ce job
         id: recuperer
         if: ${{ !cancelled() && steps.connexion.outcome == 'success' && needs.sauvegarde.outputs.archive == 'success' }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: sauvegarde-base
           path: archive

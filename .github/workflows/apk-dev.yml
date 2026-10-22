@@ -41,13 +41,13 @@ jobs:
       EXPO_NO_TELEMETRY: '1'
       APP_VARIANT: dev
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 17
@@ -57,7 +57,7 @@ jobs:
       - name: Compilation (debug)
         working-directory: mobile/android
         run: ./gradlew assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: suivi-fuites-dev-apk
           path: mobile/android/app/build/outputs/apk/debug/*.apk

@@ -109,6 +109,10 @@ qu'Issam ne l'a pas lancé lui-même (voir « Appliquer »).
 | `tests/database/58_carte_terrain_balayage_lecture.test.sql` | 22 tests : modèles Réparation et Réfection, Détection inchangée, lecture des balayages et de l'état compact de son marché, état du secteur, saisie et annulation refusées, isolation entre marchés, rôles changés par l'administrateur (Réfection seule, Détection + Réparation, Détection retirée), rattrapage des comptes affectés avant la migration |
 | `migrations/20261016900000_mes_chiffres_a_faire.sql` | **« Mes chiffres » et « À faire » de l'APK** (demande d'Issam du 2026-10-15), SECURITY INVOKER (RLS de l'appelant) : `mes_chiffres(marché)` (jsonb : rôles déduits des droits « créer » comme les boutons de l'APK, délais du marché, chiffres **du compte** pour aujourd'hui, la semaine depuis lundi et le mois, jours d'Oujda (`private.jour_maroc`) : fuites signalées, déjà réparées, linéaire balayé (un tronçon repassé compte une fois), fuites réparées et dans le délai de réparation, réfections faites et dans le délai chaussée ou trottoir ; chiffres **du marché** : à re-détecter, à réparer, à refaire ; aucun montant ni quantité ni tracé) ; `mes_actions(marché)` (actions du volet « À faire » limitées aux rôles du compte : étapes du compte renvoyées et pas encore reprises, re-détections, photos manquantes de ses fuites, réparations et réparations à finir, réfections ; urgentes d'abord puis les plus anciennes ; 500 au plus ; jamais l'anticipation) ; `private.reprise_apres_renvoi` (SECURITY DEFINER, compte connecté seulement) : une modification de l'agent après le renvoi, hors colonnes posées par le serveur, retire l'action « à corriger » |
 | `tests/database/59_mes_chiffres_a_faire.test.sql` | 29 tests : privilèges, rôles (un seul, cumulés), périodes (aujourd'hui, lundi, 1er du mois), chiffres par rôle et seulement ceux du compte, marché, délais, actions par rôle et ordre (urgentes, puis plus anciennes), étape renvoyée (motif, autre compte, changement du serveur sans effet, reprise par l'agent), isolation entre marchés, marché désactivé |
+| `migrations/20261017100000_durcissement_securite_s20.sql` | **audit de sécurité offensif** (#149) : contrôles d'auteur sur `reparation_ouvriers`, `balayages.agent_id` et `photos.auteur_terrain_id`, `est_affecte` filtré sur `actif`, dépôt de photos lié à une vraie fuite (`private.fuite_du_marche`) ; détail dans `RAPPORT_SECURITE.md` |
+| `tests/database/59_s20_durcissement_securite.test.sql` | 9 tests : chaque exploit confirmé est refusé, les usages légitimes passent |
+| `migrations/20261022100000_rotation_cles_appel.sql` | **H11** : `private.renouveler_cles_appel()` tire de nouvelles clés d'appel `x-cle-push` (`private.envoi_push.cle`) et `x-cle-synchro` (`private.synchro_dolibarr.cle`), jamais affichées ; appelée une fois, puis le 1er de chaque mois à 03:07 UTC (pg_cron `rotation-cles-appel`). Ne jamais lire ces colonnes (`select cle`) |
+| `tests/database/60_h11_rotation_cles_appel.test.sql` | 6 tests : anciennes clés refusées, nouvelles acceptées, fonction réservée à la base |
 | `ci/` | simulateur Supabase et script de test pour la CI GitHub (ne jamais appliquer au projet) |
 
 ## Ce que fait le schéma
@@ -306,7 +310,8 @@ base où `public.marches` ou `public.fuites` existe déjà). Outils : `gpg`, `ps
    aws s3 ls $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/
    aws s3 cp $R2 s3://suivi-fuites-sauvegardes/sauvegardes/base/sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg .
    ```
-2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument) :
+2. **Déchiffrer** (la phrase secrète est lue dans une variable, jamais en argument ; une archive faite avant la
+   dernière rotation de la phrase s'ouvre avec l'entrée « Phrase des sauvegardes jusqu'au … » du coffre) :
    ```bash
    read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE
    bash outils/sauvegarde/restaurer.sh dechiffrer sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg ./restauration
@@ -398,13 +403,25 @@ R2 (photos) est intact ; il faut un projet neuf, la base et les fichiers de Stor
    bash outils/sauvegarde/restaurer-drive.sh archive ./restauration           # affiche le chemin du fichier
    # une date précise : bash outils/sauvegarde/restaurer-drive.sh archive ./restauration sauvegarde-AAAAMMJJ-HHMM.tar.gz.gpg
    ```
-2. **Déchiffrer** : `read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE`, puis
+2. **Déchiffrer** (archive d'avant la dernière rotation de la phrase : entrée « Phrase des sauvegardes jusqu'au … »
+   du coffre) : `read -rs SAUVEGARDE_PASSPHRASE && export SAUVEGARDE_PASSPHRASE`, puis
    `bash outils/sauvegarde/restaurer.sh dechiffrer ./restauration/sauvegarde-….tar.gz.gpg ./restauration/sql`.
 3. **Projet Supabase neuf** (même région, PostGIS disponible), chaîne « Session pooler » dans `URL_BASE_NEUVE`, puis
    `bash outils/sauvegarde/restaurer.sh charger ./restauration/sql` (schéma, données, complément ; une transaction par
    fichier).
 4. **Migrations** : `supabase link --project-ref <projet>` puis
    `supabase migration repair --status applied $(cat ./restauration/sql/migrations_appliquees.txt)`.
+   Les migrations n'étant pas rejouées, les adresses d'appel et les tâches planifiées restent à refaire dans le
+   SQL Editor du projet neuf : `update private.envoi_push set url = 'https://<projet>.supabase.co/functions/v1/envoyer-push'`,
+   même chose pour `private.synchro_dolibarr` (`…/dolibarr-mouvements`), puis `select private.renouveler_cles_appel()`
+   (clés neuves, jamais lues) ; recréer les tâches pg_cron (lignes des migrations, `perform` remplacé par `select`) :
+   ```sql
+   select cron.schedule('alertes-reparation', '*/15 * * * *', 'select public.generer_alertes_reparation()');
+   select cron.schedule('envoi-push', '*/5 * * * *', 'select private.declencher_push()');
+   select cron.schedule('lecture-dolibarr', '*/15 * * * *', 'select private.declencher_synchro_dolibarr()');
+   select cron.schedule('alertes-suivi-gps', '*/5 * * * *', 'select public.generer_alertes_suivi_gps()');
+   select cron.schedule('rotation-cles-appel', '7 3 1 * *', 'select private.renouveler_cles_appel()');
+   ```
 5. **Fichiers de Supabase Storage** :
    ```bash
    rclone copy drive:Suivi-fuites-sauvegarde/stockage-supabase ./restauration/fichiers --progress
@@ -447,9 +464,11 @@ perdu, celui des sauvegardes est intact (clé distincte) : étapes 1 à 3 seulem
 ### Scénario C : GitHub est perdu (compte suspendu, dépôt supprimé)
 
 1. Récupérer le code d'un clone local (`git log` pour vérifier le dernier commit) et le pousser vers un dépôt neuf.
-2. Recréer **tous** les secrets (liste : en-têtes des workflows, `CLAUDE.md`, gestionnaire de mots de passe), dont
-   `SAUVEGARDE_PASSPHRASE` **à l'identique** (sinon les archives existantes restent illisibles) et
-   `SAUVEGARDE_DRIVE_CONFIG` (`rclone config show drive`, voir la note pas à pas).
+2. Recréer d'abord les quatre environnements (`base-production`, `sauvegarde-production`, `purge-production` avec
+   relecteur obligatoire, `apk-production` ; branches autorisées : `main`), puis **tous** leurs secrets selon le
+   tableau B de `docs/feuille-de-route.md` § 5, dont `SAUVEGARDE_PASSPHRASE` **à l'identique** (sinon les archives
+   existantes restent illisibles) et `SAUVEGARDE_DRIVE_CONFIG` (`rclone config show drive`, voir la note pas à pas).
+   Au niveau du dépôt, seulement `GOOGLE_SERVICES_JSON` et `EXPO_PUBLIC_SUPABASE_ANON_KEY`.
 3. Relancer « Sauvegarde de la base » à la main : le Drive est repris tel quel (copie incrémentale), rien n'est
    recopié ni supprimé hors rotation.
 

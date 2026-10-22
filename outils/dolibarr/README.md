@@ -26,18 +26,34 @@ Mode d'emploi pas à pas : note Claude Docs « Dolibarr : ouverture de l'API en 
 |---|---|
 | Dolibarr 19.0.1 (`https://erp.stepag.ma/erp/`) | module API REST actif ; liste d'adresses IP autorisées **vide** (derrière le tunnel, Dolibarr voit l'adresse de l'appelant, et celles de Supabase changent) ; utilisateur interne `api-suivi-fuites`, non administrateur, trois droits : consulter les produits, les stocks, les mouvements de stocks ; sa clé API |
 | Cloudflare Zero Trust (compte `boussalam.issam@…`, équipe `broad-grass-825f`) | jeton de service `supabase-suivi-fuites` (sans expiration) ; application self-hosted `ERP API lecture (Supabase)` sur `erp.stepag.ma/erp/api`, règle `Supabase seulement` en **Service Auth** limitée à ce jeton ; l'application `STEPAG ERP` (reste du site) inchangée |
-| Secrets GitHub → Supabase | `DOLIBARR_API_URL` (`https://erp.stepag.ma/erp/api/index.php`), `DOLIBARR_API_CLE`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, posés sur la fonction par le workflow « Déploiement de la base » ; absents, la fonction répond « non configuré » |
+| Environnement GitHub `base-production` → Supabase | `DOLIBARR_API_URL` (`https://erp.stepag.ma/erp/api/index.php`), `DOLIBARR_API_CLE`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`, posés sur la fonction par le workflow « Déploiement de la base » ; absents, l'étape ne retire rien de Supabase (la fonction garde ses valeurs) |
 
 Les valeurs sont dans `data-private/dolibarr/api-dolibarr.env` sur le Mac d'Issam (hors dépôt). Pour les recopier dans
-GitHub sans les afficher :
+l'environnement GitHub sans les afficher (toujours `--env base-production` : un secret posé au niveau du dépôt serait
+ignoré sans message, l'environnement passe devant) :
 
 ```bash
-gh secret set -f ~/Desktop/Suivi-fuites/data-private/dolibarr/api-dolibarr.env -R stepag-app/suivi-fuites
+gh secret set -f ~/Desktop/Suivi-fuites/data-private/dolibarr/api-dolibarr.env --env base-production -R stepag-app/suivi-fuites
 ```
 
-**Couper l'accès** (clé diffusée, fin du marché) : Cloudflare › Service credentials › `supabase-suivi-fuites` › Revoke,
-ou Dolibarr › fiche `api-suivi-fuites` › Désactiver ; l'un des deux suffit. **Changer une clé** : nouvelle valeur dans le
-fichier `.env`, la commande ci-dessus, puis relancer « Déploiement de la base » (Actions › Run workflow).
+**Couper l'accès** (clé diffusée, fin du marché) : Zero Trust › Access controls › Service credentials › Service Tokens ›
+`supabase-suivi-fuites` › Delete, ou Dolibarr › fiche `api-suivi-fuites` › Désactiver ; l'un des deux suffit.
+
+**Changer les clés sans coupure** (H11 ; aucune fusion touchant `supabase/migrations`, `supabase/functions` ou
+`supabase/config.toml` pendant l'opération) :
+1. Cloudflare : jeton `supabase-suivi-fuites` › **Rotate** (secret seulement, l'identifiant ne change pas), ancien secret
+   gardé **1 h** : les deux valent ensemble pendant ce temps. Nouveau secret au coffre. Étapes 2 à 4 dans l'heure.
+2. Dolibarr : une seule clé par utilisateur, l'ancienne cesse dès l'enregistrement de la nouvelle. Juste après un
+   passage planifié (:00, :15, :30, :45 UTC), fiche `api-suivi-fuites` › Modifier › nouvelle clé API › Enregistrer.
+3. Dans la minute : dans le fichier `.env`, remplacer `DOLIBARR_API_CLE` et `CF_ACCESS_CLIENT_SECRET`, puis la commande
+   ci-dessus (`--env base-production`) ; enfin Supabase › Edge Functions › Secrets, mettre à jour les deux mêmes secrets
+   (lus aussitôt par la fonction, sans redéploiement).
+4. « Déploiement de la base » (Actions › Run workflow, `main`) : il réécrit Supabase avec les valeurs de GitHub. Une fois
+   vert : Fournitures › Rapprochement Dolibarr (marché SRM) › onglet Synchronisation › **Synchroniser maintenant**,
+   aucune erreur (c'est la valeur de GitHub qui est testée).
+5. Plus d'1 h après le Rotate (ancien secret Cloudflare expiré) : **Synchroniser maintenant** de nouveau, aucune erreur.
+   Une erreur Cloudflare (403, redirection) : GitHub a gardé l'ancien secret ; le reposer depuis le coffre
+   (`gh secret set CF_ACCESS_CLIENT_SECRET --env base-production -R stepag-app/suivi-fuites`) et relancer l'étape 4.
 
 ## Fonctionnement (`supabase/functions/dolibarr-mouvements/`)
 

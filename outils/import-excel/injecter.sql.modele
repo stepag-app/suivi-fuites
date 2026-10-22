@@ -1,0 +1,151 @@
+-- =============================================================================
+-- Import de l'historique Excel (généré le {{GENERE_LE}} par outils/import-excel/generer.py).
+-- Fichier produit dans data-private/ : il contient des données réelles, jamais versionné.
+--
+-- Lancé par outils/import-excel/importer.sh (connexion d'administration de la base) :
+-- une seule transaction, tout ou rien. Les fuites sont marquées source_saisie = 'import',
+-- ce qui permet de les retirer avec annuler.sql. Rien n'est validé : la responsable
+-- vérifie et valide chaque étape dans le panneau.
+-- =============================================================================
+\set ON_ERROR_STOP 1
+begin;
+
+create temporary table imp_param on commit drop as
+select m.id as marche_id,
+       (select id from public.profils where identifiant = {{DETECTEUR}}) as detecteur,
+       (select id from public.profils where identifiant = {{REPARATEUR}}) as reparateur,
+       (select id from public.profils where identifiant = {{SAISIE}}) as saisie
+  from public.marches m where m.code = {{MARCHE}};
+
+create temporary table imp_fuites (
+  numero integer primary key, tournee text, ouvrage text, nature text, date_detection timestamptz, observation text,
+  id uuid not null default gen_random_uuid()
+) on commit drop;
+insert into imp_fuites (numero, tournee, ouvrage, nature, date_detection, observation) values
+  {{FUITES}};
+
+create temporary table imp_reparations (
+  numero integer primary key, resultat public.resultat_reparation, motif text, realisee_le timestamptz,
+  ouvrage text, materiau text, diametre_mm integer, tuyau_repare boolean, robinet_pec_change boolean,
+  collier_pec_change boolean, bouche_a_cle_mise_a_niveau boolean, longueur_pe_m numeric,
+  fouille_longueur_m numeric, fouille_largeur_m numeric, fouille_profondeur_m numeric, emplacement text, nature text,
+  id uuid not null default gen_random_uuid()
+) on commit drop;
+insert into imp_reparations (numero, resultat, motif, realisee_le, ouvrage, materiau, diametre_mm, tuyau_repare,
+  robinet_pec_change, collier_pec_change, bouche_a_cle_mise_a_niveau, longueur_pe_m, fouille_longueur_m,
+  fouille_largeur_m, fouille_profondeur_m, emplacement, nature) values
+  {{REPARATIONS}};
+
+create temporary table imp_pieces (numero integer, produit_id integer, quantite numeric, libelle_excel text) on commit drop;
+insert into imp_pieces values
+  {{PIECES}};
+
+-- -----------------------------------------------------------------------------
+-- Garde-fous : rien n'est écrit si l'un d'eux échoue.
+-- -----------------------------------------------------------------------------
+do $$
+declare
+  _p imp_param;
+  _x text;
+begin
+  select * into _p from imp_param;
+  if _p.marche_id is null then raise exception 'Marché introuvable : %', {{MARCHE}}; end if;
+  if _p.detecteur is null or _p.reparateur is null or _p.saisie is null then
+    raise exception 'Compte introuvable : détection %, réparation %, saisie %',
+      _p.detecteur is not null, _p.reparateur is not null, _p.saisie is not null;
+  end if;
+  select string_agg(p.identifiant, ', ') into _x
+    from public.profils p
+   where p.id in (_p.detecteur, _p.reparateur, _p.saisie)
+     and (not p.actif or not private.est_affecte(p.id, _p.marche_id));
+  if _x is not null then raise exception 'Compte inactif ou non affecté au marché : %', _x; end if;
+  if exists (select 1 from public.fuites where marche_id = _p.marche_id and source_saisie = 'import') then
+    raise exception 'Un import est déjà présent dans ce marché : lancer d''abord l''annulation';
+  end if;
+  select string_agg(f.numero::text, ', ' order by f.numero) into _x
+    from public.fuites f join imp_fuites i on i.numero = f.numero
+   where f.marche_id = _p.marche_id;
+  if _x is not null then raise exception 'Numéros déjà pris dans le marché : %', _x; end if;
+  select string_agg(x::text, ', ') into _x
+    from unnest(array[{{PRODUITS}}]) x
+   where not exists (select 1 from public.produits_dolibarr d where d.dolibarr_id = x and d.actif);
+  if _x is not null then raise exception 'Articles absents ou retirés de Dolibarr (rowid) : %', _x; end if;
+  select string_agg(distinct i.nature, ', ') into _x
+    from imp_fuites i
+   where i.nature is not null
+     and not exists (select 1 from public.natures_refection n where n.marche_id = _p.marche_id and n.code = i.nature);
+  if _x is not null then raise exception 'Natures de dégradation absentes du marché : %', _x; end if;
+  select string_agg(distinct r.motif, ', ') into _x
+    from imp_reparations r
+   where r.motif is not null
+     and not exists (select 1 from public.motifs m where m.marche_id = _p.marche_id and m.code = r.motif
+                     and m.categorie = 'sans_reparation');
+  if _x is not null then raise exception 'Motifs absents du marché : %', _x; end if;
+end
+$$;
+
+-- -----------------------------------------------------------------------------
+-- Écriture (mode système : numéros imposés, champs exigés laissés vides pour la responsable)
+-- -----------------------------------------------------------------------------
+insert into public.fuites (id, marche_id, numero, reference_srm, origine, visibilite, ouvrage, nature_degradation_id,
+  date_detection, auteur_terrain_id, saisi_par, source_saisie, observation)
+select i.id, p.marche_id, i.numero, i.tournee, 'stepag', 'invisible', i.ouvrage, n.id,
+       i.date_detection, p.detecteur, p.saisie, 'import', i.observation
+  from imp_fuites i cross join imp_param p
+  left join public.natures_refection n on n.marche_id = p.marche_id and n.code = i.nature
+ order by i.numero;
+
+insert into public.reparations (id, marche_id, fuite_id, resultat, motif_id, realisee_le, auteur_terrain_id, saisi_par,
+  source_saisie, ouvrage, materiau, diametre_mm, tuyau_repare, robinet_pec_change, collier_pec_change,
+  bouche_a_cle_mise_a_niveau, longueur_pe_m, fouille_longueur_m, fouille_largeur_m, fouille_profondeur_m,
+  emplacement, nature_revetement_id)
+select r.id, p.marche_id, f.id, r.resultat, mo.id, r.realisee_le, p.reparateur, p.saisie, 'import',
+       r.ouvrage, r.materiau, r.diametre_mm, r.tuyau_repare, r.robinet_pec_change, r.collier_pec_change,
+       r.bouche_a_cle_mise_a_niveau, r.longueur_pe_m, r.fouille_longueur_m, r.fouille_largeur_m,
+       r.fouille_profondeur_m, r.emplacement::public.emplacement_fouille, n.id
+  from imp_reparations r cross join imp_param p
+  join imp_fuites f on f.numero = r.numero
+  left join public.motifs mo on mo.marche_id = p.marche_id and mo.code = r.motif and mo.categorie = 'sans_reparation'
+  left join public.natures_refection n on n.marche_id = p.marche_id and n.code = r.nature
+ order by r.numero;
+
+insert into public.reparation_pieces (marche_id, reparation_id, produit_id, quantite, saisi_par)
+select p.marche_id, r.id, i.produit_id, i.quantite, p.saisie
+  from imp_pieces i cross join imp_param p
+  join imp_reparations r on r.numero = i.numero
+ order by i.numero;
+
+-- Articles posés : proposés dans les listes de la tablette et du panneau
+update public.produits_dolibarr
+   set utilisable = true, utilisable_le = now()
+ where dolibarr_id = any (array[{{PRODUITS}}]) and not utilisable;
+
+-- Notifications nées de l'import (aucune attendue) : pas d'envoi en masse vers les tablettes
+delete from public.notifications n
+ using imp_fuites i
+ where n.fuite_id = i.id and n.cree_le = now();
+
+-- Prochaine fuite saisie sur tablette : {{NB_FUITES}} + 1
+insert into private.compteurs (marche_id, cle, valeur)
+select marche_id, 'fuite', {{NB_FUITES}} from imp_param
+on conflict (marche_id, cle) do update set valeur = greatest(private.compteurs.valeur, excluded.valeur);
+
+-- -----------------------------------------------------------------------------
+-- Résumé
+-- -----------------------------------------------------------------------------
+-- <resume-psql>
+\echo 'Fuites importées par statut :'
+select f.statut, count(*) from public.fuites f join imp_fuites i on i.id = f.id group by 1 order by 1;
+\echo 'Réparations, pièces, lignes de prix :'
+select (select count(*) from public.reparations r join imp_reparations i on i.id = r.id) as reparations,
+       (select count(*) from public.reparation_pieces rp join imp_reparations i on i.id = rp.reparation_id) as pieces,
+       (select count(*) from public.lignes_quantites l join imp_fuites i on i.id = l.fuite_id) as lignes_prix;
+\echo 'Quantités proposées par prix :'
+select pr.numero as prix, sum(l.quantite) as quantite
+  from public.lignes_quantites l join imp_fuites i on i.id = l.fuite_id join public.prix pr on pr.id = l.prix_id
+ group by pr.numero, pr.ordre order by pr.ordre;
+\echo 'Prochain numéro de fuite :'
+select c.valeur + 1 as prochain from private.compteurs c join imp_param p on p.marche_id = c.marche_id where c.cle = 'fuite';
+-- </resume-psql>
+
+:fin;

@@ -195,6 +195,7 @@ backups/
 !outils/charge/*.sql
 !outils/sauvegarde/*.sql
 !outils/purge/*.sql
+!outils/import-excel/*.sql
 
 # Supabase local
 supabase/.temp/

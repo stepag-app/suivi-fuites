@@ -338,7 +338,11 @@ complet : `docs/lots/chantier-v3-email.md`.
   « Pas de réseau », bouton Actualiser ; avec le paquet de la carte sans réseau (tablette, § Carte sans réseau), dernière
   liste lue en ligne. Si le fond de carte ne répond pas (8 s), les fuites s'affichent sur
   fond uni avec un bandeau (les nombres des groupes n'apparaissent alors pas).
-- Tablette : boutons de zoom de 44 px, rotation désactivée, un toucher à 14 px près sélectionne le point.
+- Tablette : boutons de zoom de 44 px, un toucher à 14 px près sélectionne le point. **Rotation** (carte, balayage et
+  carte terrain de l'APK) : deux doigts qui tournent, ou clic droit glissé à la souris ; la **boussole** sous les boutons
+  de zoom remet le nord en haut ; jamais d'inclinaison (deux doigts glissés ensemble ne font rien) ; « Recentrer »
+  garde l'orientation. L'impression reste **nord en haut** : la vue de l'écran tournée y tient dans son rectangle
+  englobant (`etatImpression`). Mini-cartes, tracés GPS et carte de zonage des paramètres restent sans rotation.
 - **Impression** (« Imprimer la carte », droit « exports / lire ») : format A4 / A3, portrait / paysage, titre,
   **cadrage** (par défaut sur les fuites et le réseau affichés, avec une marge de 4 % ; ou vue de l'écran), rubriques à
   cocher (liste des fuites affichées comprise). PDF fabriqué dans le navigateur (`src/lib/export/carte-pdf.ts`, jsPDF

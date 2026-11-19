@@ -145,7 +145,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     const lng = coords.map((c) => c[0]);
     const lat = coords.map((c) => c[1]);
     m.fitBounds([[Math.min(...lng), Math.min(...lat)], [Math.max(...lng), Math.max(...lat)]], {
-      padding: 60, maxZoom: 16, duration: 600,
+      padding: 60, maxZoom: 16, duration: 600, bearing: m.getBearing(),
     });
   };
   const recentrerRef = useRef(recentrer);
@@ -158,13 +158,19 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
     if (!m || !impression.current) return null;
     const b = m.getBounds();
     const c = m.getCenter();
+    // L'impression est toujours nord en haut : une vue tournée y tient dans son rectangle englobant.
+    const a = (m.getBearing() * Math.PI) / 180;
+    const cos = Math.abs(Math.cos(a));
+    const sin = Math.abs(Math.sin(a));
+    const l = m.getContainer().clientWidth;
+    const h = m.getContainer().clientHeight;
     return {
       ...impression.current,
       bornes: [[b.getWest(), b.getSouth()], [b.getEast(), b.getNorth()]],
       centre: [c.lng, c.lat],
       zoom: m.getZoom(),
-      largeurPx: m.getContainer().clientWidth,
-      hauteurPx: m.getContainer().clientHeight,
+      largeurPx: Math.round(l * cos + h * sin),
+      hauteurPx: Math.round(l * sin + h * cos),
     };
   };
   // Centre la carte sur une fuite et ouvre sa bulle (sélection depuis la liste).
@@ -252,8 +258,14 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
           attributionControl: style === STYLE_SECOURS
             ? { compact: false, customAttribution: 'Fond de carte indisponible' }
             : { compact: false },
-          dragRotate: false,
+          // Rotation à deux doigts (tablette) ou clic droit glissé (souris) ; la carte reste à plat.
           pitchWithRotate: false,
+          touchPitch: false,
+          locale: {
+            'NavigationControl.ResetBearing': 'Remettre le nord en haut',
+            'NavigationControl.ZoomIn': 'Zoom avant',
+            'NavigationControl.ZoomOut': 'Zoom arrière',
+          },
         });
       } catch {
         setErreur('Ce navigateur ne peut pas afficher la carte (WebGL indisponible).');
@@ -263,8 +275,7 @@ export const Carte = forwardRef<CarteRef, Props>(function Carte({ fuites, zones,
       carte.current = m;
       // Mesure de fluidité (scripts d'essai) : jamais activée en production.
       if (process.env.NEXT_PUBLIC_MESURE_CARTE === '1') (window as unknown as { __carteFuites?: CarteMapLibre }).__carteFuites = m;
-      m.touchZoomRotate.disableRotation();
-      m.addControl(new ml.NavigationControl({ showCompass: false }), 'top-right');
+      m.addControl(new ml.NavigationControl({ visualizePitch: false }), 'top-right');
       m.addControl(new ml.ScaleControl({ unit: 'metric', maxWidth: 140 }), 'bottom-left');
 
       m.on('load', () => {
